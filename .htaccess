@@ -1,0 +1,81 @@
+# ----------------------------------------------------------------------
+# PRODUCTION-READY .htaccess (XAMPP / Localhost Friendly)
+# ----------------------------------------------------------------------
+
+# 1. ตั้งค่าไฟล์เริ่มต้นให้เป็น index.php เสมอ (แก้ปัญหาเข้า folder แล้วไม่เจอไฟล์)
+DirectoryIndex index.php index.html
+
+# 2. เปิดใช้งาน Rewrite Engine
+RewriteEngine On
+
+# 3. ตั้งค่า Charset
+AddDefaultCharset UTF-8
+
+# ----------------------------------------------------------------------
+# SECURITY (ความปลอดภัย)
+# ----------------------------------------------------------------------
+
+# ป้องกันการมองเห็นรายชื่อไฟล์ใน Folder (Directory Browsing)
+Options -Indexes
+
+# ป้องกันการเข้าถึงไฟล์ Sensitive หรือไฟล์ Config
+<FilesMatch "^\.(env|git|gitignore|composer|lock|json|yml|xml)$">
+    Require all denied
+</FilesMatch>
+
+# ป้องกัน Clickjacking และ XSS เบื้องต้น
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+    # ซ่อนเวอร์ชั่น PHP
+    Header unset X-Powered-By
+</IfModule>
+
+# ----------------------------------------------------------------------
+# HTTPS ENFORCEMENT (ปิดไว้สำหรับ XAMPP/Localhost)
+# ----------------------------------------------------------------------
+# หมายเหตุ: เมื่อนำขึ้น Server จริง ให้เอาเครื่องหมาย # ออกจากบรรทัดด้านล่างนี้
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# ----------------------------------------------------------------------
+# CLEAN URLS (ลบ .php ออกจาก URL)
+# ----------------------------------------------------------------------
+
+# ถ้า User พิมพ์ /page แล้วไฟล์ page.php มีอยู่จริง -> ให้เรียก page.php มาแสดง
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# ----------------------------------------------------------------------
+# ERROR HANDLING
+# ----------------------------------------------------------------------
+
+# ควรสร้างไฟล์ error.php ไว้ในโฟลเดอร์ public เพื่อรองรับการแสดงผล
+ErrorDocument 403 /error.php?code=403
+ErrorDocument 404 /error.php?code=404
+ErrorDocument 500 /error.php?code=500
+
+# ----------------------------------------------------------------------
+# BROWSER CACHING (เพื่อให้เว็บโหลดเร็วขึ้น)
+# ----------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images (แคช 1 เดือน)
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    
+    # CSS & JS (แคช 1 สัปดาห์)
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    
+    # Fonts
+    ExpiresByType font/woff2 "access plus 1 month"
+</IfModule>

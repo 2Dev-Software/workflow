@@ -1,0 +1,47 @@
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('chulabhornlikittext-regular.eot');
+    src: url('chulabhornlikittext-regular.eot?#iefix') format('embedded-opentype'),
+         url('chulabhornlikittext-regular.woff') format('woff'),
+         url('chulabhornlikittext-regular.woff2') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('chulabhornlikittext-medium.eot');
+    src: url('chulabhornlikittext-medium.eot?#iefix') format('embedded-opentype'),
+         url('chulabhornlikittext-medium.woff') format('woff'),
+         url('chulabhornlikittext-medium.woff2') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+
+}
+
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('chulabhornlikittext-light.eot');
+    src: url('thsarabunnew_italic-webfont.eot?#iefix') format('embedded-opentype'),
+         url('chulabhornlikittext-light.woff') format('woff'),
+         url('chulabhornlikittext-light.woff2') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+
+}
+
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('chulabhornlikittext-medium.eot');
+    src: url('chulabhornlikittext-medium.eot?#iefix') format('embedded-opentype'),
+         url('chulabhornlikittext-medium.woff') format('woff'),
+         url('chulabhornlikittext-medium.woff2') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+
+}
+
+.thsarabunnew{
+   font-family: 'THSarabunNew', sans-serif;
+}

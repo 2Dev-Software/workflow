@@ -1,0 +1,46 @@
+/* =========================================
+     Brand Colors: Primary
+     ========================================= */
+     
+:root {
+  /* Base HEX */
+  --color-primary:        #2F63E1;
+  --color-primary-dark:   #2559D4;
+  --color-primary-deep:   #25396F;
+
+  /* RGB Values (สำหรับการทำ Opacity เช่น rgba) */
+  --rgb-primary:          47, 99, 225;
+  --rgb-primary-dark:     37, 89, 212;
+  --rgb-primary-deep:     37, 57, 111;
+
+  /* =========================================
+     Brand Colors: Secondary
+     ========================================= */
+  --color-secondary:       #324C9A;
+  --color-secondary-light: #435EBE;
+
+  --rgb-secondary:         50, 76, 154;
+  --rgb-secondary-light:   67, 94, 190;
+
+  /* =========================================
+     Functional / Feedback Colors
+     ========================================= */
+  --color-warning:         #E7BD1E;
+  --color-danger:          #FF5050;
+  --color-success:         #34C759;
+
+  --rgb-warning:           231, 189, 30;
+  --rgb-danger:            255, 80, 80;
+  --rgb-success:           52, 199, 89;
+
+  /* =========================================
+     Neutral / Grayscale
+     ========================================= */
+  --color-neutral-lightest: #F2F7FF;
+  --color-neutral-medium:   #A8ABBD;
+  --color-neutral-dark:     #1C1C1C;
+
+  --rgb-neutral-lightest:   242, 247, 255;
+  --rgb-neutral-medium:     168, 171, 189;
+  --rgb-neutral-dark:       28, 28, 28;
+}

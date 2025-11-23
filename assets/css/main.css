@@ -1,0 +1,50 @@
+@import url("./abstracts/design-tokens.css");
+@import url("./abstracts/typography.css");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* =========================================
+   RESPONSIVE BREAKPOINTS (Strict Mode)
+   ========================================= */
+
+@media screen and (max-width: 767px) {
+  /* ใส่ CSS สำหรับมือถือที่นี่ */
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  /* ใส่ CSS สำหรับแท็บเล็ตที่นี่ */
+
+}
+
+@media screen and (min-width: 1024px) {
+  /* ใส่ CSS สำหรับเดสก์ท็อปที่นี่ */
+
+}
