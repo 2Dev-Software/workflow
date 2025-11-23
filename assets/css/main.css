@@ -45,4 +45,25 @@ svg {
 
 @media screen and (min-width: 1024px) {
   /* ใส่ CSS สำหรับเดสก์ท็อปที่นี่ */
+  .container-login-page{
+    max-width: 100vw;
+    max-height: 100vh;
+    background-color: var(--color-secondary);
+    overflow: hidden;
+  }
+
+  .container-login-section{
+    width: 36%;
+    height: 100vh;
+    background-color: var(--color-neutral-lightest);
+    box-shadow: 2px 0 4px 4px var(--color-neutral-lightest);
+  }
+  
+  .container-notification-section{
+    width: 64%;
+    height: 100vh;
+    background: linear-gradient(270deg , var(--rgb-secondary-light) , var(--rgb-primary-deep));  
+  }
+
+ 
 }
