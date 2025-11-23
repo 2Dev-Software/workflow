@@ -23,4 +23,5 @@
     <link href="assets/fonts/th-style.css" rel="stylesheet" />
     
     <link rel="stylesheet" href="assets/css/main.css?v=0.0.1">
+    <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
 </head>
