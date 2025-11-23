@@ -24,8 +24,8 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 
             <div class="form-login">
                 <form action="" method="post">
-                    <input type="text" name="" id="" placeholder="เลขบัตรประชาชน" required>
-                    <input type="password" name="" id="" placeholder="รหัสผ่าน" required>
+                    <input type="text" name="pID" id="" placeholder="เลขบัตรประชาชน" required>
+                    <input type="password" name="password" id="" placeholder="รหัสผ่าน" required>
                     <input type="checkbox" name="" id="">
                     <p>จดจำฉัน</p>
                     <div class="button-login">
@@ -35,8 +35,8 @@ require_once __DIR__ . '/src/Services/auth/login.php';
             </div>
 
             <div class="footer-login">
-                <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน
-                    DB HUB V.1.0.0 Copyright @T&T-2025 All rights reserved</p>
+                <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
+                <p>DB HUB V.1.0.0 Copyright @T&T-2025 All rights reserved</p>
                 <p>Paperless office พ.ศ.2568</p>
             </div>
 
