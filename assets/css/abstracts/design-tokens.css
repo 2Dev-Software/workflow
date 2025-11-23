@@ -28,10 +28,14 @@
   --color-warning:         #E7BD1E;
   --color-danger:          #FF5050;
   --color-success:         #34C759;
-
+  --color-orange:          #FF8D28;
+  --color-purple:          #CB30E0;
+  
   --rgb-warning:           231, 189, 30;
   --rgb-danger:            255, 80, 80;
   --rgb-success:           52, 199, 89;
+  --rgb-orange:            255, 141, 40;
+  --rgb-purple:            203, 48, 224;
 
   /* =========================================
      Neutral / Grayscale
