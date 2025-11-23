@@ -7,6 +7,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 <?php require_once __DIR__ . '/public/components/x-head.php'; ?>
 
 <body>
+    <?php require_once __DIR__ . '/public/components/layout/preloader.php' ?>
 
     <div class="container-login-page">
 
