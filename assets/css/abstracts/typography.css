@@ -10,13 +10,15 @@
   --font-size-h3:     2.062rem; /* 33px */
   --font-size-h4:     1.750rem; /* 28px */
   
-  --font-size-title:  1.438rem; /* 23px */
+  --font-size-title:  1.500rem; /* 24px */
   
-  --font-size-body-1: 1.188rem; /* 19px */
+  --font-size-body-1: 1.250rem; /* 20px */
   --font-size-body-2: 1.000rem; /* 16px (Base) */
   
-  --font-size-desc-1: 0.812rem; /* 13px */
-  --font-size-desc-2: 0.688rem; /* 11px */
+  --font-size-desc-1: 0.875rem; /* 14px */
+  --font-size-desc-2: 0.750rem; /* 12px */
+  --font-size-desc-3: 0.625rem; /* 10px */
+  --font-size-desc-4: 0.500rem; /*  8px */
 
   /* Line Height (ระยะห่างบรรทัดมาตรฐาน) */
   --line-height-heading: 1.2;
