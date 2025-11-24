@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/src/Services/security/securityservice.php';
 require_once __DIR__ . '/src/Services/auth/login.php';
 ?>
@@ -7,7 +10,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 <?php require_once __DIR__ . '/public/components/x-head.php'; ?>
 
 <body>
-    <?php require_once __DIR__ . '/public/components/layout/preloader.php' ?>
+    <?php require_once __DIR__ . '/public/components/layout/preloader.php'; ?>
 
     <div class="container-login-page">
 
@@ -25,8 +28,13 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 
             <div class="form-login">
                 <form action="" method="post">
-                    <input type="text" name="pID" id="" placeholder="เลขบัตรประชาชน" required>
-                    <input type="password" name="password" id="" placeholder="รหัสผ่าน" required>
+                    <div class="input-group">
+                        <label for="pID" class="sr-only">เลขบัตรประชาชน</label>
+                        <input type="text" name="pID" id="" placeholder="เลขบัตรประชาชน" autocomplete="username"
+                            inputmode="numeric" required>
+                    </div>
+                    <input type="password" name="password" id="" placeholder="รหัสผ่าน" autocomplete="current-password"
+                        required>
                     <input type="checkbox" name="" id="">
                     <p>จดจำฉัน</p>
                     <div class="button-login">
