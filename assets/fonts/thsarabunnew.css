@@ -15,7 +15,7 @@
     src: url('chulabhornlikittext-medium.eot?#iefix') format('embedded-opentype'),
          url('chulabhornlikittext-medium.woff') format('woff'),
          url('chulabhornlikittext-medium.woff2') format('truetype');
-    font-weight: bold;
+    font-weight: medium;
     font-style: italic;
 
 }
@@ -33,10 +33,10 @@
 
 @font-face {
     font-family: 'THSarabunNew';
-    src: url('chulabhornlikittext-medium.eot');
-    src: url('chulabhornlikittext-medium.eot?#iefix') format('embedded-opentype'),
-         url('chulabhornlikittext-medium.woff') format('woff'),
-         url('chulabhornlikittext-medium.woff2') format('truetype');
+    src: url('chulabhornlikittext-bold.eot');
+    src: url('chulabhornlikittext-bold.eot?#iefix') format('embedded-opentype'),
+         url('chulabhornlikittext-bold.woff') format('woff'),
+         url('chulabhornlikittext-bold.woff2') format('truetype');
     font-weight: bold;
     font-style: normal;
 
