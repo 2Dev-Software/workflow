@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/src/Services/security/securityservice.php';
 require_once __DIR__ . '/src/Services/auth/login.php';
 ?>
@@ -7,7 +10,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 <?php require_once __DIR__ . '/public/components/x-head.php'; ?>
 
 <body>
-    <?php require_once __DIR__ . '/public/components/layout/preloader.php' ?>
+    <?php require_once __DIR__ . '/public/components/layout/preloader.php'; ?>
 
     <div class="container-login-page">
 
