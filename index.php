@@ -17,6 +17,11 @@ require_once __DIR__ . '/src/Services/auth/login.php';
         <div class="container-login-section">
 
             <header class="header-login">
+                <div class="container-notification-toggle">
+                    <button type="button" id="toggleNewsBtn">
+                        ดูข่าวประชาสัมพันธ์ <i class="fa-solid fa-bullhorn"></i>
+                    </button>
+                </div>
                 <div class="logo-login">
                     <img src="assets/img/favicon/deebuk-logo.png" alt="DB-logo">
                 </div>
@@ -59,11 +64,14 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 
         </div>
 
-        <aside class="container-notification-section">
-
+        <aside class="container-notification-section" id="notificationSection">
+            
             <header class="announcement-bar">
                 <i class="fa-solid fa-bullhorn"></i>
                 <p>วันนี้ นายดลยวัฒน์ สันติพิทักษ์ ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน ปฏิบัติราชการ</p>
+                <div class="close-news-section">
+                    <i class="fa-solid fa-xmark" id="closeNewsBtn"></i>
+                </div>
             </header>
 
             <div class="news-bar">
@@ -130,6 +138,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
                     </div>
 
                     <div class="dates-calendar" id="dates-calendar"></div>
+
                 </div>
             </div>
 

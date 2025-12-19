@@ -36,57 +36,110 @@ window.addEventListener("load", function () {
 // });
 
 //Calendar
-const monthYear = document.getElementById("month-year");
-const dates = document.getElementById("dates-calendar");
-const prevBtn = document.getElementById("prev-btn");
-const nextBtn = document.getElementById("next-btn");
+class Calendar {
+  constructor(config) {
+    this.monthYear = document.querySelector(config.monthYearSelector);
+    this.dates = document.querySelector(config.datesSelector);
+    this.prevBtn = document.querySelector(config.prevBtnSelector);
+    this.nextBtn = document.querySelector(config.nextBtnSelector);
+    this.locale = config.locale || "th-TH";
 
-let currentDate = new Date();
+    this.currentDate = new Date();
 
-const updateCalendar = () => {
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-
-  const totalDay = lastDay.getDate();
-  const firstDayIndex = firstDay.getDay();
-  const lastDayIndex = lastDay.getDay();
-
-  const monthYearString = currentDate.toLocaleString("th-TH", {
-    month: "long",
-    year: "numeric",
-  });
-  monthYear.textContent = monthYearString;
-
-  let html = "";
-
-  for (let i = 0; i < firstDayIndex; i++) {
-    html += `<div class="date inactive"></div>`;
+    this.attachEvents();
+    this.updateCalendar();
   }
 
-  for (let i = 1; i <= totalDay; i++) {
-    const date = new Date(year, month, i);
-    const isToday = date.toDateString() === new Date().toDateString();
-    const event = isToday ? "date active" : "date";
-    html += `<div class="${event}">${i}</div>`;
+  attachEvents() {
+    if (this.prevBtn) {
+      this.prevBtn.addEventListener("click", () => {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        this.updateCalendar();
+      });
+    }
+
+    if (this.nextBtn) {
+      this.nextBtn.addEventListener("click", () => {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.updateCalendar();
+      });
+    }
   }
 
-  for (let i = lastDayIndex + 1; i <= 6; i++) {
-    html += `<div class="date inactive"></div>`;
+  updateCalendar() {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    const totalDay = lastDay.getDate();
+    const firstDayIndex = firstDay.getDay();
+    const lastDayIndex = lastDay.getDay();
+
+    const monthYearString = this.currentDate.toLocaleString(this.locale, {
+      month: "long",
+      year: "numeric",
+    });
+
+    if (this.monthYear) {
+      this.monthYear.textContent = monthYearString;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      fragment.appendChild(this.createDateCell("", true));
+    }
+
+    for (let i = 1; i <= totalDay; i++) {
+      const date = new Date(year, month, i);
+      const isToday = date.toDateString() === new Date().toDateString();
+      fragment.appendChild(this.createDateCell(i, false, isToday));
+    }
+
+    for (let i = lastDayIndex + 1; i <= 6; i++) {
+      fragment.appendChild(this.createDateCell("", true));
+    }
+
+    if (this.dates) {
+      this.dates.innerHTML = "";
+      this.dates.appendChild(fragment);
+    }
   }
 
-  dates.innerHTML = html;
-};
+  createDateCell(text, inactive = false, active = false) {
+    const div = document.createElement("div");
+    div.classList.add("date");
+    if (inactive) div.classList.add("inactive");
+    if (active) div.classList.add("active");
+    div.textContent = text;
+    return div;
+  }
+}
 
-prevBtn.addEventListener("click", () => {
-  currentDate.setMonth(currentDate.getMonth() - 1);
-  updateCalendar();
+const calendar1 = new Calendar({
+  monthYearSelector: "#month-year",
+  datesSelector: "#dates-calendar",
+  prevBtnSelector: "#prev-btn",
+  nextBtnSelector: "#next-btn",
+  locale: "th-TH",
 });
-nextBtn.addEventListener("click", () => {
-  currentDate.setMonth(currentDate.getMonth() + 1);
-  updateCalendar();
-});
 
-updateCalendar();
+document.addEventListener("DOMContentLoaded", function () {
+  const toggleBtn = document.getElementById("toggleNewsBtn");
+  const closeBtn = document.getElementById("closeNewsBtn");
+  const notificationSection = document.getElementById("notificationSection");
+
+  if (toggleBtn && notificationSection) {
+    toggleBtn.addEventListener("click", function () {
+      notificationSection.classList.add("active");
+    });
+  }
+
+  if (closeBtn && notificationSection) {
+    closeBtn.addEventListener("click", function () {
+      notificationSection.classList.remove("active");
+    });
+  }
+
+});
