@@ -65,7 +65,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
         </div>
 
         <aside class="container-notification-section" id="notificationSection">
-            
+
             <header class="announcement-bar">
                 <i class="fa-solid fa-bullhorn"></i>
                 <p>วันนี้ นายดลยวัฒน์ สันติพิทักษ์ ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน ปฏิบัติราชการ</p>
@@ -144,6 +144,63 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 
         </aside>
 
+    </div>
+
+    <div id="event-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <header class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-regular fa-calendar-days"></i>
+                    <span id="modal-date-title">วันที่ ...</span>
+                </div>
+                <div class="close-modal-btn">
+                    <i class="fa-solid fa-xmark" id="close-modal-btn"></i>
+                </div>
+            </header>
+
+            <div class="modal-body">
+                <div id="room-booking-section" class="booking-section">
+                    <h4 class="section-title">ตารางการจองห้องประชุม</h4>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ห้อง</th>
+                                    <th>เวลา</th>
+                                    <th>รายการประชุม</th>
+                                    <th>จำนวน</th>
+                                    <th>ผู้จองห้อง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="room-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="car-booking-section" class="booking-section">
+                    <h4 class="section-title">ตารางการจองรถยนต์</h4>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ทะเบียนรถ</th>
+                                    <th>เวลา</th>
+                                    <th>รายละเอียด</th>
+                                    <th>ผู้จองรถ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="car-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="no-event-message" class="hidden">
+                    ไม่มีรายการจองในวันนี้
+                </div>
+            </div>
+        </div>
     </div>
 
     <?php require_once __DIR__ . '/public/components/x-scripts.php'; ?>
