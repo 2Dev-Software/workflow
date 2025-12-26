@@ -145,34 +145,167 @@ window.addEventListener("load", function () {
 // });
 const mockEvents = {
   "2026-1-5": [
-    { type: "car", title: "ขอใช้รถตู้", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "room", title: "ประชุมครู", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." }
+    {
+      type: "car",
+      title: "ขอใช้รถตู้",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "room",
+      title: "ประชุมครู",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
   ],
   "2025-12-20": [
-    { type: "car", title: "ขอใช้รถตู้", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "ขอใช้รถตู้", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "ขอใช้รถตู้", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "ขอใช้รถตู้", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "jjjjjjj", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "aaaaaaa", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "vvvvvvv", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "car", title: "aaaaaaa", time: "08.30-12.00", detail: "พานักเรียนไปแข่งทักษะ", count: "-", owner: "ครูสมชาย" },
-    { type: "room", title: "ประชุมครู", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." },
-    { type: "room", title: "ประชุมครู", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." },
-    { type: "room", title: "ประชุมครู", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." },
-    { type: "room", title: "oooooo", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." },
-    { type: "room", title: "oooooo", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." },
-    { type: "room", title: "pppppp", time: "09.00-12.00", detail: "ประชุมประจำเดือน", count: "50", owner: "ผอ." }
+    {
+      type: "car",
+      title: "ขอใช้รถตู้",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "ขอใช้รถตู้",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "ขอใช้รถตู้",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "ขอใช้รถตู้",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "jjjjjjj",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "aaaaaaa",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "vvvvvvv",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "car",
+      title: "aaaaaaa",
+      time: "08.30-12.00",
+      detail: "พานักเรียนไปแข่งทักษะ",
+      count: "-",
+      owner: "ครูสมชาย",
+    },
+    {
+      type: "room",
+      title: "ประชุมครู",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
+    {
+      type: "room",
+      title: "ประชุมครู",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
+    {
+      type: "room",
+      title: "ประชุมครู",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
+    {
+      type: "room",
+      title: "oooooo",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
+    {
+      type: "room",
+      title: "oooooo",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
+    {
+      type: "room",
+      title: "pppppp",
+      time: "09.00-12.00",
+      detail: "ประชุมประจำเดือน",
+      count: "50",
+      owner: "ผอ.",
+    },
   ],
   "2026-1-22": [
-    { type: "car", title: "รถกระบะ", time: "08.30-16.30", detail: "ขนย้ายอุปกรณ์", count: "-", owner: "ลุงแดง" }
+    {
+      type: "car",
+      title: "รถกระบะ",
+      time: "08.30-16.30",
+      detail: "ขนย้ายอุปกรณ์",
+      count: "-",
+      owner: "ลุงแดง",
+    },
   ],
   "2026-1-24": [
-    { type: "other", title: "วันหยุดกรณีพิเศษ", time: "ทั้งวัน", detail: "-", count: "-", owner: "-" }
+    {
+      type: "other",
+      title: "วันหยุดกรณีพิเศษ",
+      time: "ทั้งวัน",
+      detail: "-",
+      count: "-",
+      owner: "-",
+    },
   ],
   "2026-1-14": [
-    { type: "room", title: "หอประชุม", time: "08.00-16.00", detail: "กิจกรรมวันวาเลนไทน์", count: "500", owner: "สภานักเรียน" }
-  ]
+    {
+      type: "room",
+      title: "หอประชุม",
+      time: "08.00-16.00",
+      detail: "กิจกรรมวันวาเลนไทน์",
+      count: "500",
+      owner: "สภานักเรียน",
+    },
+  ],
 };
 
 class Calendar {
@@ -218,9 +351,9 @@ class Calendar {
       this.closeModalBtn.addEventListener("click", () => this.closeModal());
     }
     if (this.modalOverlay) {
-        this.modalOverlay.addEventListener("click", (e) => {
-            if(e.target === this.modalOverlay) this.closeModal();
-        });
+      this.modalOverlay.addEventListener("click", (e) => {
+        if (e.target === this.modalOverlay) this.closeModal();
+      });
     }
   }
 
@@ -252,11 +385,13 @@ class Calendar {
     for (let i = 1; i <= totalDay; i++) {
       const date = new Date(year, month, i);
       const isToday = date.toDateString() === new Date().toDateString();
-      
+
       const eventKey = `${year}-${month + 1}-${i}`;
       const dayEvents = this.events[eventKey] || null;
 
-      fragment.appendChild(this.createDateCell(i, false, isToday, dayEvents, eventKey));
+      fragment.appendChild(
+        this.createDateCell(i, false, isToday, dayEvents, eventKey)
+      );
     }
 
     for (let i = lastDayIndex + 1; i <= 6; i++) {
@@ -269,14 +404,20 @@ class Calendar {
     }
   }
 
-  createDateCell(text, inactive = false, active = false, events = null, dateKey = null) {
+  createDateCell(
+    text,
+    inactive = false,
+    active = false,
+    events = null,
+    dateKey = null
+  ) {
     const div = document.createElement("div");
     div.classList.add("date");
-    
+
     if (inactive) {
-        div.classList.add("inactive");
-        div.textContent = text;
-        return div;
+      div.classList.add("inactive");
+      div.textContent = text;
+      return div;
     }
 
     if (active) div.classList.add("active");
@@ -284,58 +425,73 @@ class Calendar {
     div.innerHTML = `<span>${text}</span>`;
 
     if (events && events.length > 0) {
-        div.classList.add("has-event");
-        
-        const iconContainer = document.createElement("div");
-        iconContainer.classList.add("event-icons");
-        
-        let hasCar = false;
-        let hasRoom = false;
+      div.classList.add("has-event");
 
-        events.forEach(ev => {
-            if (ev.type === "car" && !hasCar) {
-                iconContainer.innerHTML += `<i class="fa-solid fa-car"></i>`;
-                hasCar = true;
-            }
-            if (ev.type === "room" && !hasRoom) {
-                iconContainer.innerHTML += `<i class="fa-solid fa-building"></i>`;
-                hasRoom = true;
-            }
-        });
-        
-        div.appendChild(iconContainer);
+      const iconContainer = document.createElement("div");
+      iconContainer.classList.add("event-icons");
 
-        div.addEventListener("click", () => {
-            this.openModal(dateKey, events);
-        });
+      let hasCar = false;
+      let hasRoom = false;
+
+      events.forEach((ev) => {
+        if (ev.type === "car" && !hasCar) {
+          iconContainer.innerHTML += `<i class="fa-solid fa-car"></i>`;
+          hasCar = true;
+        }
+        if (ev.type === "room" && !hasRoom) {
+          iconContainer.innerHTML += `<i class="fa-solid fa-building"></i>`;
+          hasRoom = true;
+        }
+      });
+
+      div.appendChild(iconContainer);
+
+      div.addEventListener("click", () => {
+        this.openModal(dateKey, events);
+      });
     }
 
     return div;
   }
 
   openModal(dateKey, events) {
-      if(!this.modalOverlay) return;
+    if (!this.modalOverlay) return;
 
-      const dateObj = new Date(dateKey);
-      const monthsTh = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-      const splitDate = dateKey.split('-');
-      const thaiDate = `วันที่ ${splitDate[2]} ${monthsTh[splitDate[1]-1]} ${parseInt(splitDate[0]) + 543}`;
-      
-      this.modalTitle.innerText = thaiDate;
+    const dateObj = new Date(dateKey);
+    const monthsTh = [
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
+    ];
+    const splitDate = dateKey.split("-");
+    const thaiDate = `วันที่ ${splitDate[2]} ${monthsTh[splitDate[1] - 1]} ${
+      parseInt(splitDate[0]) + 543
+    }`;
 
-      this.roomTableBody.innerHTML = "";
-      this.carTableBody.innerHTML = "";
-      this.roomSection.classList.add("hidden");
-      this.carSection.classList.add("hidden");
-      this.noEventMessage.classList.add("hidden");
+    this.modalTitle.innerText = thaiDate;
 
-      let hasRoomData = false;
-      let hasCarData = false;
+    this.roomTableBody.innerHTML = "";
+    this.carTableBody.innerHTML = "";
+    this.roomSection.classList.add("hidden");
+    this.carSection.classList.add("hidden");
+    this.noEventMessage.classList.add("hidden");
 
-      events.forEach(ev => {
-          if (ev.type === "room") {
-              hasRoomData = true;
-              const row = `
+    let hasRoomData = false;
+    let hasCarData = false;
+
+    events.forEach((ev) => {
+      if (ev.type === "room") {
+        hasRoomData = true;
+        const row = `
                   <tr>
                       <td>${ev.title}</td>
                       <td>${ev.time}</td>
@@ -344,10 +500,10 @@ class Calendar {
                       <td>${ev.owner}</td>
                   </tr>
               `;
-              this.roomTableBody.innerHTML += row;
-          } else if (ev.type === "car") {
-              hasCarData = true;
-              const row = `
+        this.roomTableBody.innerHTML += row;
+      } else if (ev.type === "car") {
+        hasCarData = true;
+        const row = `
                   <tr>
                       <td>${ev.title}</td>
                       <td>${ev.time}</td>
@@ -355,25 +511,26 @@ class Calendar {
                       <td>${ev.owner}</td>
                   </tr>
               `;
-              this.carTableBody.innerHTML += row;
-          }
-      });
-
-      if (hasRoomData) this.roomSection.classList.remove("hidden");
-      if (hasCarData) this.carSection.classList.remove("hidden");
-      
-      if (!hasRoomData && !hasCarData) {
-          this.noEventMessage.classList.remove("hidden");
-          this.noEventMessage.innerHTML = "<ul>" + events.map(e => `<li>${e.title}</li>`).join("") + "</ul>";
+        this.carTableBody.innerHTML += row;
       }
+    });
 
-      this.modalOverlay.classList.remove("hidden");
+    if (hasRoomData) this.roomSection.classList.remove("hidden");
+    if (hasCarData) this.carSection.classList.remove("hidden");
+
+    if (!hasRoomData && !hasCarData) {
+      this.noEventMessage.classList.remove("hidden");
+      this.noEventMessage.innerHTML =
+        "<ul>" + events.map((e) => `<li>${e.title}</li>`).join("") + "</ul>";
+    }
+
+    this.modalOverlay.classList.remove("hidden");
   }
 
   closeModal() {
-      if(this.modalOverlay) {
-          this.modalOverlay.classList.add("hidden");
-      }
+    if (this.modalOverlay) {
+      this.modalOverlay.classList.add("hidden");
+    }
   }
 }
 
@@ -383,9 +540,8 @@ const calendar1 = new Calendar({
   prevBtnSelector: "#prev-btn",
   nextBtnSelector: "#next-btn",
   locale: "th-TH",
-  events: mockEvents
+  events: mockEvents,
 });
-
 
 document.addEventListener("DOMContentLoaded", function () {
   const toggleBtn = document.getElementById("toggleNewsBtn");
@@ -404,3 +560,33 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+// dashBoardSideBarToggle
+const sidebar = document.querySelector(".dashboard-sidebar");
+const closeBtn = document.querySelector("#btn-toggle");
+
+function updateIcon() {
+  if (sidebar.classList.contains("close")) {
+    closeBtn.classList.replace("fa-angle-left", "fa-angle-right");
+  } else {
+    closeBtn.classList.replace("fa-angle-right", "fa-angle-left");
+  }
+}
+
+closeBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("close");
+  updateIcon();
+});
+
+function checkScreenSize() {
+  if (window.innerWidth > 1024) {
+    sidebar.classList.remove("close");
+  } else {
+    sidebar.classList.add("close");
+  }
+  
+  updateIcon();
+}
+
+window.addEventListener("resize", checkScreenSize);
+checkScreenSize();
