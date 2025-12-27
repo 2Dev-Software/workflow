@@ -562,31 +562,46 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // dashBoardSideBarToggle
-const sidebar = document.querySelector(".dashboard-sidebar");
-const closeBtn = document.querySelector("#btn-toggle");
+document.addEventListener("DOMContentLoaded", () => {
+  const BREAKPOINT_WIDTH = "1024px";
+  const sidebar = document.querySelector(".dashboard-sidebar");
+  const closeBtn = document.querySelector("#btn-toggle");
 
-function updateIcon() {
-  if (sidebar.classList.contains("close")) {
-    closeBtn.classList.replace("fa-angle-left", "fa-angle-right");
-  } else {
-    closeBtn.classList.replace("fa-angle-right", "fa-angle-left");
+  if (!sidebar || !closeBtn) {
+    console.warn("Dashboard Sidebar or Toggle Button not found in DOM.");
+    return;
   }
-}
 
-closeBtn.addEventListener("click", () => {
-  sidebar.classList.toggle("close");
-  updateIcon();
+  const updateIconState = (isClosed) => {
+    closeBtn.classList.remove("fa-angle-left", "fa-angle-right");
+
+    if (isClosed) {
+      closeBtn.classList.add("fa-angle-right");
+    } else {
+      closeBtn.classList.add("fa-angle-left");
+    }
+  };
+
+  const handleToggleClick = () => {
+    sidebar.classList.toggle("close");
+    const isClosed = sidebar.classList.contains("close");
+    updateIconState(isClosed);
+  };
+
+  const mediaQuery = window.matchMedia(`(min-width: ${BREAKPOINT_WIDTH})`);
+  const handleScreenChange = (e) => {
+    if (e.matches) {
+      sidebar.classList.remove("close");
+    } else {
+      sidebar.classList.add("close");
+    }
+
+    updateIconState(sidebar.classList.contains("close"));
+  };
+
+  closeBtn.addEventListener("click", handleToggleClick);
+
+  mediaQuery.addEventListener("change", handleScreenChange);
+
+  handleScreenChange(mediaQuery);
 });
-
-function checkScreenSize() {
-  if (window.innerWidth > 1024) {
-    sidebar.classList.remove("close");
-  } else {
-    sidebar.classList.add("close");
-  }
-  
-  updateIcon();
-}
-
-window.addEventListener("resize", checkScreenSize);
-checkScreenSize();
