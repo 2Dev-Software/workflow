@@ -561,7 +561,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// dashBoardSideBarToggle
+// dashboard-sidebar-toggle
 document.addEventListener("DOMContentLoaded", () => {
   const BREAKPOINT_WIDTH = "1024px";
   const sidebar = document.querySelector(".dashboard-sidebar");
@@ -604,4 +604,213 @@ document.addEventListener("DOMContentLoaded", () => {
   mediaQuery.addEventListener("change", handleScreenChange);
 
   handleScreenChange(mediaQuery);
+});
+
+//teacher-phone-directory
+document.addEventListener("DOMContentLoaded", () => {
+  let currentPage = 1;
+  let rowsPerPage = 10;
+
+  let allRowsData = [];
+  let currentFilteredRows = [];
+
+  const tableBody = document.getElementById("teacher-table-body");
+  const searchInput = document.getElementById("search-input");
+  const countText = document.getElementById("count-text");
+  const paginationContainer = document.getElementById("pagination");
+
+  const dropdownWrapper = document.querySelector(".custom-select-wrapper");
+  const dropdownTrigger = document.querySelector(".custom-select-trigger");
+  const dropdownOptions = document.querySelectorAll(".custom-option");
+  const displayValue = document.getElementById("select-value");
+  const hiddenSelect = document.getElementById("real-page-select");
+
+  function initData() {
+    if (!tableBody) return;
+
+    const rows = Array.from(tableBody.querySelectorAll("tr"));
+
+    allRowsData = rows.map((row) => ({
+      element: row,
+      text: row.innerText.toLowerCase().trim(),
+    }));
+
+    currentFilteredRows = [...allRowsData];
+    updateTable();
+  }
+
+  //search-input-bar
+  function handleSearch() {
+    const keyword = searchInput.value.toLowerCase().trim();
+
+    if (keyword === "") {
+      currentFilteredRows = [...allRowsData];
+    } else {
+      currentFilteredRows = allRowsData.filter((item) =>
+        item.text.includes(keyword)
+      );
+    }
+
+    currentPage = 1;
+    updateTable();
+  }
+
+  //table
+  function updateTable() {
+    tableBody.innerHTML = "";
+
+    const totalItems = currentFilteredRows.length;
+
+    let start = (currentPage - 1) * rowsPerPage;
+    let end = start + rowsPerPage;
+
+    if (rowsPerPage === "all") {
+      start = 0;
+      end = totalItems;
+    }
+
+    const rowsToDisplay = currentFilteredRows.slice(start, end);
+
+    if (rowsToDisplay.length === 0) {
+      tableBody.innerHTML =
+        '<tr><td colspan="100%" style="text-align:center; padding: 20px;">ไม่พบข้อมูล</td></tr>';
+    } else {
+      const fragment = document.createDocumentFragment();
+      rowsToDisplay.forEach((item) => {
+        fragment.appendChild(item.element);
+      });
+      tableBody.appendChild(fragment);
+    }
+
+    if (countText) {
+        const message = `จำนวน ${totalItems} รายชื่อ`;
+          
+        const pTag = countText.querySelector('p');
+        if (pTag) {
+            pTag.innerText = message;
+        } else {
+            countText.innerHTML = `<p>${message}</p>`; 
+        }
+      }
+
+    updatePagination(totalItems);
+  }
+
+  //pagination
+  function updatePagination(totalItems) {
+    paginationContainer.innerHTML = "";
+
+    if (rowsPerPage === "all" || totalItems <= 0) return;
+
+    const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+    if (totalPages <= 1) return;
+
+    const prevBtn = createButton('<i class="fas fa-chevron-left"></i>', () =>
+      changePage(currentPage - 1)
+    );
+    prevBtn.disabled = currentPage === 1;
+    paginationContainer.appendChild(prevBtn);
+
+    let startPage = 1,
+      endPage = totalPages;
+
+    if (totalPages > 7) {
+      if (currentPage <= 4) {
+        endPage = 5;
+      } else if (currentPage >= totalPages - 3) {
+        startPage = totalPages - 4;
+      } else {
+        startPage = currentPage - 2;
+        endPage = currentPage + 2;
+      }
+    }
+
+    if (startPage > 1) {
+      paginationContainer.appendChild(createButton(1, () => changePage(1)));
+      if (startPage > 2) paginationContainer.appendChild(createSpan("..."));
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = createButton(i, () => changePage(i));
+      if (i === currentPage) btn.classList.add("active"); // ใส่ class active
+      paginationContainer.appendChild(btn);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1)
+        paginationContainer.appendChild(createSpan("..."));
+      paginationContainer.appendChild(
+        createButton(totalPages, () => changePage(totalPages))
+      );
+    }
+
+    const nextBtn = createButton('<i class="fas fa-chevron-right"></i>', () =>
+      changePage(currentPage + 1)
+    );
+    nextBtn.disabled = currentPage === totalPages;
+    paginationContainer.appendChild(nextBtn);
+  }
+
+  function changePage(pageNum) {
+    currentPage = pageNum;
+    updateTable();
+  }
+
+  function createButton(content, onClick) {
+    const btn = document.createElement("button");
+    btn.innerHTML = content;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function createSpan(text) {
+    const span = document.createElement("span");
+    span.innerText = text;
+    span.style.padding = "0 5px";
+    return span;
+  }
+
+
+  if (searchInput) {
+    searchInput.addEventListener("input", handleSearch);
+  }
+
+  //custom-dropdown
+  if (dropdownTrigger) {
+    dropdownTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdownWrapper.classList.toggle("open");
+    });
+
+    dropdownOptions.forEach((option) => {
+      option.addEventListener("click", function () {
+
+        dropdownOptions.forEach((opt) => opt.classList.remove("selected"));
+        this.classList.add("selected");
+        displayValue.textContent = this.textContent;
+        dropdownWrapper.classList.remove("open");
+
+        const val = this.getAttribute("data-value");
+        if (hiddenSelect) hiddenSelect.value = val;
+
+        if (val === "all") {
+          rowsPerPage = "all";
+        } else {
+          rowsPerPage = parseInt(val, 10);
+        }
+
+        currentPage = 1;
+        updateTable();
+      });
+    });
+
+    window.addEventListener("click", (e) => {
+      if (dropdownWrapper && !dropdownWrapper.contains(e.target)) {
+        dropdownWrapper.classList.remove("open");
+      }
+    });
+  }
+
+  initData();
 });
