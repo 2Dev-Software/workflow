@@ -1,7 +1,7 @@
 <aside class="dashboard-sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/DBworkFlow-logo-banner.svg" alt="db-logo">
+            <img src="assets/img/db-hub-banner.svg" alt="db-logo">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>
@@ -77,7 +77,7 @@
             </a>
         </li>
         <li>
-            <a href="#">
+            <a href="teacher-phone-directory.php">
                 <i class="fa-solid fa-phone"></i>
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
