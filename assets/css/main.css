@@ -1011,7 +1011,7 @@ a {
 
   .dashboard-sidebar .logo-details {
     width: 100%;
-    height: 100px;
+    height: 80px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1203,7 +1203,7 @@ a {
 
   .dashboard-logout-section {
     margin-top: auto;
-    padding: 25px 40px;
+    padding: 15px 40px;
     width: 100%;
     box-shadow: 0px 4px 10px -2px var(--color-neutral-lightest);
   }
@@ -1325,13 +1325,25 @@ a {
   /* ----- START DASHBOARD-MAIN-SECTION ----- */
   .dashboard-main-section {
     position: relative;
-    min-height: 100vh;
+    height: 100vh;
     width: calc(100% - calc(178px + 10vw));
     left: calc(178px + 10vw);
     background-color: var(--color-neutral-lightest);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     transition: all 0.4s ease;
+  }
+
+  .dashboard-main-section .content-wrapper {
+    flex-grow: 1;
+    width: 100%;
+    background-color: var(--color-neutral-lightest);
+    padding: 20px 50px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .dashboard-sidebar.close ~ .dashboard-main-section {
@@ -1343,13 +1355,17 @@ a {
   /* ----- START DASHBOARD-NAVBAR-SECTION ----- */
   .dashboard-navi-bar {
     position: relative;
-    height: 100px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     background-color: var(--color-neutral-lightest);
     padding: 0 50px 0 0;
     box-shadow: 0 2px 12px 0 rgba(var(--rgb-neutral-dark), 0.25);
+  }
+
+  .dashboard-navi-bar {
+    flex-shrink: 0;
   }
 
   .dashboard-navi-bar .nav-user-info {
@@ -1370,7 +1386,7 @@ a {
   .dashboard-main-section .footer {
     position: relative;
     background-color: var(--color-primary-dark);
-    height: 100px;
+    height: 80px;
     font-size: var(--font-size-body-2);
     font-weight: bold;
     color: var(--color-neutral-lightest);
@@ -1381,15 +1397,323 @@ a {
     justify-content: center;
     padding: 0 0 0 50px;
   }
+
+  .dashboard-main-section .footer {
+    flex-shrink: 0;
+  }
   /* ----- END DASHBOARD-FOOTER-SECTION ----- */
 
   /* ----- START DASHBOARD-WRAPPER-SECTION ----- */
   .dashboard-main-section .content-wrapper {
     flex-grow: 1;
+    width: 100%;
+    background-color: var(--color-neutral-lightest);
+    padding: 20px 50px;
+    display: flex;
+    flex-direction: column;
   }
-  /* ----- END DASHBOARD-WRAPPER-SECTION ----- */
 
+  .dashboard-main-section .content-wrapper .content-header {
+    line-height: 0.5;
+  }
+
+  .dashboard-main-section .content-wrapper .content-header h1 {
+    font-size: var(--font-size-h4);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+  }
+  .dashboard-main-section .content-wrapper .content-header p {
+    font-size: var(--font-size-body-1);
+    font-weight: bold;
+    color: var(--color-secondary);
+  }
+
+  /* ----- END DASHBOARD-WRAPPER-SECTION ----- */
   /* ----- END DASH-BOARD-MAIN ----- */
+
+  /* ----- START DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
+  .teacher-phone-table-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 25px 0 30px 0;
+  }
+
+  .teacher-phone-table-control .search-box {
+    position: relative;
+    max-width: 800px;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 0 25px 0 5px;
+    background-color: var(--color-neutral-lightest);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    border-radius: 50px;
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    border: 1px solid transparent;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box i {
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    background-color: var(--color-warning);
+    color: var(--color-neutral-lightest);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input {
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    background-color: var(--color-neutral-lightest);
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input::placeholder {
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    background-color: rgba(var(--color-primary-dark), 0.8);
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover {
+    border: 1px solid var(--color-primary-dark);
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover i {
+    transform: rotate(90deg);
+  }
+
+  .teacher-phone-table-control .page-selector {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+  }
+
+  .teacher-phone-table-control .page-selector p {
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    margin: 0;
+  }
+
+  /* .teacher-phone-table-control .page-selector select {
+    padding: 8px 15px;
+    border: 1px solid transparent;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    cursor: pointer;
+  } */
+
+  .teacher-phone-table-control .custom-select-wrapper {
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    min-width: 120px;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 15px;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    color: var(--color-primary-dark);
+    font-size: var(--font-size-body-1);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark, 0, 0, 0), 0.25);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper i {
+    font-size: var(--font-size-body-1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.4s;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open i {
+    transform: rotate(180deg);
+  }
+
+  .teacher-phone-table-control .custom-options {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+    background: var(--color-neutral-lightest);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-25px);
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper select {
+    display: none;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(10px);
+  }
+
+  .teacher-phone-table-control .custom-option {
+    padding: 10px 15px;
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-option:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .custom-option.selected {
+    font-weight: bold;
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .teacher-phone-table-container {
+    width: 100%;
+    overflow-x: hidden;
+    flex-grow: 1;
+  }
+
+  .teacher-phone-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 30px 0;
+  }
+
+  .teacher-phone-table-container table th {
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-1);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+    height: 50px;
+    width: 33%;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:nth-child(2) {
+    background-color: var(--color-primary-dark);
+    font-size: var(--font-size-body-1);
+    font-weight: bold;
+    color: var(--color-neutral-lightest);
+    height: 50px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:first-child {
+    border-top-left-radius: 12px;
+  }
+  .teacher-phone-table-container table th:last-child {
+    border-top-right-radius: 12px;
+  }
+
+  .teacher-phone-table-container table td {
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    text-align: center;
+    padding: 12px 4px;
+  }
+
+  .teacher-phone-table-container table td:nth-child(2) {
+    border-left: 8px solid var(--color-neutral-lightest);
+    border-right: 8px solid var(--color-neutral-lightest);
+  }
+
+  .teacher-phone-table-container tbody tr:nth-child(even) {
+    background-color: rgba(var(--rgb-primary-dark), 0.05);
+  }
+
+  .teacher-phone-table-container tbody tr:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-footer-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding: 20px 0 0 0;
+  }
+
+  .teacher-phone-footer-control .count-text {
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button {
+    background-color: var(--color-neutral-lightest);
+    border: 1px solid transparent;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    font-size: var(--font-size-body-1);
+    color: var(--color-neutral-dark);
+    cursor: pointer;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button.active {
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-primary-dark);
+    box-shadow: 0 2px 8px -2px var(--color-primary-dark);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ----- END DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
 }
 
 @media screen and (min-width: 768px) and (max-width: 1023px) {
@@ -2437,19 +2761,26 @@ a {
     height: 35px;
     transition: all 0.2s;
   }
-  
+
   /* ----- END SIDEBAR-NAVIGATION-SECTION ----- */
 
   /* ----- START DASHBOARD-MAIN-SECTION ----- */
   .dashboard-main-section {
     position: relative;
-    min-height: 100vh;
+    height: 100vh;
     width: calc(100% - 195px);
     left: 195px;
     background-color: var(--color-neutral-lightest);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     transition: all 0.4s ease;
+  }
+
+  .dashboard-main-section .content-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
   }
 
   .dashboard-sidebar.close ~ .dashboard-main-section {
@@ -2460,6 +2791,7 @@ a {
 
   /* ----- START DASHBOARD-NAVBAR-SECTION ----- */
   .dashboard-navi-bar {
+    flex-shrink: 0;
     position: relative;
     height: 50px;
     display: flex;
@@ -2498,14 +2830,323 @@ a {
     align-items: flex-start;
     justify-content: center;
     padding: 0 0 0 25px;
+    flex-shrink: 0;
   }
   /* ----- END DASHBOARD-FOOTER-SECTION ----- */
 
   /* ----- START DASHBOARD-WRAPPER-SECTION ----- */
   .dashboard-main-section .content-wrapper {
     flex-grow: 1;
+    width: 100%;
+    background-color: var(--color-neutral-lightest);
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-main-section .content-wrapper .content-header {
+    line-height: 0.5;
+  }
+
+  .dashboard-main-section .content-wrapper .content-header h1 {
+    font-size: var(--font-size-body-2);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+  }
+  .dashboard-main-section .content-wrapper .content-header p {
+    font-size: var(--font-size-desc-1);
+    font-weight: bold;
+    color: var(--color-secondary);
   }
   /* ----- END DASHBOARD-WRAPPER-SECTION ----- */
+
+  /* ----- START DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
+  .teacher-phone-table-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 15px 0 25px 0;
+  }
+
+  .teacher-phone-table-control .search-box {
+    position: relative;
+    max-width: 350px;
+    width: 100%;
+    height: 35px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px 0 2px;
+    background-color: var(--color-neutral-lightest);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    border-radius: 50px;
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    border: 1px solid transparent;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box i {
+    width: 35px;
+    height: 30px;
+    border-radius: 100%;
+    background-color: var(--color-warning);
+    color: var(--color-neutral-lightest);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input {
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    background-color: var(--color-neutral-lightest);
+    padding: 0 0 3px 0;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input::placeholder {
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    background-color: rgba(var(--color-primary-dark), 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover {
+    border: 1px solid var(--color-primary-dark);
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover i {
+    transform: rotate(90deg);
+  }
+
+  .teacher-phone-table-control .page-selector {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+  }
+
+  .teacher-phone-table-control .page-selector p {
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    margin: 0;
+  }
+
+  /* .teacher-phone-table-control .page-selector select {
+    padding: 8px 15px;
+    border: 1px solid transparent;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    cursor: pointer;
+  } */
+
+  .teacher-phone-table-control .custom-select-wrapper {
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    min-width: 90px;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    color: var(--color-primary-dark);
+    font-size: var(--font-size-desc-1);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark, 0, 0, 0), 0.25);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper i {
+    font-size: var(--font-size-desc-1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.4s;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open i {
+    transform: rotate(180deg);
+  }
+
+  .teacher-phone-table-control .custom-options {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+    background: var(--color-neutral-lightest);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-25px);
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper select {
+    display: none;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(10px);
+  }
+
+  .teacher-phone-table-control .custom-option {
+    padding: 6px 12px;
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-option:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .custom-option.selected {
+    font-weight: bold;
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .teacher-phone-table-container {
+    width: 100%;
+    overflow-x: hidden;
+    flex-grow: 1;
+  }
+
+  .teacher-phone-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 30px 0;
+  }
+
+  .teacher-phone-table-container table th {
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-2);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+    height: 35px;
+    width: 33%;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:nth-child(2) {
+    background-color: var(--color-primary-dark);
+    font-size: var(--font-size-body-2);
+    font-weight: bold;
+    color: var(--color-neutral-lightest);
+    height: 35px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:first-child {
+    border-top-left-radius: 12px;
+  }
+  .teacher-phone-table-container table th:last-child {
+    border-top-right-radius: 12px;
+  }
+
+  .teacher-phone-table-container table td {
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    text-align: center;
+    padding: 10px 4px;
+  }
+
+  .teacher-phone-table-container table td:nth-child(2) {
+    border-left: 4px solid var(--color-neutral-lightest);
+    border-right: 4px solid var(--color-neutral-lightest);
+  }
+
+  .teacher-phone-table-container tbody tr:nth-child(even) {
+    background-color: rgba(var(--rgb-primary-dark), 0.05);
+  }
+
+  .teacher-phone-table-container tbody tr:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-footer-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding: 20px 0 0 0;
+  }
+
+  .teacher-phone-footer-control .count-text {
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button {
+    background-color: var(--color-neutral-lightest);
+    border: 1px solid transparent;
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    font-size: var(--font-size-desc-1);
+    color: var(--color-neutral-dark);
+    cursor: pointer;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button.active {
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-primary-dark);
+    box-shadow: 0 2px 8px -2px var(--color-primary-dark);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ----- END DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
 
   /* ----- END DASH-BOARD-MAIN ----- */
 }
@@ -3579,12 +4220,13 @@ a {
   /* ----- START DASHBOARD-MAIN-SECTION ----- */
   .dashboard-main-section {
     position: relative;
-    min-height: 100vh;
-    width: 100%;
-    left: 0px;
+    height: 100vh;
+    width: calc(100% - 195px);
+    left: 195px;
     background-color: var(--color-neutral-lightest);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     transition: all 0.4s ease;
   }
 
@@ -3592,10 +4234,12 @@ a {
     left: 50px;
     width: calc(100% - 50px);
   }
+
   /* ----- END DASHBOARD-MAIN-SECTION ----- */
 
   /* ----- START DASHBOARD-NAVBAR-SECTION ----- */
   .dashboard-navi-bar {
+    flex-shrink: 0;
     position: relative;
     height: 50px;
     display: flex;
@@ -3622,6 +4266,7 @@ a {
 
   /* ----- START DASHBOARD-FOOTER-SECTION ----- */
   .dashboard-main-section .footer {
+    flex-shrink: 0;
     position: relative;
     width: 100%;
     background-color: var(--color-primary-dark);
@@ -3632,7 +4277,7 @@ a {
     line-height: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: center;
     padding: 0 25px 0 0;
   }
@@ -3641,8 +4286,317 @@ a {
   /* ----- START DASHBOARD-WRAPPER-SECTION ----- */
   .dashboard-main-section .content-wrapper {
     flex-grow: 1;
+    width: 100%;
+    background-color: var(--color-neutral-lightest);
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-main-section .content-wrapper .content-header {
+    line-height: 0.5;
+  }
+
+  .dashboard-main-section .content-wrapper .content-header h1 {
+    font-size: var(--font-size-desc-1);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+  }
+  .dashboard-main-section .content-wrapper .content-header p {
+    font-size: var(--font-size-desc-3);
+    font-weight: bold;
+    color: var(--color-secondary);
   }
   /* ----- END DASHBOARD-WRAPPER-SECTION ----- */
 
   /* ----- END DASH-BOARD-MAIN ----- */
+
+  /* ----- START DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
+  .teacher-phone-table-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 10px 0 15px 0;
+  }
+
+  .teacher-phone-table-control .search-box {
+    position: relative;
+    max-width: 300px;
+    width: 100%;
+    height: 25px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 5px;
+    padding: 0 10px 0 2px;
+    background-color: var(--color-neutral-lightest);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    border-radius: 50px;
+    font-size: var(--font-size-desc-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    border: 1px solid transparent;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box i {
+    width: 22px;
+    height: 20px;
+    border-radius: 100%;
+    font-size: var(--font-size-desc-3);
+    background-color: var(--color-warning);
+    color: var(--color-neutral-lightest);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input {
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+    background-color: var(--color-neutral-lightest);
+    padding: 0;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box input::placeholder {
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+    background-color: rgba(var(--color-primary-dark), 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover {
+    border: 1px solid var(--color-primary-dark);
+    transition: 0.4s;
+  }
+
+  .teacher-phone-table-control .search-box:hover i {
+    transform: rotate(90deg);
+  }
+
+  .teacher-phone-table-control .page-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .teacher-phone-table-control .page-selector p {
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+    margin: 0;
+  }
+
+  /* .teacher-phone-table-control .page-selector select {
+    padding: 8px 15px;
+    border: 1px solid transparent;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-1);
+    color: var(--color-primary-dark);
+    outline: none;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    cursor: pointer;
+  } */
+
+  .teacher-phone-table-control .custom-select-wrapper {
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    min-width: 70px;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border-radius: 20px;
+    background-color: var(--color-neutral-lightest);
+    color: var(--color-primary-dark);
+    font-size: var(--font-size-desc-3);
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark, 0, 0, 0), 0.25);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-select-trigger:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper i {
+    font-size: var(--font-size-desc-3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.4s;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open i {
+    transform: rotate(180deg);
+  }
+
+  .teacher-phone-table-control .custom-options {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    right: 0;
+    background: var(--color-neutral-lightest);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-25px);
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper select {
+    display: none;
+  }
+
+  .teacher-phone-table-control .custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(10px);
+  }
+
+  .teacher-phone-table-control .custom-option {
+    padding: 3px 12px;
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .teacher-phone-table-control .custom-option:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .custom-option.selected {
+    font-weight: bold;
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-table-control .teacher-phone-table-container {
+    width: 100%;
+    overflow-x: hidden;
+    flex-grow: 1;
+  }
+
+  .teacher-phone-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 30px 0;
+  }
+
+  .teacher-phone-table-container table th {
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-desc-2);
+    font-weight: bold;
+    color: var(--color-primary-dark);
+    height: 25px;
+    width: 33%;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:nth-child(2) {
+    background-color: var(--color-primary-dark);
+    font-size: var(--font-size-desc-2);
+    font-weight: bold;
+    color: var(--color-neutral-lightest);
+    height: 25px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+  }
+
+  .teacher-phone-table-container table th:first-child {
+    border-top-left-radius: 12px;
+  }
+  .teacher-phone-table-container table th:last-child {
+    border-top-right-radius: 12px;
+  }
+
+  .teacher-phone-table-container table td {
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+    text-align: center;
+    padding: 5px 4px;
+  }
+
+  .teacher-phone-table-container table td:nth-child(2) {
+    border-left: 4px solid var(--color-neutral-lightest);
+    border-right: 4px solid var(--color-neutral-lightest);
+  }
+
+  .teacher-phone-table-container tbody tr:nth-child(even) {
+    background-color: rgba(var(--rgb-primary-dark), 0.05);
+  }
+
+  .teacher-phone-table-container tbody tr:hover {
+    background-color: rgba(var(--rgb-primary-dark), 0.1);
+  }
+
+  .teacher-phone-footer-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding: 20px 0 0 0;
+  }
+
+  .teacher-phone-footer-control .count-text {
+    font-size: var(--font-size-desc-3);
+    color: var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button {
+    background-color: var(--color-neutral-lightest);
+    border: 1px solid transparent;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    font-size: var(--font-size-desc-4);
+    color: var(--color-neutral-dark);
+    cursor: pointer;
+    transition: 0.4s;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:hover {
+    border: 1px solid var(--color-primary-dark);
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button.active {
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-primary-dark);
+    box-shadow: 0 2px 8px -2px var(--color-primary-dark);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .teacher-phone-footer-control .teacher-phone-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ----- END DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
 }
