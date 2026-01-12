@@ -13,11 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <?php require_once __DIR__ . '/public/components/partials/x-sidebar.php'; ?>
 
-    <section class="dashboard-main-section">
+    <section class="main-section">
 
         <?php require_once __DIR__ . '/public/components/partials/x-navigation.php'; ?>
 
-        <div class="content-wrapper">
+        <main class="content-wrapper">
 
             <div class="content-header">
                 <h1>ยินดีต้อนรับ</h1>
@@ -1077,7 +1077,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="teacher-phone-pagination" id="pagination"></div>
             </div>
 
-        </div>
+        </main>
 
         <?php require_once __DIR__ . '/public/components/partials/x-footer.php'; ?>
 

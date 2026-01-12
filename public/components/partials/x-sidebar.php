@@ -1,4 +1,4 @@
-<aside class="dashboard-sidebar close">
+<aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
             <img src="assets/img/db-hub-banner.svg" alt="db-logo">
@@ -17,36 +17,36 @@
         </div>
     </main>
 
-    <div class="dashboard-nav-links">
+    <div class="navigation-links">
         <li>
             <a href="#">
                 <i class="fa-solid fa-house-chimney"></i>
                 <p class="link-name">หน้าหลัก</p>
             </a>
         </li>
-        <li class="dashboard-nav-links-has-sub">
-            <div class="dashboard-icon-link">
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
                 <a href="#">
                     <i class="fa-solid fa-book"></i>
                     <p class="link-name">หนังสือเวียน</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
             </div>
-            <ul class="dashboard-nav-links-sub-menu">
+            <ul class="navigation-links-sub-menu">
                 <li><a href="#">หนังสือเวียน</a></li>
                 <li><a href="#">หนังสือเวียนที่จัดเก็บ</a></li>
                 <li><a href="#">ส่งหนังสือเวียน</a></li>
             </ul>
         </li>
-        <li class="dashboard-nav-links-has-sub">
-            <div class="dashboard-icon-link">
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
                 <a href="#">
                     <i class="fa-solid fa-file"></i>
                     <p class="link-name">คำสั่งราชการ</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
             </div>
-            <ul class="dashboard-nav-links-sub-menu">
+            <ul class="navigation-links-sub-menu">
                 <li><a href="#">หนังสือเวียน</a></li>
                 <li><a href="#">หนังสือเวียนที่จัดเก็บ</a></li>
                 <li><a href="#">ส่งหนังสือเวียน</a></li>
@@ -83,20 +83,20 @@
             </a>
         </li>
         <li>
-            <a href="#">
+            <a href="profile.php">
                 <i class="fa-solid fa-user-gear"></i>
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
         <li>
-            <a href="#">
+            <a href="setting.php">
                 <i class="fa-solid fa-gear"></i>
                 <p class="link-name">การตั้งค่า</p>
             </a>
         </li>
     </div>
 
-    <div class="dashboard-logout-section">
+    <div class="logout-section">
         <a href="#" class="logout-btn">
             <i class="fa-solid fa-right-from-bracket"></i>
             <p>ออกจากระบบ</p>
