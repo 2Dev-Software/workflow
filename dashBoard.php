@@ -13,13 +13,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <?php require_once __DIR__ . '/public/components/partials/x-sidebar.php'; ?>
 
-    <section class="dashboard-main-section">
+    <section class="main-section">
 
         <?php require_once __DIR__ . '/public/components/partials/x-navigation.php'; ?>
 
-        <div class="content-wrapper">
+        <main class="content-wrapper">
 
-        </div>
+        </main>
 
         <?php require_once __DIR__ . '/public/components/partials/x-footer.php'; ?>
 
