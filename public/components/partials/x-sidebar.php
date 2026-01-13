@@ -77,7 +77,7 @@
             </a>
         </li>
         <li>
-            <a href="teacher-phone-directory.php">
+            <a href="teacher-phone-directory">
                 <i class="fa-solid fa-phone"></i>
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
