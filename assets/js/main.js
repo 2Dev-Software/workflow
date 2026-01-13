@@ -13,136 +13,6 @@ window.addEventListener("load", function () {
   });
 });
 
-// Show password FEATURE FUTURE
-// document.addEventListener("DOMContentLoaded", function () {
-//   const eyeicon = document.getElementById("eyeicon");
-//   const password = document.getElementById("password-toggle");
-
-//   if(!eyeicon || !password){
-//     return ;
-//   }
-
-//   eyeicon.onclick = function () {
-//     if (password.type === "password") {
-//       password.type = "text";
-//       eyeicon.classList.remove("fa-eye-slash");
-//       eyeicon.classList.add("fa-eye");
-//     } else {
-//       password.type = "password";
-//       eyeicon.classList.remove("fa-eye");
-//       eyeicon.classList.add("fa-eye-slash");
-//     }
-//   };
-// });
-
-//Calendar
-// class Calendar {
-//   constructor(config) {
-//     this.monthYear = document.querySelector(config.monthYearSelector);
-//     this.dates = document.querySelector(config.datesSelector);
-//     this.prevBtn = document.querySelector(config.prevBtnSelector);
-//     this.nextBtn = document.querySelector(config.nextBtnSelector);
-//     this.locale = config.locale || "th-TH";
-
-//     this.currentDate = new Date();
-
-//     this.attachEvents();
-//     this.updateCalendar();
-//   }
-
-//   attachEvents() {
-//     if (this.prevBtn) {
-//       this.prevBtn.addEventListener("click", () => {
-//         this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-//         this.updateCalendar();
-//       });
-//     }
-
-//     if (this.nextBtn) {
-//       this.nextBtn.addEventListener("click", () => {
-//         this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-//         this.updateCalendar();
-//       });
-//     }
-//   }
-
-//   updateCalendar() {
-//     const year = this.currentDate.getFullYear();
-//     const month = this.currentDate.getMonth();
-//     const firstDay = new Date(year, month, 1);
-//     const lastDay = new Date(year, month + 1, 0);
-
-//     const totalDay = lastDay.getDate();
-//     const firstDayIndex = firstDay.getDay();
-//     const lastDayIndex = lastDay.getDay();
-
-//     const monthYearString = this.currentDate.toLocaleString(this.locale, {
-//       month: "long",
-//       year: "numeric",
-//     });
-
-//     if (this.monthYear) {
-//       this.monthYear.textContent = monthYearString;
-//     }
-
-//     const fragment = document.createDocumentFragment();
-
-//     for (let i = 0; i < firstDayIndex; i++) {
-//       fragment.appendChild(this.createDateCell("", true));
-//     }
-
-//     for (let i = 1; i <= totalDay; i++) {
-//       const date = new Date(year, month, i);
-//       const isToday = date.toDateString() === new Date().toDateString();
-//       fragment.appendChild(this.createDateCell(i, false, isToday));
-//     }
-
-//     for (let i = lastDayIndex + 1; i <= 6; i++) {
-//       fragment.appendChild(this.createDateCell("", true));
-//     }
-
-//     if (this.dates) {
-//       this.dates.innerHTML = "";
-//       this.dates.appendChild(fragment);
-//     }
-//   }
-
-//   createDateCell(text, inactive = false, active = false) {
-//     const div = document.createElement("div");
-//     div.classList.add("date");
-//     if (inactive) div.classList.add("inactive");
-//     if (active) div.classList.add("active");
-//     div.textContent = text;
-//     return div;
-//   }
-// }
-
-// const calendar1 = new Calendar({
-//   monthYearSelector: "#month-year",
-//   datesSelector: "#dates-calendar",
-//   prevBtnSelector: "#prev-btn",
-//   nextBtnSelector: "#next-btn",
-//   locale: "th-TH",
-// });
-
-// document.addEventListener("DOMContentLoaded", function () {
-//   const toggleBtn = document.getElementById("toggleNewsBtn");
-//   const closeBtn = document.getElementById("closeNewsBtn");
-//   const notificationSection = document.getElementById("notificationSection");
-
-//   if (toggleBtn && notificationSection) {
-//     toggleBtn.addEventListener("click", function () {
-//       notificationSection.classList.add("active");
-//     });
-//   }
-
-//   if (closeBtn && notificationSection) {
-//     closeBtn.addEventListener("click", function () {
-//       notificationSection.classList.remove("active");
-//     });
-//   }
-
-// });
 const mockEvents = {
   "2026-1-5": [
     {
@@ -564,7 +434,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // dashboard-sidebar-toggle
 document.addEventListener("DOMContentLoaded", () => {
   const BREAKPOINT_WIDTH = "1024px";
-  const sidebar = document.querySelector(".dashboard-sidebar");
+  const sidebar = document.querySelector(".sidebar");
   const closeBtn = document.querySelector("#btn-toggle");
 
   if (!sidebar || !closeBtn) {
@@ -683,15 +553,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (countText) {
-        const message = `จำนวน ${totalItems} รายชื่อ`;
-          
-        const pTag = countText.querySelector('p');
-        if (pTag) {
-            pTag.innerText = message;
-        } else {
-            countText.innerHTML = `<p>${message}</p>`; 
-        }
+      const message = `จำนวน ${totalItems} รายชื่อ`;
+
+      const pTag = countText.querySelector("p");
+      if (pTag) {
+        pTag.innerText = message;
+      } else {
+        countText.innerHTML = `<p>${message}</p>`;
       }
+    }
 
     updatePagination(totalItems);
   }
@@ -771,7 +641,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return span;
   }
 
-
   if (searchInput) {
     searchInput.addEventListener("input", handleSearch);
   }
@@ -785,7 +654,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     dropdownOptions.forEach((option) => {
       option.addEventListener("click", function () {
-
         dropdownOptions.forEach((opt) => opt.classList.remove("selected"));
         this.classList.add("selected");
         displayValue.textContent = this.textContent;
@@ -813,4 +681,307 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initData();
+});
+
+function openTab(tabName, evt) {
+  const contents = document.getElementsByClassName("tab-content");
+  Array.from(contents).forEach((content) => content.classList.remove("active"));
+
+  const buttons = document.getElementsByClassName("tab-btn");
+  Array.from(buttons).forEach((btn) => btn.classList.remove("active"));
+
+  const selectedTab = document.getElementById(tabName);
+  if (selectedTab) {
+    selectedTab.classList.add("active");
+  }
+
+  if (evt && evt.currentTarget) {
+    evt.currentTarget.classList.add("active");
+  }
+}
+
+let tempImageSrc = null;
+
+function openImageModal() {
+  const imageModal = document.getElementById("imageModal");
+  if (imageModal) imageModal.classList.remove("hidden");
+}
+
+function closeImageModal() {
+  const imageModal = document.getElementById("imageModal");
+  const profileFileInput = document.getElementById("profileFileInput");
+  const imagePreview = document.getElementById("imagePreview");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+
+  if (imageModal) imageModal.classList.add("hidden");
+  if (profileFileInput) profileFileInput.value = "";
+
+  if (imagePreview) {
+    imagePreview.src = "#";
+    imagePreview.classList.add("hidden");
+  }
+  if (previewPlaceholder) previewPlaceholder.style.display = "block";
+
+  tempImageSrc = null;
+}
+
+function previewProfileImage(input) {
+  const imagePreview = document.getElementById("imagePreview");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      if (imagePreview) {
+        imagePreview.src = e.target.result;
+        imagePreview.classList.remove("hidden");
+      }
+      if (previewPlaceholder) previewPlaceholder.style.display = "none";
+      tempImageSrc = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function confirmImageChange() {
+  const mainProfilePic = document.getElementById("mainProfilePic");
+  if (tempImageSrc) {
+    if (mainProfilePic) {
+      mainProfilePic.style.backgroundImage = `url('${tempImageSrc}')`;
+      mainProfilePic.style.backgroundColor = "transparent";
+    }
+    closeImageModal();
+  } else {
+    alert("กรุณาเลือกรูปภาพก่อน");
+  }
+}
+
+let tempSignatureSrc = null;
+
+function handleSignatureSelect(input) {
+  const signaturePreview = document.getElementById("signaturePreview");
+  const signatureModal = document.getElementById("signatureModal");
+
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      if (signaturePreview) {
+        signaturePreview.src = e.target.result;
+        signaturePreview.classList.remove("hidden");
+      }
+      tempSignatureSrc = e.target.result;
+      if (signatureModal) signatureModal.classList.remove("hidden");
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function closeSignatureModal() {
+  const signatureModal = document.getElementById("signatureModal");
+  const signatureFileInput = document.getElementById("signatureFileInput");
+
+  if (signatureModal) signatureModal.classList.add("hidden");
+  if (signatureFileInput) signatureFileInput.value = "";
+  tempSignatureSrc = null;
+}
+
+function confirmSignatureChange() {
+  const mainSignatureImg = document.getElementById("mainSignatureImg");
+  const noSignatureText = document.getElementById("noSignatureText");
+
+  if (tempSignatureSrc) {
+    if (mainSignatureImg) {
+      mainSignatureImg.src = tempSignatureSrc;
+      mainSignatureImg.classList.remove("hidden");
+    }
+    if (noSignatureText) {
+      noSignatureText.style.display = "none";
+    }
+    closeSignatureModal();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const phoneInput = document.getElementById("phoneInput");
+  const modal = document.getElementById("confirmModal");
+  const showPhone = document.getElementById("showPhone");
+  const confirmBtn = document.getElementById("confirmBtn");
+  const cancelBtn = document.getElementById("cancelBtn");
+
+  if (phoneInput) {
+    phoneInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        const phone = phoneInput.value.trim();
+        if (phone) {
+          if (showPhone) showPhone.textContent = phone;
+          if (modal) modal.style.display = "flex";
+        }
+      }
+    });
+  }
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", function () {
+      if (modal) modal.style.display = "none";
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+      if (modal) modal.style.display = "none";
+    });
+  }
+
+  const signatureModal = document.getElementById("signatureModal");
+
+  window.addEventListener("click", function (e) {
+    if (signatureModal && e.target === signatureModal) {
+      closeSignatureModal();
+    }
+    const imageModal = document.getElementById("imageModal");
+    if (imageModal && e.target === imageModal) {
+      closeImageModal();
+    }
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const yearWrappers = document.querySelectorAll(".js-year-generator");
+
+  if (yearWrappers.length > 0) {
+    const date = new Date();
+    const currentYearAD = date.getFullYear();
+    const currentYearTH = currentYearAD + 543;
+    const yearsToShow = [currentYearTH - 1, currentYearTH, currentYearTH + 1];
+
+    yearWrappers.forEach((wrapper) => {
+      const container = wrapper.querySelector(".options-container");
+      const triggerText = wrapper.querySelector(".select-text");
+
+      container.innerHTML = "";
+
+      yearsToShow.forEach((year) => {
+        const option = document.createElement("p");
+        option.classList.add("custom-option");
+        option.setAttribute("data-value", year);
+        option.textContent = `ปีสารบรรณ ${year}`;
+
+        if (year === currentYearTH) {
+          option.classList.add("selected");
+          if (triggerText) triggerText.textContent = `ปีสารบรรณ ${year}`;
+        }
+
+        container.appendChild(option);
+      });
+    });
+  }
+
+  const allSelectWrappers = document.querySelectorAll(
+    ".custom-select-setting-wrapper"
+  );
+
+  allSelectWrappers.forEach((wrapper) => {
+    const selectBox = wrapper.querySelector(".custom-setting-select");
+    const triggerText = wrapper.querySelector(".select-text");
+    const optionsContainer = wrapper.querySelector(".options-container");
+
+    selectBox.addEventListener("click", function (e) {
+      document
+        .querySelectorAll(".custom-setting-select.open")
+        .forEach((opened) => {
+          if (opened !== selectBox) opened.classList.remove("open");
+        });
+
+      this.classList.toggle("open");
+    });
+
+    optionsContainer.addEventListener("click", function (e) {
+      if (e.target.classList.contains("custom-option")) {
+        e.stopPropagation();
+
+        const siblings = optionsContainer.querySelectorAll(".custom-option");
+        siblings.forEach((opt) => opt.classList.remove("selected"));
+
+        e.target.classList.add("selected");
+
+        if (triggerText) triggerText.textContent = e.target.textContent;
+
+        selectBox.classList.remove("open");
+      }
+    });
+  });
+
+  window.addEventListener("click", function (e) {
+    if (!e.target.closest(".custom-setting-select")) {
+      document
+        .querySelectorAll(".custom-setting-select.open")
+        .forEach((box) => {
+          box.classList.remove("open");
+        });
+    }
+  });
+
+  const saveButtons = document.querySelectorAll(".btn-save");
+
+  saveButtons.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const parentContainer = this.closest(".setting-year-container");
+
+      if (parentContainer) {
+        const selectedOption = parentContainer.querySelector(
+          ".custom-option.selected"
+        );
+        const title =
+          parentContainer.querySelector(".setting-title").textContent;
+
+        if (selectedOption) {
+          const value = selectedOption.getAttribute("data-value");
+
+          console.log(`กำลังบันทึกข้อมูล [${title}]:`, value);
+
+          location.reload();
+        } else {
+          console.log(`กรุณาเลือกข้อมูลในหัวข้อ "${title}" ก่อนบันทึก`);
+        }
+      }
+    });
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  
+  const dutyCheckboxes = document.querySelectorAll('input[name="acting_duty"]');
+
+  dutyCheckboxes.forEach((box) => {
+    box.addEventListener("change", function () {
+      if (this.checked) {
+        dutyCheckboxes.forEach((otherBox) => {
+          if (otherBox !== this) otherBox.checked = false;
+        });
+      }
+    });
+  });
+
+  const btnSaveDuty = document.querySelector(".btn-save-duty");
+  
+  if (btnSaveDuty) {
+      btnSaveDuty.addEventListener("click", function () {
+        
+        const selected = document.querySelector('input[name="acting_duty"]:checked');
+
+        if (selected) {
+          const value = selected.value;
+
+          const row = selected.closest("tr");
+          const name = row.querySelector("td:first-child").textContent.trim();
+
+          console.log(`กำลังบันทึกข้อมูล: ${name} (Value: ${value})`);
+          console.log(`บันทึกสถานะผู้ปฏิบัติราชการ: "${name}" เรียบร้อยแล้ว`);
+
+          location.reload();
+        } else {
+          console.log("กรุณาเลือกผู้ปฏิบัติราชการอย่างน้อย 1 ท่าน");
+        }
+      });
+  }
 });
