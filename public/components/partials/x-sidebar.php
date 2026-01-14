@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php'; ?>
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
@@ -7,13 +8,24 @@
     </header>
 
     <main class="profile-section">
+        <?php
+        $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
+        $profile_picture = '';
+        if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+            $profile_picture = $profile_picture_raw;
+        }
+        ?>
         <div class="profile-image">
-            <i class="fa-solid fa-user"></i>
+            <?php if ($profile_picture !== '') : ?>
+                <img src="<?= htmlspecialchars($profile_picture, ENT_QUOTES, 'UTF-8') ?>" alt="Profile image">
+            <?php else : ?>
+                <i class="fa-solid fa-user"></i>
+            <?php endif; ?>
         </div>
         <div class="proflie-text">
-            <p>ชื่อ : นายรับพล ธูปทอง</p>
-            <p>ตำแหน่ง : ผู้อำนวยการโรงเรียน</p>
-            <p>หน้าที่ : ผู้รักษาความปลอดภัย</p>
+            <p>ชื่อ : <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+            <p>ตำแหน่ง : <?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+            <p>หน้าที่ : <?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
         </div>
     </main>
 
@@ -77,7 +89,7 @@
             </a>
         </li>
         <li>
-            <a href="teacher-phone-directory">
+            <a href="teacher-phone-directory.php">
                 <i class="fa-solid fa-phone"></i>
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
@@ -88,16 +100,18 @@
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
-        <li>
-            <a href="setting.php">
-                <i class="fa-solid fa-gear"></i>
-                <p class="link-name">การตั้งค่า</p>
-            </a>
-        </li>
+        <?php if ((int) ($teacher['roleID'] ?? 0) === 1) : ?>
+            <li>
+                <a href="setting.php">
+                    <i class="fa-solid fa-gear"></i>
+                    <p class="link-name">การตั้งค่า</p>
+                </a>
+            </li>
+        <?php endif; ?>
     </div>
 
     <div class="logout-section">
-        <a href="index.php" class="logout-btn">
+        <a href="logout.php" class="logout-btn">
             <i class="fa-solid fa-right-from-bracket"></i>
             <p>ออกจากระบบ</p>
         </a>

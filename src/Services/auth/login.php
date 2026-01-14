@@ -6,6 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         exit('403 Forbidden: Invalid Security Token');
     }
 
+    require_once __DIR__ . '/../../../config/connection.php';
+
     $pID = trim($_POST['pID'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -14,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         exit('400 Bad Request: Missing Credentials');
     }
 
-    $sql = "SELECT * FROM teacher WHERE pID = ? AND password = ? AND status = 1 LIMIT 1";
+    $sql = "SELECT pID, roleID FROM teacher WHERE pID = ? AND password = ? AND status = 1 LIMIT 1";
 
     if ($stmt = mysqli_prepare($connection, $sql)) {
         
@@ -25,10 +27,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $result = mysqli_stmt_get_result($stmt);
 
         if ($row = mysqli_fetch_assoc($result)) {
+            $role_id = (int) ($row['roleID'] ?? 0);
+            $dh_status = 1;
+
+            $status_sql = 'SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1';
+            $status_stmt = mysqli_prepare($connection, $status_sql);
+
+            if ($status_stmt === false) {
+                error_log('Database Error: ' . mysqli_error($connection));
+            } else {
+                mysqli_stmt_execute($status_stmt);
+                $status_result = mysqli_stmt_get_result($status_stmt);
+                if ($status_row = mysqli_fetch_assoc($status_result)) {
+                    $dh_status = (int) $status_row['dh_status'];
+                }
+                mysqli_stmt_close($status_stmt);
+            }
+
+            if ($dh_status !== 1 && $role_id !== 1) {
+                http_response_code(403);
+                exit('403 Forbidden: System Closed');
+            }
+
             session_regenerate_id(true);
             $_SESSION['pID'] = $row['pID'];
             
-            header("Location: ");
+            header("Location: dashboard.php");
             exit();
         } else {
             http_response_code(401);
