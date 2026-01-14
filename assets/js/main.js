@@ -478,16 +478,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 //teacher-phone-directory
 document.addEventListener("DOMContentLoaded", () => {
-  let currentPage = 1;
-  let rowsPerPage = 10;
-
-  let allRowsData = [];
-  let currentFilteredRows = [];
-
   const tableBody = document.getElementById("teacher-table-body");
+  if (!tableBody) return;
+
+  const endpoint =
+    tableBody.dataset.endpoint || "public/api/teacher-directory-api.php";
   const searchInput = document.getElementById("search-input");
-  const countText = document.getElementById("count-text");
   const paginationContainer = document.getElementById("pagination");
+  const countText = document.getElementById("count-text");
 
   const dropdownWrapper = document.querySelector(".custom-select-wrapper");
   const dropdownTrigger = document.querySelector(".custom-select-trigger");
@@ -495,95 +493,105 @@ document.addEventListener("DOMContentLoaded", () => {
   const displayValue = document.getElementById("select-value");
   const hiddenSelect = document.getElementById("real-page-select");
 
-  function initData() {
-    if (!tableBody) return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPerPage =
+    urlParams.get("per_page") ||
+    (hiddenSelect ? hiddenSelect.value : "10");
 
-    const rows = Array.from(tableBody.querySelectorAll("tr"));
+  const state = {
+    page: Math.max(parseInt(urlParams.get("page") || "1", 10), 1),
+    perPage: initialPerPage,
+    query: urlParams.get("q") || (searchInput ? searchInput.value.trim() : ""),
+  };
 
-    allRowsData = rows.map((row) => ({
-      element: row,
-      text: row.innerText.toLowerCase().trim(),
-    }));
+  const buildParams = () => {
+    const params = new URLSearchParams();
+    if (state.page > 1) params.set("page", String(state.page));
+    if (state.perPage && state.perPage !== "10")
+      params.set("per_page", state.perPage);
+    if (state.query) params.set("q", state.query);
+    return params;
+  };
 
-    currentFilteredRows = [...allRowsData];
-    updateTable();
-  }
+  const updateUrl = (params) => {
+    const nextUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.replaceState({}, "", nextUrl);
+  };
 
-  //search-input-bar
-  function handleSearch() {
-    const keyword = searchInput.value.toLowerCase().trim();
-
-    if (keyword === "") {
-      currentFilteredRows = [...allRowsData];
+  const renderCount = (total) => {
+    if (!countText) return;
+    const pTag = countText.querySelector("p");
+    const message = `จำนวน ${total} รายชื่อ`;
+    if (pTag) {
+      pTag.textContent = message;
     } else {
-      currentFilteredRows = allRowsData.filter((item) =>
-        item.text.includes(keyword)
-      );
+      countText.innerHTML = `<p>${message}</p>`;
     }
+  };
 
-    currentPage = 1;
-    updateTable();
-  }
-
-  //table
-  function updateTable() {
+  const renderRows = (rows) => {
     tableBody.innerHTML = "";
-
-    const totalItems = currentFilteredRows.length;
-
-    let start = (currentPage - 1) * rowsPerPage;
-    let end = start + rowsPerPage;
-
-    if (rowsPerPage === "all") {
-      start = 0;
-      end = totalItems;
-    }
-
-    const rowsToDisplay = currentFilteredRows.slice(start, end);
-
-    if (rowsToDisplay.length === 0) {
+    if (!rows || rows.length === 0) {
       tableBody.innerHTML =
-        '<tr><td colspan="100%" style="text-align:center; padding: 20px;">ไม่พบข้อมูล</td></tr>';
-    } else {
-      const fragment = document.createDocumentFragment();
-      rowsToDisplay.forEach((item) => {
-        fragment.appendChild(item.element);
-      });
-      tableBody.appendChild(fragment);
+        '<tr><td colspan="3" style="text-align:center; padding: 20px;">ไม่พบข้อมูล</td></tr>';
+      return;
     }
 
-    if (countText) {
-      const message = `จำนวน ${totalItems} รายชื่อ`;
+    const fragment = document.createDocumentFragment();
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
 
-      const pTag = countText.querySelector("p");
-      if (pTag) {
-        pTag.innerText = message;
-      } else {
-        countText.innerHTML = `<p>${message}</p>`;
-      }
-    }
+      const nameCell = document.createElement("td");
+      nameCell.textContent = row.fName || "";
+      tr.appendChild(nameCell);
 
-    updatePagination(totalItems);
-  }
+      const deptCell = document.createElement("td");
+      deptCell.textContent = row.department_name || "";
+      tr.appendChild(deptCell);
 
-  //pagination
-  function updatePagination(totalItems) {
+      const phoneCell = document.createElement("td");
+      phoneCell.textContent = row.telephone || "";
+      tr.appendChild(phoneCell);
+
+      fragment.appendChild(tr);
+    });
+    tableBody.appendChild(fragment);
+  };
+
+  const createButton = (label, page, isActive, isDisabled) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-page", String(page));
+    button.innerHTML = label;
+    if (isActive) button.classList.add("active");
+    if (isDisabled) button.disabled = true;
+    return button;
+  };
+
+  const createSpan = (text) => {
+    const span = document.createElement("span");
+    span.innerText = text;
+    span.style.padding = "0 5px";
+    return span;
+  };
+
+  const renderPagination = (totalPages, currentPage) => {
+    if (!paginationContainer) return;
     paginationContainer.innerHTML = "";
 
-    if (rowsPerPage === "all" || totalItems <= 0) return;
+    if (!totalPages || totalPages <= 1) return;
 
-    const totalPages = Math.ceil(totalItems / rowsPerPage);
+    const prevPage = Math.max(1, currentPage - 1);
+    const nextPage = Math.min(totalPages, currentPage + 1);
 
-    if (totalPages <= 1) return;
-
-    const prevBtn = createButton('<i class="fas fa-chevron-left"></i>', () =>
-      changePage(currentPage - 1)
+    paginationContainer.appendChild(
+      createButton('<i class="fas fa-chevron-left"></i>', prevPage, false, currentPage === 1)
     );
-    prevBtn.disabled = currentPage === 1;
-    paginationContainer.appendChild(prevBtn);
 
-    let startPage = 1,
-      endPage = totalPages;
+    let startPage = 1;
+    let endPage = totalPages;
 
     if (totalPages > 7) {
       if (currentPage <= 4) {
@@ -597,56 +605,85 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (startPage > 1) {
-      paginationContainer.appendChild(createButton(1, () => changePage(1)));
+      paginationContainer.appendChild(
+        createButton("1", 1, currentPage === 1, false)
+      );
       if (startPage > 2) paginationContainer.appendChild(createSpan("..."));
     }
 
     for (let i = startPage; i <= endPage; i++) {
-      const btn = createButton(i, () => changePage(i));
-      if (i === currentPage) btn.classList.add("active"); // ใส่ class active
-      paginationContainer.appendChild(btn);
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1)
-        paginationContainer.appendChild(createSpan("..."));
       paginationContainer.appendChild(
-        createButton(totalPages, () => changePage(totalPages))
+        createButton(String(i), i, i === currentPage, false)
       );
     }
 
-    const nextBtn = createButton('<i class="fas fa-chevron-right"></i>', () =>
-      changePage(currentPage + 1)
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        paginationContainer.appendChild(createSpan("..."));
+      }
+      paginationContainer.appendChild(
+        createButton(String(totalPages), totalPages, currentPage === totalPages, false)
+      );
+    }
+
+    paginationContainer.appendChild(
+      createButton('<i class="fas fa-chevron-right"></i>', nextPage, false, currentPage === totalPages)
     );
-    nextBtn.disabled = currentPage === totalPages;
-    paginationContainer.appendChild(nextBtn);
-  }
+  };
 
-  function changePage(pageNum) {
-    currentPage = pageNum;
-    updateTable();
-  }
+  const fetchDirectory = async () => {
+    const params = buildParams();
+    const requestUrl = params.toString()
+      ? `${endpoint}?${params.toString()}`
+      : endpoint;
 
-  function createButton(content, onClick) {
-    const btn = document.createElement("button");
-    btn.innerHTML = content;
-    btn.addEventListener("click", onClick);
-    return btn;
-  }
+    try {
+      const response = await fetch(requestUrl, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
 
-  function createSpan(text) {
-    const span = document.createElement("span");
-    span.innerText = text;
-    span.style.padding = "0 5px";
-    return span;
-  }
+      const payload = await response.json();
+      const meta = payload.meta || {};
+
+      state.page = Math.max(parseInt(meta.page || state.page, 10), 1);
+      renderRows(payload.data || []);
+      renderCount(Number(meta.total || 0));
+      renderPagination(Number(meta.total_pages || 0), state.page);
+      updateUrl(buildParams());
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  let searchTimer = null;
 
   if (searchInput) {
-    searchInput.addEventListener("input", handleSearch);
+    searchInput.addEventListener("input", () => {
+      window.clearTimeout(searchTimer);
+      const keyword = searchInput.value.trim();
+      searchTimer = window.setTimeout(() => {
+        state.query = keyword;
+        state.page = 1;
+        fetchDirectory();
+      }, 400);
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        window.clearTimeout(searchTimer);
+        state.query = searchInput.value.trim();
+        state.page = 1;
+        fetchDirectory();
+      }
+    });
   }
 
   //custom-dropdown
-  if (dropdownTrigger) {
+  if (dropdownTrigger && dropdownWrapper) {
     dropdownTrigger.addEventListener("click", (e) => {
       e.stopPropagation();
       dropdownWrapper.classList.toggle("open");
@@ -656,20 +693,15 @@ document.addEventListener("DOMContentLoaded", () => {
       option.addEventListener("click", function () {
         dropdownOptions.forEach((opt) => opt.classList.remove("selected"));
         this.classList.add("selected");
-        displayValue.textContent = this.textContent;
+        if (displayValue) displayValue.textContent = this.textContent;
         dropdownWrapper.classList.remove("open");
 
-        const val = this.getAttribute("data-value");
+        const val = this.getAttribute("data-value") || "10";
         if (hiddenSelect) hiddenSelect.value = val;
 
-        if (val === "all") {
-          rowsPerPage = "all";
-        } else {
-          rowsPerPage = parseInt(val, 10);
-        }
-
-        currentPage = 1;
-        updateTable();
+        state.perPage = val;
+        state.page = 1;
+        fetchDirectory();
       });
     });
 
@@ -680,7 +712,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  initData();
+  if (paginationContainer) {
+    paginationContainer.addEventListener("click", (e) => {
+      const target = e.target.closest("button[data-page]");
+      if (!target || target.disabled) return;
+      const page = parseInt(target.getAttribute("data-page") || "1", 10);
+      state.page = Math.max(page, 1);
+      fetchDirectory();
+    });
+  }
+
+  fetchDirectory();
 });
 
 function openTab(tabName, evt) {
@@ -786,18 +828,16 @@ function closeSignatureModal() {
 }
 
 function confirmSignatureChange() {
-  const mainSignatureImg = document.getElementById("mainSignatureImg");
-  const noSignatureText = document.getElementById("noSignatureText");
+  const signatureForm = document.getElementById("signatureUploadForm");
+  const signatureInput = document.getElementById("signatureFileInput");
 
-  if (tempSignatureSrc) {
-    if (mainSignatureImg) {
-      mainSignatureImg.src = tempSignatureSrc;
-      mainSignatureImg.classList.remove("hidden");
-    }
-    if (noSignatureText) {
-      noSignatureText.style.display = "none";
-    }
-    closeSignatureModal();
+  if (!signatureInput || !signatureInput.files || !signatureInput.files[0]) {
+    alert("กรุณาเลือกไฟล์ลายเซ็นก่อน");
+    return;
+  }
+
+  if (signatureForm) {
+    signatureForm.submit();
   }
 }
 
@@ -911,6 +951,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (triggerText) triggerText.textContent = e.target.textContent;
 
+        const parentForm = wrapper.closest("form");
+        const yearInput = parentForm
+          ? parentForm.querySelector('input[name="dh_year"]')
+          : null;
+        if (yearInput) {
+          yearInput.value = e.target.getAttribute("data-value") || "";
+        }
+
+        const statusInput = parentForm
+          ? parentForm.querySelector('input[name="dh_status"]')
+          : null;
+        if (statusInput) {
+          statusInput.value = e.target.getAttribute("data-value") || "";
+        }
+
         selectBox.classList.remove("open");
       }
     });
@@ -930,6 +985,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   saveButtons.forEach((btn) => {
     btn.addEventListener("click", function () {
+      if (this.dataset.submit === "true") {
+        return;
+      }
       const parentContainer = this.closest(".setting-year-container");
 
       if (parentContainer) {
@@ -954,7 +1012,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-  const dutyCheckboxes = document.querySelectorAll('input[name="acting_duty"]');
+  
+  const dutyCheckboxes = document.querySelectorAll('input[name="exec_duty_pid"]');
 
   dutyCheckboxes.forEach((box) => {
     box.addEventListener("change", function () {
@@ -969,10 +1028,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const btnSaveDuty = document.querySelector(".btn-save-duty");
 
   if (btnSaveDuty) {
-    btnSaveDuty.addEventListener("click", function () {
-      const selected = document.querySelector(
-        'input[name="acting_duty"]:checked'
-      );
+      btnSaveDuty.addEventListener("click", function () {
+        if (this.dataset.submit === "true") {
+          return;
+        }
+        
+        const selected = document.querySelector('input[name="exec_duty_pid"]:checked');
 
       if (selected) {
         const value = selected.value;
@@ -990,16 +1051,3 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
-
-// document.addEventListener("DOMContentLoaded", function () {
-//   setTimeout(function () {
-//     const modal = document.querySelector(".alert-box.success");
-//     if (modal) {
-//       modal.classList.add("fade-out");
-
-//       setTimeout(function () {
-//         window.location.href = "dashboard.php";
-//       }, 500);
-//     }
-//   }, 2000);
-// });

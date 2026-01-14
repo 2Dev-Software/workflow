@@ -1,7 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/src/Services/auth/auth-guard.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">

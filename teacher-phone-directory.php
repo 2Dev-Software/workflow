@@ -1,7 +1,28 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__ . '/src/Services/auth/auth-guard.php';
+
+$teacher_directory_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
+    'options' => ['default' => 1, 'min_range' => 1],
+]);
+$teacher_directory_per_page_param = $_GET['per_page'] ?? '10';
+if ($teacher_directory_per_page_param === 'all') {
+    $teacher_directory_per_page = 'all';
+} else {
+    $teacher_directory_per_page = filter_var($teacher_directory_per_page_param, FILTER_VALIDATE_INT, [
+        'options' => ['default' => 10, 'min_range' => 1],
+    ]);
 }
+$teacher_directory_allowed_per_page = [10, 20, 50, 'all'];
+if (!in_array($teacher_directory_per_page, $teacher_directory_allowed_per_page, true)) {
+    $teacher_directory_per_page = 10;
+}
+
+$teacher_directory_query = trim((string) ($_GET['q'] ?? ''));
+$teacher_directory_display_per_page = $teacher_directory_per_page === 'all'
+    ? 'ทั้งหมด'
+    : (string) $teacher_directory_per_page;
+
+require_once __DIR__ . '/src/Services/teacher/teacher-directory.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -27,7 +48,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <div class="teacher-phone-table-control">
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="search-input" placeholder="ค้นหาด้วย ชื่อจริง-นามสกุล หรือ ตำแหน่ง">
+                    <input type="text" id="search-input" value="<?= htmlspecialchars($teacher_directory_query, ENT_QUOTES, 'UTF-8') ?>" placeholder="ค้นหาด้วย ชื่อจริง-นามสกุล หรือ กลุ่มสาระ หรือ เบอร์โทรศัพท์">
                 </div>
 
                 <div class="page-selector">
@@ -35,22 +56,22 @@ if (session_status() === PHP_SESSION_NONE) {
 
                     <div class="custom-select-wrapper">
                         <div class="custom-select-trigger">
-                            <p id="select-value">10</p>
+                            <p id="select-value"><?= htmlspecialchars($teacher_directory_display_per_page, ENT_QUOTES, 'UTF-8') ?></p>
                             <i class="fa-solid fa-caret-down"></i>
                         </div>
 
                         <div class="custom-options">
-                            <div class="custom-option selected" data-value="10">10</div>
-                            <div class="custom-option" data-value="20">20</div>
-                            <div class="custom-option" data-value="50">50</div>
-                            <div class="custom-option" data-value="all">ทั้งหมด</div>
+                            <div class="custom-option<?= $teacher_directory_per_page === 10 ? ' selected' : '' ?>" data-value="10">10</div>
+                            <div class="custom-option<?= $teacher_directory_per_page === 20 ? ' selected' : '' ?>" data-value="20">20</div>
+                            <div class="custom-option<?= $teacher_directory_per_page === 50 ? ' selected' : '' ?>" data-value="50">50</div>
+                            <div class="custom-option<?= $teacher_directory_per_page === 'all' ? ' selected' : '' ?>" data-value="all">ทั้งหมด</div>
                         </div>
 
                         <select name="" id="real-page-select">
-                            <option value="10" selected>10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="all">ทั้งหมด</option>
+                            <option value="10" <?= $teacher_directory_per_page === 10 ? 'selected' : '' ?>>10</option>
+                            <option value="20" <?= $teacher_directory_per_page === 20 ? 'selected' : '' ?>>20</option>
+                            <option value="50" <?= $teacher_directory_per_page === 50 ? 'selected' : '' ?>>50</option>
+                            <option value="all" <?= $teacher_directory_per_page === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
                         </select>
                     </div>
                 </div>
@@ -61,1020 +82,91 @@ if (session_status() === PHP_SESSION_NONE) {
                     <thead>
                         <tr>
                             <th>ชื่อจริง-นามสกุล</th>
-                            <th>ตำแหน่ง</th>
+                            <th>กลุ่มสาระฯ</th>
                             <th>เบอร์โทร</th>
                         </tr>
                     </thead>
-                    <tbody id="teacher-table-body">
-                        <tr>
-                            <td>สมชาย ใจดี</td>
-                            <td>Software Engineer</td>
-                            <td>081-111-1111</td>
-                        </tr>
-                        <tr>
-                            <td>สมหญิง รักเรียน</td>
-                            <td>HR Manager</td>
-                            <td>081-222-2222</td>
-                        </tr>
-                        <tr>
-                            <td>วิชัย เก่งกาจ</td>
-                            <td>Sales Executive</td>
-                            <td>089-333-3333</td>
-                        </tr>
-                        <tr>
-                            <td>มานะ อดทน</td>
-                            <td>Accountant</td>
-                            <td>086-444-4444</td>
-                        </tr>
-                        <tr>
-                            <td>ดารณี มีทรัพย์</td>
-                            <td>Marketing</td>
-                            <td>081-555-5555</td>
-                        </tr>
-                        <tr>
-                            <td>กิติยา พาเพลิน</td>
-                            <td>Designer</td>
-                            <td>082-666-6666</td>
-                        </tr>
-                        <tr>
-                            <td>ณัฐพล คนขยัน</td>
-                            <td>Developer</td>
-                            <td>083-777-7777</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>สมชาย ใจดี</td>
-                            <td>Software Engineer</td>
-                            <td>081-111-1111</td>
-                        </tr>
-                        <tr>
-                            <td>สมหญิง รักเรียน</td>
-                            <td>HR Manager</td>
-                            <td>081-222-2222</td>
-                        </tr>
-                        <tr>
-                            <td>วิชัย เก่งกาจ</td>
-                            <td>Sales Executive</td>
-                            <td>089-333-3333</td>
-                        </tr>
-                        <tr>
-                            <td>มานะ อดทน</td>
-                            <td>Accountant</td>
-                            <td>086-444-4444</td>
-                        </tr>
-                        <tr>
-                            <td>ดารณี มีทรัพย์</td>
-                            <td>Marketing</td>
-                            <td>081-555-5555</td>
-                        </tr>
-                        <tr>
-                            <td>กิติยา พาเพลิน</td>
-                            <td>Designer</td>
-                            <td>082-666-6666</td>
-                        </tr>
-                        <tr>
-                            <td>ณัฐพล คนขยัน</td>
-                            <td>Developer</td>
-                            <td>083-777-7777</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>สมชาย ใจดี</td>
-                            <td>Software Engineer</td>
-                            <td>081-111-1111</td>
-                        </tr>
-                        <tr>
-                            <td>สมหญิง รักเรียน</td>
-                            <td>HR Manager</td>
-                            <td>081-222-2222</td>
-                        </tr>
-                        <tr>
-                            <td>วิชัย เก่งกาจ</td>
-                            <td>Sales Executive</td>
-                            <td>089-333-3333</td>
-                        </tr>
-                        <tr>
-                            <td>มานะ อดทน</td>
-                            <td>Accountant</td>
-                            <td>086-444-4444</td>
-                        </tr>
-                        <tr>
-                            <td>ดารณี มีทรัพย์</td>
-                            <td>Marketing</td>
-                            <td>081-555-5555</td>
-                        </tr>
-                        <tr>
-                            <td>กิติยา พาเพลิน</td>
-                            <td>Designer</td>
-                            <td>082-666-6666</td>
-                        </tr>
-                        <tr>
-                            <td>ณัฐพล คนขยัน</td>
-                            <td>Developer</td>
-                            <td>083-777-7777</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>ธีระศักดิ์ รักงาน</td>
-                            <td>Director</td>
-                            <td>084-888-8888</td>
-                        </tr>
-                        <tr>
-                            <td>พิมพา งามตา</td>
-                            <td>Secretary</td>
-                            <td>085-999-9999</td>
-                        </tr>
-                        <tr>
-                            <td>ประวิทย์ คิดไว</td>
-                            <td>Support</td>
-                            <td>087-000-0001</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>
-                        <tr>
-                            <td>สุดา พาเจริญ</td>
-                            <td>Cleaner</td>
-                            <td>087-000-0004</td>
-                        </tr>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>Consultant</td>
-                            <td>090-123-4567</td>
-                        </tr>
-                        <tr>
-                            <td>Jane Smith</td>
-                            <td>UX Researcher</td>
-                            <td>090-987-6543</td>
-                        </tr>
-                        <tr>
-                            <td>อาทิตย์ สดใส</td>
-                            <td>Intern</td>
-                            <td>091-111-2222</td>
-                        </tr>
-                        <tr>
-                            <td>อารี เอื้อเฟื้อ</td>
-                            <td>Driver</td>
-                            <td>087-000-0002</td>
-                        </tr>
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>                                           
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>                                           
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>                                           
-                        <tr>
-                            <td>วันชัย ใจซื่อ</td>
-                            <td>Security</td>
-                            <td>087-000-0003</td>
-                        </tr>                                           
+                    
+                    <tbody id="teacher-table-body" data-endpoint="public/api/teacher-directory-api.php">
+                        <?php if (empty($teacher_directory)) : ?>
+                            <tr>
+                                <td colspan="3" style="text-align:center; padding: 20px;">ไม่พบข้อมูล</td>
+                            </tr>
+                        <?php else : ?>
+                            <?php foreach ($teacher_directory as $teacher_item) : ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($teacher_item['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($teacher_item['department_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($teacher_item['telephone'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
+
                 </table>
             </div>
 
             <div class="teacher-phone-footer-control">
                 <div class="count-text" id="count-text">
-                    <p>จำนวน 0 รายชื่อ</p>
+                    <p>จำนวน <?= number_format($teacher_directory_total) ?> รายชื่อ</p>
                 </div>
-                <div class="teacher-phone-pagination" id="pagination"></div>
+                <div class="teacher-phone-pagination" id="pagination">
+                    <?php if ($teacher_directory_per_page !== 'all' && $teacher_directory_total_pages > 1) : ?>
+                        <?php
+                        $total_pages = $teacher_directory_total_pages;
+                        $current_page = $teacher_directory_page;
+                        $prev_page = max(1, $current_page - 1);
+                        $next_page = min($total_pages, $current_page + 1);
+                        ?>
+                        <button type="button" data-page="<?= $prev_page ?>" <?= $current_page <= 1 ? 'disabled' : '' ?> aria-label="Previous page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <?php
+                        $start_page = 1;
+                        $end_page = $total_pages;
+
+                        if ($total_pages > 7) {
+                            if ($current_page <= 4) {
+                                $end_page = 5;
+                            } elseif ($current_page >= $total_pages - 3) {
+                                $start_page = $total_pages - 4;
+                            } else {
+                                $start_page = $current_page - 2;
+                                $end_page = $current_page + 2;
+                            }
+                        }
+
+                        if ($start_page > 1) {
+                            ?>
+                            <button type="button" data-page="1" <?= $current_page === 1 ? 'class="active"' : '' ?>>1</button>
+                            <?php if ($start_page > 2) : ?>
+                                <span style="padding: 0 5px;">...</span>
+                            <?php endif; ?>
+                            <?php
+                        }
+
+                        for ($i = $start_page; $i <= $end_page; $i++) {
+                            ?>
+                            <button type="button" data-page="<?= $i ?>" <?= $i === $current_page ? 'class="active"' : '' ?>><?= $i ?></button>
+                            <?php
+                        }
+
+                        if ($end_page < $total_pages) {
+                            if ($end_page < $total_pages - 1) {
+                                ?>
+                                <span style="padding: 0 5px;">...</span>
+                                <?php
+                            }
+                            ?>
+                            <button type="button" data-page="<?= $total_pages ?>" <?= $current_page === $total_pages ? 'class="active"' : '' ?>><?= $total_pages ?></button>
+                            <?php
+                        }
+                        ?>
+                        <button type="button" data-page="<?= $next_page ?>" <?= $current_page >= $total_pages ? 'disabled' : '' ?> aria-label="Next page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    <?php endif; ?>
+                </div>
             </div>
 
         </main>
