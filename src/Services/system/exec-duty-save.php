@@ -3,11 +3,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['exec_duty_save'])) {
     return;
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../../../config/connection.php';
 
+$redirect_url = 'setting.php?tab=settingDuty';
+
+$set_setting_alert = static function (string $type, string $title, string $message = '') use ($redirect_url): void {
+    $_SESSION['setting_alert'] = [
+        'type' => $type,
+        'title' => $title,
+        'message' => $message,
+    ];
+};
+
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    http_response_code(403);
-    exit('403 Forbidden: Invalid Security Token');
+    $set_setting_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $exec_duty_pid = $_POST['exec_duty_pid'] ?? '';
@@ -17,8 +32,9 @@ if (is_array($exec_duty_pid)) {
 $exec_duty_pid = trim((string) $exec_duty_pid);
 
 if ($exec_duty_pid === '' || !preg_match('/^\d{1,13}$/', $exec_duty_pid)) {
-    http_response_code(400);
-    exit('400 Bad Request: Invalid Executive ID');
+    $set_setting_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกผู้บริหารก่อนบันทึก');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $teacher_sql = 'SELECT positionID FROM teacher WHERE pID = ? AND status = 1 AND dID = 12 LIMIT 1';
@@ -26,8 +42,9 @@ $teacher_stmt = mysqli_prepare($connection, $teacher_sql);
 
 if ($teacher_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    http_response_code(500);
-    exit('500 Internal Server Error');
+    $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกข้อมูลผู้บริหารได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 mysqli_stmt_bind_param($teacher_stmt, 's', $exec_duty_pid);
@@ -37,16 +54,20 @@ $teacher_row = $teacher_result ? mysqli_fetch_assoc($teacher_result) : null;
 mysqli_stmt_close($teacher_stmt);
 
 if (!$teacher_row) {
-    http_response_code(404);
-    exit('404 Not Found');
+    $set_setting_alert('danger', 'ไม่พบข้อมูลผู้บริหาร', 'กรุณาเลือกผู้บริหารใหม่อีกครั้ง');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $position_id = (int) $teacher_row['positionID'];
 $duty_status = $position_id === 1 ? 1 : 2;
 
-mysqli_begin_transaction($connection);
-
-$redirect_url = 'setting.php?tab=settingDuty';
+if (mysqli_begin_transaction($connection) === false) {
+    error_log('Database Error: ' . mysqli_error($connection));
+    $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกข้อมูลผู้บริหารได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 
 try {
     $current_sql = 'SELECT dutyLogID, pID, dutyStatus FROM dh_exec_duty_logs WHERE dutyStatus IN (1, 2) ORDER BY dutyLogID DESC LIMIT 1 FOR UPDATE';
@@ -64,6 +85,7 @@ try {
 
         if ($current_pid === $exec_duty_pid && $current_status === $duty_status) {
             mysqli_commit($connection);
+            $set_setting_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'ข้อมูลการปฏิบัติราชการยังเป็นรายการเดิม');
             header('Location: ' . $redirect_url, true, 303);
             exit();
         }
@@ -101,9 +123,11 @@ try {
 } catch (Throwable $e) {
     mysqli_rollback($connection);
     error_log('Database Exception: ' . $e->getMessage());
-    http_response_code(500);
-    exit('500 Internal Server Error');
+    $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกข้อมูลผู้บริหารได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
+$set_setting_alert('success', 'บันทึกสำเร็จ', 'อัปเดตการปฏิบัติราชการของผู้บริหารเรียบร้อยแล้ว');
 header('Location: ' . $redirect_url, true, 303);
 exit();

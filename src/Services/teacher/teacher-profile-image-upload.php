@@ -1,11 +1,11 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['signature_upload'])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['profile_image_upload'])) {
     return;
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
 
-$redirect_url = 'profile.php?tab=signature';
+$redirect_url = 'profile.php?tab=personal';
 
 $set_profile_alert = static function (string $type, string $title, string $message = '') use ($redirect_url): void {
     $_SESSION['profile_alert'] = [
@@ -28,42 +28,42 @@ if ($teacher_pid === '') {
     exit();
 }
 
-if (empty($_FILES['signature_file'])) {
-    $set_profile_alert('danger', 'อัปโหลดไม่สำเร็จ', 'กรุณาแนบไฟล์ลายเซ็นก่อนบันทึก');
+if (empty($_FILES['profile_image'])) {
+    $set_profile_alert('danger', 'อัปโหลดไม่สำเร็จ', 'กรุณาแนบรูปโปรไฟล์ก่อนบันทึก');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$signature_file = $_FILES['signature_file'];
-if ($signature_file['error'] !== UPLOAD_ERR_OK) {
+$profile_file = $_FILES['profile_image'];
+if ($profile_file['error'] !== UPLOAD_ERR_OK) {
     $set_profile_alert('danger', 'อัปโหลดไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$max_signature_size = 2 * 1024 * 1024;
-if ((int) $signature_file['size'] > $max_signature_size) {
+$max_profile_size = 2 * 1024 * 1024;
+if ((int) $profile_file['size'] > $max_profile_size) {
     $set_profile_alert('warning', 'ไฟล์มีขนาดใหญ่เกินไป', 'รองรับไฟล์ขนาดไม่เกิน 2MB');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$signature_mime = '';
+$profile_mime = '';
 if (class_exists('finfo')) {
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     if ($finfo) {
-        $signature_mime = (string) $finfo->file($signature_file['tmp_name']);
+        $profile_mime = (string) $finfo->file($profile_file['tmp_name']);
     }
 }
-if ($signature_mime === '') {
-    $signature_mime = (string) ($signature_file['type'] ?? '');
+if ($profile_mime === '') {
+    $profile_mime = (string) ($profile_file['type'] ?? '');
 }
 
 $allowed_mime = [
     'image/jpeg' => 'jpg',
     'image/png' => 'png',
 ];
-if (!isset($allowed_mime[$signature_mime])) {
+if (!isset($allowed_mime[$profile_mime])) {
     $set_profile_alert('warning', 'รูปแบบไฟล์ไม่ถูกต้อง', 'รองรับเฉพาะไฟล์ .jpg และ .png');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -76,41 +76,41 @@ if ($safe_pid === '') {
     exit();
 }
 
-$signature_dir = __DIR__ . '/../../../assets/img/signature/' . $safe_pid;
-if (!is_dir($signature_dir) && !mkdir($signature_dir, 0755, true)) {
-    error_log('Signature directory create failed: ' . $signature_dir);
-    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกไฟล์ลายเซ็นได้ในขณะนี้');
+$profile_dir = __DIR__ . '/../../../assets/img/profile/' . $safe_pid;
+if (!is_dir($profile_dir) && !mkdir($profile_dir, 0755, true)) {
+    error_log('Profile directory create failed: ' . $profile_dir);
+    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรูปโปรไฟล์ได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$signature_filename = 'signature_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $allowed_mime[$signature_mime];
-$signature_target = $signature_dir . '/' . $signature_filename;
+$profile_filename = 'profile_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $allowed_mime[$profile_mime];
+$profile_target = $profile_dir . '/' . $profile_filename;
 
-if (!move_uploaded_file($signature_file['tmp_name'], $signature_target)) {
-    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกไฟล์ลายเซ็นได้ในขณะนี้');
+if (!move_uploaded_file($profile_file['tmp_name'], $profile_target)) {
+    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรูปโปรไฟล์ได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-@chmod($signature_target, 0644);
+@chmod($profile_target, 0644);
 
-$signature_path = 'assets/img/signature/' . $safe_pid . '/' . $signature_filename;
+$profile_path = 'assets/img/profile/' . $safe_pid . '/' . $profile_filename;
 
-$update_sql = 'UPDATE teacher SET signature = ? WHERE pID = ? AND status = 1';
+$update_sql = 'UPDATE teacher SET picture = ? WHERE pID = ? AND status = 1';
 $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกลายเซ็นได้ในขณะนี้');
+    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรูปโปรไฟล์ได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-mysqli_stmt_bind_param($update_stmt, 'ss', $signature_path, $teacher_pid);
+mysqli_stmt_bind_param($update_stmt, 'ss', $profile_path, $teacher_pid);
 mysqli_stmt_execute($update_stmt);
 mysqli_stmt_close($update_stmt);
 
-$set_profile_alert('success', 'บันทึกสำเร็จ', 'บันทึกลายเซ็นเรียบร้อยแล้ว');
+$set_profile_alert('success', 'บันทึกสำเร็จ', 'บันทึกรูปโปรไฟล์เรียบร้อยแล้ว');
 header('Location: ' . $redirect_url, true, 303);
 exit();
