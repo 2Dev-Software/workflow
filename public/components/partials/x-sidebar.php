@@ -31,7 +31,7 @@
 
     <div class="navigation-links">
         <li>
-            <a href="#">
+            <a href="dashboard.php">
                 <i class="fa-solid fa-house-chimney"></i>
                 <p class="link-name">หน้าหลัก</p>
             </a>

@@ -849,13 +849,18 @@ document.addEventListener("DOMContentLoaded", function () {
   const cancelBtn = document.getElementById("cancelBtn");
 
   if (phoneInput) {
+    phoneInput.addEventListener("blur", function () {
+      const phone = phoneInput.value.trim();
+      
+      if (phone) {
+        if (showPhone) showPhone.textContent = phone;
+        if (modal) modal.style.display = "flex";
+      }
+    });
+
     phoneInput.addEventListener("keypress", function (e) {
       if (e.key === "Enter") {
-        const phone = phoneInput.value.trim();
-        if (phone) {
-          if (showPhone) showPhone.textContent = phone;
-          if (modal) modal.style.display = "flex";
-        }
+        phoneInput.blur();
       }
     });
   }
@@ -1021,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   const btnSaveDuty = document.querySelector(".btn-save-duty");
-  
+
   if (btnSaveDuty) {
       btnSaveDuty.addEventListener("click", function () {
         if (this.dataset.submit === "true") {
@@ -1030,19 +1035,19 @@ document.addEventListener("DOMContentLoaded", function () {
         
         const selected = document.querySelector('input[name="exec_duty_pid"]:checked');
 
-        if (selected) {
-          const value = selected.value;
+      if (selected) {
+        const value = selected.value;
 
-          const row = selected.closest("tr");
-          const name = row.querySelector("td:first-child").textContent.trim();
+        const row = selected.closest("tr");
+        const name = row.querySelector("td:first-child").textContent.trim();
 
-          console.log(`กำลังบันทึกข้อมูล: ${name} (Value: ${value})`);
-          console.log(`บันทึกสถานะผู้ปฏิบัติราชการ: "${name}" เรียบร้อยแล้ว`);
+        console.log(`กำลังบันทึกข้อมูล: ${name} (Value: ${value})`);
+        console.log(`บันทึกสถานะผู้ปฏิบัติราชการ: "${name}" เรียบร้อยแล้ว`);
 
-          location.reload();
-        } else {
-          console.log("กรุณาเลือกผู้ปฏิบัติราชการอย่างน้อย 1 ท่าน");
-        }
-      });
+        location.reload();
+      } else {
+        console.log("กรุณาเลือกผู้ปฏิบัติราชการอย่างน้อย 1 ท่าน");
+      }
+    });
   }
 });

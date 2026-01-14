@@ -50,9 +50,9 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
             <div class="modal-overlay hidden" id="imageModal">
                 <div class="modal-content upload-modal">
                     <div class="modal-body upload-body">
-                        <div class="preview-container" id="previewContainer">
+                        <div class="preview-container" id="previewContainer" onclick="document.getElementById('profileFileInput').click()">
                             <img id="imagePreview" src="#" alt="Preview" class="hidden">
-                            <p id="previewPlaceholder">ตัวอย่างรูปภาพ</p>
+                            <p id="previewPlaceholder">เลือกรูปภาพ</p>
                         </div>
 
                         <input type="file" id="profileFileInput" hidden accept="image/png, image/jpeg" onchange="previewProfileImage(this)">
