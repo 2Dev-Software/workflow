@@ -41,7 +41,6 @@ require_once __DIR__ . '/src/Services/auth/login.php';
                     <div class="input-password-login-group">
                         <label for="password">รหัสผ่าน</label>
                         <input type="password" name="password" id="password-toggle" placeholder="รหัสผ่าน" autocomplete="current-password" required>
-                        <!-- <i class="fa-regular fa-eye-slash" id="eyeicon"></i> -->
                     </div>
 
                     <label class="remember-me-group">
@@ -202,6 +201,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
             </div>
         </div>
     </div>
+
 
     <?php require_once __DIR__ . '/public/components/x-scripts.php'; ?>
 </body>
