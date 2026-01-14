@@ -2,8 +2,9 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once __DIR__ . '/src/Services/security/securityservice.php';
+require_once __DIR__ . '/src/Services/security/security-service.php';
 require_once __DIR__ . '/src/Services/auth/login.php';
+require_once __DIR__ . '/src/Services/system/exec-duty-announcement.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -32,33 +33,33 @@ require_once __DIR__ . '/src/Services/auth/login.php';
             </header>
 
             <section class="form-login">
-                <form action="" method="post">
+                <form action="<?= htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>" method="POST" enctype="application/x-www-form-urlencoded">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
                     <div class="input-id-login-group">
                         <label for="pID">เลขบัตรประชาชน</label>
-                        <input type="text" name="pID" id="" placeholder="เลขบัตรประชาชน" autocomplete="username" inputmode="numeric" required>
+                        <input type="text" name="pID" id="pID" placeholder="เลขบัตรประชาชน" inputmode="numeric" maxlength="13" pattern="\d{13}" required>
                     </div>
 
                     <div class="input-password-login-group">
                         <label for="password">รหัสผ่าน</label>
-                        <input type="password" name="password" id="password-toggle" placeholder="รหัสผ่าน" autocomplete="current-password" required>
-                        <!-- <i class="fa-regular fa-eye-slash" id="eyeicon"></i> -->
+                        <input type="password" name="password" id="password-toggle" placeholder="รหัสผ่าน" required>
                     </div>
 
                     <label class="remember-me-group">
-                        <input type="checkbox" name="remember-me" id="">
+                        <input type="checkbox" name="remember-me" id="remember">
                         <span class="checkmark"></span>
                         <p>จดจำฉัน</p>
                     </label>
 
                     <div class="button-login-group">
-                        <button type="submit">เข้าสู่ระบบ</button>
+                        <button type="submit" name="submit">เข้าสู่ระบบ</button>
                     </div>
                 </form>
             </section>
 
             <footer class="footer-login">
                 <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
-                <p>DB HUB V.1.0.0 Copyright @T&T-2025 All rights reserved</p>
+                <p>DB HUB V.1.0.0 Copyright 2DEV&Software All rights reserved</p>
                 <p>Paperless office พ.ศ.2568</p>
             </footer>
 
@@ -68,7 +69,7 @@ require_once __DIR__ . '/src/Services/auth/login.php';
 
             <header class="announcement-bar">
                 <i class="fa-solid fa-bullhorn"></i>
-                <p>วันนี้ นายดลยวัฒน์ สันติพิทักษ์ ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน ปฏิบัติราชการ</p>
+                <p><?= htmlspecialchars($exec_duty_announcement, ENT_QUOTES, 'UTF-8') ?></p>
                 <div class="close-news-section">
                     <i class="fa-solid fa-xmark" id="closeNewsBtn"></i>
                 </div>
