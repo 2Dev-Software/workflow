@@ -28,6 +28,9 @@ $exec_duty_status_labels = [
 $exec_duty_current_pid = $exec_duty_current_pid ?? '';
 $exec_duty_current_status = (int) ($exec_duty_current_status ?? 0);
 
+$setting_alert = $_SESSION['setting_alert'] ?? null;
+unset($_SESSION['setting_alert']);
+
 $system_status_options = [
     1 => 'เปิดใช้งาน ระบบสำนักงานอิเล็กทรอนิกส์',
     2 => 'ปิดปรับปรุง ระบบสำนักงานอิเล็กทรอนิกส์',
@@ -49,6 +52,10 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
 <body>
 
     <?php require_once __DIR__ . '/public/components/layout/preloader.php'; ?>
+    <?php if (!empty($setting_alert)) : ?>
+        <?php $alert = $setting_alert; ?>
+        <?php require __DIR__ . '/public/components/x-alert.php'; ?>
+    <?php endif; ?>
 
     <?php require_once __DIR__ . '/public/components/partials/x-sidebar.php'; ?>
 
