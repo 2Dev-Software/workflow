@@ -19,7 +19,7 @@
 
     <div class="navigation-links">
         <li>
-            <a href="#">
+            <a href="dashboard.php">
                 <i class="fa-solid fa-house-chimney"></i>
                 <p class="link-name">หน้าหลัก</p>
             </a>
@@ -97,7 +97,7 @@
     </div>
 
     <div class="logout-section">
-        <a href="#" class="logout-btn">
+        <a href="index.php" class="logout-btn">
             <i class="fa-solid fa-right-from-bracket"></i>
             <p>ออกจากระบบ</p>
         </a>
