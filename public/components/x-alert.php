@@ -1,88 +1,67 @@
-<!-- ALERT WARNING START -->
+<?php
+if (empty($alert) || !is_array($alert)) {
+    return;
+}
 
-<!-- <div class="alert-overlay">
-    <div class="alert-box warning">
+$alert_type = (string) ($alert['type'] ?? 'danger');
+$allowed_types = ['success', 'warning', 'danger'];
+if (!in_array($alert_type, $allowed_types, true)) {
+    $alert_type = 'danger';
+}
+
+$alert_title = (string) ($alert['title'] ?? '');
+$alert_message = (string) ($alert['message'] ?? '');
+$alert_button_label = (string) ($alert['button_label'] ?? 'ยืนยัน');
+$alert_auto = (bool) ($alert['auto'] ?? false);
+$alert_hide_button = (bool) ($alert['hide_button'] ?? false);
+$alert_redirect = (string) ($alert['redirect'] ?? '');
+$alert_delay_ms = (int) ($alert['delay_ms'] ?? 1000);
+if ($alert_delay_ms < 0) {
+    $alert_delay_ms = 0;
+}
+
+$icon_map = [
+    'success' => 'fa-check',
+    'warning' => 'fa-triangle-exclamation',
+    'danger' => 'fa-xmark',
+];
+$alert_icon = $icon_map[$alert_type] ?? 'fa-xmark';
+?>
+
+<div class="alert-overlay">
+    <div class="alert-box <?= htmlspecialchars($alert_type, ENT_QUOTES, 'UTF-8') ?><?= $alert_auto ? ' auto' : '' ?>">
         <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="icon-circle"><i class="fa-solid <?= htmlspecialchars($alert_icon, ENT_QUOTES, 'UTF-8') ?>"></i></div>
         </div>
         <div class="alert-body">
-            <h1>กรุณาเข้าสู่ระบบก่อน </h1>
-            <p>เพื่อเข้าดูรายละเอียดเพิ่มเติม</p>
-            <a href="index.php"><button class="btn-close-alert">ยืนยัน</button></a>
+            <h1><?= htmlspecialchars($alert_title, ENT_QUOTES, 'UTF-8') ?></h1>
+            <?php if ($alert_message !== '') : ?>
+                <p><?= htmlspecialchars($alert_message, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
+            <?php if (!$alert_hide_button && $alert_button_label !== '') : ?>
+                <button type="button" class="btn-close-alert" data-alert-close="true">
+                    <?= htmlspecialchars($alert_button_label, ENT_QUOTES, 'UTF-8') ?>
+                </button>
+            <?php endif; ?>
         </div>
     </div>
-</div> -->
+</div>
 
-<!-- 
---color-warning:#E7BD1E;
---rgb-warning: 231, 189, 30;
--->
+<?php if ($alert_redirect !== '') : ?>
+    <script>
+        window.setTimeout(function () {
+            window.location.href = <?= json_encode($alert_redirect, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+        }, <?= $alert_delay_ms ?>);
+    </script>
+<?php endif; ?>
 
-<!-- ALERT WARNING END -->
-
-
-
-<!-- ALERT DANGER START -->
-
-<!-- <div class="alert-overlay">
-        <div class="alert-box danger">
-            <div class="alert-header">
-                <div class="icon-circle"><i class="fa-solid fa-xmark"></i></div>
-            </div>
-            <div class="alert-body">
-                <h1>เข้าสู่ระบบไม่สำเร็จ</h1>
-                <p>กรุณาตรวจสอบเลขบัตรประชาชนหรือรหัสผ่านอีกครั้ง</p>
-                <a href="index.php"><button class="btn-close-alert">ยืนยัน</button></a>
-            </div>
-        </div>
-    </div> -->
-
-<!-- 
---color-danger:#FF5050;
---rgb-danger: 255, 80, 80;
--->
-
-<!-- ALERT DANGER END -->
-
-
-
-<!-- ALERT SUCCESS 1 START -->
-
-<!-- <div class="alert-overlay">
-    <div class="alert-box success">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-check"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>เข้าสู่ระบบสำเร็จ</h1>
-            <a href="#"><button class="btn-close-alert">ยืนยัน</button></a>
-        </div>
-    </div>
-</div> -->
-
-<!-- 
---color-success:#34C759;
---rgb-success: 52, 199, 89;
--->
-
-<!-- ALERT SUCCESS 1 END -->
-<!-- ALERT SUCCESS 2 START -->
-
-<!-- <div class="alert-overlay">
-        <div class="alert-box success auto">
-            <div class="alert-header">
-                <div class="icon-circle"><i class="fa-solid fa-check"></i></div>
-            </div>
-            <div class="alert-body">
-                <h1>เข้าสู่ระบบสำเร็จ</h1>
-                <p>กำลังนำท่านไปยังหน้าหลัก...</p>
-            </div>
-        </div>
-    </div> -->
-
-<!-- 
---color-success:#34C759;
---rgb-success: 52, 199, 89;
--->
-
-<!-- ALERT SUCCESS 2 END -->
+<script>
+    document.querySelectorAll('[data-alert-close="true"]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const overlay = btn.closest('.alert-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        });
+    });
+</script>

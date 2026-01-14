@@ -524,7 +524,8 @@ input {
 
     .alert-box {
       width: 600px;
-      height: 420px;
+      min-height: 420px;
+      height: auto;
       background-color: var(--color-neutral-lightest);
       border-radius: 18px;
       text-align: center;
@@ -3428,7 +3429,8 @@ input {
 
     .alert-box {
       width: 420px;
-      height: 300px;
+      min-height: 300px;
+      height: auto;
       background-color: var(--color-neutral-lightest);
       border-radius: 14px;
       text-align: center;
@@ -5849,7 +5851,8 @@ input {
 
     .alert-box {
       width: 300px;
-      height: 210px;
+      min-height: 210px;
+      height: auto;
       background-color: var(--color-neutral-lightest);
       border-radius: 12px;
       text-align: center;
