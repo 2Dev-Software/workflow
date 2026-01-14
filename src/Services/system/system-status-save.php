@@ -3,11 +3,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['dh_status_save'])) {
     return;
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../../../config/connection.php';
 
+$redirect_url = 'setting.php?tab=settingSystem';
+
+$set_setting_alert = static function (string $type, string $title, string $message = '') use ($redirect_url): void {
+    $_SESSION['setting_alert'] = [
+        'type' => $type,
+        'title' => $title,
+        'message' => $message,
+    ];
+};
+
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    http_response_code(403);
-    exit('403 Forbidden: Invalid Security Token');
+    $set_setting_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $dh_status_input = filter_input(INPUT_POST, 'dh_status', FILTER_VALIDATE_INT, [
@@ -15,8 +30,9 @@ $dh_status_input = filter_input(INPUT_POST, 'dh_status', FILTER_VALIDATE_INT, [
 ]);
 
 if ($dh_status_input === false || $dh_status_input === null) {
-    http_response_code(400);
-    exit('400 Bad Request: Invalid Status');
+    $set_setting_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกสถานะระบบใหม่');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $select_sql = 'SELECT ID FROM thesystem ORDER BY ID DESC LIMIT 1';
@@ -24,16 +40,18 @@ $select_result = mysqli_query($connection, $select_sql);
 
 if ($select_result === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    http_response_code(500);
-    exit('500 Internal Server Error');
+    $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกสถานะระบบได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $system_row = mysqli_fetch_assoc($select_result);
 mysqli_free_result($select_result);
 
 if (!$system_row) {
-    http_response_code(404);
-    exit('404 Not Found');
+    $set_setting_alert('danger', 'ไม่พบข้อมูลระบบ', 'กรุณาลองใหม่อีกครั้ง');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $system_id = (int) $system_row['ID'];
@@ -43,13 +61,15 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    http_response_code(500);
-    exit('500 Internal Server Error');
+    $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกสถานะระบบได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 mysqli_stmt_bind_param($update_stmt, 'ii', $dh_status_input, $system_id);
 mysqli_stmt_execute($update_stmt);
 mysqli_stmt_close($update_stmt);
 
-header('Location: setting.php', true, 303);
+$set_setting_alert('success', 'บันทึกสำเร็จ', 'อัปเดตสถานะระบบเรียบร้อยแล้ว');
+header('Location: ' . $redirect_url, true, 303);
 exit();

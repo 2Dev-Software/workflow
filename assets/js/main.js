@@ -786,15 +786,16 @@ function previewProfileImage(input) {
 }
 
 function confirmImageChange() {
-  const mainProfilePic = document.getElementById("mainProfilePic");
-  if (tempImageSrc) {
-    if (mainProfilePic) {
-      mainProfilePic.style.backgroundImage = `url('${tempImageSrc}')`;
-      mainProfilePic.style.backgroundColor = "transparent";
-    }
-    closeImageModal();
-  } else {
+  const profileForm = document.getElementById("profileImageForm");
+  const profileInput = document.getElementById("profileFileInput");
+
+  if (!profileInput || !profileInput.files || !profileInput.files[0]) {
     alert("กรุณาเลือกรูปภาพก่อน");
+    return;
+  }
+
+  if (profileForm) {
+    profileForm.submit();
   }
 }
 
@@ -843,6 +844,7 @@ function confirmSignatureChange() {
 
 document.addEventListener("DOMContentLoaded", function () {
   const phoneInput = document.getElementById("phoneInput");
+  const phoneForm = document.getElementById("phoneForm");
   const modal = document.getElementById("confirmModal");
   const showPhone = document.getElementById("showPhone");
   const confirmBtn = document.getElementById("confirmBtn");
@@ -860,6 +862,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     phoneInput.addEventListener("keypress", function (e) {
       if (e.key === "Enter") {
+        e.preventDefault();
         phoneInput.blur();
       }
     });
@@ -867,6 +870,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (confirmBtn) {
     confirmBtn.addEventListener("click", function () {
+      if (phoneForm) {
+        phoneForm.submit();
+      }
       if (modal) modal.style.display = "none";
     });
   }

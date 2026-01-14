@@ -12,6 +12,10 @@ require_once __DIR__ . '/src/Services/system/exec-duty-announcement.php';
 
 <body>
     <?php require_once __DIR__ . '/public/components/layout/preloader.php'; ?>
+    <?php if (!empty($login_alert)) : ?>
+        <?php $alert = $login_alert; ?>
+        <?php require __DIR__ . '/public/components/x-alert.php'; ?>
+    <?php endif; ?>
 
     <div class="container-login-page">
 

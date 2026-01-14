@@ -1,14 +1,25 @@
 <?php
 require_once __DIR__ . '/src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/src/Services/security/security-service.php';
+require_once __DIR__ . '/src/Services/teacher/teacher-phone-save.php';
+require_once __DIR__ . '/src/Services/teacher/teacher-profile-image-upload.php';
 require_once __DIR__ . '/src/Services/teacher/teacher-signature-upload.php';
 require_once __DIR__ . '/src/Services/teacher/teacher-password-change.php';
 require_once __DIR__ . '/src/Services/teacher/teacher-profile.php';
+
+$profile_alert = $_SESSION['profile_alert'] ?? null;
+unset($_SESSION['profile_alert']);
 
 $active_tab = $_GET['tab'] ?? 'personal';
 $allowed_tabs = ['personal', 'signature', 'password'];
 if (!in_array($active_tab, $allowed_tabs, true)) {
     $active_tab = 'personal';
+}
+
+$profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
+$profile_picture = '';
+if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+    $profile_picture = $profile_picture_raw;
 }
 ?>
 <!DOCTYPE html>
@@ -18,6 +29,10 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
 <body>
 
     <?php require_once __DIR__ . '/public/components/layout/preloader.php'; ?>
+    <?php if (!empty($profile_alert)) : ?>
+        <?php $alert = $profile_alert; ?>
+        <?php require __DIR__ . '/public/components/x-alert.php'; ?>
+    <?php endif; ?>
 
     <?php require_once __DIR__ . '/public/components/partials/x-sidebar.php'; ?>
 
@@ -38,7 +53,7 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
 
             <div class="profile-header">
                 <div class="profile-pic-wrapper" onclick="openImageModal()">
-                    <div class="profile-pic" id="mainProfilePic">
+                    <div class="profile-pic" id="mainProfilePic"<?= $profile_picture !== '' ? ' style="background-image: url(\'' . htmlspecialchars($profile_picture, ENT_QUOTES, 'UTF-8') . '\');"' : '' ?>>
                         <div class="profile-overlay" onclick="document.getElementById('profileFileInput').click()">
                             <i class="fa-solid fa-camera"></i>
                         </div>
@@ -49,21 +64,23 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
 
             <div class="modal-overlay hidden" id="imageModal">
                 <div class="modal-content upload-modal">
-                    <div class="modal-body upload-body">
+                    <form class="modal-body upload-body" id="profileImageForm" method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="profile_image_upload" value="1">
                         <div class="preview-container" id="previewContainer" onclick="document.getElementById('profileFileInput').click()">
                             <img id="imagePreview" src="#" alt="Preview" class="hidden">
                             <p id="previewPlaceholder">เลือกรูปภาพ</p>
                         </div>
 
-                        <input type="file" id="profileFileInput" hidden accept="image/png, image/jpeg" onchange="previewProfileImage(this)">
+                        <input type="file" id="profileFileInput" name="profile_image" hidden accept="image/png, image/jpeg" onchange="previewProfileImage(this)" required>
 
-                        <div class="file-hint">รองรับไฟล์ .jpg, .png</div>
+                        <div class="file-hint">รองรับไฟล์นามสกุล .JPG , .PNG เท่านั้น ขนาดไม่เกิน 2MB</div>
 
                         <div class="modal-button-content upload-actions">
-                            <button class="btn-confirm" onclick="confirmImageChange()">ยืนยัน</button>
-                            <button class="btn-confirm btn-cancel" onclick="closeImageModal()">ยกเลิก</button>
+                            <button type="button" class="btn-confirm" onclick="confirmImageChange()">ยืนยัน</button>
+                            <button type="button" class="btn-confirm btn-cancel" onclick="closeImageModal()">ยกเลิก</button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
 
@@ -78,33 +95,37 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
             <div class="content-area">
 
                 <div id="personal" class="tab-content<?= $active_tab === 'personal' ? ' active' : '' ?>">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">กลุ่มสาระฯ :</div>
-                            <input class="info-value" value="<?= htmlspecialchars($teacher['department_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                    <form class="phone-form" id="phoneForm" method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="phone_save" value="1">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">กลุ่มสาระฯ :</div>
+                                <input class="info-value" value="<?= htmlspecialchars($teacher['department_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">หน้าที่ :</div>
+                                <input class="info-value" value="<?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">ตำแหน่ง :</div>
+                                <input class="info-value" value="<?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">วิทยฐานะ :</div>
+                                <input class="info-value" value="<?= htmlspecialchars($teacher['level_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">กลุ่มงาน/ฝ่าย :</div>
+                                <input class="info-value" value="<?= htmlspecialchars($teacher['faction_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">เบอร์โทรศัพท์ :</div>
+                                <input class="tel-info-value" type="text" id="phoneInput" name="telephone" value="<?= htmlspecialchars($teacher['telephone'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="กรอกเบอร์โทรศัพท์" inputmode="numeric" pattern="\d{10}" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" />
+                            </div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">หน้าที่ :</div>
-                            <input class="info-value" value="<?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">ตำแหน่ง :</div>
-                            <input class="info-value" value="<?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">วิทยฐานะ :</div>
-                            <input class="info-value" value="<?= htmlspecialchars($teacher['level_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">กลุ่มงาน/ฝ่าย :</div>
-                            <input class="info-value" value="<?= htmlspecialchars($teacher['faction_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled />
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">เบอร์โทรศัพท์ :</div>
-                            <input class="tel-info-value" type="text" id="phoneInput" value="<?= htmlspecialchars($teacher['telephone'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="กรอกเบอร์โทรศัพท์" inputmode="numeric" pattern="\d{10}" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" />
-                        </div>
-                    </div>
-                    <div class="warning-text">* หากข้อมูลส่วนบุคคลผิดพลาด กรุณาติดต่อผู้ดูแลระบบ *</div>
+                        <div class="warning-text">* หากข้อมูลส่วนบุคคลผิดพลาด กรุณาติดต่อผู้ดูแลระบบ *</div>
+                    </form>
                 </div>
 
                 <div class="tel-modal" id="confirmModal">
@@ -112,8 +133,8 @@ if (!in_array($active_tab, $allowed_tabs, true)) {
                         <p><?= empty($teacher['telephone']) ? 'ต้องการเพิ่มหมายเลขโทรศัพท์ใช่หรือไม่' : 'ต้องการเปลี่ยนหมายเลขโทรศัพท์ใช่หรือไม่' ?></p>
                         <p id="showPhone"></p>
                         <div class="modal-button-content">
-                            <button id="confirmBtn">ยืนยัน</button>
-                            <button class="cancel" id="cancelBtn">ยกเลิก</button>
+                            <button type="button" id="confirmBtn">ยืนยัน</button>
+                            <button type="button" class="cancel" id="cancelBtn">ยกเลิก</button>
                         </div>
                     </div>
                 </div>
