@@ -71,7 +71,7 @@
             </a>
         </li>
         <li>
-            <a href="#">
+            <a href="room-booking.php">
                 <i class="fa-solid fa-building"></i>
                 <p class="link-name">จองสถานที่/ห้อง</p>
             </a>
