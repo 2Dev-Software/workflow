@@ -76,11 +76,19 @@
                 <p class="link-name">จองสถานที่/ห้อง</p>
             </a>
         </li>
-        <li>
-            <a href="#">
-                <i class="fa-solid fa-car"></i>
-                <p class="link-name">จองยานพาหนะ</p>
-            </a>
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <i class="fa-solid fa-book"></i>
+                    <p class="link-name">การจองยานพาหนะ</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="vehicle-reservation.php">บันทึกการจองยานพาหนะ</a></li>
+                <li><a href="#">จัดการยานพาหนะ</a></li>
+                <li><a href="#">อนุมัติการจองยานพาหนะ</a></li>
+            </ul>
         </li>
         <li>
             <a href="#">
