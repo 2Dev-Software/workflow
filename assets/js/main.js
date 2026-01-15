@@ -389,8 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialPerPage =
-    urlParams.get("per_page") ||
-    (hiddenSelect ? hiddenSelect.value : "10");
+    urlParams.get("per_page") || (hiddenSelect ? hiddenSelect.value : "10");
 
   const state = {
     page: Math.max(parseInt(urlParams.get("page") || "1", 10), 1),
@@ -481,7 +480,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextPage = Math.min(totalPages, currentPage + 1);
 
     paginationContainer.appendChild(
-      createButton('<i class="fas fa-chevron-left"></i>', prevPage, false, currentPage === 1)
+      createButton(
+        '<i class="fas fa-chevron-left"></i>',
+        prevPage,
+        false,
+        currentPage === 1
+      )
     );
 
     let startPage = 1;
@@ -516,12 +520,22 @@ document.addEventListener("DOMContentLoaded", () => {
         paginationContainer.appendChild(createSpan("..."));
       }
       paginationContainer.appendChild(
-        createButton(String(totalPages), totalPages, currentPage === totalPages, false)
+        createButton(
+          String(totalPages),
+          totalPages,
+          currentPage === totalPages,
+          false
+        )
       );
     }
 
     paginationContainer.appendChild(
-      createButton('<i class="fas fa-chevron-right"></i>', nextPage, false, currentPage === totalPages)
+      createButton(
+        '<i class="fas fa-chevron-right"></i>',
+        nextPage,
+        false,
+        currentPage === totalPages
+      )
     );
   };
 
@@ -747,7 +761,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (phoneInput) {
     phoneInput.addEventListener("blur", function () {
       const phone = phoneInput.value.trim();
-      
+
       if (phone) {
         if (showPhone) showPhone.textContent = phone;
         if (modal) modal.style.display = "flex";
@@ -912,8 +926,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-  
-  const dutyCheckboxes = document.querySelectorAll('input[name="exec_duty_pid"]');
+  const dutyCheckboxes = document.querySelectorAll(
+    'input[name="exec_duty_pid"]'
+  );
 
   dutyCheckboxes.forEach((box) => {
     box.addEventListener("change", function () {
@@ -928,12 +943,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const btnSaveDuty = document.querySelector(".btn-save-duty");
 
   if (btnSaveDuty) {
-      btnSaveDuty.addEventListener("click", function () {
-        if (this.dataset.submit === "true") {
-          return;
-        }
-        
-        const selected = document.querySelector('input[name="exec_duty_pid"]:checked');
+    btnSaveDuty.addEventListener("click", function () {
+      if (this.dataset.submit === "true") {
+        return;
+      }
+
+      const selected = document.querySelector(
+        'input[name="exec_duty_pid"]:checked'
+      );
 
       if (selected) {
         const value = selected.value;
@@ -950,4 +967,101 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+});
+
+const startDateInput = document.getElementById("startDate");
+const endDateInput = document.getElementById("endDate");
+const dayCountDisplay = document.getElementById("dayCount");
+
+function calculateDays() {
+  if (!startDateInput || !endDateInput || !dayCountDisplay) return;
+
+  const startDate = startDateInput.value;
+  const endDate = endDateInput.value;
+
+  if (startDate) {
+    endDateInput.min = startDate;
+
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      endDateInput.value = "";
+      dayCountDisplay.textContent = "-";
+      return;
+    }
+  }
+
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = end - start;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    if (diffDays > 0) {
+      dayCountDisplay.textContent = diffDays + " วัน";
+    } else {
+      dayCountDisplay.textContent = "วันที่ไม่ถูกต้อง";
+    }
+  } else {
+    dayCountDisplay.textContent = "-";
+  }
+}
+
+if (startDateInput) startDateInput.addEventListener("change", calculateDays);
+if (endDateInput) endDateInput.addEventListener("change", calculateDays);
+
+const fileInput = document.getElementById("attachment");
+const fileNameDisplay = document.querySelector(
+  ".vehicle-input-content .file-name"
+);
+
+if (fileInput) {
+  fileInput.addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+      fileNameDisplay.textContent = "ไฟล์ที่เลือก: " + this.files[0].name;
+    } else {
+      fileNameDisplay.textContent = "";
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const wrappers = document.querySelectorAll(".custom-select-wrapper");
+
+  wrappers.forEach((wrapper) => {
+    const trigger = wrapper.querySelector(".custom-select-trigger");
+    const options = wrapper.querySelectorAll(".custom-option");
+    const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+    const valueDisplay = wrapper.querySelector(".select-value");
+
+    if (trigger) {
+      trigger.addEventListener("click", function (e) {
+        document.querySelectorAll(".custom-select-wrapper").forEach((w) => {
+          if (w !== wrapper) w.classList.remove("open");
+        });
+        wrapper.classList.toggle("open");
+        e.stopPropagation();
+      });
+    }
+
+    options.forEach((option) => {
+      option.addEventListener("click", function (e) {
+        valueDisplay.textContent = this.textContent;
+
+        if (hiddenInput) {
+          hiddenInput.value = this.getAttribute("data-value");
+        }
+
+        options.forEach((opt) => opt.classList.remove("selected"));
+        this.classList.add("selected");
+
+        wrapper.classList.remove("open");
+        e.stopPropagation();
+      });
+    });
+  });
+
+  window.addEventListener("click", function () {
+    document.querySelectorAll(".custom-select-wrapper").forEach((wrapper) => {
+      wrapper.classList.remove("open");
+    });
+  });
 });
