@@ -22,6 +22,6 @@
 
     <link href="assets/fonts/th-style.css" rel="stylesheet" />
     
-    <link rel="stylesheet" href="assets/css/main.css?v=0.0.4">
+    <link rel="stylesheet" href="assets/css/main.css?v=0.1.0-beta">
     <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
 </head>

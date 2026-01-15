@@ -4,4 +4,4 @@
   window.jQuery || document.write('<script src="assets/js/vendor/jquery-3.7.1.min.js"><\/script>')
 </script>
 
-<script src="assets/js/main.js?v=0.0.4"></script>
+<script src="assets/js/main.js?v=0.1.0-beta"></script>
