@@ -11,6 +11,7 @@ if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;
 }
 
+$room_booking_room_list = room_booking_get_rooms($connection);
 $room_booking_rooms = room_booking_get_room_map($connection);
 $room_booking_columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
 
@@ -67,6 +68,7 @@ if ($stmt === false) {
 
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
+            $row['status'] = room_booking_status_to_int($connection, $row['status'] ?? 0);
             $room_id = (string) ($row['roomID'] ?? '');
             $row['roomName'] = $room_booking_rooms[$room_id] ?? $room_id;
 

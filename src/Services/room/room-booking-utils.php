@@ -1,18 +1,18 @@
 <?php
 declare(strict_types=1);
 
-if (!function_exists('room_booking_get_room_map')) {
-    function room_booking_get_room_map(mysqli $connection): array
+if (!function_exists('room_booking_get_rooms')) {
+    function room_booking_get_rooms(mysqli $connection): array
     {
         static $cached = null;
         if (is_array($cached)) {
             return $cached;
         }
 
-        $room_map = [];
+        $rooms = [];
         $result = mysqli_query(
             $connection,
-            'SELECT roomID, roomName FROM dh_rooms ORDER BY roomName'
+            'SELECT roomID, roomName, roomStatus, roomNote FROM dh_rooms ORDER BY roomName'
         );
 
         if ($result === false) {
@@ -30,12 +30,69 @@ if (!function_exists('room_booking_get_room_map')) {
             if ($room_name === '') {
                 $room_name = $room_id;
             }
-            $room_map[$room_id] = $room_name;
+            $rooms[] = [
+                'roomID' => $room_id,
+                'roomName' => $room_name,
+                'roomStatus' => trim((string) ($row['roomStatus'] ?? '')),
+                'roomNote' => trim((string) ($row['roomNote'] ?? '')),
+            ];
         }
 
         mysqli_free_result($result);
+        $cached = $rooms;
+        return $cached;
+    }
+}
+
+if (!function_exists('room_booking_get_room_detail_map')) {
+    function room_booking_get_room_detail_map(mysqli $connection): array
+    {
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $map = [];
+        foreach (room_booking_get_rooms($connection) as $room) {
+            $room_id = (string) ($room['roomID'] ?? '');
+            if ($room_id === '') {
+                continue;
+            }
+            $map[$room_id] = $room;
+        }
+
+        $cached = $map;
+        return $cached;
+    }
+}
+
+if (!function_exists('room_booking_get_room_map')) {
+    function room_booking_get_room_map(mysqli $connection): array
+    {
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $room_map = [];
+        foreach (room_booking_get_room_detail_map($connection) as $room_id => $room) {
+            $room_name = trim((string) ($room['roomName'] ?? ''));
+            $room_map[$room_id] = $room_name !== '' ? $room_name : $room_id;
+        }
+
         $cached = $room_map;
         return $cached;
+    }
+}
+
+if (!function_exists('room_booking_is_room_available')) {
+    function room_booking_is_room_available(string $status): bool
+    {
+        $status = trim($status);
+        if ($status === '') {
+            return true;
+        }
+        return $status === 'พร้อมใช้งาน';
     }
 }
 
@@ -78,6 +135,156 @@ if (!function_exists('room_booking_has_column')) {
     }
 }
 
+if (!function_exists('room_booking_get_status_schema')) {
+    function room_booking_get_status_schema(mysqli $connection): array
+    {
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $schema = [
+            'mode' => 'int',
+            'values' => [],
+        ];
+
+        $result = mysqli_query($connection, "SHOW COLUMNS FROM `dh_room_bookings` LIKE 'status'");
+        if ($result === false) {
+            error_log('Database Error: ' . mysqli_error($connection));
+            $cached = $schema;
+            return $cached;
+        }
+
+        $row = mysqli_fetch_assoc($result);
+        mysqli_free_result($result);
+
+        if (!$row || empty($row['Type'])) {
+            $cached = $schema;
+            return $cached;
+        }
+
+        $type = strtolower((string) $row['Type']);
+        if (strpos($type, 'enum(') === 0 || strpos($type, 'set(') === 0) {
+            $schema['mode'] = 'enum';
+            if (preg_match_all("/'((?:\\\\'|[^'])*)'/", $type, $matches)) {
+                $schema['values'] = array_map(
+                    static fn(string $value): string => str_replace("\\'", "'", $value),
+                    $matches[1]
+                );
+            }
+        } elseif (strpos($type, 'char') === 0 || strpos($type, 'varchar') === 0 || strpos($type, 'text') !== false) {
+            $schema['mode'] = 'string';
+        } else {
+            $schema['mode'] = 'int';
+        }
+
+        $cached = $schema;
+        return $cached;
+    }
+}
+
+if (!function_exists('room_booking_status_to_db')) {
+    function room_booking_status_to_db(mysqli $connection, int $status): array
+    {
+        $schema = room_booking_get_status_schema($connection);
+        if ($schema['mode'] === 'int') {
+            return ['type' => 'i', 'value' => $status];
+        }
+
+        $values = $schema['values'] ?? [];
+        $value = (string) $status;
+
+        if (!empty($values)) {
+            $value = $values[$status] ?? $values[0] ?? (string) $status;
+            if ($status === 0) {
+                foreach ($values as $candidate) {
+                    $lower = strtolower($candidate);
+                    if ($candidate === '0' || strpos($lower, 'pend') !== false || strpos($lower, 'wait') !== false) {
+                        $value = $candidate;
+                        break;
+                    }
+                }
+            } elseif ($status === 1) {
+                foreach ($values as $candidate) {
+                    $lower = strtolower($candidate);
+                    if ($candidate === '1' || strpos($lower, 'approv') !== false || strpos($lower, 'allow') !== false) {
+                        $value = $candidate;
+                        break;
+                    }
+                }
+            } elseif ($status === 2) {
+                foreach ($values as $candidate) {
+                    $lower = strtolower($candidate);
+                    if ($candidate === '2' || strpos($lower, 'reject') !== false || strpos($lower, 'deny') !== false || strpos($lower, 'cancel') !== false) {
+                        $value = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return ['type' => 's', 'value' => $value];
+    }
+}
+
+if (!function_exists('room_booking_status_to_int')) {
+    function room_booking_status_to_int(mysqli $connection, $value): int
+    {
+        $schema = room_booking_get_status_schema($connection);
+        if ($schema['mode'] === 'int') {
+            return (int) $value;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return 0;
+        }
+
+        $lower = strtolower($raw);
+        if (strpos($lower, 'pend') !== false || strpos($lower, 'wait') !== false) {
+            return 0;
+        }
+        if (strpos($lower, 'draft') !== false) {
+            return 0;
+        }
+        if (strpos($lower, 'approv') !== false || strpos($lower, 'allow') !== false) {
+            return 1;
+        }
+        if (strpos($lower, 'complet') !== false) {
+            return 1;
+        }
+        if (strpos($lower, 'reject') !== false || strpos($lower, 'deny') !== false || strpos($lower, 'cancel') !== false) {
+            return 2;
+        }
+
+        if (!empty($schema['values'])) {
+            $index = array_search($raw, $schema['values'], true);
+            if ($index !== false) {
+                return (int) $index;
+            }
+        }
+
+        if (ctype_digit($raw)) {
+            return (int) $raw;
+        }
+
+        return 0;
+    }
+}
+
+if (!function_exists('room_booking_get_active_status_values')) {
+    function room_booking_get_active_status_values(mysqli $connection): array
+    {
+        $pending = room_booking_status_to_db($connection, 0);
+        $approved = room_booking_status_to_db($connection, 1);
+
+        return [
+            'types' => $pending['type'] . $approved['type'],
+            'values' => [$pending['value'], $approved['value']],
+        ];
+    }
+}
+
 if (!function_exists('room_booking_normalize_time')) {
     function room_booking_normalize_time(?string $time): string
     {
@@ -113,7 +320,7 @@ if (!function_exists('room_booking_build_events')) {
 
         foreach ($bookings as $booking) {
             $status = (int) ($booking['status'] ?? 0);
-            if ($status === 2) {
+            if ($status !== 1) {
                 continue;
             }
 

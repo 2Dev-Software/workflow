@@ -40,12 +40,35 @@ $format_thai_date = static function (string $date) use ($thai_months): string {
     return trim($day . ' ' . $month_label . ' ' . $year);
 };
 
-$format_thai_date_range = static function (string $start, string $end) use ($format_thai_date): string {
+$format_thai_date_range = static function (string $start, string $end) use ($format_thai_date, $thai_months): string {
     if ($end === '' || $start === $end) {
         return $format_thai_date($start);
     }
 
-    return $format_thai_date($start) . ' - ' . $format_thai_date($end);
+    $start_obj = DateTime::createFromFormat('Y-m-d', $start);
+    $end_obj = DateTime::createFromFormat('Y-m-d', $end);
+    if ($start_obj === false || $end_obj === false) {
+        return $format_thai_date($start) . ' - ' . $format_thai_date($end);
+    }
+
+    $start_day = (int) $start_obj->format('j');
+    $start_month = (int) $start_obj->format('n');
+    $start_year = (int) $start_obj->format('Y') + 543;
+    $end_day = (int) $end_obj->format('j');
+    $end_month = (int) $end_obj->format('n');
+    $end_year = (int) $end_obj->format('Y') + 543;
+    $start_month_label = $thai_months[$start_month] ?? '';
+    $end_month_label = $thai_months[$end_month] ?? '';
+
+    if ($start_year === $end_year && $start_month === $end_month) {
+        return trim($start_day . '-' . $end_day . ' ' . $start_month_label . ' ' . $start_year);
+    }
+
+    if ($start_year === $end_year) {
+        return trim($start_day . ' ' . $start_month_label . ' - ' . $end_day . ' ' . $end_month_label . ' ' . $start_year);
+    }
+
+    return trim($start_day . ' ' . $start_month_label . ' ' . $start_year . ' - ' . $end_day . ' ' . $end_month_label . ' ' . $end_year);
 };
 
 $format_thai_datetime = static function (string $datetime) use ($thai_months): string {
@@ -120,7 +143,6 @@ unset($_SESSION['room_booking_alert']);
 
                         <form class="booking-form" method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
-                            <input type="hidden" name="room_booking_save" value="1">
                             <input type="hidden" name="dh_year" value="<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="requesterPID" value="<?= htmlspecialchars($_SESSION['pID'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="status" value="0">
@@ -131,12 +153,29 @@ unset($_SESSION['room_booking_alert']);
                                     <label class="form-label" for="bookingRoom">ห้อง/สถานที่</label>
                                     <select class="form-input" id="bookingRoom" name="roomID" required>
                                         <option value="" disabled selected>เลือกห้องหรือสถานที่</option>
-                                        <?php foreach ($room_booking_rooms as $room_id => $room_label) : ?>
-                                            <option value="<?= htmlspecialchars($room_id, ENT_QUOTES, 'UTF-8') ?>">
-                                                <?= htmlspecialchars($room_label, ENT_QUOTES, 'UTF-8') ?>
+                                        <?php foreach ($room_booking_room_list as $room) : ?>
+                                            <?php
+                                            $room_id = (string) ($room['roomID'] ?? '');
+                                            $room_label = (string) ($room['roomName'] ?? $room_id);
+                                            $room_status = (string) ($room['roomStatus'] ?? '');
+                                            $room_note = trim((string) ($room['roomNote'] ?? ''));
+                                            $room_status_label = $room_status !== '' ? $room_status : 'ไม่ระบุสถานะ';
+                                            $room_available = room_booking_is_room_available($room_status);
+                                            $room_option_label = $room_available
+                                                ? $room_label
+                                                : $room_label . ' (' . $room_status_label . ')';
+                                            $room_option_title = $room_note !== '' ? $room_note : $room_status_label;
+                                            ?>
+                                            <option
+                                                value="<?= htmlspecialchars($room_id, ENT_QUOTES, 'UTF-8') ?>"
+                                                <?= $room_available ? '' : 'disabled' ?>
+                                                data-room-status="<?= htmlspecialchars($room_status_label, ENT_QUOTES, 'UTF-8') ?>"
+                                                title="<?= htmlspecialchars($room_option_title, ENT_QUOTES, 'UTF-8') ?>">
+                                                <?= htmlspecialchars($room_option_label, ENT_QUOTES, 'UTF-8') ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <p class="form-hint">เลือกได้เฉพาะห้องที่มีสถานะ “พร้อมใช้งาน” ห้องที่ไม่พร้อมจะแสดงสถานะต่อท้ายชื่อ</p>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="bookingStartDate">วันที่เริ่มใช้</label>
@@ -177,8 +216,8 @@ unset($_SESSION['room_booking_alert']);
                             </div>
 
                             <div class="booking-actions">
-                                <button type="button" class="btn-outline">ตรวจสอบเวลาว่าง</button>
-                                <button type="button" class="btn-confirm">บันทึกการจอง</button>
+                                <button type="submit" class="btn-outline" name="room_booking_check" value="1">ตรวจสอบเวลาว่าง</button>
+                                <button type="submit" class="btn-confirm" name="room_booking_save" value="1">บันทึกการจอง</button>
                             </div>
 
                             <p class="booking-note">* ระบบจะส่งคำขอให้ผู้ดูแลพิจารณาอนุมัติ</p>
@@ -645,12 +684,54 @@ unset($_SESSION['room_booking_alert']);
             const deleteButtons = document.querySelectorAll('[data-booking-action="delete"]');
             const deleteConfirmButton = document.querySelector('[data-booking-delete-confirm="true"]');
             const deleteCancelButton = document.querySelector('[data-booking-delete-cancel="true"]');
+            const bookingForm = document.querySelector('.booking-form');
+            const checkButton = bookingForm
+                ? bookingForm.querySelector('button[name="room_booking_check"]')
+                : null;
             let pendingDeleteRows = [];
             let pendingDeleteId = '';
             const deleteEndpoint = window.roomBookingDeleteEndpoint || '';
             const csrfToken = window.roomBookingCsrfToken || '';
+            const checkEndpoint = 'public/api/room-booking-check.php';
 
-            const showBookingAlert = function (type, title, message) {
+            const removeActiveAlerts = function () {
+                document.querySelectorAll('.alert-overlay').forEach(function (overlay) {
+                    if (overlay.id !== 'bookingDeleteModal') {
+                        overlay.remove();
+                    }
+                });
+            };
+
+            const attachAlertBehaviors = function (overlay) {
+                if (!overlay) return;
+                overlay.querySelectorAll('[data-alert-close="true"]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        overlay.remove();
+                    });
+                });
+
+                const redirectUrl = overlay.getAttribute('data-alert-redirect') || '';
+                const delayValue = parseInt(overlay.getAttribute('data-alert-delay'), 10);
+                if (redirectUrl) {
+                    const delay = Number.isNaN(delayValue) ? 0 : delayValue;
+                    window.setTimeout(function () {
+                        window.location.href = redirectUrl;
+                    }, delay);
+                }
+            };
+
+            const appendAlertHtml = function (html) {
+                if (!html) return;
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                const overlay = temp.querySelector('.alert-overlay');
+                if (!overlay) return;
+                removeActiveAlerts();
+                document.body.appendChild(overlay);
+                attachAlertBehaviors(overlay);
+            };
+
+            const buildAlertHtml = function (type, title, message) {
                 const iconMap = {
                     success: 'fa-check',
                     warning: 'fa-triangle-exclamation',
@@ -658,23 +739,20 @@ unset($_SESSION['room_booking_alert']);
                 };
                 const alertType = iconMap[type] ? type : 'danger';
                 const icon = iconMap[alertType] || 'fa-xmark';
-                const overlay = document.createElement('div');
-                overlay.className = 'alert-overlay';
-                overlay.innerHTML =
+                return (
+                    '<div class="alert-overlay" data-alert-redirect="" data-alert-delay="0">' +
                     '<div class="alert-box ' + alertType + '">' +
                     '<div class="alert-header"><div class="icon-circle"><i class="fa-solid ' + icon + '"></i></div></div>' +
                     '<div class="alert-body">' +
                     '<h1>' + title + '</h1>' +
                     (message ? '<p>' + message + '</p>' : '') +
                     '<button type="button" class="btn-close-alert" data-alert-close="true">ยืนยัน</button>' +
-                    '</div></div>';
-                document.body.appendChild(overlay);
-                const closeBtn = overlay.querySelector('[data-alert-close="true"]');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', function () {
-                        overlay.remove();
-                    });
-                }
+                    '</div></div></div>'
+                );
+            };
+
+            const showBookingAlert = function (type, title, message) {
+                appendAlertHtml(buildAlertHtml(type, title, message));
             };
 
             const detailFields = detailModal
@@ -702,6 +780,41 @@ unset($_SESSION['room_booking_alert']);
                 const text = (value || '').toString().trim();
                 node.textContent = text !== '' ? text : fallback;
             };
+
+            if (checkButton && bookingForm) {
+                checkButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    const formData = new FormData(bookingForm);
+                    formData.set('room_booking_check', '1');
+                    formData.delete('room_booking_save');
+
+                    fetch(checkEndpoint, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                        body: formData,
+                    })
+                        .then(function (response) {
+                            if (!response.ok) {
+                                throw new Error('response-error');
+                            }
+                            return response.json();
+                        })
+                        .then(function (data) {
+                            if (data && typeof data.html === 'string' && data.html.trim() !== '') {
+                                appendAlertHtml(data.html);
+                                return;
+                            }
+                            showBookingAlert('danger', 'ระบบขัดข้อง', 'กรุณาลองใหม่อีกครั้ง');
+                        })
+                        .catch(function () {
+                            showBookingAlert('danger', 'ระบบขัดข้อง', 'กรุณาลองใหม่อีกครั้ง');
+                        });
+                });
+            }
 
             openButtons.forEach(function (button) {
                 button.addEventListener('click', function () {
@@ -848,13 +961,30 @@ unset($_SESSION['room_booking_alert']);
                     })
                         .then(function (response) {
                             return response.json().then(function (data) {
-                                if (!response.ok) {
-                                    throw new Error(data && data.message ? data.message : 'ลบรายการไม่สำเร็จ');
-                                }
-                                return data;
+                                return {
+                                    ok: response.ok,
+                                    data: data || {},
+                                };
                             });
                         })
-                        .then(function (data) {
+                        .then(function (payloadData) {
+                            const data = payloadData.data || {};
+                            if (!payloadData.ok) {
+                                if (data.html) {
+                                    appendAlertHtml(data.html);
+                                } else {
+                                    showBookingAlert('danger', 'ลบรายการไม่สำเร็จ', data.message || 'กรุณาลองใหม่อีกครั้ง');
+                                }
+                                closeDeleteModal();
+                                return;
+                            }
+
+                            closeDeleteModal();
+                            if (data.reload) {
+                                window.location.reload();
+                                return;
+                            }
+
                             pendingDeleteRows.forEach(function (row) {
                                 row.remove();
                             });
@@ -877,11 +1007,11 @@ unset($_SESSION['room_booking_alert']);
                                 window.roomBookingCalendar.updateCalendar();
                             }
 
-                            closeDeleteModal();
-                        })
-                        .catch(function (error) {
-                            showBookingAlert('danger', 'ลบรายการไม่สำเร็จ', error.message || 'กรุณาลองใหม่อีกครั้ง');
-                            closeDeleteModal();
+                            if (data.html) {
+                                appendAlertHtml(data.html);
+                            } else {
+                                showBookingAlert('success', 'ลบรายการเรียบร้อยแล้ว', 'รายการจองถูกลบออกจากระบบแล้ว');
+                            }
                         })
                         .finally(function () {
                             deleteConfirmButton.disabled = false;
