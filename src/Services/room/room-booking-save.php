@@ -3,12 +3,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['room_booking_save'])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     return;
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
+
+$is_check = !empty($_POST['room_booking_check']);
+$is_save = !empty($_POST['room_booking_save']) && !$is_check;
+
+if (!$is_check && !$is_save) {
+    return;
+}
 
 $redirect_url = 'room-booking.php';
 
@@ -23,7 +30,7 @@ $set_room_booking_alert = static function (
         'title' => $title,
         'message' => $message,
         'button_label' => $button_label,
-        'redirect' => $redirect_url,
+        'redirect' => '',
         'delay_ms' => 0,
     ];
 };
@@ -42,10 +49,30 @@ if ($requester_pid === '') {
 
 $room_booking_year = isset($dh_year_value) ? (int) $dh_year_value : ((int) date('Y') + 543);
 $room_map = room_booking_get_room_map($connection);
+$room_detail_map = room_booking_get_room_detail_map($connection);
 
 $room_id = trim((string) ($_POST['roomID'] ?? ''));
 if ($room_id === '' || !isset($room_map[$room_id])) {
     $set_room_booking_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกห้องหรือสถานที่');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
+
+$room_detail = $room_detail_map[$room_id] ?? null;
+$room_status = $room_detail ? (string) ($room_detail['roomStatus'] ?? '') : '';
+$room_note = $room_detail ? trim((string) ($room_detail['roomNote'] ?? '')) : '';
+if ($room_detail === null) {
+    $set_room_booking_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบข้อมูลห้องที่เลือก');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
+if (!room_booking_is_room_available($room_status)) {
+    $status_label = $room_status !== '' ? $room_status : 'ไม่พร้อมใช้งาน';
+    $message = 'สถานะห้อง: ' . $status_label;
+    if ($room_note !== '') {
+        $message .= ' • ' . $room_note;
+    }
+    $set_room_booking_alert('warning', 'ห้องนี้ไม่พร้อมใช้งาน', $message);
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
@@ -133,12 +160,24 @@ $clip_text = static function (string $value, int $limit): string {
 
 $booking_columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
 
+$handle_db_exception = static function (mysqli_sql_exception $exception, string $title, string $message) use ($set_room_booking_alert, $redirect_url): void {
+    error_log('Database Error: ' . $exception->getMessage());
+    $set_room_booking_alert('danger', $title, $message);
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+};
+
+$active_status = room_booking_get_active_status_values($connection);
 $conflict_sql = 'SELECT roomBookingID FROM dh_room_bookings
-    WHERE roomID = ? AND deletedAt IS NULL AND status IN (0, 1)
+    WHERE roomID = ? AND deletedAt IS NULL AND status IN (?, ?)
     AND startDate <= ? AND COALESCE(endDate, startDate) >= ?
     AND NOT (endTime <= ? OR startTime >= ?)
     LIMIT 1';
-$conflict_stmt = mysqli_prepare($connection, $conflict_sql);
+try {
+    $conflict_stmt = mysqli_prepare($connection, $conflict_sql);
+} catch (mysqli_sql_exception $exception) {
+    $handle_db_exception($exception, 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบเวลาว่างได้ในขณะนี้');
+}
 
 if ($conflict_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
@@ -147,16 +186,40 @@ if ($conflict_stmt === false) {
     exit();
 }
 
-mysqli_stmt_bind_param($conflict_stmt, 'sssss', $room_id, $end_date, $start_date, $start_time, $end_time);
-mysqli_stmt_execute($conflict_stmt);
-$conflict_result = mysqli_stmt_get_result($conflict_stmt);
-$conflict_row = $conflict_result ? mysqli_fetch_assoc($conflict_result) : null;
-mysqli_stmt_close($conflict_stmt);
+try {
+    mysqli_stmt_bind_param(
+        $conflict_stmt,
+        's' . $active_status['types'] . 'ssss',
+        $room_id,
+        $active_status['values'][0],
+        $active_status['values'][1],
+        $end_date,
+        $start_date,
+        $start_time,
+        $end_time
+    );
+    mysqli_stmt_execute($conflict_stmt);
+    $conflict_result = mysqli_stmt_get_result($conflict_stmt);
+    $conflict_row = $conflict_result ? mysqli_fetch_assoc($conflict_result) : null;
+    mysqli_stmt_close($conflict_stmt);
+} catch (mysqli_sql_exception $exception) {
+    $handle_db_exception($exception, 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบเวลาว่างได้ในขณะนี้');
+}
 
 if ($conflict_row) {
     $set_room_booking_alert('warning', 'ช่วงเวลานี้ถูกจองแล้ว', 'กรุณาเลือกวันหรือเวลาที่ว่าง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
+}
+
+$set_room_booking_success = static function (string $title, string $message) use ($set_room_booking_alert, $redirect_url): void {
+    $set_room_booking_alert('success', $title, $message);
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+};
+
+if ($is_check) {
+    $set_room_booking_success('ช่วงเวลาว่าง', 'สามารถจองช่วงเวลานี้ได้');
 }
 
 $columns = [];
@@ -195,7 +258,8 @@ $columns[] = 'attendeeCount';
 $add_param('i', $attendee_count);
 
 $columns[] = 'status';
-$add_param('i', 0);
+$status_param = room_booking_status_to_db($connection, 0);
+$add_param($status_param['type'], $status_param['value']);
 
 $columns[] = 'statusReason';
 $add_param('s', '');
@@ -228,7 +292,11 @@ $placeholders[] = 'NOW()';
 $insert_sql = 'INSERT INTO dh_room_bookings (' . implode(', ', $columns) . ')
     VALUES (' . implode(', ', $placeholders) . ')';
 
-$insert_stmt = mysqli_prepare($connection, $insert_sql);
+try {
+    $insert_stmt = mysqli_prepare($connection, $insert_sql);
+} catch (mysqli_sql_exception $exception) {
+    $handle_db_exception($exception, 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรายการจองได้ในขณะนี้');
+}
 if ($insert_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
     $set_room_booking_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรายการจองได้ในขณะนี้');
@@ -236,21 +304,28 @@ if ($insert_stmt === false) {
     exit();
 }
 
-$bind_params = array_merge([$types], $values);
+$bind_params = array_merge([$insert_stmt, $types], $values);
 $bind_refs = [];
 foreach ($bind_params as $index => $value) {
     $bind_refs[$index] = &$bind_params[$index];
 }
-call_user_func_array('mysqli_stmt_bind_param', $bind_refs);
+try {
+    call_user_func_array('mysqli_stmt_bind_param', $bind_refs);
 
-if (mysqli_stmt_execute($insert_stmt) === false) {
+    if (mysqli_stmt_execute($insert_stmt) === false) {
+        mysqli_stmt_close($insert_stmt);
+        $set_room_booking_alert('danger', 'บันทึกไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
+        header('Location: ' . $redirect_url, true, 303);
+        exit();
+    }
+
     mysqli_stmt_close($insert_stmt);
-    $set_room_booking_alert('danger', 'บันทึกไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+} catch (mysqli_sql_exception $exception) {
+    if ($insert_stmt instanceof mysqli_stmt) {
+        mysqli_stmt_close($insert_stmt);
+    }
+    $handle_db_exception($exception, 'บันทึกไม่สำเร็จ', 'กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
 }
-
-mysqli_stmt_close($insert_stmt);
 
 $set_room_booking_alert('success', 'ส่งคำขอจองเรียบร้อยแล้ว', 'ระบบจะส่งคำขอให้ผู้ดูแลพิจารณา');
 header('Location: ' . $redirect_url, true, 303);
