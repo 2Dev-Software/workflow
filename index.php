@@ -5,6 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/src/Services/security/security-service.php';
 require_once __DIR__ . '/src/Services/auth/login.php';
 require_once __DIR__ . '/src/Services/system/exec-duty-announcement.php';
+require_once __DIR__ . '/src/Services/system/system-year.php';
+
+$room_booking_year = isset($dh_year) ? (int) $dh_year : 0;
+require_once __DIR__ . '/src/Services/room/room-booking-data.php';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -207,6 +211,10 @@ require_once __DIR__ . '/src/Services/system/exec-duty-announcement.php';
             </div>
         </div>
     </div>
+
+    <script>
+        window.roomBookingEvents = <?= json_encode($room_booking_events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    </script>
 
 
     <?php require_once __DIR__ . '/public/components/x-scripts.php'; ?>

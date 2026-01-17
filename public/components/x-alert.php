@@ -28,7 +28,10 @@ $icon_map = [
 $alert_icon = $icon_map[$alert_type] ?? 'fa-xmark';
 ?>
 
-<div class="alert-overlay">
+<div
+    class="alert-overlay"
+    data-alert-redirect="<?= htmlspecialchars($alert_redirect, ENT_QUOTES, 'UTF-8') ?>"
+    data-alert-delay="<?= htmlspecialchars((string) $alert_delay_ms, ENT_QUOTES, 'UTF-8') ?>">
     <div class="alert-box <?= htmlspecialchars($alert_type, ENT_QUOTES, 'UTF-8') ?><?= $alert_auto ? ' auto' : '' ?>">
         <div class="alert-header">
             <div class="icon-circle"><i class="fa-solid <?= htmlspecialchars($alert_icon, ENT_QUOTES, 'UTF-8') ?>"></i></div>
