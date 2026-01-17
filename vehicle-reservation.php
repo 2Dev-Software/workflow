@@ -24,19 +24,12 @@
                 <p>การจองยานพาหนะ / บันทึกการจองยานพาหนะ</p>
             </div>
 
-            <!-- <div class="vehicle-header">
+            <div class="vehicle-header">
                 <p>บันทึกขอจองรถ ของ นายรัชพล ณ นคร</p>
-            </div> -->
-            
-            <div class="tabs-container setting-page">
-                <div class="button-container vehicle">
-                    <button class="tab-btn active" onclick="openTab('vehicleReservationForm', event)">จองยานพาหนะ</button>
-                    <button class="tab-btn" onclick="openTab('vehicleHistory', event)">ประวัติการจอง</button>
-                </div>
             </div>
-            
+
             <div class="vehicle-content">
-                <form id="vehicleReservationForm" class="tab-content active">
+                <form id="vehicleReservationForm">
                     <div class="vehicle-row">
                         <div class="vehicle-input-content">
                             <label>ส่วนราชการ</label>
@@ -68,30 +61,80 @@
                     <div class="vehicle-row">
                         <div class="vehicle-input-content">
                             <label>ข้าพเจ้าพร้อมด้วย</label>
-                            <div class="go-with-dropdown">
-                                <input type="text" id="searchInput" placeholder="ค้นหารายชื่อคุณครู" autocomplete="off" onkeyup="filterDropdown()" onclick="openDropdown()" />
+                            <div class="custom-select-wrapper" id="traveler-wrapper">
+                                <input type="hidden" id="travelers" name="travelers" value="">
 
-                                <div id="myDropdown" class="go-with-dropdown-content">
-                                    <?php for ($i = 1; $i <= 220; $i++) { ?>
-                                        <label class="dropdown-item"><input type="checkbox">
-                                            <p>คุณครู <?php echo $i ?></p>
-                                        </label>
-                                    <?php } ?>
+                                <div class="custom-select-trigger">
+                                    <span class="select-value">เลือกผู้เดินทางร่วม</span>
+                                    <i class="fa-solid fa-chevron-down arrow"></i>
+                                </div>
+
+                                <div class="custom-options">
+                                    <span class="custom-option" data-value="สำนักงานเลขานุการ">สำนักงานเลขานุการ</span>
+                                    <span class="custom-option" data-value="กองคลัง">กองคลัง</span>
+                                    <span class="custom-option" data-value="กองช่าง">กองช่าง</span>
+                                    <span class="custom-option" data-value="กองการศึกษา">กองการศึกษา</span>
                                 </div>
                             </div>
-                            <button class="show-member" type="button">
+                            <button class="show-member">
                                 <p>แสดงผู้เดินทางทั้งหมด</p>
                             </button>
                         </div>
                     </div>
 
-                    <div id="memberModal" class="custom-modal">
-                        <div class="custom-modal-content">
-                            <div class="member-header">
-                                <p>รายชื่อผู้เดินทางที่เลือก</p>
-                                <i class="fa-solid fa-xmark close-modal"></i>
-                            </div>
-                            <div id="selectedMemberList" class="member-list-container">
+                    <div id="event-modal-overlay" class="modal-overlay hidden">
+                        <div class="modal-content">
+                            <header class="modal-header">
+                                <div class="modal-title">
+                                    <i class="fa-regular fa-calendar-days"></i>
+                                    <span id="modal-date-title">วันที่ ...</span>
+                                </div>
+                                <div class="close-modal-btn">
+                                    <i class="fa-solid fa-xmark" id="close-modal-btn"></i>
+                                </div>
+                            </header>
+
+                            <div class="modal-body">
+                                <div id="room-booking-section" class="booking-section">
+                                    <h4 class="section-title">ตารางการจองห้องประชุม</h4>
+                                    <div class="table-responsive">
+                                        <table class="custom-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>ห้อง</th>
+                                                    <th>เวลา</th>
+                                                    <th>รายการประชุม</th>
+                                                    <th>จำนวน</th>
+                                                    <th>ผู้จองห้อง</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="room-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div id="car-booking-section" class="booking-section">
+                                    <h4 class="section-title">ตารางการจองรถยนต์</h4>
+                                    <div class="table-responsive">
+                                        <table class="custom-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>ทะเบียนรถ</th>
+                                                    <th>เวลา</th>
+                                                    <th>รายละเอียด</th>
+                                                    <th>ผู้จองรถ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="car-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div id="no-event-message" class="hidden">
+                                    ไม่มีรายการจองในวันนี้
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -185,10 +228,6 @@
                         <button type="submit" class="btn-submit">บันทึกจองยานพาหนะ</button>
                     </div>
                 </form>
-
-                <div class="vehicle-history tab-content" id="vehicleHistory">
-                    
-                </div>
 
         </main>
 
