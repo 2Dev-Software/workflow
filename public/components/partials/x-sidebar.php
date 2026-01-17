@@ -105,8 +105,8 @@
             </div>
             <ul class="navigation-links-sub-menu">
                 <li><a href="vehicle-reservation.php">จองยานพาหนะ</a></li>
-                <li><a href="#">จัดการยานพาหนะ</a></li>
-                <li><a href="#">อนุมัติการจองยานพาหนะ</a></li>
+                <li><a href="vehicle-reservation-approval.php">อนุมัติการจองยานพาหนะ</a></li>
+                <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
             </ul>
         </li>
         <li>

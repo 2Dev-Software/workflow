@@ -1,4 +1,4 @@
-<?php
+ <?php
 require_once __DIR__ . '/src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/src/Services/security/security-service.php';
 require_once __DIR__ . '/src/Services/room/room-management-member-actions.php';
