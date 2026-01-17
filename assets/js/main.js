@@ -1171,3 +1171,87 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
+
+function openDropdown() {
+  document.getElementById("myDropdown").classList.add("show");
+}
+
+function filterDropdown() {
+  let input = document.getElementById("searchInput");
+  let filter = input.value.toUpperCase();
+  let dropdown = document.getElementById("myDropdown");
+  let items = dropdown.getElementsByClassName("dropdown-item");
+
+  for (let i = 0; i < items.length; i++) {
+    let txtValue = items[i].innerText || items[i].textContent;
+    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+      items[i].style.display = "";
+    } else {
+      items[i].style.display = "none";
+    }
+  }
+}
+
+document.addEventListener("click", function (e) {
+  if (!e.target.closest(".go-with-dropdown")) {
+    document.getElementById("myDropdown").classList.remove("show");
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("memberModal");
+  const btnShow = document.querySelector(".show-member");
+  const spanClose = document.getElementsByClassName("close-modal")[0];
+  const listContainer = document.getElementById("selectedMemberList");
+
+  function openModal() {
+    modal.style.display = "flex";
+
+    setTimeout(() => {
+      modal.classList.add("show");
+    }, 10);
+  }
+
+  function closeModal() {
+    modal.classList.remove("show");
+
+    setTimeout(() => {
+      modal.style.display = "none";
+    }, 300);
+  }
+
+  btnShow.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    listContainer.innerHTML = "";
+    const checkedBoxes = document.querySelectorAll(
+      '#myDropdown input[type="checkbox"]:checked'
+    );
+
+    if (checkedBoxes.length > 0) {
+      const ul = document.createElement("ul");
+      checkedBoxes.forEach(function (checkbox) {
+        const nameText = checkbox.nextElementSibling.innerText;
+        const li = document.createElement("li");
+        li.textContent = nameText;
+        ul.appendChild(li);
+      });
+      listContainer.appendChild(ul);
+    } else {
+      listContainer.innerHTML =
+        '<p style="text-align:center; color:#FF5050;">ยังไม่ได้เลือกรายชื่อผู้เดินทาง</p>';
+    }
+
+    openModal();
+  });
+
+  spanClose.onclick = function () {
+    closeModal();
+  };
+
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      closeModal();
+    }
+  };
+});
