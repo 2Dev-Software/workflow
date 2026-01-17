@@ -70,12 +70,31 @@
                 <p class="link-name">บันทึกข้อความ</p>
             </a>
         </li>
-        <li>
-            <a href="#">
-                <i class="fa-solid fa-building"></i>
-                <p class="link-name">จองสถานที่/ห้อง</p>
-            </a>
-        </li>
+
+        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 5], true)) : ?>
+            <li class="navigation-links-has-sub">
+                <div class="icon-link">
+                    <a href="#">
+                        <i class="fa-solid fa-building"></i>
+                        <p class="link-name">การจองสถานที่/ห้อง</p>
+                    </a>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+                <ul class="navigation-links-sub-menu">
+                    <li><a href="room-booking.php">จองสถานที่/ห้อง</a></li>
+                    <li><a href="room-booking-approval.php">อนุมัติการจองสถานที่/ห้อง</a></li>
+                    <li><a href="room-management.php">จัดการสถานที่/ห้อง</a></li>
+                </ul>
+            </li>
+        <?php else : ?>
+            <li>
+                <a href="room-booking.php">
+                    <i class="fa-solid fa-building"></i>
+                    <p class="link-name">จองสถานที่/ห้อง</p>
+                </a>
+            </li>
+        <?php endif; ?>
+
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
@@ -85,7 +104,7 @@
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="vehicle-reservation.php">บันทึกการจองยานพาหนะ</a></li>
+                <li><a href="vehicle-reservation.php">จองยานพาหนะ</a></li>
                 <li><a href="#">จัดการยานพาหนะ</a></li>
                 <li><a href="#">อนุมัติการจองยานพาหนะ</a></li>
             </ul>
@@ -108,7 +127,7 @@
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
-        <?php if ((int) ($teacher['roleID'] ?? 0) === 1) : ?>
+        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 2], true)) : ?>
             <li>
                 <a href="setting.php">
                     <i class="fa-solid fa-gear"></i>
