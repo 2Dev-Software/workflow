@@ -130,7 +130,7 @@ class Calendar {
       const dayEvents = this.filterEvents(this.events[eventKey] || null);
 
       fragment.appendChild(
-        this.createDateCell(i, false, isToday, dayEvents, eventKey)
+        this.createDateCell(i, false, isToday, dayEvents, eventKey),
       );
     }
 
@@ -149,7 +149,7 @@ class Calendar {
     inactive = false,
     active = false,
     events = null,
-    dateKey = null
+    dateKey = null,
   ) {
     const div = document.createElement("div");
     div.classList.add("date");
@@ -257,8 +257,10 @@ class Calendar {
       }
     });
 
-    if (hasRoomData && this.roomSection) this.roomSection.classList.remove("hidden");
-    if (hasCarData && this.carSection) this.carSection.classList.remove("hidden");
+    if (hasRoomData && this.roomSection)
+      this.roomSection.classList.remove("hidden");
+    if (hasCarData && this.carSection)
+      this.carSection.classList.remove("hidden");
 
     if (!hasRoomData && !hasCarData) {
       if (this.noEventMessage) {
@@ -267,7 +269,9 @@ class Calendar {
           this.noEventMessage.textContent = "ไม่มีรายการจองห้องในวันนี้";
         } else {
           this.noEventMessage.innerHTML =
-            "<ul>" + events.map((e) => `<li>${e.title}</li>`).join("") + "</ul>";
+            "<ul>" +
+            events.map((e) => `<li>${e.title}</li>`).join("") +
+            "</ul>";
         }
       }
     }
@@ -484,8 +488,8 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i class="fas fa-chevron-left"></i>',
         prevPage,
         false,
-        currentPage === 1
-      )
+        currentPage === 1,
+      ),
     );
 
     let startPage = 1;
@@ -504,14 +508,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (startPage > 1) {
       paginationContainer.appendChild(
-        createButton("1", 1, currentPage === 1, false)
+        createButton("1", 1, currentPage === 1, false),
       );
       if (startPage > 2) paginationContainer.appendChild(createSpan("..."));
     }
 
     for (let i = startPage; i <= endPage; i++) {
       paginationContainer.appendChild(
-        createButton(String(i), i, i === currentPage, false)
+        createButton(String(i), i, i === currentPage, false),
       );
     }
 
@@ -524,8 +528,8 @@ document.addEventListener("DOMContentLoaded", () => {
           String(totalPages),
           totalPages,
           currentPage === totalPages,
-          false
-        )
+          false,
+        ),
       );
     }
 
@@ -534,8 +538,8 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i class="fas fa-chevron-right"></i>',
         nextPage,
         false,
-        currentPage === totalPages
-      )
+        currentPage === totalPages,
+      ),
     );
   };
 
@@ -836,7 +840,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const allSelectWrappers = document.querySelectorAll(
-    ".custom-select-setting-wrapper"
+    ".custom-select-setting-wrapper",
   );
 
   allSelectWrappers.forEach((wrapper) => {
@@ -906,7 +910,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (parentContainer) {
         const selectedOption = parentContainer.querySelector(
-          ".custom-option.selected"
+          ".custom-option.selected",
         );
         const title =
           parentContainer.querySelector(".setting-title").textContent;
@@ -927,7 +931,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.addEventListener("DOMContentLoaded", function () {
   const dutyCheckboxes = document.querySelectorAll(
-    'input[name="exec_duty_pid"]'
+    'input[name="exec_duty_pid"]',
   );
 
   dutyCheckboxes.forEach((box) => {
@@ -949,7 +953,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const selected = document.querySelector(
-        'input[name="exec_duty_pid"]:checked'
+        'input[name="exec_duty_pid"]:checked',
       );
 
       if (selected) {
@@ -1010,7 +1014,7 @@ if (endDateInput) endDateInput.addEventListener("change", calculateDays);
 
 const fileInput = document.getElementById("attachment");
 const fileNameDisplay = document.querySelector(
-  ".vehicle-input-content .file-name"
+  ".vehicle-input-content .file-name",
 );
 
 if (fileInput) {
@@ -1119,7 +1123,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     listContainer.innerHTML = "";
     const checkedBoxes = document.querySelectorAll(
-      '#myDropdown input[type="checkbox"]:checked'
+      '#myDropdown input[type="checkbox"]:checked',
     );
 
     if (checkedBoxes.length > 0) {
@@ -1146,6 +1150,433 @@ document.addEventListener("DOMContentLoaded", function () {
   window.onclick = function (event) {
     if (event.target == modal) {
       closeModal();
+    }
+  };
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const mainInput = document.getElementById("mainInput");
+
+  if (!mainInput) return;
+
+  const dropdownContent = document.getElementById("dropdownContent");
+  const selectAllCheckbox = document.getElementById("selectAll");
+  const allGroups = document.querySelectorAll(".category-group");
+  const searchWrapper = document.querySelector(".search-input-wrapper");
+
+  let selectedCount = 0;
+
+  mainInput.addEventListener("click", () => {
+    dropdownContent.classList.add("show");
+    if (searchWrapper) searchWrapper.classList.add("active");
+    mainInput.select();
+  });
+
+  mainInput.addEventListener("input", (e) => {
+    const searchText = e.target.value.toLowerCase();
+    dropdownContent.classList.add("show");
+    if (searchWrapper) searchWrapper.classList.add("active");
+    filterItems(searchText);
+  });
+
+  window.addEventListener("click", (e) => {
+    if (!e.target.closest(".dropdown-container")) {
+      closeDropdown();
+    }
+  });
+
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", () => {
+      const isChecked = selectAllCheckbox.checked;
+      document.querySelectorAll(".item-checkbox").forEach((cb) => {
+        if (isVisible(cb)) {
+          cb.checked = isChecked;
+          updateCategoryState(cb);
+        }
+      });
+      updateInputValueText();
+    });
+  }
+
+  document.querySelectorAll(".category-checkbox").forEach((catCb) => {
+    catCb.addEventListener("change", () => {
+      const group = catCb.closest(".category-group");
+      const items = group.querySelectorAll(".item-checkbox");
+      items.forEach((item) => {
+        if (isVisible(item)) {
+          item.checked = catCb.checked;
+        }
+      });
+      updateSelectAllState();
+      updateInputValueText();
+    });
+  });
+
+  document.querySelectorAll(".item-checkbox").forEach((itemCb) => {
+    itemCb.addEventListener("change", () => {
+      updateCategoryState(itemCb);
+      updateSelectAllState();
+      updateInputValueText();
+    });
+  });
+
+  function closeDropdown() {
+    if (dropdownContent) dropdownContent.classList.remove("show");
+    if (searchWrapper) searchWrapper.classList.remove("active");
+    updateInputValueText();
+    filterItems("");
+  }
+
+  function updateInputValueText() {
+    const checkedItems = document.querySelectorAll(".item-checkbox:checked");
+    selectedCount = checkedItems.length;
+
+    if (selectedCount > 0) {
+      if (selectedCount <= 2) {
+        const names = Array.from(checkedItems)
+          .map((cb) => cb.value)
+          .join(", ");
+        mainInput.value = names;
+      } else {
+        mainInput.value = `เลือกแล้ว ${selectedCount} รายการ`;
+      }
+    } else {
+      mainInput.value = "";
+    }
+  }
+
+  function filterItems(text) {
+    let hasGlobalMatch = false;
+
+    allGroups.forEach((group) => {
+      const items = group.querySelectorAll(".item");
+      let hasGroupMatch = false;
+
+      items.forEach((item) => {
+        const itemText = item.innerText.toLowerCase();
+        if (itemText.includes(text)) {
+          item.style.display = "flex";
+          hasGroupMatch = true;
+          hasGlobalMatch = true;
+        } else {
+          item.style.display = "none";
+        }
+      });
+
+      if (hasGroupMatch) {
+        group.style.display = "block";
+      } else {
+        group.style.display = "none";
+      }
+    });
+  }
+
+  function isVisible(element) {
+    const group = element.closest(".category-group");
+    const label = element.closest("label");
+    return (
+      group &&
+      group.style.display !== "none" &&
+      label &&
+      label.style.display !== "none"
+    );
+  }
+
+  function updateCategoryState(itemCb) {
+    const group = itemCb.closest(".category-group");
+    const catCb = group.querySelector(".category-checkbox");
+    const allItems = Array.from(group.querySelectorAll(".item-checkbox"));
+    const checkedItems = allItems.filter((cb) => cb.checked);
+
+    if (checkedItems.length === 0) {
+      catCb.checked = false;
+      catCb.indeterminate = false;
+    } else if (checkedItems.length === allItems.length) {
+      catCb.checked = true;
+      catCb.indeterminate = false;
+    } else {
+      catCb.checked = false;
+      catCb.indeterminate = true;
+    }
+  }
+
+  function updateSelectAllState() {
+    const allItems = Array.from(document.querySelectorAll(".item-checkbox"));
+    const checkedItems = allItems.filter((cb) => cb.checked);
+
+    if (!selectAllCheckbox) return;
+
+    if (checkedItems.length === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedItems.length === allItems.length) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    }
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const modalOverlay = document.getElementById("recipientModal");
+  const btnShowRecipients = document.getElementById("btnShowRecipients");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const tableBody = document.getElementById("recipientTableBody");
+
+  if (btnShowRecipients) {
+    btnShowRecipients.addEventListener("click", function (e) {
+      e.preventDefault();
+      generateRecipientTable();
+      openModal();
+    });
+  }
+
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener("click", closeModal);
+  }
+
+  window.addEventListener("click", function (e) {
+    if (e.target === modalOverlay) {
+      closeModal();
+    }
+  });
+
+  function openModal() {
+    modalOverlay.classList.add("active");
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove("active");
+  }
+
+  function generateRecipientTable() {
+    tableBody.innerHTML = "";
+
+    const checkedItems = document.querySelectorAll(".item-checkbox:checked");
+
+    if (checkedItems.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #999;">ยังไม่ได้เลือกผู้รับ</td></tr>`;
+      return;
+    }
+
+    let order = 1;
+
+    checkedItems.forEach((checkbox) => {
+      const nameLabel = checkbox.closest("label").innerText.trim();
+
+      const groupContainer = checkbox.closest(".category-group");
+      let groupName = "-";
+      if (groupContainer) {
+        const groupTitleEl = groupContainer.querySelector(
+          ".category-title label",
+        );
+        if (groupTitleEl) {
+          groupName = groupTitleEl.innerText.trim();
+        }
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+                <td>${order++}</td>
+                <td>${nameLabel}</td>
+                <td>${groupName}</td>
+            `;
+      tableBody.appendChild(tr);
+    });
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const confirmModal = document.getElementById("confirmModal");
+  const btnSendNotice = document.getElementById("btnSendNotice");
+  const btnConfirmYes = document.getElementById("btnConfirmYes");
+  const btnConfirmNo = document.getElementById("btnConfirmNo");
+
+  if (btnSendNotice) {
+    btnSendNotice.addEventListener("click", function (e) {
+      e.preventDefault();
+      confirmModal.classList.add("active");
+    });
+  }
+
+  if (btnConfirmNo) {
+    btnConfirmNo.addEventListener("click", function () {
+      confirmModal.classList.remove("active");
+    });
+  }
+
+  if (btnConfirmYes) {
+    btnConfirmYes.addEventListener("click", function () {
+      console.log("User confirmed sending.");
+      confirmModal.classList.remove("active");
+    });
+  }
+
+  window.addEventListener("click", function (e) {
+    if (e.target === confirmModal) {
+      confirmModal.classList.remove("active");
+    }
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const fileInput = document.getElementById("fileInput");
+  const dropzone = document.getElementById("dropzone");
+  const fileListContainer = document.getElementById("fileListContainer");
+  const MAX_FILES = 5;
+
+  const previewModal = document.getElementById("imagePreviewModal");
+  const previewImage = document.getElementById("previewImage");
+  const previewCaption = document.getElementById("previewCaption");
+  const closePreviewBtn = document.getElementById("closePreviewBtn");
+
+  let uploadedFiles = [];
+
+  if (fileInput && dropzone) {
+    fileInput.addEventListener("change", (e) => {
+      handleFiles(Array.from(e.target.files));
+    });
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("drag-over");
+    });
+
+    dropzone.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag-over");
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag-over");
+      handleFiles(Array.from(e.dataTransfer.files));
+    });
+  }
+
+  function handleFiles(newFiles) {
+    const validTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "application/pdf",
+    ];
+
+    const validFiles = newFiles.filter((file) => {
+      const isValid = validTypes.includes(file.type);
+      if (!isValid)
+        alert(`ไฟล์ ${file.name} ไม่รองรับ (รองรับเฉพาะ PDF, PNG, JPG)`);
+      return isValid;
+    });
+
+    if (uploadedFiles.length + validFiles.length > MAX_FILES) {
+      alert(`สามารถแนบไฟล์ได้สูงสุด ${MAX_FILES} ไฟล์เท่านั้น`);
+      return;
+    }
+
+    uploadedFiles = [...uploadedFiles, ...validFiles];
+
+    renderFileList();
+    updateFileInput();
+  }
+
+  function renderFileList() {
+    fileListContainer.innerHTML = "";
+
+    uploadedFiles.forEach((file, index) => {
+      const isPdf = file.type === "application/pdf";
+      const iconClass = isPdf
+        ? "fa-solid fa-file-pdf"
+        : "fa-solid fa-file-image";
+
+      const fileUrl = URL.createObjectURL(file);
+
+      const actionOnClick = isPdf
+        ? `window.open('${fileUrl}', '_blank')`
+        : `openImagePreview('${fileUrl}', '${file.name}')`;
+
+      const div = document.createElement("div");
+      div.className = "file-item-wrapper";
+      div.innerHTML = `
+                <button type="button" class="delete-btn" onclick="removeFile(${index})">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <div class="file-banner">
+                    <div class="file-info">
+                        <div class="file-icon">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="file-text">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-type">${file.type}</span>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="javascript:void(0)" onclick="${actionOnClick}" class="action-btn" title="ดูตัวอย่าง">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            `;
+      fileListContainer.appendChild(div);
+    });
+  }
+
+  window.openImagePreview = function (url, caption) {
+    if (previewModal && previewImage) {
+      previewImage.src = url;
+      if (previewCaption) previewCaption.innerHTML = caption;
+      previewModal.classList.add("active");
+    }
+  };
+
+  if (closePreviewBtn) {
+    closePreviewBtn.onclick = function () {
+      previewModal.classList.remove("active");
+      setTimeout(() => {
+        previewImage.src = "";
+      }, 300);
+    };
+  }
+
+  window.addEventListener("click", function (event) {
+    if (event.target == previewModal) {
+      previewModal.classList.remove("active");
+      setTimeout(() => {
+        previewImage.src = "";
+      }, 300);
+    }
+  });
+
+  window.removeFile = function (index) {
+    uploadedFiles.splice(index, 1);
+    renderFileList();
+    updateFileInput();
+  };
+
+  function updateFileInput() {
+    const dataTransfer = new DataTransfer();
+    uploadedFiles.forEach((file) => dataTransfer.items.add(file));
+    fileInput.files = dataTransfer.files;
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("modalNoticeKeepOverlay");
+  const btn = document.getElementById("modalNoticeKeep");
+  const close = document.getElementById("closeModalNoticeKeep");
+
+  btn.onclick = function () {
+    modal.style.display = "flex";
+  };
+  close.onclick = function () {
+    modal.style.display = "none";
+  };
+  window.onclick = function (event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
     }
   };
 });
