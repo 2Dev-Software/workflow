@@ -1378,11 +1378,15 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-                <td>${order++}</td>
-                <td>${nameLabel}</td>
-                <td>${groupName}</td>
-            `;
+      const tdOrder = document.createElement("td");
+      tdOrder.textContent = String(order++);
+      const tdName = document.createElement("td");
+      tdName.textContent = nameLabel;
+      const tdGroup = document.createElement("td");
+      tdGroup.textContent = groupName;
+      tr.appendChild(tdOrder);
+      tr.appendChild(tdName);
+      tr.appendChild(tdGroup);
       tableBody.appendChild(tr);
     });
   }
