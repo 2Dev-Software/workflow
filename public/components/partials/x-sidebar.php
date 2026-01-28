@@ -46,8 +46,8 @@
             </div>
             <ul class="navigation-links-sub-menu">
                 <li><a href="#">หนังสือเวียน</a></li>
-                <li><a href="#">หนังสือเวียนที่จัดเก็บ</a></li>
-                <li><a href="#">ส่งหนังสือเวียน</a></li>
+                <li><a href="circular-notice-keeping-a.php">หนังสือเวียนที่จัดเก็บ</a></li>
+                <li><a href="circular-notice-sending.php">ส่งหนังสือเวียน</a></li>
             </ul>
         </li>
         <li class="navigation-links-has-sub">
