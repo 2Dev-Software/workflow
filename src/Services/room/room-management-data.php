@@ -1,5 +1,11 @@
 <?php
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/system/positions.php';
+
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    return;
+}
 
 $room_management_alert = $room_management_alert ?? null;
 $room_staff_members = [];
@@ -23,12 +29,14 @@ $map_member = static function (array $row): array {
     ];
 };
 
+$position = system_position_join($connection, 't', 'p');
+
 $staff_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
-    p.positionName AS position_name,
+    ' . $position['name'] . ' AS position_name,
     r.roleName AS role_name,
     d.dName AS department_name
     FROM teacher AS t
-    LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+    ' . $position['join'] . '
     LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
     WHERE t.status = 1 AND t.roleID = ?
@@ -68,11 +76,11 @@ try {
 }
 
 $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
-    p.positionName AS position_name,
+    ' . $position['name'] . ' AS position_name,
     r.roleName AS role_name,
     d.dName AS department_name
     FROM teacher AS t
-    LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+    ' . $position['join'] . '
     LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
     WHERE t.status = 1 AND t.roleID NOT IN (?, ?)

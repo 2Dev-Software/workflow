@@ -35,6 +35,13 @@ $set_room_booking_alert = static function (
     ];
 };
 
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    $set_room_booking_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
+
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
     $set_room_booking_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);

@@ -24,11 +24,7 @@ if (!empty($_POST['ajax'])) {
 
 $redirect_url = 'room-management.php';
 
-$set_room_management_alert = static function (
-    string $type,
-    string $title,
-    string $message = ''
-) use ($redirect_url): void {
+$set_room_management_alert = static function (string $type, string $title, string $message = '') use ($redirect_url): void {
     $_SESSION['room_management_alert'] = [
         'type' => $type,
         'title' => $title,
@@ -39,12 +35,7 @@ $set_room_management_alert = static function (
     ];
 };
 
-$send_json = static function (
-    bool $ok,
-    string $type,
-    string $title,
-    string $message = ''
-): void {
+$send_json = static function (bool $ok, string $type, string $title, string $message = ''): void {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'ok' => $ok,
@@ -54,6 +45,16 @@ $send_json = static function (
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit();
 };
+
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    if ($is_ajax) {
+        $send_json(false, 'danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+    }
+    $set_room_management_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], (string) $_POST['csrf_token'])) {
     if ($is_ajax) {
@@ -112,7 +113,7 @@ try {
             }
         }
     } elseif ($action === 'remove') {
-        $default_role_id = 0;
+        $default_role_id = 6;
         $sql = 'UPDATE teacher SET roleID = ?
             WHERE pID = ? AND status = 1 AND roleID = ?';
         $stmt = mysqli_prepare($connection, $sql);

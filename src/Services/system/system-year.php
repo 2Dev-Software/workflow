@@ -1,7 +1,17 @@
 <?php
-require_once __DIR__ . '/../../../config/connection.php';
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    require_once __DIR__ . '/../../../config/connection.php';
+}
+
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    $connection = $GLOBALS['connection'] ?? null;
+}
 
 $dh_year = '';
+
+if (!($connection instanceof mysqli)) {
+    return;
+}
 
 try {
     $sql = 'SELECT dh_year FROM thesystem ORDER BY ID DESC LIMIT 1';

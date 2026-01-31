@@ -8,6 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
 
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    return;
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $room_booking_approval_year = isset($dh_year_value) ? (int) $dh_year_value : 0;

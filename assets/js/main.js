@@ -282,15 +282,38 @@ class Calendar {
   }
 }
 
+function resolveCalendarEvents() {
+  if (typeof window !== "undefined" && window.roomBookingEvents) {
+    return window.roomBookingEvents;
+  }
+
+  var dataEl = document.getElementById("roomBookingEventsData");
+  if (dataEl) {
+    var raw = dataEl.value || dataEl.textContent || "";
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (typeof window !== "undefined") {
+            window.roomBookingEvents = parsed;
+          }
+          return parsed;
+        }
+      } catch (error) {
+        // ignore malformed data and fall back to empty events
+      }
+    }
+  }
+
+  return calendarFallbackEvents;
+}
+
 const calendarMode = document.body
   ? document.body.dataset.calendarMode || "mixed"
   : "mixed";
 const calendarThaiYear =
   document.body && document.body.dataset.calendarThaiYear === "true";
-const calendarEvents =
-  typeof window !== "undefined" && window.roomBookingEvents
-    ? window.roomBookingEvents
-    : calendarFallbackEvents;
+const calendarEvents = resolveCalendarEvents();
 
 const calendar1 = new Calendar({
   monthYearSelector: "#month-year",
@@ -757,8 +780,32 @@ document.addEventListener("DOMContentLoaded", function () {
   const showPhone = document.getElementById("showPhone");
   const confirmBtn = document.getElementById("confirmBtn");
   const cancelBtn = document.getElementById("cancelBtn");
+  const tabButtons = document.querySelectorAll("[data-tab-target]");
+  const profileOpenButtons = document.querySelectorAll(
+    '[data-action="profile-image-open"]'
+  );
+  const profileFileButtons = document.querySelectorAll(
+    '[data-action="profile-image-file-open"]'
+  );
+  const profileConfirmButton = document.querySelector(
+    '[data-action="profile-image-confirm"]'
+  );
+  const profileCancelButton = document.querySelector(
+    '[data-action="profile-image-cancel"]'
+  );
+  const signatureOpenButton = document.querySelector(
+    '[data-action="signature-file-open"]'
+  );
+  const signatureCancelButton = document.querySelector(
+    '[data-action="signature-cancel"]'
+  );
+  const profileFileInput = document.getElementById("profileFileInput");
+  const signatureFileInput = document.getElementById("signatureFileInput");
 
   if (phoneInput) {
+    phoneInput.addEventListener("input", function () {
+      this.value = this.value.replace(/\D/g, "").slice(0, 10);
+    });
     phoneInput.addEventListener("blur", function () {
       const phone = phoneInput.value.trim();
 
@@ -788,6 +835,69 @@ document.addEventListener("DOMContentLoaded", function () {
   if (cancelBtn) {
     cancelBtn.addEventListener("click", function () {
       if (modal) modal.style.display = "none";
+    });
+  }
+
+  if (tabButtons.length > 0) {
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", function (event) {
+        const target = btn.getAttribute("data-tab-target");
+        if (target) {
+          openTab(target, event);
+        }
+      });
+    });
+  }
+
+  profileOpenButtons.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      openImageModal();
+    });
+  });
+
+  profileFileButtons.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      if (profileFileInput) {
+        profileFileInput.click();
+      }
+    });
+  });
+
+  if (profileFileInput) {
+    profileFileInput.addEventListener("change", function () {
+      previewProfileImage(profileFileInput);
+    });
+  }
+
+  if (profileConfirmButton) {
+    profileConfirmButton.addEventListener("click", function () {
+      confirmImageChange();
+    });
+  }
+
+  if (profileCancelButton) {
+    profileCancelButton.addEventListener("click", function () {
+      closeImageModal();
+    });
+  }
+
+  if (signatureOpenButton) {
+    signatureOpenButton.addEventListener("click", function () {
+      if (signatureFileInput) {
+        signatureFileInput.click();
+      }
+    });
+  }
+
+  if (signatureFileInput) {
+    signatureFileInput.addEventListener("change", function () {
+      handleSignatureSelect(signatureFileInput);
+    });
+  }
+
+  if (signatureCancelButton) {
+    signatureCancelButton.addEventListener("click", function () {
+      closeSignatureModal();
     });
   }
 
@@ -971,7 +1081,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
 const startDateInput = document.getElementById("startDate");
 const endDateInput = document.getElementById("endDate");
-const dayCountDisplay = document.getElementById("dayCount");
+const dayCountDisplay = document.querySelector("#dayCount [data-day-count]");
+const startTimeInput = document.getElementById("startTime");
+const endTimeInput = document.getElementById("endTime");
+const vehicleForm = document.getElementById("vehicleReservationForm");
+const departmentInput = document.getElementById("department");
+const departmentWrapper = document.getElementById("dept-wrapper");
+const departmentError = document.getElementById("departmentError");
+const companionCountInput = document.getElementById("companionCount");
+const passengerCountInput = document.getElementById("passengerCount");
+const memberDropdown = document.getElementById("myDropdown");
+const writeDateInput = document.getElementById("writeDate");
+
+function setDepartmentError(isError) {
+  if (!departmentWrapper || !departmentError) return;
+  departmentWrapper.classList.toggle("is-invalid", isError);
+  departmentWrapper.setAttribute("aria-invalid", isError ? "true" : "false");
+  departmentError.classList.toggle("hidden", !isError);
+}
+
+function updateCompanionCount() {
+  if (!memberDropdown || !companionCountInput) return;
+  const checkedBoxes = memberDropdown.querySelectorAll(
+    'input[type="checkbox"]:checked'
+  );
+  companionCountInput.value = String(checkedBoxes.length);
+  if (passengerCountInput) {
+    passengerCountInput.value = String(checkedBoxes.length + 1);
+  }
+}
 
 function calculateDays() {
   if (!startDateInput || !endDateInput || !dayCountDisplay) return;
@@ -1005,23 +1143,238 @@ function calculateDays() {
   }
 }
 
-if (startDateInput) startDateInput.addEventListener("change", calculateDays);
-if (endDateInput) endDateInput.addEventListener("change", calculateDays);
+function validateTimeRange() {
+  if (!startTimeInput || !endTimeInput) return;
 
-const fileInput = document.getElementById("attachment");
-const fileNameDisplay = document.querySelector(
-  ".vehicle-input-content .file-name"
-);
+  const startTime = startTimeInput.value;
+  const endTime = endTimeInput.value;
+  const startDate = startDateInput ? startDateInput.value : "";
+  const endDate = endDateInput ? endDateInput.value : "";
+  const sameDay = startDate !== "" && endDate !== "" && startDate === endDate;
 
-if (fileInput) {
-  fileInput.addEventListener("change", function () {
-    if (this.files && this.files[0]) {
-      fileNameDisplay.textContent = "ไฟล์ที่เลือก: " + this.files[0].name;
-    } else {
-      fileNameDisplay.textContent = "";
+  if (sameDay && startTime) {
+    endTimeInput.min = startTime;
+  } else {
+    endTimeInput.removeAttribute("min");
+  }
+
+  if (sameDay && startTime && endTime && endTime <= startTime) {
+    endTimeInput.setCustomValidity("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น");
+  } else {
+    endTimeInput.setCustomValidity("");
+  }
+}
+
+if (startDateInput)
+  startDateInput.addEventListener("change", function () {
+    calculateDays();
+    validateTimeRange();
+  });
+if (endDateInput)
+  endDateInput.addEventListener("change", function () {
+    calculateDays();
+    validateTimeRange();
+  });
+if (startTimeInput) startTimeInput.addEventListener("change", validateTimeRange);
+if (endTimeInput) endTimeInput.addEventListener("change", validateTimeRange);
+
+if (vehicleForm) {
+  vehicleForm.addEventListener("submit", function (e) {
+    let hasError = false;
+
+    if (departmentInput && departmentInput.value.trim() === "") {
+      setDepartmentError(true);
+      hasError = true;
+    }
+
+    validateTimeRange();
+    if (endTimeInput && !endTimeInput.checkValidity()) {
+      hasError = true;
+    }
+
+    if (hasError) {
+      e.preventDefault();
+      if (typeof vehicleForm.reportValidity === "function") {
+        vehicleForm.reportValidity();
+      }
     }
   });
 }
+
+if (departmentWrapper) {
+  departmentWrapper.addEventListener("click", function (e) {
+    if (e.target.closest(".custom-option")) {
+      setDepartmentError(false);
+    }
+  });
+}
+
+if (memberDropdown) {
+  memberDropdown.addEventListener("change", function (e) {
+    if (e.target && e.target.matches('input[type="checkbox"]')) {
+      updateCompanionCount();
+    }
+  });
+  updateCompanionCount();
+}
+
+if (writeDateInput && !writeDateInput.value) {
+  writeDateInput.value = new Date().toISOString().split("T")[0];
+}
+
+const fileInput = document.getElementById("attachment");
+const attachmentList = document.getElementById("attachmentList");
+const attachmentError = document.getElementById("attachmentError");
+const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+];
+let selectedAttachments = [];
+
+function formatFileSize(size) {
+  if (!size) return "0 KB";
+  const kb = size / 1024;
+  if (kb < 1024) return `${Math.ceil(kb)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function setAttachmentError(message) {
+  if (!attachmentError) return;
+  attachmentError.textContent = message || "";
+  attachmentError.classList.toggle("hidden", !message);
+}
+
+function syncAttachmentInput() {
+  if (!fileInput) return;
+  const dataTransfer = new DataTransfer();
+  selectedAttachments.forEach((file) => dataTransfer.items.add(file));
+  fileInput.files = dataTransfer.files;
+}
+
+function renderAttachmentList() {
+  if (!attachmentList) return;
+  attachmentList.innerHTML = "";
+
+  if (selectedAttachments.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "attachment-empty";
+    empty.textContent = "ยังไม่มีไฟล์แนบ";
+    attachmentList.appendChild(empty);
+    return;
+  }
+
+  selectedAttachments.forEach((file, index) => {
+    const item = document.createElement("div");
+    item.className = "attachment-item";
+
+    const meta = document.createElement("div");
+    meta.className = "attachment-meta";
+
+    const name = document.createElement("span");
+    name.className = "attachment-name";
+    name.textContent = file.name;
+
+    const size = document.createElement("span");
+    size.className = "attachment-size";
+    size.textContent = formatFileSize(file.size);
+
+    meta.appendChild(name);
+    meta.appendChild(size);
+
+    const actions = document.createElement("div");
+    actions.className = "attachment-actions";
+
+    const viewBtn = document.createElement("button");
+    viewBtn.type = "button";
+    viewBtn.className = "attachment-action view";
+    viewBtn.textContent = "ดูไฟล์";
+    viewBtn.addEventListener("click", () => {
+      const url = URL.createObjectURL(file);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "attachment-action remove";
+    removeBtn.textContent = "ลบไฟล์";
+    removeBtn.addEventListener("click", () => {
+      selectedAttachments = selectedAttachments.filter((_, i) => i !== index);
+      syncAttachmentInput();
+      renderAttachmentList();
+      setAttachmentError("");
+    });
+
+    actions.appendChild(viewBtn);
+    actions.appendChild(removeBtn);
+
+    item.appendChild(meta);
+    item.appendChild(actions);
+    attachmentList.appendChild(item);
+  });
+}
+
+function addAttachments(files) {
+  if (!files || files.length === 0) return;
+  const existingKeys = new Set(
+    selectedAttachments.map(
+      (file) => `${file.name}-${file.size}-${file.lastModified}`
+    )
+  );
+
+  let hasInvalid = false;
+  let hitLimit = false;
+
+  Array.from(files).forEach((file) => {
+    const key = `${file.name}-${file.size}-${file.lastModified}`;
+    if (existingKeys.has(key)) {
+      return;
+    }
+
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      hasInvalid = true;
+      return;
+    }
+
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      hasInvalid = true;
+      return;
+    }
+
+    if (selectedAttachments.length >= MAX_ATTACHMENTS) {
+      hitLimit = true;
+      return;
+    }
+
+    selectedAttachments.push(file);
+    existingKeys.add(key);
+  });
+
+  if (hitLimit) {
+    setAttachmentError(`แนบได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์`);
+  } else if (hasInvalid) {
+    setAttachmentError("รองรับเฉพาะ PDF, JPG, PNG ขนาดไม่เกิน 10MB");
+  } else {
+    setAttachmentError("");
+  }
+
+  syncAttachmentInput();
+  renderAttachmentList();
+}
+
+if (fileInput) {
+  fileInput.addEventListener("change", function () {
+    addAttachments(this.files);
+  });
+}
+
+calculateDays();
+validateTimeRange();
+renderAttachmentList();
 
 document.addEventListener("DOMContentLoaded", function () {
   const wrappers = document.querySelectorAll(".custom-select-wrapper");
@@ -1088,7 +1441,46 @@ function filterDropdown() {
 
 document.addEventListener("click", function (e) {
   if (!e.target.closest(".go-with-dropdown")) {
-    document.getElementById("myDropdown").classList.remove("show");
+    const dropdown = document.getElementById("myDropdown");
+    if (dropdown && dropdown.classList.contains("show")) {
+      dropdown.classList.remove("show");
+
+      const checkedBoxes = dropdown.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      );
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) {
+        if (checkedBoxes.length > 0) {
+          searchInput.value = `จำนวน ${checkedBoxes.length} รายชื่อ`;
+        } else {
+          searchInput.value = ""; 
+        }
+      }
+    }
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("focus", function () {
+      if (this.value.startsWith("จำนวน")) {
+        this.value = "";
+        filterDropdown(); 
+      }
+    });
+
+    searchInput.addEventListener("blur", function () {
+       setTimeout(() => {
+        const dropdown = document.getElementById("myDropdown");
+        if (dropdown && !dropdown.classList.contains("show")) {
+             const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+             if (checkedBoxes.length > 0) {
+                 this.value = `จำนวน ${checkedBoxes.length} รายชื่อ`;
+             }
+        }
+       }, 200);
+    });
   }
 });
 

@@ -7,7 +7,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/db/connection.php';
+
+$connection = db_connection();
+if (!($connection instanceof mysqli)) {
+    error_log('Database Error: invalid connection');
+    $_SESSION['setting_alert'] = [
+        'type' => 'danger',
+        'title' => 'ระบบขัดข้อง',
+        'message' => 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้',
+    ];
+    header('Location: setting.php?tab=settingSystem', true, 303);
+    exit();
+}
 
 $redirect_url = 'setting.php?tab=settingSystem';
 
@@ -35,7 +47,7 @@ if ($dh_status_input === false || $dh_status_input === null) {
     exit();
 }
 
-$select_sql = 'SELECT ID FROM thesystem ORDER BY ID DESC LIMIT 1';
+$select_sql = 'SELECT ID, dh_status FROM thesystem ORDER BY ID DESC LIMIT 1';
 $select_result = mysqli_query($connection, $select_sql);
 
 if ($select_result === false) {
@@ -55,6 +67,13 @@ if (!$system_row) {
 }
 
 $system_id = (int) $system_row['ID'];
+$current_status = (int) ($system_row['dh_status'] ?? 0);
+
+if ($current_status === $dh_status_input) {
+    $set_setting_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'สถานะระบบยังเป็นค่าเดิม');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 
 $update_sql = 'UPDATE thesystem SET dh_status = ? WHERE ID = ?';
 $update_stmt = mysqli_prepare($connection, $update_sql);

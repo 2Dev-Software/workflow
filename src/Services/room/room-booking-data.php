@@ -6,6 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
 
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    return;
+}
+
 $room_booking_year = isset($room_booking_year) ? (int) $room_booking_year : 0;
 if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;

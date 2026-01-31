@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 $redirect_url = 'setting.php?tab=settingDuty';
 
@@ -129,5 +130,9 @@ try {
 }
 
 $set_setting_alert('success', 'บันทึกสำเร็จ', 'อัปเดตการปฏิบัติราชการของผู้บริหารเรียบร้อยแล้ว');
+audit_log('system', 'ACTING_DIRECTOR_ASSIGN', 'SUCCESS', 'dh_exec_duty_logs', null, null, [
+    'pID' => $exec_duty_pid,
+    'status' => $duty_status,
+]);
 header('Location: ' . $redirect_url, true, 303);
 exit();

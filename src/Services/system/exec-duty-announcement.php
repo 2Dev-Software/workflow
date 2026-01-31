@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
 $exec_duty_announcement = 'วันนี้ยังไม่มีข้อมูลการปฏิบัติราชการ';
 $exec_duty_name = '';
@@ -7,10 +8,11 @@ $exec_duty_position = '';
 $exec_duty_status_label = '';
 
 try {
-    $sql = 'SELECT l.dutyStatus, t.fName, p.positionName
+    $position = system_position_join($connection, 't', 'p');
+    $sql = 'SELECT l.dutyStatus, t.fName, ' . $position['name'] . ' AS positionName
         FROM dh_exec_duty_logs AS l
         INNER JOIN teacher AS t ON l.pID = t.pID
-        LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+        ' . $position['join'] . '
         WHERE l.dutyStatus IN (1, 2) AND t.status = 1
         ORDER BY l.dutyLogID DESC
         LIMIT 1';
