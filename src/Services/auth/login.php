@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     }
 
     require_once __DIR__ . '/../../../config/connection.php';
+    require_once __DIR__ . '/../../../app/auth/password.php';
+    require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
     $pID = trim($_POST['pID'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -29,7 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         return;
     }
 
-    $sql = "SELECT pID, roleID FROM teacher WHERE pID = ? AND password = ? AND status = 1 LIMIT 1";
+    $auth_password_column = auth_password_column($connection);
+    $sql = "SELECT pID, roleID FROM teacher WHERE pID = ? AND {$auth_password_column} = ? AND status = 1 LIMIT 1";
     $stmt = mysqli_prepare($connection, $sql);
 
     if ($stmt === false) {
@@ -48,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     if (!$row) {
         http_response_code(401);
         $set_alert('danger', 'เข้าสู่ระบบไม่สำเร็จ', 'กรุณาตรวจสอบเลขบัตรประชาชนหรือรหัสผ่านอีกครั้ง');
+        audit_log('auth', 'LOGIN', 'FAIL', 'teacher', null, 'Invalid credentials', ['pID' => $pID]);
         return;
     }
 
@@ -82,6 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
     session_regenerate_id(true);
     $_SESSION['pID'] = $row['pID'];
+
+    audit_log('auth', 'LOGIN', 'SUCCESS', 'teacher', $row['pID'], null);
 
     $set_alert(
         'success',

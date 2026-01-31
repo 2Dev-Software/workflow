@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `dh_outgoing_letters` (
+  `outgoingID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `dh_year` int(4) NOT NULL,
+  `outgoingNo` varchar(50) NOT NULL,
+  `outgoingSeq` int(11) NOT NULL,
+  `subject` varchar(300) NOT NULL,
+  `detail` text DEFAULT NULL,
+  `status` enum('WAITING_ATTACHMENT','COMPLETE') NOT NULL DEFAULT 'WAITING_ATTACHMENT',
+  `createdByPID` varchar(13) NOT NULL,
+  `updatedByPID` varchar(13) DEFAULT NULL,
+  `deletedAt` datetime DEFAULT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updatedAt` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
+  PRIMARY KEY (`outgoingID`),
+  UNIQUE KEY `uq_outgoing_no` (`dh_year`,`outgoingSeq`),
+  KEY `idx_outgoing_year` (`dh_year`,`createdAt`),
+  KEY `fk_outgoing_created` (`createdByPID`),
+  KEY `fk_outgoing_updated` (`updatedByPID`),
+  CONSTRAINT `fk_outgoing_created` FOREIGN KEY (`createdByPID`) REFERENCES `teacher` (`pID`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_outgoing_updated` FOREIGN KEY (`updatedByPID`) REFERENCES `teacher` (`pID`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

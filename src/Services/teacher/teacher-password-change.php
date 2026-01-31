@@ -4,6 +4,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['change_password'])) 
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/auth/password.php';
 
 $redirect_url = 'profile.php?tab=password';
 
@@ -44,7 +45,8 @@ if ($teacher_pid === '') {
     exit();
 }
 
-$select_sql = 'SELECT password FROM teacher WHERE pID = ? AND status = 1 LIMIT 1';
+$auth_password_column = auth_password_column($connection);
+$select_sql = 'SELECT ' . $auth_password_column . ' AS password_value FROM teacher WHERE pID = ? AND status = 1 LIMIT 1';
 $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
@@ -66,19 +68,19 @@ if (!$teacher_row) {
     exit();
 }
 
-if (!hash_equals((string) $teacher_row['password'], (string) $current_password)) {
+if (!hash_equals((string) ($teacher_row['password_value'] ?? ''), (string) $current_password)) {
     $set_profile_alert('danger', 'บันทึกไม่สำเร็จ', 'รหัสผ่านเดิมไม่ถูกต้อง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-if (hash_equals((string) $teacher_row['password'], (string) $new_password)) {
+if (hash_equals((string) ($teacher_row['password_value'] ?? ''), (string) $new_password)) {
     $set_profile_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$update_sql = 'UPDATE teacher SET password = ? WHERE pID = ? AND status = 1';
+$update_sql = 'UPDATE teacher SET ' . $auth_password_column . ' = ? WHERE pID = ? AND status = 1';
 $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {

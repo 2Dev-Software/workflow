@@ -1,5 +1,9 @@
 <?php
 require_once __DIR__ . '/src/Services/auth/auth-guard.php';
+require_once __DIR__ . '/app/modules/dashboard/metrics.php';
+
+$current_pid = (string) ($_SESSION['pID'] ?? '');
+$dashboard_counts = dashboard_counts($current_pid);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -27,8 +31,8 @@ require_once __DIR__ . '/src/Services/auth/auth-guard.php';
                     <div class="content-header">
                         <p>หนังสือเวียนใหม่ที่รออ่าน</p>
                     </div>
-                    <div class="content-info">
-                        <p>100</p>
+                <div class="content-info">
+                        <p><?= (int) ($dashboard_counts['unread_circulars'] ?? 0) ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
                 </div>
@@ -36,8 +40,8 @@ require_once __DIR__ . '/src/Services/auth/auth-guard.php';
                     <div class="content-header">
                         <p>คำสั่งราชการใหม่ที่รออ่าน</p>
                     </div>
-                    <div class="content-info">
-                        <p>30</p>
+                <div class="content-info">
+                        <p><?= (int) ($dashboard_counts['unread_orders'] ?? 0) ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
                 </div>
@@ -45,8 +49,8 @@ require_once __DIR__ . '/src/Services/auth/auth-guard.php';
                     <div class="content-header">
                         <p>หนังสือที่รอเสนอผู้บริหาร</p>
                     </div>
-                    <div class="content-info">
-                        <p>999+</p>
+                <div class="content-info">
+                        <p><?= (int) ($dashboard_counts['pending_manager'] ?? 0) ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
                 </div>
@@ -54,8 +58,8 @@ require_once __DIR__ . '/src/Services/auth/auth-guard.php';
                     <div class="content-header">
                         <p>หนังสือที่รอเซ็นอนุมัติ</p>
                     </div>
-                    <div class="content-info">
-                        <p>607</p>
+                <div class="content-info">
+                        <p><?= (int) ($dashboard_counts['pending_approvals'] ?? 0) ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
                 </div>

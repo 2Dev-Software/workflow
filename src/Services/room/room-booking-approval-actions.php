@@ -33,6 +33,11 @@ $set_room_booking_approval_alert = static function (string $type, string $title,
     exit();
 };
 
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+}
+
 if (
     empty($_POST['csrf_token']) ||
     empty($_SESSION['csrf_token']) ||
@@ -86,9 +91,7 @@ try {
     $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบรายการจองได้ในขณะนี้');
 }
 
-if ($current_status !== 0) {
-    $set_room_booking_approval_alert('warning', 'รายการนี้ถูกดำเนินการแล้ว', 'กรุณารีเฟรชเพื่อดูสถานะล่าสุด');
-}
+
 
 $next_status = $action === 'approve' ? 1 : 2;
 $status_param = room_booking_status_to_db($connection, $next_status);

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
 $teacher_directory = [];
 $teacher_directory_total = 0;
@@ -69,10 +70,11 @@ try {
         $teacher_directory_page = $teacher_directory_total_pages;
     }
 
-    $sql = 'SELECT t.pID, t.fName, t.telephone, t.positionID, d.dName AS department_name, p.positionName AS position_name
+    $position = system_position_join($connection, 't', 'p');
+    $sql = 'SELECT t.pID, t.fName, t.telephone, t.positionID, d.dName AS department_name, ' . $position['name'] . ' AS position_name
         FROM teacher AS t
         LEFT JOIN department AS d ON t.dID = d.dID
-        LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+        ' . $position['join'] . '
         WHERE t.status = 1';
     if ($teacher_directory_filter_did !== null) {
         $sql .= ' AND t.dID = ?';

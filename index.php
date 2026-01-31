@@ -6,9 +6,21 @@ require_once __DIR__ . '/src/Services/security/security-service.php';
 require_once __DIR__ . '/src/Services/auth/login.php';
 require_once __DIR__ . '/src/Services/system/exec-duty-announcement.php';
 require_once __DIR__ . '/src/Services/system/system-year.php';
+require_once __DIR__ . '/app/modules/circulars/repository.php';
+require_once __DIR__ . '/app/modules/vehicle/calendar.php';
 
 $room_booking_year = isset($dh_year) ? (int) $dh_year : 0;
 require_once __DIR__ . '/src/Services/room/room-booking-data.php';
+
+$announcement_items = circular_get_announcements(10);
+$vehicle_events = vehicle_booking_events($room_booking_year);
+$calendar_events = $room_booking_events ?? [];
+foreach ($vehicle_events as $date_key => $events) {
+    if (!isset($calendar_events[$date_key])) {
+        $calendar_events[$date_key] = [];
+    }
+    $calendar_events[$date_key] = array_merge($calendar_events[$date_key], $events);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -91,33 +103,15 @@ require_once __DIR__ . '/src/Services/room/room-booking-data.php';
 
                 <div class="details-news-bar">
                     <ul>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>ผลการพิจารณาการรับย้ายนักเรียน ประจำภาคเรียนที่ 2 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>ผลการพิจารณาการรับย้ายนักเรียน ประจำภาคเรียนที่ 2 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>ผลการพิจารณาการรับย้ายนักเรียน ประจำภาคเรียนที่ 2 ปีการศึกษา 2568</p>
-                        </li>
-                        <li>
-                            <p>การดำเนินการสอบแก้ตัว ภาคเรียนที่ 1 ปีการศึกษา 2568</p>
-                        </li>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>
@@ -217,6 +211,9 @@ require_once __DIR__ . '/src/Services/room/room-booking-data.php';
     </script>
 
 
+    <script>
+        window.roomBookingEvents = <?= json_encode($calendar_events ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    </script>
     <?php require_once __DIR__ . '/public/components/x-scripts.php'; ?>
 </body>
 
