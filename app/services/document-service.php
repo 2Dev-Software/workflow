@@ -137,3 +137,217 @@ if (!function_exists('document_next_sequence')) {
         }
     }
 }
+
+if (!function_exists('document_upsert')) {
+    function document_upsert(array $data): ?int
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_documents')) {
+            return null;
+        }
+
+        $documentType = (string) ($data['documentType'] ?? '');
+        $documentNumber = (string) ($data['documentNumber'] ?? '');
+        $subject = (string) ($data['subject'] ?? '');
+        $content = $data['content'] ?? null;
+        $status = (string) ($data['status'] ?? '');
+        $senderName = $data['senderName'] ?? null;
+        $createdByPID = (string) ($data['createdByPID'] ?? '');
+        $updatedByPID = $data['updatedByPID'] ?? null;
+
+        if ($documentType === '' || $subject === '' || $createdByPID === '') {
+            return null;
+        }
+
+        $row = db_fetch_one('SELECT id FROM dh_documents WHERE documentType = ? AND documentNumber = ? LIMIT 1', 'ss', $documentType, $documentNumber);
+        if ($row && isset($row['id'])) {
+            $documentID = (int) $row['id'];
+            $update = [
+                'subject' => $subject,
+                'content' => $content,
+                'status' => $status,
+                'senderName' => $senderName,
+                'updatedByPID' => $updatedByPID,
+            ];
+            $fields = [];
+            $params = [];
+            $types = '';
+            foreach ($update as $field => $value) {
+                $fields[] = $field . ' = ?';
+                $types .= $value === null ? 's' : (is_int($value) ? 'i' : 's');
+                $params[] = $value;
+            }
+            if (!empty($fields)) {
+                $types .= 'i';
+                $params[] = $documentID;
+                $sql = 'UPDATE dh_documents SET ' . implode(', ', $fields) . ' WHERE id = ?';
+                $stmt = db_query($sql, $types, ...$params);
+                mysqli_stmt_close($stmt);
+            }
+            return $documentID;
+        }
+
+        $stmt = db_query(
+            'INSERT INTO dh_documents (documentType, documentNumber, subject, content, status, senderName, createdByPID, updatedByPID)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'ssssssss',
+            $documentType,
+            $documentNumber,
+            $subject,
+            $content,
+            $status,
+            $senderName,
+            $createdByPID,
+            $updatedByPID
+        );
+        $documentID = db_last_insert_id();
+        mysqli_stmt_close($stmt);
+
+        return $documentID;
+    }
+}
+
+if (!function_exists('document_get_id')) {
+    function document_get_id(string $documentType, string $documentNumber): ?int
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_documents')) {
+            return null;
+        }
+
+        $documentType = trim($documentType);
+        $documentNumber = trim($documentNumber);
+        if ($documentType === '' || $documentNumber === '') {
+            return null;
+        }
+
+        $row = db_fetch_one(
+            'SELECT id FROM dh_documents WHERE documentType = ? AND documentNumber = ? LIMIT 1',
+            'ss',
+            $documentType,
+            $documentNumber
+        );
+        if (!$row || !isset($row['id'])) {
+            return null;
+        }
+
+        return (int) $row['id'];
+    }
+}
+
+if (!function_exists('document_add_recipients')) {
+    function document_add_recipients(int $documentID, array $recipientPIDs, string $inboxType = 'normal_inbox'): void
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_document_recipients')) {
+            return;
+        }
+
+        $recipientPIDs = array_values(array_unique(array_filter(array_map('trim', $recipientPIDs))));
+        if (empty($recipientPIDs)) {
+            return;
+        }
+
+        foreach ($recipientPIDs as $pid) {
+            $stmt = db_query(
+                'INSERT INTO dh_document_recipients (documentID, recipientPID, inboxType, inboxStatus, receivedAt)
+                 VALUES (?, ?, ?, "UNREAD", NOW())
+                 ON DUPLICATE KEY UPDATE inboxStatus = "UNREAD", receivedAt = NOW()',
+                'iss',
+                $documentID,
+                $pid,
+                $inboxType
+            );
+            mysqli_stmt_close($stmt);
+        }
+    }
+}
+
+if (!function_exists('document_set_recipient_status')) {
+    function document_set_recipient_status(int $documentID, string $recipientPID, string $inboxType, string $status): void
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_document_recipients')) {
+            return;
+        }
+
+        $allowed = ['UNREAD', 'READ', 'ARCHIVED'];
+        $status = strtoupper(trim($status));
+        if (!in_array($status, $allowed, true)) {
+            return;
+        }
+
+        $readAt = null;
+        if ($status === 'READ') {
+            $readAt = date('Y-m-d H:i:s');
+        }
+
+        $stmt = db_query(
+            'UPDATE dh_document_recipients SET inboxStatus = ?, readAt = ? WHERE documentID = ? AND recipientPID = ? AND inboxType = ?',
+            'ssiss',
+            $status,
+            $readAt,
+            $documentID,
+            $recipientPID,
+            $inboxType
+        );
+        mysqli_stmt_close($stmt);
+    }
+}
+
+if (!function_exists('document_mark_read')) {
+    function document_mark_read(int $documentID, string $recipientPID): void
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_document_recipients')) {
+            return;
+        }
+
+        $stmt = db_query(
+            'UPDATE dh_document_recipients SET inboxStatus = "READ", readAt = NOW() WHERE documentID = ? AND recipientPID = ? AND inboxStatus <> "READ"',
+            'is',
+            $documentID,
+            $recipientPID
+        );
+        mysqli_stmt_close($stmt);
+    }
+}
+
+if (!function_exists('document_record_read_receipt')) {
+    function document_record_read_receipt(int $documentID, string $recipientPID): void
+    {
+        $connection = db_connection();
+        if (!db_table_exists($connection, 'dh_read_receipts')) {
+            return;
+        }
+
+        $existing = db_fetch_one('SELECT receiptID FROM dh_read_receipts WHERE documentID = ? AND recipientPID = ? LIMIT 1', 'is', $documentID, $recipientPID);
+        if ($existing) {
+            return;
+        }
+
+        $readAt = date('Y-m-d H:i:s');
+        $requestID = app_request_id();
+        if (strlen($requestID) > 26) {
+            $requestID = substr($requestID, 0, 26);
+        }
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $hashSeed = $documentID . '|' . $recipientPID . '|' . $readAt . '|' . $requestID . '|' . $ip . '|' . $userAgent;
+        $receiptHash = hash('sha256', $hashSeed);
+
+        $stmt = db_query(
+            'INSERT INTO dh_read_receipts (documentID, recipientPID, readAt, requestID, ipAddress, userAgent, receiptHash)
+             VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'issssss',
+            $documentID,
+            $recipientPID,
+            $readAt,
+            $requestID,
+            $ip,
+            $userAgent,
+            $receiptHash
+        );
+        mysqli_stmt_close($stmt);
+    }
+}

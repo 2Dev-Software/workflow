@@ -32,4 +32,7 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
+
+// Make the value available across include scopes (some views are rendered inside functions).
+$GLOBALS['dh_year'] = $dh_year;
 ?>

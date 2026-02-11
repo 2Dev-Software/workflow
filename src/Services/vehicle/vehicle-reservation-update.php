@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/vehicle-reservation-utils.php';
 require_once __DIR__ . '/vehicle-reservation-data.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 $redirect_url = 'vehicle-reservation.php';
 
@@ -29,14 +30,54 @@ $set_vehicle_alert = static function (
     ];
 };
 
-if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    $set_vehicle_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
+$text_preview = static function (string $value, int $max_len = 120): string {
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (function_exists('mb_substr')) {
+        return mb_substr($value, 0, $max_len);
+    }
+    return substr($value, 0, $max_len);
+};
+
+$audit_update = static function (string $status, ?int $booking_id, string $reason, array $payload = []): void {
+    if (!function_exists('audit_log')) {
+        return;
+    }
+    audit_log('vehicle', 'UPDATE', $status, 'dh_vehicle_bookings', $booking_id, $reason, $payload);
+};
+
+$abort = static function (
+    string $alert_type,
+    string $title,
+    string $message,
+    ?string $audit_reason = null,
+    array $audit_payload = [],
+    string $audit_status = 'FAIL',
+    ?int $audit_booking_id = null
+) use ($set_vehicle_alert, $redirect_url, $audit_update): void {
+    if ($audit_reason !== null) {
+        $audit_update($audit_status, $audit_booking_id, $audit_reason, $audit_payload);
+    }
+
+    $set_vehicle_alert($alert_type, $title, $message);
     header('Location: ' . $redirect_url, true, 303);
     exit();
+};
+
+if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'CSRF_FAIL', 'DENY', null, null, 'vehicle_reservation_update');
+    }
+    $abort('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง', null);
 }
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
 if ($requester_pid === '') {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'vehicle_reservation_update');
+    }
     header('Location: index.php', true, 302);
     exit();
 }
@@ -45,18 +86,14 @@ $booking_id = filter_input(INPUT_POST, 'vehicle_booking_id', FILTER_VALIDATE_INT
     'options' => ['min_range' => 1],
 ]);
 if (!$booking_id) {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบรายการที่ต้องการแก้ไข');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบรายการที่ต้องการแก้ไข', 'invalid_booking_id');
 }
 
 $select_sql = 'SELECT bookingID, requesterPID, status FROM dh_vehicle_bookings WHERE bookingID = ? AND deletedAt IS NULL LIMIT 1';
 $select_stmt = mysqli_prepare($connection, $select_sql);
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    $set_vehicle_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบรายการได้ในขณะนี้');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบรายการได้ในขณะนี้', 'booking_select_prepare_failed', [], 'FAIL', (int) $booking_id);
 }
 
 mysqli_stmt_bind_param($select_stmt, 'i', $booking_id);
@@ -66,22 +103,20 @@ $booking_row = $select_result ? mysqli_fetch_assoc($select_result) : null;
 mysqli_stmt_close($select_stmt);
 
 if (!$booking_row) {
-    $set_vehicle_alert('danger', 'ไม่พบรายการ', 'รายการนี้อาจถูกลบไปแล้ว');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ไม่พบรายการ', 'รายการนี้อาจถูกลบไปแล้ว', 'booking_not_found', [], 'FAIL', (int) $booking_id);
 }
 
 if ((string) ($booking_row['requesterPID'] ?? '') !== $requester_pid) {
-    $set_vehicle_alert('danger', 'ไม่มีสิทธิ์แก้ไขรายการนี้', 'กรุณาลองใหม่อีกครั้ง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ไม่มีสิทธิ์แก้ไขรายการนี้', 'กรุณาลองใหม่อีกครั้ง', 'not_owner', [
+        'bookingRequesterPID' => (string) ($booking_row['requesterPID'] ?? ''),
+    ], 'DENY', (int) $booking_id);
 }
 
 $current_status = strtoupper(trim((string) ($booking_row['status'] ?? 'PENDING')));
 if ($current_status !== 'PENDING') {
-    $set_vehicle_alert('warning', 'ไม่สามารถแก้ไขได้', 'แก้ไขได้เฉพาะรายการที่รออนุมัติ');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('warning', 'ไม่สามารถแก้ไขได้', 'แก้ไขได้เฉพาะรายการที่รออนุมัติ', 'invalid_status', [
+        'status' => $current_status,
+    ], 'DENY', (int) $booking_id);
 }
 
 $vehicle_year = (int) ($_POST['dh_year'] ?? 0);
@@ -91,9 +126,7 @@ if ($vehicle_year <= 0) {
 
 $department = trim((string) ($_POST['department'] ?? ''));
 if ($department === '') {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการ');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการ', 'department_required', [], 'FAIL', (int) $booking_id);
 }
 
 $department_pool = [];
@@ -108,9 +141,9 @@ foreach (vehicle_reservation_get_factions($connection) as $faction) {
     }
 }
 if (!isset($department_pool[$department])) {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการจากรายการที่กำหนด');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการจากรายการที่กำหนด', 'department_invalid', [
+        'department' => $department,
+    ], 'FAIL', (int) $booking_id);
 }
 
 $write_date_raw = trim((string) ($_POST['writeDate'] ?? ''));
@@ -118,25 +151,21 @@ $write_date = '';
 if ($write_date_raw !== '') {
     $write_date_obj = DateTime::createFromFormat('Y-m-d', $write_date_raw);
     if ($write_date_obj === false) {
-        $set_vehicle_alert('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เขียนให้ถูกต้อง');
-        header('Location: ' . $redirect_url, true, 303);
-        exit();
+        $abort('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เขียนให้ถูกต้อง', 'write_date_invalid', [
+            'writeDate' => $write_date_raw,
+        ], 'FAIL', (int) $booking_id);
     }
     $write_date = $write_date_obj->format('Y-m-d');
 }
 
 $purpose = trim((string) ($_POST['purpose'] ?? ''));
 if ($purpose === '') {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุวัตถุประสงค์การใช้รถ');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุวัตถุประสงค์การใช้รถ', 'purpose_required', [], 'FAIL', (int) $booking_id);
 }
 
 $location = trim((string) ($_POST['location'] ?? ''));
 if ($location === '') {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุสถานที่ปลายทาง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุสถานที่ปลายทาง', 'location_required', [], 'FAIL', (int) $booking_id);
 }
 
 $start_date_raw = trim((string) ($_POST['startDate'] ?? ''));
@@ -144,9 +173,9 @@ $end_date_raw = trim((string) ($_POST['endDate'] ?? ''));
 
 $start_date_obj = DateTime::createFromFormat('Y-m-d', $start_date_raw);
 if ($start_date_obj === false) {
-    $set_vehicle_alert('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เริ่มเดินทาง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เริ่มเดินทาง', 'start_date_invalid', [
+        'startDate' => $start_date_raw,
+    ], 'FAIL', (int) $booking_id);
 }
 
 $end_date_obj = $end_date_raw !== ''
@@ -154,15 +183,16 @@ $end_date_obj = $end_date_raw !== ''
     : clone $start_date_obj;
 
 if ($end_date_obj === false) {
-    $set_vehicle_alert('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่สิ้นสุดให้ถูกต้อง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่สิ้นสุดให้ถูกต้อง', 'end_date_invalid', [
+        'endDate' => $end_date_raw,
+    ], 'FAIL', (int) $booking_id);
 }
 
 if ($end_date_obj < $start_date_obj) {
-    $set_vehicle_alert('danger', 'วันที่ไม่ถูกต้อง', 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มเดินทาง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'วันที่ไม่ถูกต้อง', 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มเดินทาง', 'date_range_invalid', [
+        'startDate' => $start_date_obj->format('Y-m-d'),
+        'endDate' => $end_date_obj->format('Y-m-d'),
+    ], 'FAIL', (int) $booking_id);
 }
 
 $start_time_raw = trim((string) ($_POST['startTime'] ?? ''));
@@ -172,24 +202,27 @@ $start_time_obj = DateTime::createFromFormat('H:i', $start_time_raw);
 $end_time_obj = DateTime::createFromFormat('H:i', $end_time_raw);
 
 if ($start_time_obj === false || $end_time_obj === false) {
-    $set_vehicle_alert('danger', 'เวลาไม่ถูกต้อง', 'กรุณาเลือกช่วงเวลาให้ครบถ้วน');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'เวลาไม่ถูกต้อง', 'กรุณาเลือกช่วงเวลาให้ครบถ้วน', 'time_required', [
+        'startTime' => $start_time_raw,
+        'endTime' => $end_time_raw,
+    ], 'FAIL', (int) $booking_id);
 }
 
 $start_at_obj = DateTime::createFromFormat('Y-m-d H:i', $start_date_obj->format('Y-m-d') . ' ' . $start_time_raw);
 $end_at_obj = DateTime::createFromFormat('Y-m-d H:i', $end_date_obj->format('Y-m-d') . ' ' . $end_time_raw);
 
 if ($start_at_obj === false || $end_at_obj === false) {
-    $set_vehicle_alert('danger', 'เวลาไม่ถูกต้อง', 'กรุณาเลือกช่วงเวลาให้ถูกต้อง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'เวลาไม่ถูกต้อง', 'กรุณาเลือกช่วงเวลาให้ถูกต้อง', 'datetime_parse_failed', [
+        'startAt' => $start_date_obj->format('Y-m-d') . ' ' . $start_time_raw,
+        'endAt' => $end_date_obj->format('Y-m-d') . ' ' . $end_time_raw,
+    ], 'FAIL', (int) $booking_id);
 }
 
 if ($end_at_obj <= $start_at_obj) {
-    $set_vehicle_alert('danger', 'เวลาไม่ถูกต้อง', 'เวลาเดินทางสิ้นสุดต้องมากกว่าเวลาเริ่มต้น');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'เวลาไม่ถูกต้อง', 'เวลาเดินทางสิ้นสุดต้องมากกว่าเวลาเริ่มต้น', 'datetime_range_invalid', [
+        'startAt' => $start_at_obj->format('Y-m-d H:i:s'),
+        'endAt' => $end_at_obj->format('Y-m-d H:i:s'),
+    ], 'FAIL', (int) $booking_id);
 }
 
 $start_at = $start_at_obj->format('Y-m-d H:i:s');
@@ -198,9 +231,9 @@ $end_at = $end_at_obj->format('Y-m-d H:i:s');
 $fuel_source = trim((string) ($_POST['fuelSource'] ?? ''));
 $allowed_fuel_sources = ['central', 'project', 'user'];
 if (!in_array($fuel_source, $allowed_fuel_sources, true)) {
-    $set_vehicle_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกแหล่งน้ำมันเชื้อเพลิง');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกแหล่งน้ำมันเชื้อเพลิง', 'fuel_source_invalid', [
+        'fuelSource' => $fuel_source,
+    ], 'FAIL', (int) $booking_id);
 }
 
 $companion_ids = $_POST['companionIds'] ?? [];
@@ -226,7 +259,12 @@ $companion_ids = array_values(array_filter(
 ));
 
 $companion_count = count($companion_ids);
-$passenger_count = max(1, $companion_count + 1);
+$passenger_input = filter_input(INPUT_POST, 'passengerCount', FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1],
+]);
+$passenger_input = $passenger_input ? (int) $passenger_input : 0;
+$min_passengers = max(1, $companion_count + 1);
+$passenger_count = $passenger_input > 0 ? max($passenger_input, $min_passengers) : $min_passengers;
 
 $companion_ids_json = null;
 if ($companion_count > 0) {
@@ -274,9 +312,10 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
     }
 
     if ($valid_files > $max_attachments) {
-        $set_vehicle_alert('warning', 'แนบไฟล์เกินจำนวนที่กำหนด', 'แนบไฟล์ได้สูงสุด 5 ไฟล์');
-        header('Location: ' . $redirect_url, true, 303);
-        exit();
+        $abort('warning', 'แนบไฟล์เกินจำนวนที่กำหนด', 'แนบไฟล์ได้สูงสุด 5 ไฟล์', 'attachments_too_many', [
+            'max' => $max_attachments,
+            'count' => $valid_files,
+        ], 'FAIL', (int) $booking_id);
     }
 
     $finfo = null;
@@ -287,9 +326,7 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
     $upload_dir = __DIR__ . '/../../../assets/uploads/vehicle-bookings';
     if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
         error_log('Upload directory create failed: ' . $upload_dir);
-        $set_vehicle_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถแนบไฟล์ได้ในขณะนี้');
-        header('Location: ' . $redirect_url, true, 303);
-        exit();
+        $abort('danger', 'ระบบขัดข้อง', 'ไม่สามารถแนบไฟล์ได้ในขณะนี้', 'upload_dir_create_failed', [], 'FAIL', (int) $booking_id);
     }
 
     for ($i = 0; $i < $total_files; $i++) {
@@ -299,17 +336,18 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
         }
         if ($error !== UPLOAD_ERR_OK) {
             $cleanup_uploads($uploaded_files);
-            $set_vehicle_alert('danger', 'แนบไฟล์ไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
-            header('Location: ' . $redirect_url, true, 303);
-            exit();
+            $abort('danger', 'แนบไฟล์ไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง', 'upload_error', [
+                'errorCode' => $error,
+            ], 'FAIL', (int) $booking_id);
         }
 
         $size = (int) ($attachments['size'][$i] ?? 0);
         if ($size > $max_file_size) {
             $cleanup_uploads($uploaded_files);
-            $set_vehicle_alert('warning', 'ไฟล์มีขนาดใหญ่เกินไป', 'รองรับไฟล์ขนาดไม่เกิน 10MB ต่อไฟล์');
-            header('Location: ' . $redirect_url, true, 303);
-            exit();
+            $abort('warning', 'ไฟล์มีขนาดใหญ่เกินไป', 'รองรับไฟล์ขนาดไม่เกิน 10MB ต่อไฟล์', 'file_too_large', [
+                'fileSize' => $size,
+                'maxSize' => $max_file_size,
+            ], 'FAIL', (int) $booking_id);
         }
 
         $tmp_name = $attachments['tmp_name'][$i] ?? '';
@@ -323,9 +361,9 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
 
         if (!isset($allowed_mime[$file_mime])) {
             $cleanup_uploads($uploaded_files);
-            $set_vehicle_alert('warning', 'รูปแบบไฟล์ไม่ถูกต้อง', 'รองรับเฉพาะไฟล์ .pdf, .jpg, .png');
-            header('Location: ' . $redirect_url, true, 303);
-            exit();
+            $abort('warning', 'รูปแบบไฟล์ไม่ถูกต้อง', 'รองรับเฉพาะไฟล์ .pdf, .jpg, .png', 'mime_not_allowed', [
+                'mimeType' => $file_mime,
+            ], 'FAIL', (int) $booking_id);
         }
 
         $extension = $allowed_mime[$file_mime];
@@ -334,9 +372,7 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
 
         if (!move_uploaded_file($tmp_name, $target_path)) {
             $cleanup_uploads($uploaded_files);
-            $set_vehicle_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถแนบไฟล์ได้ในขณะนี้');
-            header('Location: ' . $redirect_url, true, 303);
-            exit();
+            $abort('danger', 'ระบบขัดข้อง', 'ไม่สามารถแนบไฟล์ได้ในขณะนี้', 'move_uploaded_file_failed', [], 'FAIL', (int) $booking_id);
         }
 
         @chmod($target_path, 0644);
@@ -394,9 +430,8 @@ $types .= 'i';
 
 if (mysqli_begin_transaction($connection) === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    $set_vehicle_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกการแก้ไขได้ในขณะนี้');
-    header('Location: ' . $redirect_url, true, 303);
-    exit();
+    $cleanup_uploads($uploaded_files);
+    $abort('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกการแก้ไขได้ในขณะนี้', 'db_begin_failed', [], 'FAIL', (int) $booking_id);
 }
 
 try {
@@ -544,12 +579,30 @@ try {
 } catch (Throwable $e) {
     mysqli_rollback($connection);
     error_log('Vehicle Booking Update Error: ' . $e->getMessage());
+    if (function_exists('audit_log')) {
+        audit_log('vehicle', 'UPDATE', 'FAIL', 'dh_vehicle_bookings', $booking_id, $e->getMessage());
+    }
     $cleanup_uploads($uploaded_files);
     $set_vehicle_alert('danger', 'บันทึกไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
+if (function_exists('audit_log')) {
+    audit_log('vehicle', 'UPDATE', 'SUCCESS', 'dh_vehicle_bookings', $booking_id, null, [
+        'department' => $department,
+        'writeDate' => $write_date !== '' ? $write_date : null,
+        'purposePreview' => $text_preview($purpose, 120),
+        'locationPreview' => $text_preview($location, 120),
+        'startAt' => $start_at,
+        'endAt' => $end_at,
+        'fuelSource' => $fuel_source,
+        'passengerCount' => $passenger_count,
+        'companionCount' => $companion_count,
+        'attachmentCount' => isset($attachment_file_ids) && is_array($attachment_file_ids) ? count($attachment_file_ids) : null,
+        'uploadedAttachmentCount' => count($uploaded_files),
+    ]);
+}
 $set_vehicle_alert('success', 'บันทึกการแก้ไขสำเร็จ', 'อัปเดตรายการจองเรียบร้อยแล้ว');
 header('Location: ' . $redirect_url, true, 303);
 exit();

@@ -215,7 +215,6 @@ CREATE TABLE `dh_room_bookings` (
   `endTime` time NOT NULL,
   `attendeeCount` smallint(5) unsigned NOT NULL DEFAULT 1,
   `status` enum('DRAFT','PENDING','APPROVED','REJECTED','CANCELLED','COMPLETED') NOT NULL DEFAULT 'PENDING',
-  `statusReason` text DEFAULT NULL,
   `bookingTopic` varchar(255) DEFAULT NULL,
   `bookingDetail` text DEFAULT NULL,
   `equipmentDetail` text DEFAULT NULL,

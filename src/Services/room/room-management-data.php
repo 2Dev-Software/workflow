@@ -12,6 +12,8 @@ $room_staff_members = [];
 $room_candidate_members = [];
 $room_staff_role_id = 5;
 $admin_role_id = 1;
+$default_role_id = 6;
+$unassigned_role_id = 0;
 
 $map_member = static function (array $row): array {
     $name = trim((string) ($row['fName'] ?? ''));
@@ -83,7 +85,7 @@ $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
     ' . $position['join'] . '
     LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
-    WHERE t.status = 1 AND t.roleID NOT IN (?, ?)
+    WHERE t.status = 1 AND t.roleID IN (?, ?)
     ORDER BY t.fName';
 
 try {
@@ -97,7 +99,7 @@ try {
             'button_label' => 'ยืนยัน',
         ];
     } else {
-        mysqli_stmt_bind_param($stmt, 'ii', $admin_role_id, $room_staff_role_id);
+        mysqli_stmt_bind_param($stmt, 'ii', $default_role_id, $unassigned_role_id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
 

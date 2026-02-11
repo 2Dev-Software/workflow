@@ -53,7 +53,7 @@
     ? memberModal.querySelector("[data-member-search]")
     : null;
   var memberCards = memberModal
-    ? Array.from(memberModal.querySelectorAll("[data-member-card]"))
+    ? Array.from(memberModal.querySelectorAll("[data-member-card], [data-member-row]"))
     : [];
   var memberEmptyState = memberModal
     ? memberModal.querySelector("[data-member-empty]")
@@ -82,15 +82,19 @@
   function openMemberConfirm(form) {
     pendingMemberForm = form;
     var card = form.closest(".room-admin-member-card");
-    pendingMemberCard = card;
+    var row = form.closest("[data-member-row], tr");
+    pendingMemberCard = card || row;
     var nameEl = card ? card.querySelector(".room-admin-member-name") : null;
+    if (!nameEl && row) {
+      nameEl = row.querySelector("strong");
+    }
     var name =
       nameEl && nameEl.textContent.trim() !== ""
         ? nameEl.textContent.trim()
         : "บุคลากรคนนี้";
     if (memberConfirmMessage) {
       memberConfirmMessage.textContent =
-        "โปรดยืนยันการแต่งตั้ง " + name + " เป็นผู้รับผิดชอบห้องนี้";
+        "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
     }
     if (memberConfirmModal) {
       memberConfirmModal.classList.remove("hidden");
@@ -107,9 +111,7 @@
         : "บุคลากรคนนี้";
     if (memberRemoveMessage) {
       memberRemoveMessage.textContent =
-        "โปรดยืนยันการยกเลิกการแต่งตั้ง " +
-        name +
-        " จากผู้รับผิดชอบห้องนี้";
+        "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
     }
     if (memberRemoveConfirmModal) {
       memberRemoveConfirmModal.classList.remove("hidden");
@@ -134,10 +136,10 @@
     var query = memberSearchInput.value.trim().toLowerCase();
     var visibleCount = 0;
 
-    memberCards.forEach(function (card) {
-      var haystack = (card.dataset.memberSearch || "").toLowerCase();
+    memberCards.forEach(function (item) {
+      var haystack = (item.dataset.memberSearch || "").toLowerCase();
       var isMatch = query === "" || haystack.includes(query);
-      card.style.display = isMatch ? "" : "none";
+      item.style.display = isMatch ? "" : "none";
       if (isMatch) visibleCount += 1;
     });
 
@@ -178,7 +180,10 @@
 
       if (editIdInput) editIdInput.value = roomId;
       if (editNameInput) editNameInput.value = roomName;
-      if (editStatusSelect) editStatusSelect.value = roomStatus;
+      if (editStatusSelect) {
+        editStatusSelect.value = roomStatus;
+        editStatusSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       if (editNoteInput) editNoteInput.value = roomNote;
 
       editModal.classList.remove("hidden");

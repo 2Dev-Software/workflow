@@ -17,7 +17,7 @@ $teacher_directory_order_by = (string) $teacher_directory_order_by;
 
 $teacher_directory_order_map = [
     'fName' => 't.fName ASC',
-    'positionID' => 't.positionID ASC, t.fName ASC',
+    'position' => 't.positionID ASC, t.fName ASC',
 ];
 $teacher_directory_order_sql = $teacher_directory_order_map[$teacher_directory_order_by] ?? $teacher_directory_order_map['fName'];
 

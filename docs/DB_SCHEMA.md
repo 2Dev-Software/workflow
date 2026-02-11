@@ -1,10 +1,9 @@
 # DB Schema (Production Proposal)
 
 ## Core Identity & RBAC
-- `teacher` (existing): `pID` PK, `roleID`, `positionID`, `status`
-- `dh_positions` (existing)
+- `teacher` (existing): `pID` PK, `roleID`, `positionID`, `oID`, `status`
+- `position` (existing)
 - `dh_roles` (existing)
-- `dh_user_positions` (existing, many-to-many)
 - `dh_user_roles` (existing, many-to-many)
 - `dh_permissions` (new): `permissionID`, `permissionKey` (unique)
 - `dh_role_permissions` (new): `roleID`, `permissionID` (unique pair)

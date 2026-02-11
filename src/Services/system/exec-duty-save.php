@@ -9,6 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+require_once __DIR__ . '/../../../app/modules/system/system.php';
 
 $redirect_url = 'setting.php?tab=settingDuty';
 
@@ -60,8 +61,17 @@ if (!$teacher_row) {
     exit();
 }
 
-$position_id = (int) $teacher_row['positionID'];
-$duty_status = $position_id === 1 ? 1 : 2;
+$director_pid = system_get_director_pid();
+$duty_status = ($director_pid !== null && $director_pid !== '' && $exec_duty_pid === $director_pid) ? 1 : 2;
+
+$teacher_position_id = (int) ($teacher_row['positionID'] ?? 0);
+$allowed_positions = array_merge([1], system_position_deputy_ids($connection));
+$allowed_positions = array_values(array_unique(array_filter($allowed_positions)));
+if (!in_array($teacher_position_id, $allowed_positions, true)) {
+    $set_setting_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกผู้บริหารก่อนบันทึก');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 
 if (mysqli_begin_transaction($connection) === false) {
     error_log('Database Error: ' . mysqli_error($connection));

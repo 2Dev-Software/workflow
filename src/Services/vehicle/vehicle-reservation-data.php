@@ -95,7 +95,9 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
         'b.vehicleID',
         'b.driverPID',
         'b.driverName',
-        'b.driverTel',
+        vehicle_reservation_has_column($columns, 'driverTel')
+            ? "COALESCE(NULLIF(drv.telephone, ''), b.driverTel) AS driverTel"
+            : 'drv.telephone AS driverTel',
         'b.startAt',
         'b.endAt',
         'b.status',
@@ -129,6 +131,7 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
     $select_fields[] = 'app.fName AS approver_name';
 
     $sql = 'SELECT ' . implode(', ', $select_fields) . ' FROM dh_vehicle_bookings AS b
+        LEFT JOIN teacher AS drv ON b.driverPID = drv.pID
         LEFT JOIN teacher AS app ON b.approvedByPID = app.pID
         WHERE b.deletedAt IS NULL AND b.dh_year = ? AND b.requesterPID = ?
         ORDER BY b.createdAt DESC, b.bookingID DESC';

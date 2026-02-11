@@ -62,7 +62,6 @@ $select_fields = [
     'b.endTime',
     'b.attendeeCount',
     'b.status',
-    'b.statusReason',
     'b.approvedByPID',
     'b.approvedAt',
     'b.createdAt',
@@ -203,6 +202,59 @@ try {
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
 }
+
+$status_sort_rank = static function (int $status): int {
+    if ($status === 0) {
+        return 0; // pending
+    }
+    if ($status === 1) {
+        return 1; // approved
+    }
+    return 2; // rejected/others
+};
+
+$timestamp_or_zero = static function ($value): int {
+    $value = trim((string) $value);
+    if ($value === '' || $value === '0000-00-00 00:00:00') {
+        return 0;
+    }
+    $ts = strtotime($value);
+    return $ts === false ? 0 : $ts;
+};
+
+// Default sort: pending -> approved -> rejected, and within each status show latest activity first.
+usort(
+    $room_booking_approval_requests,
+    static function (array $a, array $b) use ($status_sort_rank, $timestamp_or_zero): int {
+        $status_a = (int) ($a['status'] ?? 0);
+        $status_b = (int) ($b['status'] ?? 0);
+
+        $rank_a = $status_sort_rank($status_a);
+        $rank_b = $status_sort_rank($status_b);
+        if ($rank_a !== $rank_b) {
+            return $rank_a <=> $rank_b;
+        }
+
+        $ts_a = max(
+            $timestamp_or_zero($a['updatedAt'] ?? ''),
+            $timestamp_or_zero($a['approvedAt'] ?? ''),
+            $timestamp_or_zero($a['createdAt'] ?? '')
+        );
+        $ts_b = max(
+            $timestamp_or_zero($b['updatedAt'] ?? ''),
+            $timestamp_or_zero($b['approvedAt'] ?? ''),
+            $timestamp_or_zero($b['createdAt'] ?? '')
+        );
+
+        if ($ts_a !== $ts_b) {
+            return $ts_b <=> $ts_a;
+        }
+
+        $id_a = (int) ($a['roomBookingID'] ?? 0);
+        $id_b = (int) ($b['roomBookingID'] ?? 0);
+        return $id_b <=> $id_a;
+    }
+);
 
 $room_booking_approval_total = count($room_booking_approval_requests);
 

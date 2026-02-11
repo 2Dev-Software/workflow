@@ -131,7 +131,6 @@ ob_start();
             <div class="booking-card-header">
                 <div class="booking-card-title-group">
                     <h2 class="booking-card-title">สร้างรายการจอง</h2>
-                    <p class="booking-card-subtitle">กรอกข้อมูลให้ครบถ้วนเพื่อส่งคำขอจองห้อง</p>
                 </div>
                 <span class="booking-status-tag">เปิดให้จอง</span>
             </div>
@@ -141,7 +140,6 @@ ob_start();
                 <input type="hidden" name="dh_year" value="<?= h((string) $dh_year_value) ?>">
                 <input type="hidden" name="requesterPID" value="<?= h($_SESSION['pID'] ?? '') ?>">
                 <input type="hidden" name="status" value="0">
-                <input type="hidden" name="statusReason" value="">
 
                 <div class="booking-form-grid">
                     <div class="form-group">
@@ -167,7 +165,6 @@ ob_start();
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <p class="form-hint">เลือกได้เฉพาะห้องที่มีสถานะ “พร้อมใช้งาน” ห้องที่ไม่พร้อมจะแสดงสถานะต่อท้ายชื่อ</p>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="bookingStartDate">วันที่เริ่มใช้</label>
@@ -225,12 +222,6 @@ ob_start();
             <div class="booking-card-header">
                 <div class="booking-card-title-group">
                     <h2 class="booking-card-title">ปฏิทินการจอง</h2>
-                    <p class="booking-card-subtitle">กดวันที่เพื่อดูรายละเอียดการจอง</p>
-                </div>
-                <div class="booking-legend">
-                    <span class="legend-item"><span class="legend-dot available"></span> ว่าง</span>
-                    <span class="legend-item"><span class="legend-dot booked"></span> มีการจอง</span>
-                    <span class="legend-item"><span class="legend-dot pending"></span> รออนุมัติ</span>
                 </div>
             </div>
 
@@ -262,20 +253,23 @@ ob_start();
                 </div>
             </div>
 
-            <div class="booking-summary">
+            <!-- <div class="booking-summary">
                 <div class="booking-summary-item">
-                    <h3><?= h((string) $room_booking_total) ?> รายการ</h3>
+                    <h3><?php //h((string) $room_booking_total) 
+                        ?> รายการ</h3>
                     <p>รายการจองทั้งหมด</p>
                 </div>
                 <div class="booking-summary-item">
-                    <h3><?= h((string) $room_booking_approved_total) ?> รายการ</h3>
+                    <h3><?php //h((string) $room_booking_approved_total) 
+                        ?> รายการ</h3>
                     <p>อนุมัติแล้ว</p>
                 </div>
                 <div class="booking-summary-item">
-                    <h3><?= h((string) $room_booking_pending_total) ?> รายการ</h3>
+                    <h3><?php //h((string) $room_booking_pending_total) 
+                        ?> รายการ</h3>
                     <p>รออนุมัติ</p>
                 </div>
-            </div>
+            </div> -->
         </section>
     </div>
 
@@ -293,19 +287,16 @@ ob_start();
                 <thead>
                     <tr>
                         <th>ห้อง</th>
-                        <th>วันที่ใช้</th>
-                        <th>เวลา</th>
+                        <th>ช่วงเวลาที่ใช้</th>
                         <th>รายการ</th>
                         <th>จำนวน</th>
                         <th>สถานะ</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
-                <tbody data-empty-message="ยังไม่มีรายการจองของคุณ">
+                <tbody>
                     <?php if (empty($my_bookings_latest)) : ?>
-                        <tr>
-                            <td colspan="7" class="booking-empty">ยังไม่มีรายการจองของคุณ</td>
-                        </tr>
+
                     <?php else : ?>
                         <?php foreach ($my_bookings_latest as $booking_item) : ?>
                             <?php
@@ -314,11 +305,8 @@ ob_start();
                             $status_class = $status_labels[$status_value]['class'] ?? $status_labels[0]['class'];
                             $detail_text = trim((string) ($booking_item['bookingDetail'] ?? ''));
                             $detail_text = $detail_text !== '' ? $detail_text : 'ไม่มีรายละเอียดเพิ่มเติม';
-                            $status_reason_value = trim((string) ($booking_item['statusReason'] ?? ''));
-                            if ($status_value === 2 && $status_reason_value === '') {
-                                $status_reason_value = 'ไม่ระบุเหตุผล';
-                            }
-                            $status_reason_label = $status_value === 2 ? $status_reason_value : '-';
+                            // Requester view: show only status (do not display rejection reason).
+                            $status_reason_label = '-';
                             $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
                             if ($approver_name === '' && !empty($booking_item['approvedByPID'])) {
                                 $approver_name = 'เจ้าหน้าที่ระบบ';
@@ -341,15 +329,14 @@ ob_start();
                             ?>
                             <tr>
                                 <td><?= h($booking_item['roomName'] ?? '-') ?></td>
-                                <td><?= h($date_range) ?></td>
-                                <td><?= h($time_range) ?></td>
+                                <td>
+                                    <?= h($date_range) ?><br>
+                                    <span class="detail-subtext"><?= h($time_range !== '' ? $time_range : '-') ?></span>
+                                </td>
                                 <td><?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?></td>
                                 <td><?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?></td>
                                 <td>
                                     <span class="status-pill <?= h($status_class) ?>"><?= h($status_label) ?></span>
-                                    <?php if ($status_value === 2 && !empty($booking_item['statusReason'])) : ?>
-                                        <div class="status-reason">เหตุผล: <?= h($booking_item['statusReason']) ?></div>
-                                    <?php endif; ?>
                                 </td>
                                 <td class="booking-action-cell">
                                     <div class="booking-action-group">
@@ -370,12 +357,16 @@ ob_start();
                                             data-booking-approval-at="<?= h($approval_at_label) ?>"
                                             data-booking-created="<?= h($created_label) ?>"
                                             data-booking-updated="<?= h($updated_label) ?>">
-                                            ดูรายละเอียด
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
                                         </button>
-                                        <button type="button" class="booking-action-btn danger" data-booking-action="delete"
-                                            data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>">
-                                            ลบ
-                                        </button>
+                                        <?php if ($status_value === 0): ?>
+                                            <button type="button" class="booking-action-btn danger" data-booking-action="delete"
+                                                data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>">
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -404,8 +395,7 @@ ob_start();
                     <thead>
                         <tr>
                             <th>ห้อง</th>
-                            <th>วันที่ใช้</th>
-                            <th>เวลา</th>
+                            <th>ช่วงเวลาที่ใช้</th>
                             <th>รายการ</th>
                             <th>จำนวน</th>
                             <th>สถานะ</th>
@@ -415,7 +405,7 @@ ob_start();
                     <tbody data-empty-message="ยังไม่มีรายการจอง">
                         <?php if (empty($my_bookings_sorted)) : ?>
                             <tr>
-                                <td colspan="7" class="booking-empty">ยังไม่มีรายการจอง</td>
+                                <td colspan="6" class="booking-empty">ยังไม่มีรายการจอง</td>
                             </tr>
                         <?php else : ?>
                             <?php foreach ($my_bookings_sorted as $booking_item) : ?>
@@ -425,11 +415,8 @@ ob_start();
                                 $status_class = $status_labels[$status_value]['class'] ?? $status_labels[0]['class'];
                                 $detail_text = trim((string) ($booking_item['bookingDetail'] ?? ''));
                                 $detail_text = $detail_text !== '' ? $detail_text : 'ไม่มีรายละเอียดเพิ่มเติม';
-                                $status_reason_value = trim((string) ($booking_item['statusReason'] ?? ''));
-                                if ($status_value === 2 && $status_reason_value === '') {
-                                    $status_reason_value = 'ไม่ระบุเหตุผล';
-                                }
-                                $status_reason_label = $status_value === 2 ? $status_reason_value : '-';
+                                // Requester view: show only status (do not display rejection reason).
+                                $status_reason_label = '-';
                                 $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
                                 if ($approver_name === '' && !empty($booking_item['approvedByPID'])) {
                                     $approver_name = 'เจ้าหน้าที่ระบบ';
@@ -452,15 +439,14 @@ ob_start();
                                 ?>
                                 <tr>
                                     <td><?= h($booking_item['roomName'] ?? '-') ?></td>
-                                    <td><?= h($date_range) ?></td>
-                                    <td><?= h($time_range) ?></td>
+                                    <td>
+                                        <?= h($date_range) ?><br>
+                                        <span class="detail-subtext"><?= h($time_range !== '' ? $time_range : '-') ?></span>
+                                    </td>
                                     <td><?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?></td>
                                     <td><?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?></td>
                                     <td>
                                         <span class="status-pill <?= h($status_class) ?>"><?= h($status_label) ?></span>
-                                        <?php if ($status_value === 2 && !empty($booking_item['statusReason'])) : ?>
-                                            <div class="status-reason">เหตุผล: <?= h($booking_item['statusReason']) ?></div>
-                                        <?php endif; ?>
                                     </td>
                                     <td class="booking-action-cell">
                                         <div class="booking-action-group">
@@ -481,12 +467,16 @@ ob_start();
                                                 data-booking-approval-at="<?= h($approval_at_label) ?>"
                                                 data-booking-created="<?= h($created_label) ?>"
                                                 data-booking-updated="<?= h($updated_label) ?>">
-                                                ดูรายละเอียด
+                                                <i class="fa-solid fa-eye"></i>
+                                                <span class="tooltip">ดูรายละเอียด</span>
                                             </button>
-                                            <button type="button" class="booking-action-btn danger" data-booking-action="delete"
-                                                data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>">
-                                                ลบ
-                                            </button>
+                                            <?php if ($status_value === 0): ?>
+                                                <button type="button" class="booking-action-btn danger" data-booking-action="delete"
+                                                    data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                    <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -506,8 +496,11 @@ ob_start();
                 <i class="fa-solid fa-calendar-check"></i>
                 <span>รายละเอียดการจอง</span>
             </div>
-            <div class="close-modal-btn" data-booking-modal-close="bookingDetailModal">
-                <i class="fa-solid fa-xmark"></i>
+            <div>
+                <span class="status-pill" data-booking-detail="status">-</span>
+                <div class="close-modal-btn" data-booking-modal-close="bookingDetailModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </div>
             </div>
         </header>
         <div class="modal-body booking-detail-body">
@@ -527,10 +520,6 @@ ob_start();
                 <div class="detail-item detail-half">
                     <p class="detail-label">จำนวนผู้เข้าร่วม</p>
                     <p class="detail-value" data-booking-detail="attendees">-</p>
-                </div>
-                <div class="detail-item detail-status-item detail-half">
-                    <p class="detail-label">สถานะ</p>
-                    <span class="status-pill" data-booking-detail="status">-</span>
                 </div>
                 <div class="detail-item detail-approval-item detail-full" data-booking-detail="approval-item">
                     <p class="detail-label" data-booking-detail="approval-label">ผู้อนุมัติ</p>
@@ -565,10 +554,10 @@ ob_start();
                 </div>
             </div>
 
-            <div class="booking-detail-actions">
-                <button type="button" class="booking-action-btn secondary" data-booking-modal-close="bookingDetailModal">ปิดหน้าต่าง</button>
-            </div>
         </div>
+        <!-- <div class="booking-detail-actions" style="flex-grow: 1; align-items: flex-end;">
+            <button type="button" class="booking-action-btn" data-booking-modal-close="bookingDetailModal">ปิดหน้าต่าง</button>
+        </div> -->
     </div>
 </div>
 

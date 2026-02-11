@@ -65,11 +65,17 @@ if (!function_exists('system_get_director_pid')) {
     function system_get_director_pid(): ?string
     {
         $row = db_fetch_one('SELECT pID FROM teacher WHERE positionID = 1 AND status = 1 ORDER BY pID ASC LIMIT 1');
-        if (!$row) {
-            return null;
+        if ($row) {
+            return (string) ($row['pID'] ?? null);
         }
 
-        return (string) ($row['pID'] ?? null);
+        $connection = db_connection();
+        $director_id = system_position_executive_id($connection);
+        if ($director_id !== null) {
+            $row = db_fetch_one('SELECT pID FROM teacher WHERE positionID = ? AND status = 1 ORDER BY pID ASC LIMIT 1', 'i', $director_id);
+        }
+
+        return $row ? (string) ($row['pID'] ?? null) : null;
     }
 }
 

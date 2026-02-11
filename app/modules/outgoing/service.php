@@ -6,6 +6,45 @@ require_once __DIR__ . '/repository.php';
 require_once __DIR__ . '/../system/system.php';
 require_once __DIR__ . '/../audit/logger.php';
 require_once __DIR__ . '/../../services/uploads.php';
+require_once __DIR__ . '/../../services/document-service.php';
+
+if (!function_exists('outgoing_document_number')) {
+    function outgoing_document_number(array $outgoing): string
+    {
+        $number = trim((string) ($outgoing['outgoingNo'] ?? ''));
+        if ($number !== '') {
+            return $number;
+        }
+        $outgoingID = (int) ($outgoing['outgoingID'] ?? 0);
+        return $outgoingID > 0 ? 'OUT-' . $outgoingID : '';
+    }
+}
+
+if (!function_exists('outgoing_sync_document')) {
+    function outgoing_sync_document(int $outgoingID): ?int
+    {
+        $outgoing = outgoing_get($outgoingID);
+        if (!$outgoing) {
+            return null;
+        }
+
+        $documentNumber = outgoing_document_number($outgoing);
+        if ($documentNumber === '') {
+            return null;
+        }
+
+        return document_upsert([
+            'documentType' => 'OUTGOING',
+            'documentNumber' => $documentNumber,
+            'subject' => (string) ($outgoing['subject'] ?? ''),
+            'content' => (string) ($outgoing['detail'] ?? ''),
+            'status' => (string) ($outgoing['status'] ?? ''),
+            'senderName' => (string) ($outgoing['creatorName'] ?? ''),
+            'createdByPID' => (string) ($outgoing['createdByPID'] ?? ''),
+            'updatedByPID' => $outgoing['updatedByPID'] ?? null,
+        ]);
+    }
+}
 
 if (!function_exists('outgoing_prefix')) {
     function outgoing_prefix(): string
@@ -48,6 +87,8 @@ if (!function_exists('outgoing_create_draft')) {
                 ]);
             }
 
+            outgoing_sync_document($outgoingID);
+
             db_commit();
             audit_log('outgoing', 'CREATE', 'SUCCESS', 'dh_outgoing_letters', $outgoingID);
 
@@ -77,6 +118,7 @@ if (!function_exists('outgoing_attach_files')) {
                 'status' => OUTGOING_STATUS_COMPLETE,
                 'updatedByPID' => $actorPID,
             ]);
+            outgoing_sync_document($outgoingID);
             db_commit();
             audit_log('outgoing', 'ATTACH', 'SUCCESS', 'dh_outgoing_letters', $outgoingID);
         } catch (Throwable $e) {

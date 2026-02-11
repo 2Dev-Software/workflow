@@ -91,10 +91,6 @@ if (!function_exists('rbac_get_user_role_ids')) {
             $role_ids[] = (int) $legacy['roleID'];
         }
 
-        if (!empty($role_ids)) {
-            return array_values(array_unique(array_filter($role_ids)));
-        }
-
         if (db_table_exists($connection, 'dh_user_roles')) {
             $rows = db_fetch_all('SELECT roleID FROM dh_user_roles WHERE pID = ?', 's', $pID);
             foreach ($rows as $row) {
@@ -123,6 +119,11 @@ if (!function_exists('rbac_get_user_position_ids')) {
 
         $position_ids = [];
 
+        $legacy = db_fetch_one('SELECT positionID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1', 's', $pID);
+        if ($legacy && isset($legacy['positionID'])) {
+            $position_ids[] = (int) $legacy['positionID'];
+        }
+
         if (db_table_exists($connection, 'dh_user_positions')) {
             $rows = db_fetch_all('SELECT positionID FROM dh_user_positions WHERE pID = ?', 's', $pID);
             foreach ($rows as $row) {
@@ -135,11 +136,6 @@ if (!function_exists('rbac_get_user_position_ids')) {
             foreach ($rows as $row) {
                 $position_ids[] = (int) ($row['positionID'] ?? 0);
             }
-        }
-
-        $legacy = db_fetch_one('SELECT positionID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1', 's', $pID);
-        if ($legacy && isset($legacy['positionID'])) {
-            $position_ids[] = (int) $legacy['positionID'];
         }
 
         return array_values(array_unique(array_filter($position_ids)));

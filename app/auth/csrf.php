@@ -47,6 +47,10 @@ if (!function_exists('csrf_require')) {
             return;
         }
 
+        if (function_exists('audit_log')) {
+            audit_log('security', 'CSRF_FAIL', 'DENY', null, null, 'invalid_csrf');
+        }
+
         if ($on_fail !== null) {
             $on_fail();
             exit();

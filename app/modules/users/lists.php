@@ -20,6 +20,15 @@ if (!function_exists('user_list_roles')) {
 if (!function_exists('user_list_teachers')) {
     function user_list_teachers(): array
     {
-        return db_fetch_all('SELECT pID, fName FROM teacher WHERE status = 1 ORDER BY fName ASC');
+        return db_fetch_all(
+            'SELECT t.pID, t.fName, t.fID, t.dID, t.positionID,
+                    COALESCE(f.fName, "") AS factionName,
+                    COALESCE(d.dName, "") AS departmentName
+             FROM teacher AS t
+             LEFT JOIN faction AS f ON f.fID = t.fID
+             LEFT JOIN department AS d ON d.dID = t.dID
+             WHERE t.status = 1
+             ORDER BY t.fID ASC, t.fName ASC'
+        );
     }
 }

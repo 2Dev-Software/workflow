@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/../../src/Services/security/security-service.php';
 require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
+require_once __DIR__ . '/../modules/audit/logger.php';
 
 if (!function_exists('room_management_index')) {
     function room_management_index(): void
@@ -13,6 +14,11 @@ if (!function_exists('room_management_index')) {
         $current_user = current_user() ?? [];
         $current_role_id = (int) ($current_user['roleID'] ?? 0);
         if (!in_array($current_role_id, [1, 5], true)) {
+            if (function_exists('audit_log')) {
+                audit_log('room', 'MANAGEMENT_ACCESS', 'DENY', null, null, 'not_authorized_role', [
+                    'roleID' => $current_role_id,
+                ]);
+            }
             header('Location: dashboard.php', true, 302);
             exit();
         }
