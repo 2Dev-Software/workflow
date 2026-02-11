@@ -3,7 +3,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+
 $redirect_to_login = static function (): void {
+    if (function_exists('audit_log')) {
+        audit_log('auth', 'ACCESS_DENIED', 'DENY', null, null, 'unauthorized');
+    }
+
     $_SESSION = [];
 
     if (ini_get('session.use_cookies')) {
@@ -74,5 +80,14 @@ if ($status_stmt === false) {
 
 if ($dh_status !== 1 && $teacher_role_id !== 1) {
     $redirect_to_login();
+}
+
+if (function_exists('audit_log')) {
+    $method = (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    $action = strtoupper($method) === 'GET' ? 'VIEW' : 'ACTION';
+    audit_log('request', $action, 'SUCCESS', null, null, null, [
+        'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
+        'method' => $method,
+    ]);
 }
 ?>

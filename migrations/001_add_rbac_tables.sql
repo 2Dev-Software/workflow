@@ -1,0 +1,2 @@
+-- ใช้ตำแหน่งจากตาราง position ผ่าน teacher.oID (และ fallback ที่ teacher.positionID)
+-- roleID ใช้จากตาราง teacher โดยตรง จึงไม่ต้องมีตาราง dh_user_roles

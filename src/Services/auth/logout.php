@@ -9,6 +9,12 @@ $logoutRequested = $scriptName === 'logout.php'
     || (isset($_POST['logout']) && $_POST['logout'] === '1');
 
 if ($logoutRequested) {
+    require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+    $actor_pid = $_SESSION['pID'] ?? null;
+    if ($actor_pid) {
+        audit_log('auth', 'LOGOUT', 'SUCCESS', 'teacher', $actor_pid, null);
+    }
+
     $_SESSION = [];
 
     if (ini_get('session.use_cookies')) {

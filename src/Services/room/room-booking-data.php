@@ -6,12 +6,17 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
 
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    return;
+}
+
 $room_booking_year = isset($room_booking_year) ? (int) $room_booking_year : 0;
 if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;
 }
 
-$room_booking_room_list = room_booking_get_rooms($connection);
+$room_booking_room_list = room_booking_get_available_rooms($connection);
 $room_booking_rooms = room_booking_get_room_map($connection);
 $room_booking_columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
 
@@ -33,7 +38,6 @@ $select_fields = [
     'b.endTime',
     'b.attendeeCount',
     'b.status',
-    'b.statusReason',
     'b.approvedByPID',
     'b.approvedAt',
     'b.deletedAt',

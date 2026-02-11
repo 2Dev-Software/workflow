@@ -4,6 +4,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['signature_upload']))
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 $redirect_url = 'profile.php?tab=signature';
 
@@ -16,13 +17,17 @@ $set_profile_alert = static function (string $type, string $title, string $messa
     ];
 };
 
+$teacher_pid = (string) ($_SESSION['pID'] ?? '');
+
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'CSRF_FAIL', 'DENY', 'teacher', $teacher_pid, 'signature_upload');
+    }
     $set_profile_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$teacher_pid = $_SESSION['pID'] ?? '';
 if ($teacher_pid === '') {
     header('Location: index.php', true, 302);
     exit();
@@ -88,6 +93,9 @@ $signature_filename = 'signature_' . date('Ymd_His') . '_' . bin2hex(random_byte
 $signature_target = $signature_dir . '/' . $signature_filename;
 
 if (!move_uploaded_file($signature_file['tmp_name'], $signature_target)) {
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'SIGNATURE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'move_failed');
+    }
     $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกไฟล์ลายเซ็นได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -102,14 +110,31 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'SIGNATURE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'prepare_failed');
+    }
     $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกลายเซ็นได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
 mysqli_stmt_bind_param($update_stmt, 'ss', $signature_path, $teacher_pid);
-mysqli_stmt_execute($update_stmt);
+if (mysqli_stmt_execute($update_stmt) === false) {
+    mysqli_stmt_close($update_stmt);
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'SIGNATURE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'execute_failed');
+    }
+    $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกลายเซ็นได้ในขณะนี้');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 mysqli_stmt_close($update_stmt);
+
+if (function_exists('audit_log')) {
+    audit_log('profile', 'SIGNATURE_UPDATE', 'SUCCESS', 'teacher', $teacher_pid, null, [
+        'path' => $signature_path,
+    ]);
+}
 
 $set_profile_alert('success', 'บันทึกสำเร็จ', 'บันทึกลายเซ็นเรียบร้อยแล้ว');
 header('Location: ' . $redirect_url, true, 303);

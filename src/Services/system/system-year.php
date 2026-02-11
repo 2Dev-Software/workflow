@@ -1,7 +1,17 @@
 <?php
-require_once __DIR__ . '/../../../config/connection.php';
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    require_once __DIR__ . '/../../../config/connection.php';
+}
+
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    $connection = $GLOBALS['connection'] ?? null;
+}
 
 $dh_year = '';
+
+if (!($connection instanceof mysqli)) {
+    return;
+}
 
 try {
     $sql = 'SELECT dh_year FROM thesystem ORDER BY ID DESC LIMIT 1';
@@ -22,4 +32,7 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
+
+// Make the value available across include scopes (some views are rendered inside functions).
+$GLOBALS['dh_year'] = $dh_year;
 ?>

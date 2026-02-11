@@ -4,6 +4,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['phone_save'])) {
 }
 
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 $redirect_url = 'profile.php?tab=personal';
 
@@ -17,13 +18,17 @@ $set_profile_alert = static function (string $type, string $title, string $messa
     ];
 };
 
+$teacher_pid = (string) ($_SESSION['pID'] ?? '');
+
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'CSRF_FAIL', 'DENY', 'teacher', $teacher_pid, 'profile_phone');
+    }
     $set_profile_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
-$teacher_pid = $_SESSION['pID'] ?? '';
 if ($teacher_pid === '') {
     header('Location: index.php', true, 302);
     exit();
@@ -49,6 +54,9 @@ $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'select_failed');
+    }
     $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกเบอร์โทรศัพท์ได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -78,6 +86,9 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'prepare_failed');
+    }
     $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกเบอร์โทรศัพท์ได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -87,12 +98,22 @@ mysqli_stmt_bind_param($update_stmt, 'ss', $telephone, $teacher_pid);
 
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+    if (function_exists('audit_log')) {
+        audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'execute_failed');
+    }
     $set_profile_alert('danger', 'บันทึกไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
 
 mysqli_stmt_close($update_stmt);
+
+if (function_exists('audit_log')) {
+    $last4 = strlen($telephone) >= 4 ? substr($telephone, -4) : $telephone;
+    audit_log('profile', 'PHONE_UPDATE', 'SUCCESS', 'teacher', $teacher_pid, null, [
+        'phone_last4' => $last4,
+    ]);
+}
 
 $set_profile_alert('success', 'บันทึกสำเร็จ', 'บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว', 'ตกลง');
 header('Location: ' . $redirect_url, true, 303);

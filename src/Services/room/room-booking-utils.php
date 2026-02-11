@@ -12,7 +12,7 @@ if (!function_exists('room_booking_get_rooms')) {
         $rooms = [];
         $result = mysqli_query(
             $connection,
-            'SELECT roomID, roomName, roomStatus, roomNote FROM dh_rooms ORDER BY roomName'
+            'SELECT roomID, roomName, roomStatus, roomNote FROM dh_rooms WHERE deletedAt IS NULL ORDER BY roomName'
         );
 
         if ($result === false) {
@@ -41,6 +41,16 @@ if (!function_exists('room_booking_get_rooms')) {
         mysqli_free_result($result);
         $cached = $rooms;
         return $cached;
+    }
+}
+
+if (!function_exists('room_booking_get_available_rooms')) {
+    function room_booking_get_available_rooms(mysqli $connection): array
+    {
+        return array_values(array_filter(
+            room_booking_get_rooms($connection),
+            static fn(array $room): bool => room_booking_is_room_available((string) ($room['roomStatus'] ?? ''))
+        ));
     }
 }
 

@@ -21,7 +21,9 @@
     <meta property="og:image" content="assets/img/og-default.png">
 
     <link href="assets/fonts/th-style.css" rel="stylesheet" />
-    
+    <link rel="stylesheet" href="assets/css/tokens.css?v=0.1.0-beta">
+    <link rel="stylesheet" href="assets/css/base.css?v=0.1.0-beta">
+    <link rel="stylesheet" href="assets/css/components.css?v=0.1.0-beta">
     <link rel="stylesheet" href="assets/css/main.css?v=0.1.0-beta">
     <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
 </head>

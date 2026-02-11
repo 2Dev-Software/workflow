@@ -6,6 +6,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../../app/modules/audit/logger.php';
+
 $render_alert_response = static function (
     string $type,
     string $title,
@@ -46,6 +48,9 @@ $store_success_alert = static function (string $title, string $message): void {
 };
 
 if (empty($_SESSION['pID'])) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'room_booking_delete_api');
+    }
     $render_alert_response('danger', 'กรุณาเข้าสู่ระบบอีกครั้ง', 'ไม่พบข้อมูลผู้ใช้งาน', 401, [
         'error' => 'unauthorized',
     ]);
@@ -65,6 +70,11 @@ if (!is_array($payload)) {
 
 $csrf_token = (string) ($payload['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
 if ($csrf_token === '' || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf_token)) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'CSRF_FAIL', 'DENY', 'dh_room_bookings', null, 'room_booking_delete_api', [
+            'booking_id' => $payload['booking_id'] ?? null,
+        ]);
+    }
     $render_alert_response('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง', 403, [
         'error' => 'invalid_csrf',
     ]);
@@ -74,6 +84,11 @@ $booking_id = filter_var($payload['booking_id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
 if (!$booking_id) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', null, 'invalid_payload', [
+            'booking_id' => $payload['booking_id'] ?? null,
+        ]);
+    }
     $render_alert_response('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาลองใหม่อีกครั้ง', 400, [
         'error' => 'invalid_payload',
     ]);
@@ -86,6 +101,11 @@ $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
+            'step' => 'select_prepare_failed',
+        ]);
+    }
     $render_alert_response('danger', 'ระบบขัดข้อง', 'กรุณาลองใหม่อีกครั้ง', 500, [
         'error' => 'db_error',
     ]);
@@ -98,6 +118,9 @@ $booking_row = $select_result ? mysqli_fetch_assoc($select_result) : null;
 mysqli_stmt_close($select_stmt);
 
 if (!$booking_row) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'booking_not_found');
+    }
     $render_alert_response('danger', 'ไม่พบรายการจอง', 'รายการนี้อาจถูกลบไปแล้ว', 404, [
         'error' => 'not_found',
     ]);
@@ -105,6 +128,9 @@ if (!$booking_row) {
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
 if ((string) ($booking_row['requesterPID'] ?? '') !== $requester_pid) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'DENY', 'dh_room_bookings', $booking_id, 'not_owner');
+    }
     $render_alert_response('danger', 'ไม่มีสิทธิ์ลบรายการนี้', 'โปรดลองใหม่อีกครั้ง', 403, [
         'error' => 'forbidden',
     ]);
@@ -115,6 +141,11 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
+            'step' => 'update_prepare_failed',
+        ]);
+    }
     $render_alert_response('danger', 'ระบบขัดข้อง', 'กรุณาลองใหม่อีกครั้ง', 500, [
         'error' => 'db_error',
     ]);
@@ -124,12 +155,23 @@ mysqli_stmt_bind_param($update_stmt, 'i', $booking_id);
 
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+    if (function_exists('audit_log')) {
+        audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
+            'step' => 'update_execute_failed',
+        ]);
+    }
     $render_alert_response('danger', 'ไม่สามารถลบรายการได้', 'กรุณาลองใหม่อีกครั้ง', 500, [
         'error' => 'db_error',
     ]);
 }
 
 mysqli_stmt_close($update_stmt);
+
+if (function_exists('audit_log')) {
+    audit_log('room', 'DELETE', 'SUCCESS', 'dh_room_bookings', $booking_id, null, [
+        'previousStatus' => $booking_row['status'] ?? null,
+    ]);
+}
 
 $store_success_alert('ลบรายการเรียบร้อยแล้ว', 'รายการจองถูกลบออกจากระบบแล้ว');
 echo json_encode([

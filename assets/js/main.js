@@ -3,15 +3,57 @@
  * Level: Production
  * Structure: Module Pattern (IIFE)
  */
-window.addEventListener("load", function () {
-  const overlay = document.getElementById("preloader-overlay");
+/**
+ * Preloader safety:
+ * - Hide on DOMContentLoaded (not waiting for all images/fonts) to avoid "stuck loading".
+ * - Also try again on window load.
+ * - Guard for pages that might not include the preloader overlay.
+ */
+(function () {
+  let hidden = false;
 
-  overlay.classList.add("preloader-hidden");
+  function hidePreloader() {
+    if (hidden) return;
+    const overlay = document.getElementById("preloader-overlay");
+    if (!overlay) return;
+    hidden = true;
 
-  overlay.addEventListener("transitionend", function () {
-    overlay.remove();
-  });
-});
+    overlay.classList.add("preloader-hidden");
+
+    const removeOverlay = function () {
+      if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    };
+
+    // Remove after transition; also enforce a hard timeout to prevent it lingering.
+    // Avoid EventListenerOptions for older Safari compatibility.
+    const onTransitionEnd = function () {
+      overlay.removeEventListener("transitionend", onTransitionEnd);
+      removeOverlay();
+    };
+    overlay.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(removeOverlay, 1200);
+  }
+
+  const onDomReady = function () {
+    document.removeEventListener("DOMContentLoaded", onDomReady);
+    hidePreloader();
+  };
+  document.addEventListener("DOMContentLoaded", onDomReady);
+
+  const onWindowLoad = function () {
+    window.removeEventListener("load", onWindowLoad);
+    hidePreloader();
+  };
+  window.addEventListener("load", onWindowLoad);
+
+  // If this script is loaded after DOMContentLoaded for any reason,
+  // still ensure the preloader is hidden.
+  if (document.readyState !== "loading") {
+    window.setTimeout(hidePreloader, 0);
+  }
+})();
 
 const calendarFallbackEvents = {};
 
@@ -130,7 +172,7 @@ class Calendar {
       const dayEvents = this.filterEvents(this.events[eventKey] || null);
 
       fragment.appendChild(
-        this.createDateCell(i, false, isToday, dayEvents, eventKey),
+        this.createDateCell(i, false, isToday, dayEvents, eventKey)
       );
     }
 
@@ -149,7 +191,7 @@ class Calendar {
     inactive = false,
     active = false,
     events = null,
-    dateKey = null,
+    dateKey = null
   ) {
     const div = document.createElement("div");
     div.classList.add("date");
@@ -257,10 +299,8 @@ class Calendar {
       }
     });
 
-    if (hasRoomData && this.roomSection)
-      this.roomSection.classList.remove("hidden");
-    if (hasCarData && this.carSection)
-      this.carSection.classList.remove("hidden");
+    if (hasRoomData && this.roomSection) this.roomSection.classList.remove("hidden");
+    if (hasCarData && this.carSection) this.carSection.classList.remove("hidden");
 
     if (!hasRoomData && !hasCarData) {
       if (this.noEventMessage) {
@@ -269,9 +309,7 @@ class Calendar {
           this.noEventMessage.textContent = "ไม่มีรายการจองห้องในวันนี้";
         } else {
           this.noEventMessage.innerHTML =
-            "<ul>" +
-            events.map((e) => `<li>${e.title}</li>`).join("") +
-            "</ul>";
+            "<ul>" + events.map((e) => `<li>${e.title}</li>`).join("") + "</ul>";
         }
       }
     }
@@ -286,15 +324,38 @@ class Calendar {
   }
 }
 
+function resolveCalendarEvents() {
+  if (typeof window !== "undefined" && window.roomBookingEvents) {
+    return window.roomBookingEvents;
+  }
+
+  var dataEl = document.getElementById("roomBookingEventsData");
+  if (dataEl) {
+    var raw = dataEl.value || dataEl.textContent || "";
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (typeof window !== "undefined") {
+            window.roomBookingEvents = parsed;
+          }
+          return parsed;
+        }
+      } catch (error) {
+        // ignore malformed data and fall back to empty events
+      }
+    }
+  }
+
+  return calendarFallbackEvents;
+}
+
 const calendarMode = document.body
   ? document.body.dataset.calendarMode || "mixed"
   : "mixed";
 const calendarThaiYear =
   document.body && document.body.dataset.calendarThaiYear === "true";
-const calendarEvents =
-  typeof window !== "undefined" && window.roomBookingEvents
-    ? window.roomBookingEvents
-    : calendarFallbackEvents;
+const calendarEvents = resolveCalendarEvents();
 
 const calendar1 = new Calendar({
   monthYearSelector: "#month-year",
@@ -385,10 +446,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const paginationContainer = document.getElementById("pagination");
   const countText = document.getElementById("count-text");
 
-  const dropdownWrapper = document.querySelector(".custom-select-wrapper");
-  const dropdownTrigger = document.querySelector(".custom-select-trigger");
-  const dropdownOptions = document.querySelectorAll(".custom-option");
-  const displayValue = document.getElementById("select-value");
   const hiddenSelect = document.getElementById("real-page-select");
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -488,8 +545,8 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i class="fas fa-chevron-left"></i>',
         prevPage,
         false,
-        currentPage === 1,
-      ),
+        currentPage === 1
+      )
     );
 
     let startPage = 1;
@@ -508,14 +565,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (startPage > 1) {
       paginationContainer.appendChild(
-        createButton("1", 1, currentPage === 1, false),
+        createButton("1", 1, currentPage === 1, false)
       );
       if (startPage > 2) paginationContainer.appendChild(createSpan("..."));
     }
 
     for (let i = startPage; i <= endPage; i++) {
       paginationContainer.appendChild(
-        createButton(String(i), i, i === currentPage, false),
+        createButton(String(i), i, i === currentPage, false)
       );
     }
 
@@ -528,8 +585,8 @@ document.addEventListener("DOMContentLoaded", () => {
           String(totalPages),
           totalPages,
           currentPage === totalPages,
-          false,
-        ),
+          false
+        )
       );
     }
 
@@ -538,8 +595,8 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i class="fas fa-chevron-right"></i>',
         nextPage,
         false,
-        currentPage === totalPages,
-      ),
+        currentPage === totalPages
+      )
     );
   };
 
@@ -594,33 +651,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  //custom-dropdown
-  if (dropdownTrigger && dropdownWrapper) {
-    dropdownTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdownWrapper.classList.toggle("open");
-    });
-
-    dropdownOptions.forEach((option) => {
-      option.addEventListener("click", function () {
-        dropdownOptions.forEach((opt) => opt.classList.remove("selected"));
-        this.classList.add("selected");
-        if (displayValue) displayValue.textContent = this.textContent;
-        dropdownWrapper.classList.remove("open");
-
-        const val = this.getAttribute("data-value") || "10";
-        if (hiddenSelect) hiddenSelect.value = val;
-
-        state.perPage = val;
-        state.page = 1;
-        fetchDirectory();
-      });
-    });
-
-    window.addEventListener("click", (e) => {
-      if (dropdownWrapper && !dropdownWrapper.contains(e.target)) {
-        dropdownWrapper.classList.remove("open");
-      }
+  // Per-page selector:
+  // The visual dropdown is handled by the global ".custom-select-wrapper" handler below.
+  // Here we only react to the real <select> value change to refresh results.
+  if (hiddenSelect) {
+    hiddenSelect.addEventListener("change", () => {
+      state.perPage = hiddenSelect.value || "10";
+      state.page = 1;
+      fetchDirectory();
     });
   }
 
@@ -761,8 +799,32 @@ document.addEventListener("DOMContentLoaded", function () {
   const showPhone = document.getElementById("showPhone");
   const confirmBtn = document.getElementById("confirmBtn");
   const cancelBtn = document.getElementById("cancelBtn");
+  const tabButtons = document.querySelectorAll("[data-tab-target]");
+  const profileOpenButtons = document.querySelectorAll(
+    '[data-action="profile-image-open"]'
+  );
+  const profileFileButtons = document.querySelectorAll(
+    '[data-action="profile-image-file-open"]'
+  );
+  const profileConfirmButton = document.querySelector(
+    '[data-action="profile-image-confirm"]'
+  );
+  const profileCancelButton = document.querySelector(
+    '[data-action="profile-image-cancel"]'
+  );
+  const signatureOpenButton = document.querySelector(
+    '[data-action="signature-file-open"]'
+  );
+  const signatureCancelButton = document.querySelector(
+    '[data-action="signature-cancel"]'
+  );
+  const profileFileInput = document.getElementById("profileFileInput");
+  const signatureFileInput = document.getElementById("signatureFileInput");
 
   if (phoneInput) {
+    phoneInput.addEventListener("input", function () {
+      this.value = this.value.replace(/\D/g, "").slice(0, 10);
+    });
     phoneInput.addEventListener("blur", function () {
       const phone = phoneInput.value.trim();
 
@@ -792,6 +854,69 @@ document.addEventListener("DOMContentLoaded", function () {
   if (cancelBtn) {
     cancelBtn.addEventListener("click", function () {
       if (modal) modal.style.display = "none";
+    });
+  }
+
+  if (tabButtons.length > 0) {
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", function (event) {
+        const target = btn.getAttribute("data-tab-target");
+        if (target) {
+          openTab(target, event);
+        }
+      });
+    });
+  }
+
+  profileOpenButtons.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      openImageModal();
+    });
+  });
+
+  profileFileButtons.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      if (profileFileInput) {
+        profileFileInput.click();
+      }
+    });
+  });
+
+  if (profileFileInput) {
+    profileFileInput.addEventListener("change", function () {
+      previewProfileImage(profileFileInput);
+    });
+  }
+
+  if (profileConfirmButton) {
+    profileConfirmButton.addEventListener("click", function () {
+      confirmImageChange();
+    });
+  }
+
+  if (profileCancelButton) {
+    profileCancelButton.addEventListener("click", function () {
+      closeImageModal();
+    });
+  }
+
+  if (signatureOpenButton) {
+    signatureOpenButton.addEventListener("click", function () {
+      if (signatureFileInput) {
+        signatureFileInput.click();
+      }
+    });
+  }
+
+  if (signatureFileInput) {
+    signatureFileInput.addEventListener("change", function () {
+      handleSignatureSelect(signatureFileInput);
+    });
+  }
+
+  if (signatureCancelButton) {
+    signatureCancelButton.addEventListener("click", function () {
+      closeSignatureModal();
     });
   }
 
@@ -840,7 +965,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const allSelectWrappers = document.querySelectorAll(
-    ".custom-select-setting-wrapper",
+    ".custom-select-setting-wrapper"
   );
 
   allSelectWrappers.forEach((wrapper) => {
@@ -910,7 +1035,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (parentContainer) {
         const selectedOption = parentContainer.querySelector(
-          ".custom-option.selected",
+          ".custom-option.selected"
         );
         const title =
           parentContainer.querySelector(".setting-title").textContent;
@@ -931,7 +1056,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.addEventListener("DOMContentLoaded", function () {
   const dutyCheckboxes = document.querySelectorAll(
-    'input[name="exec_duty_pid"]',
+    'input[name="exec_duty_pid"]'
   );
 
   dutyCheckboxes.forEach((box) => {
@@ -953,7 +1078,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const selected = document.querySelector(
-        'input[name="exec_duty_pid"]:checked',
+        'input[name="exec_duty_pid"]:checked'
       );
 
       if (selected) {
@@ -975,7 +1100,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
 const startDateInput = document.getElementById("startDate");
 const endDateInput = document.getElementById("endDate");
-const dayCountDisplay = document.getElementById("dayCount");
+const dayCountDisplay = document.querySelector("#dayCount [data-day-count]");
+const startTimeInput = document.getElementById("startTime");
+const endTimeInput = document.getElementById("endTime");
+const vehicleForm = document.getElementById("vehicleReservationForm");
+const departmentInput = document.getElementById("department");
+const departmentWrapper = document.getElementById("dept-wrapper");
+const departmentError = document.getElementById("departmentError");
+const companionCountInput = document.getElementById("companionCount");
+const passengerCountInput = document.getElementById("passengerCount");
+const passengerCountDisplay = document.querySelector(
+  "#passengerCountDisplay [data-passenger-count]"
+);
+const memberDropdown = document.getElementById("myDropdown");
+const writeDateInput = document.getElementById("writeDate");
+
+function setDepartmentError(isError) {
+  if (!departmentWrapper || !departmentError) return;
+  departmentWrapper.classList.toggle("is-invalid", isError);
+  departmentWrapper.setAttribute("aria-invalid", isError ? "true" : "false");
+  departmentError.classList.toggle("hidden", !isError);
+}
+
+function updateCompanionCount() {
+  if (!memberDropdown || !companionCountInput) return;
+  const checkedBoxes = memberDropdown.querySelectorAll(
+    'input[type="checkbox"]:checked'
+  );
+  companionCountInput.value = String(checkedBoxes.length);
+  if (passengerCountInput) {
+    const minPassengers = checkedBoxes.length + 1;
+    const currentValue = parseInt(passengerCountInput.value || "0", 10);
+    if (!currentValue || currentValue < minPassengers) {
+      passengerCountInput.value = String(minPassengers);
+    }
+  }
+  if (passengerCountDisplay) {
+    const value = passengerCountInput
+      ? parseInt(passengerCountInput.value || "0", 10)
+      : checkedBoxes.length + 1;
+    passengerCountDisplay.textContent = value > 0 ? value + " คน" : "-";
+  }
+}
 
 function calculateDays() {
   if (!startDateInput || !endDateInput || !dayCountDisplay) return;
@@ -1009,23 +1175,285 @@ function calculateDays() {
   }
 }
 
-if (startDateInput) startDateInput.addEventListener("change", calculateDays);
-if (endDateInput) endDateInput.addEventListener("change", calculateDays);
+function validateTimeRange() {
+  if (!startTimeInput || !endTimeInput) return;
 
-const fileInput = document.getElementById("attachment");
-const fileNameDisplay = document.querySelector(
-  ".vehicle-input-content .file-name",
-);
+  const startTime = startTimeInput.value;
+  const endTime = endTimeInput.value;
+  const startDate = startDateInput ? startDateInput.value : "";
+  const endDate = endDateInput ? endDateInput.value : "";
+  const sameDay = startDate !== "" && endDate !== "" && startDate === endDate;
 
-if (fileInput) {
-  fileInput.addEventListener("change", function () {
-    if (this.files && this.files[0]) {
-      fileNameDisplay.textContent = "ไฟล์ที่เลือก: " + this.files[0].name;
-    } else {
-      fileNameDisplay.textContent = "";
+  if (sameDay && startTime) {
+    endTimeInput.min = startTime;
+  } else {
+    endTimeInput.removeAttribute("min");
+  }
+
+  if (sameDay && startTime && endTime && endTime <= startTime) {
+    endTimeInput.setCustomValidity("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น");
+  } else {
+    endTimeInput.setCustomValidity("");
+  }
+}
+
+if (startDateInput)
+  startDateInput.addEventListener("change", function () {
+    calculateDays();
+    validateTimeRange();
+  });
+if (endDateInput)
+  endDateInput.addEventListener("change", function () {
+    calculateDays();
+    validateTimeRange();
+  });
+if (startTimeInput) startTimeInput.addEventListener("change", validateTimeRange);
+if (endTimeInput) endTimeInput.addEventListener("change", validateTimeRange);
+if (passengerCountInput) {
+  passengerCountInput.addEventListener("input", function () {
+    passengerCountInput.setCustomValidity("");
+  });
+}
+
+if (vehicleForm) {
+  vehicleForm.addEventListener("submit", function (e) {
+    let hasError = false;
+
+    if (departmentInput && departmentInput.value.trim() === "") {
+      setDepartmentError(true);
+      hasError = true;
+    }
+
+    if (passengerCountInput && companionCountInput) {
+      const companionCount = parseInt(companionCountInput.value || "0", 10);
+      const minPassengers = companionCount + 1;
+      const currentValue = parseInt(passengerCountInput.value || "0", 10);
+      if (currentValue < minPassengers) {
+        passengerCountInput.setCustomValidity(
+          `จำนวนผู้เดินทางต้องไม่น้อยกว่า ${minPassengers} คน`
+        );
+        hasError = true;
+      } else {
+        passengerCountInput.setCustomValidity("");
+      }
+    }
+
+    validateTimeRange();
+    if (endTimeInput && !endTimeInput.checkValidity()) {
+      hasError = true;
+    }
+
+    if (hasError) {
+      e.preventDefault();
+      if (typeof vehicleForm.reportValidity === "function") {
+        vehicleForm.reportValidity();
+      }
     }
   });
 }
+
+if (departmentWrapper) {
+  departmentWrapper.addEventListener("click", function (e) {
+    if (e.target.closest(".custom-option")) {
+      setDepartmentError(false);
+    }
+  });
+}
+
+if (memberDropdown) {
+  memberDropdown.addEventListener("change", function (e) {
+    if (e.target && e.target.matches('input[type="checkbox"]')) {
+      updateCompanionCount();
+    }
+  });
+  updateCompanionCount();
+}
+
+if (writeDateInput && !writeDateInput.value) {
+  writeDateInput.value = new Date().toISOString().split("T")[0];
+}
+
+const fileInput = document.getElementById("attachment");
+const attachmentList = document.getElementById("attachmentList");
+const attachmentError = document.getElementById("attachmentError");
+const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+];
+let selectedAttachments = [];
+
+function formatFileSize(size) {
+  if (!size) return "0 KB";
+  const kb = size / 1024;
+  if (kb < 1024) return `${Math.ceil(kb)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function setAttachmentError(message) {
+  if (!attachmentError) return;
+  attachmentError.textContent = message || "";
+  attachmentError.classList.toggle("hidden", !message);
+}
+
+function syncAttachmentInput() {
+  if (!fileInput) return;
+  const dataTransfer = new DataTransfer();
+  selectedAttachments.forEach((file) => dataTransfer.items.add(file));
+  fileInput.files = dataTransfer.files;
+}
+
+function renderAttachmentList() {
+  if (!attachmentList) return;
+  attachmentList.innerHTML = "";
+
+  if (selectedAttachments.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "attachment-empty";
+    empty.textContent = "ยังไม่มีไฟล์แนบ";
+    attachmentList.appendChild(empty);
+    return;
+  }
+
+  selectedAttachments.forEach((file, index) => {
+    const item = document.createElement("div");
+    item.className = "file-item-wrapper";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "delete-btn";
+    removeBtn.innerHTML =
+      '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+    removeBtn.addEventListener("click", () => {
+      selectedAttachments = selectedAttachments.filter((_, i) => i !== index);
+      syncAttachmentInput();
+      renderAttachmentList();
+      setAttachmentError("");
+    });
+
+    const banner = document.createElement("div");
+    banner.className = "file-banner";
+
+    const info = document.createElement("div");
+    info.className = "file-info";
+
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "file-icon";
+
+    const icon = document.createElement("i");
+    const isPdf = file.type === "application/pdf";
+    const isImage =
+      file.type === "image/jpeg" || file.type === "image/png";
+    icon.className = isPdf
+      ? "fa-solid fa-file-pdf"
+      : isImage
+      ? "fa-solid fa-file-image"
+      : "fa-solid fa-file";
+    icon.setAttribute("aria-hidden", "true");
+    iconWrap.appendChild(icon);
+
+    const text = document.createElement("div");
+    text.className = "file-text";
+
+    const name = document.createElement("span");
+    name.className = "file-name";
+    name.textContent = file.name;
+
+    const type = document.createElement("span");
+    type.className = "file-type";
+    type.textContent = file.type || "file";
+
+    text.appendChild(name);
+    text.appendChild(type);
+
+    info.appendChild(iconWrap);
+    info.appendChild(text);
+
+    const actions = document.createElement("div");
+    actions.className = "file-actions";
+
+    const viewLink = document.createElement("a");
+    viewLink.href = "javascript:void(0)";
+    viewLink.className = "action-btn";
+    viewLink.title = "ดูตัวอย่าง";
+    viewLink.innerHTML =
+      '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+    viewLink.addEventListener("click", () => {
+      const url = URL.createObjectURL(file);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    actions.appendChild(viewLink);
+    banner.appendChild(info);
+    banner.appendChild(actions);
+
+    item.appendChild(removeBtn);
+    item.appendChild(banner);
+    attachmentList.appendChild(item);
+  });
+}
+
+function addAttachments(files) {
+  if (!files || files.length === 0) return;
+  const existingKeys = new Set(
+    selectedAttachments.map(
+      (file) => `${file.name}-${file.size}-${file.lastModified}`
+    )
+  );
+
+  let hasInvalid = false;
+  let hitLimit = false;
+
+  Array.from(files).forEach((file) => {
+    const key = `${file.name}-${file.size}-${file.lastModified}`;
+    if (existingKeys.has(key)) {
+      return;
+    }
+
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      hasInvalid = true;
+      return;
+    }
+
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      hasInvalid = true;
+      return;
+    }
+
+    if (selectedAttachments.length >= MAX_ATTACHMENTS) {
+      hitLimit = true;
+      return;
+    }
+
+    selectedAttachments.push(file);
+    existingKeys.add(key);
+  });
+
+  if (hitLimit) {
+    setAttachmentError(`แนบได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์`);
+  } else if (hasInvalid) {
+    setAttachmentError("รองรับเฉพาะ PDF, JPG, PNG ขนาดไม่เกิน 10MB");
+  } else {
+    setAttachmentError("");
+  }
+
+  syncAttachmentInput();
+  renderAttachmentList();
+}
+
+if (fileInput) {
+  fileInput.addEventListener("change", function () {
+    addAttachments(this.files);
+  });
+}
+
+calculateDays();
+validateTimeRange();
+renderAttachmentList();
 
 document.addEventListener("DOMContentLoaded", function () {
   const wrappers = document.querySelectorAll(".custom-select-wrapper");
@@ -1034,10 +1462,72 @@ document.addEventListener("DOMContentLoaded", function () {
     const trigger = wrapper.querySelector(".custom-select-trigger");
     const options = wrapper.querySelectorAll(".custom-option");
     const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+    const selectInput = wrapper.querySelector("select");
     const valueDisplay = wrapper.querySelector(".select-value");
+    const defaultLabel = valueDisplay ? valueDisplay.textContent : "";
+
+    const isDisabled = () => {
+      if (selectInput && selectInput.disabled) return true;
+      if (hiddenInput && hiddenInput.disabled) return true;
+      return false;
+    };
+
+    const getValue = () => {
+      if (hiddenInput) {
+        return hiddenInput.value;
+      }
+      if (selectInput) {
+        return selectInput.value;
+      }
+      return "";
+    };
+
+    const setValue = (value) => {
+      if (hiddenInput) {
+        hiddenInput.value = value;
+      }
+      if (selectInput) {
+        selectInput.value = value;
+        selectInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    };
+
+    const syncDisplay = () => {
+      wrapper.classList.toggle("is-disabled", isDisabled());
+      if (!valueDisplay) return;
+      const currentValue = getValue();
+      let matchedOption = null;
+      options.forEach((option) => {
+        const isMatch = option.getAttribute("data-value") === currentValue;
+        option.classList.toggle("selected", isMatch);
+        if (isMatch) {
+          matchedOption = option;
+        }
+      });
+
+      if (matchedOption) {
+        valueDisplay.textContent = matchedOption.textContent;
+        return;
+      }
+
+      if (selectInput && selectInput.selectedIndex >= 0) {
+        const selectedOption = selectInput.options[selectInput.selectedIndex];
+        if (selectedOption && selectedOption.textContent) {
+          valueDisplay.textContent = selectedOption.textContent;
+          return;
+        }
+      }
+
+      valueDisplay.textContent = defaultLabel;
+    };
 
     if (trigger) {
       trigger.addEventListener("click", function (e) {
+        if (isDisabled()) {
+          wrapper.classList.remove("open");
+          e.stopPropagation();
+          return;
+        }
         document.querySelectorAll(".custom-select-wrapper").forEach((w) => {
           if (w !== wrapper) w.classList.remove("open");
         });
@@ -1048,19 +1538,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     options.forEach((option) => {
       option.addEventListener("click", function (e) {
-        valueDisplay.textContent = this.textContent;
-
-        if (hiddenInput) {
-          hiddenInput.value = this.getAttribute("data-value");
+        if (isDisabled()) {
+          wrapper.classList.remove("open");
+          e.stopPropagation();
+          return;
         }
-
-        options.forEach((opt) => opt.classList.remove("selected"));
-        this.classList.add("selected");
-
+        setValue(this.getAttribute("data-value"));
+        syncDisplay();
         wrapper.classList.remove("open");
         e.stopPropagation();
       });
     });
+
+    if (selectInput) {
+      selectInput.addEventListener("change", function () {
+        syncDisplay();
+      });
+    }
+
+    syncDisplay();
   });
 
   window.addEventListener("click", function () {
@@ -1092,7 +1588,46 @@ function filterDropdown() {
 
 document.addEventListener("click", function (e) {
   if (!e.target.closest(".go-with-dropdown")) {
-    document.getElementById("myDropdown").classList.remove("show");
+    const dropdown = document.getElementById("myDropdown");
+    if (dropdown && dropdown.classList.contains("show")) {
+      dropdown.classList.remove("show");
+
+      const checkedBoxes = dropdown.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      );
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) {
+        if (checkedBoxes.length > 0) {
+          searchInput.value = `จำนวน ${checkedBoxes.length} รายชื่อ`;
+        } else {
+          searchInput.value = ""; 
+        }
+      }
+    }
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("focus", function () {
+      if (this.value.startsWith("จำนวน")) {
+        this.value = "";
+        filterDropdown(); 
+      }
+    });
+
+    searchInput.addEventListener("blur", function () {
+       setTimeout(() => {
+        const dropdown = document.getElementById("myDropdown");
+        if (dropdown && !dropdown.classList.contains("show")) {
+             const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+             if (checkedBoxes.length > 0) {
+                 this.value = `จำนวน ${checkedBoxes.length} รายชื่อ`;
+             }
+        }
+       }, 200);
+    });
   }
 });
 
@@ -1123,7 +1658,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     listContainer.innerHTML = "";
     const checkedBoxes = document.querySelectorAll(
-      '#myDropdown input[type="checkbox"]:checked',
+      '#myDropdown input[type="checkbox"]:checked'
     );
 
     if (checkedBoxes.length > 0) {
@@ -1150,437 +1685,6 @@ document.addEventListener("DOMContentLoaded", function () {
   window.onclick = function (event) {
     if (event.target == modal) {
       closeModal();
-    }
-  };
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const mainInput = document.getElementById("mainInput");
-
-  if (!mainInput) return;
-
-  const dropdownContent = document.getElementById("dropdownContent");
-  const selectAllCheckbox = document.getElementById("selectAll");
-  const allGroups = document.querySelectorAll(".category-group");
-  const searchWrapper = document.querySelector(".search-input-wrapper");
-
-  let selectedCount = 0;
-
-  mainInput.addEventListener("click", () => {
-    dropdownContent.classList.add("show");
-    if (searchWrapper) searchWrapper.classList.add("active");
-    mainInput.select();
-  });
-
-  mainInput.addEventListener("input", (e) => {
-    const searchText = e.target.value.toLowerCase();
-    dropdownContent.classList.add("show");
-    if (searchWrapper) searchWrapper.classList.add("active");
-    filterItems(searchText);
-  });
-
-  window.addEventListener("click", (e) => {
-    if (!e.target.closest(".dropdown-container")) {
-      closeDropdown();
-    }
-  });
-
-  if (selectAllCheckbox) {
-    selectAllCheckbox.addEventListener("change", () => {
-      const isChecked = selectAllCheckbox.checked;
-      document.querySelectorAll(".item-checkbox").forEach((cb) => {
-        if (isVisible(cb)) {
-          cb.checked = isChecked;
-          updateCategoryState(cb);
-        }
-      });
-      updateInputValueText();
-    });
-  }
-
-  document.querySelectorAll(".category-checkbox").forEach((catCb) => {
-    catCb.addEventListener("change", () => {
-      const group = catCb.closest(".category-group");
-      const items = group.querySelectorAll(".item-checkbox");
-      items.forEach((item) => {
-        if (isVisible(item)) {
-          item.checked = catCb.checked;
-        }
-      });
-      updateSelectAllState();
-      updateInputValueText();
-    });
-  });
-
-  document.querySelectorAll(".item-checkbox").forEach((itemCb) => {
-    itemCb.addEventListener("change", () => {
-      updateCategoryState(itemCb);
-      updateSelectAllState();
-      updateInputValueText();
-    });
-  });
-
-  function closeDropdown() {
-    if (dropdownContent) dropdownContent.classList.remove("show");
-    if (searchWrapper) searchWrapper.classList.remove("active");
-    updateInputValueText();
-    filterItems("");
-  }
-
-  function updateInputValueText() {
-    const checkedItems = document.querySelectorAll(".item-checkbox:checked");
-    selectedCount = checkedItems.length;
-
-    if (selectedCount > 0) {
-      if (selectedCount <= 2) {
-        const names = Array.from(checkedItems)
-          .map((cb) => cb.value)
-          .join(", ");
-        mainInput.value = names;
-      } else {
-        mainInput.value = `เลือกแล้ว ${selectedCount} รายการ`;
-      }
-    } else {
-      mainInput.value = "";
-    }
-  }
-
-  function filterItems(text) {
-    let hasGlobalMatch = false;
-
-    allGroups.forEach((group) => {
-      const items = group.querySelectorAll(".item");
-      let hasGroupMatch = false;
-
-      items.forEach((item) => {
-        const itemText = item.innerText.toLowerCase();
-        if (itemText.includes(text)) {
-          item.style.display = "flex";
-          hasGroupMatch = true;
-          hasGlobalMatch = true;
-        } else {
-          item.style.display = "none";
-        }
-      });
-
-      if (hasGroupMatch) {
-        group.style.display = "block";
-      } else {
-        group.style.display = "none";
-      }
-    });
-  }
-
-  function isVisible(element) {
-    const group = element.closest(".category-group");
-    const label = element.closest("label");
-    return (
-      group &&
-      group.style.display !== "none" &&
-      label &&
-      label.style.display !== "none"
-    );
-  }
-
-  function updateCategoryState(itemCb) {
-    const group = itemCb.closest(".category-group");
-    const catCb = group.querySelector(".category-checkbox");
-    const allItems = Array.from(group.querySelectorAll(".item-checkbox"));
-    const checkedItems = allItems.filter((cb) => cb.checked);
-
-    if (checkedItems.length === 0) {
-      catCb.checked = false;
-      catCb.indeterminate = false;
-    } else if (checkedItems.length === allItems.length) {
-      catCb.checked = true;
-      catCb.indeterminate = false;
-    } else {
-      catCb.checked = false;
-      catCb.indeterminate = true;
-    }
-  }
-
-  function updateSelectAllState() {
-    const allItems = Array.from(document.querySelectorAll(".item-checkbox"));
-    const checkedItems = allItems.filter((cb) => cb.checked);
-
-    if (!selectAllCheckbox) return;
-
-    if (checkedItems.length === 0) {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = false;
-    } else if (checkedItems.length === allItems.length) {
-      selectAllCheckbox.checked = true;
-      selectAllCheckbox.indeterminate = false;
-    } else {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = true;
-    }
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const modalOverlay = document.getElementById("recipientModal");
-  const btnShowRecipients = document.getElementById("btnShowRecipients");
-  const closeModalBtn = document.getElementById("closeModalBtn");
-  const tableBody = document.getElementById("recipientTableBody");
-
-  if (btnShowRecipients) {
-    btnShowRecipients.addEventListener("click", function (e) {
-      e.preventDefault();
-      generateRecipientTable();
-      openModal();
-    });
-  }
-
-  if (closeModalBtn) {
-    closeModalBtn.addEventListener("click", closeModal);
-  }
-
-  window.addEventListener("click", function (e) {
-    if (e.target === modalOverlay) {
-      closeModal();
-    }
-  });
-
-  function openModal() {
-    modalOverlay.classList.add("active");
-  }
-
-  function closeModal() {
-    modalOverlay.classList.remove("active");
-  }
-
-  function generateRecipientTable() {
-    tableBody.innerHTML = "";
-
-    const checkedItems = document.querySelectorAll(".item-checkbox:checked");
-
-    if (checkedItems.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #999;">ยังไม่ได้เลือกผู้รับ</td></tr>`;
-      return;
-    }
-
-    let order = 1;
-
-    checkedItems.forEach((checkbox) => {
-      const nameLabel = checkbox.closest("label").innerText.trim();
-
-      const groupContainer = checkbox.closest(".category-group");
-      let groupName = "-";
-      if (groupContainer) {
-        const groupTitleEl = groupContainer.querySelector(
-          ".category-title label",
-        );
-        if (groupTitleEl) {
-          groupName = groupTitleEl.innerText.trim();
-        }
-      }
-
-      const tr = document.createElement("tr");
-      const tdOrder = document.createElement("td");
-      tdOrder.textContent = String(order++);
-      const tdName = document.createElement("td");
-      tdName.textContent = nameLabel;
-      const tdGroup = document.createElement("td");
-      tdGroup.textContent = groupName;
-      tr.appendChild(tdOrder);
-      tr.appendChild(tdName);
-      tr.appendChild(tdGroup);
-      tableBody.appendChild(tr);
-    });
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const confirmModal = document.getElementById("confirmModal");
-  const btnSendNotice = document.getElementById("btnSendNotice");
-  const btnConfirmYes = document.getElementById("btnConfirmYes");
-  const btnConfirmNo = document.getElementById("btnConfirmNo");
-
-  if (btnSendNotice) {
-    btnSendNotice.addEventListener("click", function (e) {
-      e.preventDefault();
-      confirmModal.classList.add("active");
-    });
-  }
-
-  if (btnConfirmNo) {
-    btnConfirmNo.addEventListener("click", function () {
-      confirmModal.classList.remove("active");
-    });
-  }
-
-  if (btnConfirmYes) {
-    btnConfirmYes.addEventListener("click", function () {
-      console.log("User confirmed sending.");
-      confirmModal.classList.remove("active");
-    });
-  }
-
-  window.addEventListener("click", function (e) {
-    if (e.target === confirmModal) {
-      confirmModal.classList.remove("active");
-    }
-  });
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const fileInput = document.getElementById("fileInput");
-  const dropzone = document.getElementById("dropzone");
-  const fileListContainer = document.getElementById("fileListContainer");
-  const MAX_FILES = 5;
-
-  const previewModal = document.getElementById("imagePreviewModal");
-  const previewImage = document.getElementById("previewImage");
-  const previewCaption = document.getElementById("previewCaption");
-  const closePreviewBtn = document.getElementById("closePreviewBtn");
-
-  let uploadedFiles = [];
-
-  if (fileInput && dropzone) {
-    fileInput.addEventListener("change", (e) => {
-      handleFiles(Array.from(e.target.files));
-    });
-
-    dropzone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropzone.classList.add("drag-over");
-    });
-
-    dropzone.addEventListener("dragleave", (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("drag-over");
-    });
-
-    dropzone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("drag-over");
-      handleFiles(Array.from(e.dataTransfer.files));
-    });
-  }
-
-  function handleFiles(newFiles) {
-    const validTypes = [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "application/pdf",
-    ];
-
-    const validFiles = newFiles.filter((file) => {
-      const isValid = validTypes.includes(file.type);
-      if (!isValid)
-        alert(`ไฟล์ ${file.name} ไม่รองรับ (รองรับเฉพาะ PDF, PNG, JPG)`);
-      return isValid;
-    });
-
-    if (uploadedFiles.length + validFiles.length > MAX_FILES) {
-      alert(`สามารถแนบไฟล์ได้สูงสุด ${MAX_FILES} ไฟล์เท่านั้น`);
-      return;
-    }
-
-    uploadedFiles = [...uploadedFiles, ...validFiles];
-
-    renderFileList();
-    updateFileInput();
-  }
-
-  function renderFileList() {
-    fileListContainer.innerHTML = "";
-
-    uploadedFiles.forEach((file, index) => {
-      const isPdf = file.type === "application/pdf";
-      const iconClass = isPdf
-        ? "fa-solid fa-file-pdf"
-        : "fa-solid fa-file-image";
-
-      const fileUrl = URL.createObjectURL(file);
-
-      const actionOnClick = isPdf
-        ? `window.open('${fileUrl}', '_blank')`
-        : `openImagePreview('${fileUrl}', '${file.name}')`;
-
-      const div = document.createElement("div");
-      div.className = "file-item-wrapper";
-      div.innerHTML = `
-                <button type="button" class="delete-btn" onclick="removeFile(${index})">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
-                <div class="file-banner">
-                    <div class="file-info">
-                        <div class="file-icon">
-                            <i class="${iconClass}"></i>
-                        </div>
-                        <div class="file-text">
-                            <span class="file-name">${file.name}</span>
-                            <span class="file-type">${file.type}</span>
-                        </div>
-                    </div>
-                    <div class="file-actions">
-                        <a href="javascript:void(0)" onclick="${actionOnClick}" class="action-btn" title="ดูตัวอย่าง">
-                            <i class="fa-solid fa-eye"></i>
-                        </a>
-                    </div>
-                </div>
-            `;
-      fileListContainer.appendChild(div);
-    });
-  }
-
-  window.openImagePreview = function (url, caption) {
-    if (previewModal && previewImage) {
-      previewImage.src = url;
-      if (previewCaption) previewCaption.innerHTML = caption;
-      previewModal.classList.add("active");
-    }
-  };
-
-  if (closePreviewBtn) {
-    closePreviewBtn.onclick = function () {
-      previewModal.classList.remove("active");
-      setTimeout(() => {
-        previewImage.src = "";
-      }, 300);
-    };
-  }
-
-  window.addEventListener("click", function (event) {
-    if (event.target == previewModal) {
-      previewModal.classList.remove("active");
-      setTimeout(() => {
-        previewImage.src = "";
-      }, 300);
-    }
-  });
-
-  window.removeFile = function (index) {
-    uploadedFiles.splice(index, 1);
-    renderFileList();
-    updateFileInput();
-  };
-
-  function updateFileInput() {
-    const dataTransfer = new DataTransfer();
-    uploadedFiles.forEach((file) => dataTransfer.items.add(file));
-    fileInput.files = dataTransfer.files;
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const modal = document.getElementById("modalNoticeKeepOverlay");
-  const btn = document.getElementById("modalNoticeKeep");
-  const close = document.getElementById("closeModalNoticeKeep");
-
-  btn.onclick = function () {
-    modal.style.display = "flex";
-  };
-  close.onclick = function () {
-    modal.style.display = "none";
-  };
-  window.onclick = function (event) {
-    if (event.target == modal) {
-      modal.style.display = "none";
     }
   };
 });
