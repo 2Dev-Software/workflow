@@ -11,6 +11,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -33,33 +34,55 @@ $set_room_booking_approval_alert = static function (string $type, string $title,
     exit();
 };
 
+$raw_action = trim((string) ($_POST['approval_action'] ?? ''));
+$raw_booking_id = (int) ($_POST['room_booking_id'] ?? 0);
+
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'db_connection_missing');
+    }
+    $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+}
+
 if (
     empty($_POST['csrf_token']) ||
     empty($_SESSION['csrf_token']) ||
     !hash_equals((string) $_SESSION['csrf_token'], (string) $_POST['csrf_token'])
 ) {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'CSRF_FAIL', 'DENY', 'dh_room_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'room_booking_approval_actions', [
+            'action' => $raw_action,
+        ]);
+    }
     $set_room_booking_approval_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
 }
 
-$action = trim((string) ($_POST['approval_action'] ?? ''));
+$action = $raw_action;
 if (!in_array($action, ['approve', 'reject'], true)) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'invalid_action', [
+            'action' => $action,
+        ]);
+    }
     $set_room_booking_approval_alert('danger', 'คำสั่งไม่ถูกต้อง', 'กรุณาลองใหม่อีกครั้ง');
 }
 
-$booking_id = (int) ($_POST['room_booking_id'] ?? 0);
+$booking_id = $raw_booking_id;
 if ($booking_id <= 0) {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', null, 'invalid_booking_id');
+    }
     $set_room_booking_approval_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบรายการจองที่ต้องการ');
 }
 
 $approver_pid = trim((string) ($_SESSION['pID'] ?? ''));
 if ($approver_pid === '') {
+    if (function_exists('audit_log')) {
+        audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'room_booking_approval_actions');
+    }
     header('Location: index.php', true, 302);
     exit();
-}
-
-$reason = trim((string) ($_POST['statusReason'] ?? ''));
-if ($action === 'reject' && $reason === '') {
-    $set_room_booking_approval_alert('warning', 'กรุณาระบุเหตุผล', 'โปรดระบุเหตุผลเมื่อไม่อนุมัติ');
 }
 
 $current_status = null;
@@ -77,27 +100,30 @@ try {
     mysqli_stmt_close($check_stmt);
 
     if (!$check_row) {
+        if (function_exists('audit_log')) {
+            audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $booking_id, 'booking_not_found');
+        }
         $set_room_booking_approval_alert('warning', 'ไม่พบรายการ', 'รายการจองนี้อาจถูกลบไปแล้ว');
     }
 
     $current_status = room_booking_status_to_int($connection, $check_row['status'] ?? 0);
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+    if (function_exists('audit_log')) {
+        audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $booking_id, 'status_check_failed');
+    }
     $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบรายการจองได้ในขณะนี้');
 }
 
-if ($current_status !== 0) {
-    $set_room_booking_approval_alert('warning', 'รายการนี้ถูกดำเนินการแล้ว', 'กรุณารีเฟรชเพื่อดูสถานะล่าสุด');
-}
+
 
 $next_status = $action === 'approve' ? 1 : 2;
 $status_param = room_booking_status_to_db($connection, $next_status);
 
 $approved_at = date('Y-m-d H:i:s');
-$status_reason = $action === 'reject' ? $reason : null;
 
 $update_sql = 'UPDATE dh_room_bookings
-    SET status = ?, statusReason = ?, approvedByPID = ?, approvedAt = ?, updatedAt = CURRENT_TIMESTAMP
+    SET status = ?, approvedByPID = ?, approvedAt = ?, updatedAt = CURRENT_TIMESTAMP
     WHERE roomBookingID = ? AND deletedAt IS NULL';
 
 try {
@@ -105,13 +131,12 @@ try {
 
     $bind_values = [
         $status_param['value'],
-        $status_reason,
         $approver_pid,
         $approved_at,
         $booking_id,
     ];
 
-    $types = $status_param['type'] . 'sssi';
+    $types = $status_param['type'] . 'ssi';
 
     $bind_params = [];
     $bind_params[] = $update_stmt;
@@ -128,15 +153,30 @@ try {
     mysqli_stmt_close($update_stmt);
 
     if ($affected <= 0) {
+        if (function_exists('audit_log')) {
+            audit_log('room', $action === 'approve' ? 'APPROVE' : 'REJECT', 'FAIL', 'dh_room_bookings', $booking_id, 'no_rows_affected', [
+                'fromStatus' => $current_status,
+                'toStatus' => $next_status,
+            ]);
+        }
         $set_room_booking_approval_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'ข้อมูลรายการยังเหมือนเดิม');
     }
 
     if ($action === 'approve') {
+        if (function_exists('audit_log')) {
+            audit_log('room', 'APPROVE', 'SUCCESS', 'dh_room_bookings', $booking_id);
+        }
         $set_room_booking_approval_alert('success', 'อนุมัติสำเร็จ', 'บันทึกผลการอนุมัติเรียบร้อยแล้ว');
     }
 
+    if (function_exists('audit_log')) {
+        audit_log('room', 'REJECT', 'SUCCESS', 'dh_room_bookings', $booking_id);
+    }
     $set_room_booking_approval_alert('success', 'บันทึกสำเร็จ', 'บันทึกการไม่อนุมัติเรียบร้อยแล้ว');
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+    if (function_exists('audit_log')) {
+        audit_log('room', $action === 'approve' ? 'APPROVE' : 'REJECT', 'FAIL', 'dh_room_bookings', $booking_id, $exception->getMessage());
+    }
     $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกผลการพิจารณาได้ในขณะนี้');
 }

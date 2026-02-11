@@ -7,7 +7,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/db/connection.php';
+require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+
+$connection = db_connection();
+if (!($connection instanceof mysqli)) {
+    error_log('Database Error: invalid connection');
+    $_SESSION['setting_alert'] = [
+        'type' => 'danger',
+        'title' => 'ระบบขัดข้อง',
+        'message' => 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ในขณะนี้',
+    ];
+    header('Location: setting.php?tab=settingSystem', true, 303);
+    exit();
+}
 
 $redirect_url = 'setting.php?tab=settingSystem';
 
@@ -43,11 +56,14 @@ if ($dh_year_input < $startThaiYear || $dh_year_input > $currentThaiYear) {
     exit();
 }
 
-$select_sql = 'SELECT ID FROM thesystem ORDER BY ID DESC LIMIT 1';
+$select_sql = 'SELECT ID, dh_year FROM thesystem ORDER BY ID DESC LIMIT 1';
 $select_result = mysqli_query($connection, $select_sql);
 
 if ($select_result === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('system', 'UPDATE_YEAR', 'FAIL', 'thesystem', null, 'select_failed');
+    }
     $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกปีสารบรรณได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -63,12 +79,22 @@ if (!$system_row) {
 }
 
 $system_id = (int) $system_row['ID'];
+$current_year = (int) ($system_row['dh_year'] ?? 0);
+
+if ($current_year === $dh_year_input) {
+    $set_setting_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'ปีสารบรรณยังเป็นค่าเดิม');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
 
 $update_sql = 'UPDATE thesystem SET dh_year = ? WHERE ID = ?';
 $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+    if (function_exists('audit_log')) {
+        audit_log('system', 'UPDATE_YEAR', 'FAIL', 'thesystem', $system_id, 'prepare_failed');
+    }
     $set_setting_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกปีสารบรรณได้ในขณะนี้');
     header('Location: ' . $redirect_url, true, 303);
     exit();
@@ -77,6 +103,12 @@ if ($update_stmt === false) {
 mysqli_stmt_bind_param($update_stmt, 'ii', $dh_year_input, $system_id);
 mysqli_stmt_execute($update_stmt);
 mysqli_stmt_close($update_stmt);
+
+if (function_exists('audit_log')) {
+    audit_log('system', 'UPDATE_YEAR', 'SUCCESS', 'thesystem', $system_id, null, [
+        'dh_year' => $dh_year_input,
+    ]);
+}
 
 $set_setting_alert('success', 'บันทึกสำเร็จ', 'อัปเดตปีสารบรรณเรียบร้อยแล้ว');
 header('Location: ' . $redirect_url, true, 303);

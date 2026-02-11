@@ -1,0 +1,96 @@
+<?php
+declare(strict_types=1);
+
+// Standardized state machines for document workflows.
+
+// Internal circulars
+const INTERNAL_STATUS_DRAFT = 'INTERNAL_DRAFT';
+const INTERNAL_STATUS_SENT = 'INTERNAL_SENT';
+const INTERNAL_STATUS_RECALLED = 'INTERNAL_RECALLED';
+const INTERNAL_STATUS_ARCHIVED = 'INTERNAL_ARCHIVED';
+
+// External circulars (from outside)
+const EXTERNAL_STATUS_SUBMITTED = 'EXTERNAL_SUBMITTED';
+const EXTERNAL_STATUS_PENDING_REVIEW = 'EXTERNAL_PENDING_REVIEW';
+const EXTERNAL_STATUS_REVIEWED = 'EXTERNAL_REVIEWED';
+const EXTERNAL_STATUS_FORWARDED = 'EXTERNAL_FORWARDED';
+
+// Outgoing letters
+// NOTE: These values must match the enum values in `dh_outgoing_letters.status`.
+const OUTGOING_STATUS_WAITING_ATTACHMENT = 'WAITING_ATTACHMENT';
+const OUTGOING_STATUS_COMPLETE = 'COMPLETE';
+
+// Government orders
+// NOTE: These values must match the enum values in `dh_orders.status`.
+const ORDER_STATUS_WAITING_ATTACHMENT = 'WAITING_ATTACHMENT';
+const ORDER_STATUS_COMPLETE = 'COMPLETE';
+const ORDER_STATUS_SENT = 'SENT';
+
+// Inbox types
+const INBOX_TYPE_NORMAL = 'normal_inbox';
+const INBOX_TYPE_SPECIAL_PRINCIPAL = 'special_principal_inbox';
+const INBOX_TYPE_SARABAN_RETURN = 'saraban_return_inbox';
+const INBOX_TYPE_ACTING_PRINCIPAL = 'acting_principal_inbox';
+
+// Repairs
+const REPAIR_STATUS_PENDING = 'PENDING';
+const REPAIR_STATUS_IN_PROGRESS = 'IN_PROGRESS';
+const REPAIR_STATUS_COMPLETED = 'COMPLETED';
+const REPAIR_STATUS_REJECTED = 'REJECTED';
+const REPAIR_STATUS_CANCELLED = 'CANCELLED';
+
+// Memos (internal request + approval/signature workflow)
+const MEMO_STATUS_DRAFT = 'DRAFT';
+const MEMO_STATUS_SUBMITTED = 'SUBMITTED';
+const MEMO_STATUS_IN_REVIEW = 'IN_REVIEW';
+const MEMO_STATUS_RETURNED = 'RETURNED';
+const MEMO_STATUS_APPROVED_UNSIGNED = 'APPROVED_UNSIGNED';
+const MEMO_STATUS_SIGNED = 'SIGNED';
+const MEMO_STATUS_REJECTED = 'REJECTED';
+const MEMO_STATUS_CANCELLED = 'CANCELLED';
+
+if (!function_exists('workflow_state_machine')) {
+    function workflow_state_machine(): array
+    {
+        return [
+            'internal' => [
+                INTERNAL_STATUS_DRAFT => [INTERNAL_STATUS_SENT],
+                INTERNAL_STATUS_SENT => [INTERNAL_STATUS_RECALLED, INTERNAL_STATUS_ARCHIVED],
+                INTERNAL_STATUS_RECALLED => [INTERNAL_STATUS_SENT],
+                INTERNAL_STATUS_ARCHIVED => [],
+            ],
+            'external' => [
+                EXTERNAL_STATUS_SUBMITTED => [EXTERNAL_STATUS_PENDING_REVIEW],
+                EXTERNAL_STATUS_PENDING_REVIEW => [EXTERNAL_STATUS_REVIEWED, EXTERNAL_STATUS_FORWARDED],
+                EXTERNAL_STATUS_REVIEWED => [EXTERNAL_STATUS_FORWARDED],
+                EXTERNAL_STATUS_FORWARDED => [],
+            ],
+            'outgoing' => [
+                OUTGOING_STATUS_WAITING_ATTACHMENT => [OUTGOING_STATUS_COMPLETE],
+                OUTGOING_STATUS_COMPLETE => [],
+            ],
+            'orders' => [
+                ORDER_STATUS_WAITING_ATTACHMENT => [ORDER_STATUS_COMPLETE],
+                ORDER_STATUS_COMPLETE => [ORDER_STATUS_SENT],
+                ORDER_STATUS_SENT => [],
+            ],
+            'repairs' => [
+                REPAIR_STATUS_PENDING => [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_REJECTED, REPAIR_STATUS_CANCELLED],
+                REPAIR_STATUS_IN_PROGRESS => [REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
+                REPAIR_STATUS_COMPLETED => [],
+                REPAIR_STATUS_REJECTED => [],
+                REPAIR_STATUS_CANCELLED => [],
+            ],
+            'memos' => [
+                MEMO_STATUS_DRAFT => [MEMO_STATUS_SUBMITTED, MEMO_STATUS_CANCELLED],
+                MEMO_STATUS_SUBMITTED => [MEMO_STATUS_IN_REVIEW, MEMO_STATUS_RETURNED, MEMO_STATUS_REJECTED, MEMO_STATUS_APPROVED_UNSIGNED, MEMO_STATUS_SIGNED, MEMO_STATUS_CANCELLED],
+                MEMO_STATUS_IN_REVIEW => [MEMO_STATUS_RETURNED, MEMO_STATUS_REJECTED, MEMO_STATUS_APPROVED_UNSIGNED, MEMO_STATUS_SIGNED, MEMO_STATUS_CANCELLED],
+                MEMO_STATUS_RETURNED => [MEMO_STATUS_SUBMITTED, MEMO_STATUS_CANCELLED],
+                MEMO_STATUS_APPROVED_UNSIGNED => [MEMO_STATUS_SIGNED, MEMO_STATUS_CANCELLED],
+                MEMO_STATUS_SIGNED => [],
+                MEMO_STATUS_REJECTED => [],
+                MEMO_STATUS_CANCELLED => [],
+            ],
+        ];
+    }
+}

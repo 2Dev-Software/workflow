@@ -1,11 +1,19 @@
 <?php
 require_once __DIR__ . '/../../../config/connection.php';
+require_once __DIR__ . '/../../../app/modules/system/positions.php';
+
+$connection = $connection ?? ($GLOBALS['connection'] ?? null);
+if (!($connection instanceof mysqli)) {
+    return;
+}
 
 $room_management_alert = $room_management_alert ?? null;
 $room_staff_members = [];
 $room_candidate_members = [];
 $room_staff_role_id = 5;
 $admin_role_id = 1;
+$default_role_id = 6;
+$unassigned_role_id = 0;
 
 $map_member = static function (array $row): array {
     $name = trim((string) ($row['fName'] ?? ''));
@@ -23,12 +31,14 @@ $map_member = static function (array $row): array {
     ];
 };
 
+$position = system_position_join($connection, 't', 'p');
+
 $staff_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
-    p.positionName AS position_name,
+    ' . $position['name'] . ' AS position_name,
     r.roleName AS role_name,
     d.dName AS department_name
     FROM teacher AS t
-    LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+    ' . $position['join'] . '
     LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
     WHERE t.status = 1 AND t.roleID = ?
@@ -68,14 +78,14 @@ try {
 }
 
 $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
-    p.positionName AS position_name,
+    ' . $position['name'] . ' AS position_name,
     r.roleName AS role_name,
     d.dName AS department_name
     FROM teacher AS t
-    LEFT JOIN dh_positions AS p ON t.positionID = p.positionID
+    ' . $position['join'] . '
     LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
-    WHERE t.status = 1 AND t.roleID NOT IN (?, ?)
+    WHERE t.status = 1 AND t.roleID IN (?, ?)
     ORDER BY t.fName';
 
 try {
@@ -89,7 +99,7 @@ try {
             'button_label' => 'ยืนยัน',
         ];
     } else {
-        mysqli_stmt_bind_param($stmt, 'ii', $admin_role_id, $room_staff_role_id);
+        mysqli_stmt_bind_param($stmt, 'ii', $default_role_id, $unassigned_role_id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
 

@@ -1,4 +1,18 @@
-<?php require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php'; ?>
+<?php
+require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php';
+require_once __DIR__ . '/../../../src/Services/system/exec-duty-current.php';
+
+$role_id = (int) ($teacher['roleID'] ?? 0);
+$position_id = (int) ($teacher['positionID'] ?? 0);
+$actor_pid = (string) ($_SESSION['pID'] ?? '');
+
+// Exec duty: dutyStatus 2 means "acting director" (รองรักษาการแทน).
+$acting_pid = '';
+if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
+    $acting_pid = (string) $exec_duty_current_pid;
+}
+$is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
+?>
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
@@ -36,6 +50,7 @@
                 <p class="link-name">หน้าหลัก</p>
             </a>
         </li>
+        
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
@@ -45,11 +60,13 @@
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="#">หนังสือเวียน</a></li>
-                <li><a href="circular-notice-keeping-a.php">หนังสือเวียนที่จัดเก็บ</a></li>
-                <li><a href="circular-notice-sending.php">ส่งหนังสือเวียน</a></li>
+                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
+                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
+                <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
+                <li><a href="circular-sent.php">หนังสือเวียนของฉัน</a></li>
             </ul>
         </li>
+
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
@@ -59,17 +76,43 @@
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="#">หนังสือเวียน</a></li>
-                <li><a href="#">หนังสือเวียนที่จัดเก็บ</a></li>
-                <li><a href="#">ส่งหนังสือเวียน</a></li>
+                <li><a href="orders-inbox.php">คำสั่งราชการ (inbox)</a></li>
+                <li><a href="orders-archive.php">คำสั่งที่จัดเก็บ</a></li>
+                <li><a href="orders-create.php">ออกคำสั่งราชการ</a></li>
+                <li><a href="orders-manage.php">คำสั่งของฉัน</a></li>
             </ul>
         </li>
-        <li>
-            <a href="#">
-                <i class="fa-solid fa-pen-to-square"></i>
-                <p class="link-name">บันทึกข้อความ</p>
-            </a>
+
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <p class="link-name">บันทึกข้อความ</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="memo.php">บันทึกข้อความของฉัน</a></li>
+                <li><a href="memo-inbox.php">Inbox บันทึกข้อความ</a></li>
+                <li><a href="memo-archive.php">บันทึกข้อความที่จัดเก็บ</a></li>
+            </ul>
         </li>
+
+        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 2], true)) : ?>
+            <li class="navigation-links-has-sub">
+                <div class="icon-link">
+                    <a href="#">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <p class="link-name">หนังสือออกภายนอก</p>
+                    </a>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+                <ul class="navigation-links-sub-menu">
+                    <li><a href="outgoing.php">หนังสือออกทั้งหมด</a></li>
+                    <li><a href="outgoing-create.php">ออกเลขหนังสือ</a></li>
+                </ul>
+            </li>
+        <?php endif; ?>
 
         <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 5], true)) : ?>
             <li class="navigation-links-has-sub">
@@ -95,32 +138,65 @@
             </li>
         <?php endif; ?>
 
-        <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
-                    <i class="fa-solid fa-book"></i>
-                    <p class="link-name">การจองยานพาหนะ</p>
+        <?php if ($is_director_or_acting) : ?>
+            <li>
+                <a href="vehicle-reservation-approval.php">
+                    <i class="fa-solid fa-car"></i>
+                    <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="vehicle-reservation.php">จองยานพาหนะ</a></li>
-                <li><a href="vehicle-reservation-approval.php">อนุมัติการจองยานพาหนะ</a></li>
-                <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
-            </ul>
-        </li>
+            </li>
+        <?php elseif (in_array($role_id, [1, 3], true)) : ?>
+            <li class="navigation-links-has-sub">
+                <div class="icon-link">
+                    <a href="#">
+                        <i class="fa-solid fa-car"></i>
+                        <p class="link-name">การจองยานพาหนะ</p>
+                    </a>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+                <ul class="navigation-links-sub-menu">
+                    <li><a href="vehicle-reservation.php">จองยานพาหนะ</a></li>
+                    <li><a href="vehicle-reservation-approval.php">อนุมัติการจองยานพาหนะ</a></li>
+                    <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
+                </ul>
+            </li>
+        <?php else : ?>
+            <li>
+                <a href="vehicle-reservation.php">
+                    <i class="fa-solid fa-car"></i>
+                    <p class="link-name">จองยานพาหนะ</p>
+                </a>
+            </li>
+        <?php endif; ?>
+        <!--
         <li>
-            <a href="#">
+            <a href="repairs.php">
                 <i class="fa-solid fa-wrench"></i>
                 <p class="link-name">แจ้งเหตุซ่อมแซม</p>
             </a>
         </li>
+        -->
         <li>
             <a href="teacher-phone-directory.php">
                 <i class="fa-solid fa-phone"></i>
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
+        <!-- <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <p class="link-name">งานอนาคต</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="travel.php">ขออนุญาตไปราชการ</a></li>
+                <li><a href="leave.php">การลา</a></li>
+                <li><a href="certificates.php">ทะเบียนเกียรติบัตร</a></li>
+            </ul>
+        </li> -->
+
         <li>
             <a href="profile.php">
                 <i class="fa-solid fa-user-gear"></i>
