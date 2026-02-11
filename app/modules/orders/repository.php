@@ -2,6 +2,21 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
+require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../services/document-service.php';
+require_once __DIR__ . '/../audit/logger.php';
+
+if (!function_exists('order_doc_number')) {
+    function order_doc_number(array $order): string
+    {
+        $orderNo = trim((string) ($order['orderNo'] ?? ''));
+        if ($orderNo !== '') {
+            return $orderNo;
+        }
+        $orderID = (int) ($order['orderID'] ?? 0);
+        return $orderID > 0 ? 'ORDER-' . $orderID : '';
+    }
+}
 
 const ORDER_MODULE_NAME = 'orders';
 const ORDER_ENTITY_NAME = 'dh_orders';
@@ -310,6 +325,37 @@ if (!function_exists('order_mark_read')) {
     {
         $stmt = db_query('UPDATE dh_order_inboxes SET isRead = 1, readAt = NOW() WHERE inboxID = ? AND pID = ? AND isRead = 0', 'is', $inboxID, $pID);
         mysqli_stmt_close($stmt);
+
+        $row = db_fetch_one('SELECT orderID FROM dh_order_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
+        $orderID = (int) ($row['orderID'] ?? 0);
+        if ($orderID > 0) {
+            $order = order_get($orderID);
+            if ($order) {
+                $documentNumber = order_doc_number($order);
+                if ($documentNumber !== '') {
+                    $documentID = document_upsert([
+                        'documentType' => 'ORDER',
+                        'documentNumber' => $documentNumber,
+                        'subject' => (string) ($order['subject'] ?? ''),
+                        'content' => (string) ($order['detail'] ?? ''),
+                        'status' => (string) ($order['status'] ?? ''),
+                        'senderName' => (string) ($order['creatorName'] ?? ''),
+                        'createdByPID' => (string) ($order['createdByPID'] ?? ''),
+                        'updatedByPID' => $order['updatedByPID'] ?? null,
+                    ]);
+                    if ($documentID) {
+                        document_mark_read($documentID, $pID);
+                        document_record_read_receipt($documentID, $pID);
+                    }
+                    if (function_exists('audit_log')) {
+                        audit_log('orders', 'READ', 'SUCCESS', 'dh_orders', $orderID, null, [
+                            'inbox_id' => $inboxID,
+                            'request_id' => app_request_id(),
+                        ]);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -318,6 +364,30 @@ if (!function_exists('order_archive_inbox')) {
     {
         $stmt = db_query('UPDATE dh_order_inboxes SET isArchived = 1, archivedAt = NOW() WHERE inboxID = ? AND pID = ?', 'is', $inboxID, $pID);
         mysqli_stmt_close($stmt);
+
+        $row = db_fetch_one('SELECT orderID FROM dh_order_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
+        $orderID = (int) ($row['orderID'] ?? 0);
+        if ($orderID > 0) {
+            $order = order_get($orderID);
+            if ($order) {
+                $documentNumber = order_doc_number($order);
+                if ($documentNumber !== '') {
+                    $documentID = document_upsert([
+                        'documentType' => 'ORDER',
+                        'documentNumber' => $documentNumber,
+                        'subject' => (string) ($order['subject'] ?? ''),
+                        'content' => (string) ($order['detail'] ?? ''),
+                        'status' => (string) ($order['status'] ?? ''),
+                        'senderName' => (string) ($order['creatorName'] ?? ''),
+                        'createdByPID' => (string) ($order['createdByPID'] ?? ''),
+                        'updatedByPID' => $order['updatedByPID'] ?? null,
+                    ]);
+                    if ($documentID) {
+                        document_set_recipient_status($documentID, $pID, 'normal_inbox', 'ARCHIVED');
+                    }
+                }
+            }
+        }
     }
 }
 

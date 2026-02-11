@@ -9,6 +9,53 @@
   var editButtons = document.querySelectorAll("[data-vehicle-edit]");
   var deleteButtons = document.querySelectorAll("[data-vehicle-delete-btn]");
 
+  var memberModal = document.getElementById("vehicleMemberModal");
+  var memberSearchForm = memberModal
+    ? memberModal.querySelector("[data-member-search-form]")
+    : null;
+  var memberSearchInput = memberModal
+    ? memberModal.querySelector("[data-member-search]")
+    : null;
+  var memberRows = memberModal
+    ? Array.from(memberModal.querySelectorAll("[data-member-row]"))
+    : [];
+  var memberEmptyState = memberModal
+    ? memberModal.querySelector("[data-member-empty]")
+    : null;
+  var memberCount = memberModal
+    ? memberModal.querySelector("[data-member-count]")
+    : null;
+
+  var memberConfirmModal = document.getElementById("vehicleMemberConfirmModal");
+  var memberConfirmMessage = memberConfirmModal
+    ? memberConfirmModal.querySelector("[data-vehicle-member-confirm-message]")
+    : null;
+  var memberConfirmButton = memberConfirmModal
+    ? memberConfirmModal.querySelector('[data-vehicle-member-confirm="true"]')
+    : null;
+  var memberCancelButton = memberConfirmModal
+    ? memberConfirmModal.querySelector('[data-vehicle-member-cancel="true"]')
+    : null;
+
+  var memberRemoveConfirmModal = document.getElementById(
+    "vehicleMemberRemoveConfirmModal"
+  );
+  var memberRemoveMessage = memberRemoveConfirmModal
+    ? memberRemoveConfirmModal.querySelector(
+        "[data-vehicle-member-remove-message]"
+      )
+    : null;
+  var memberRemoveConfirmButton = memberRemoveConfirmModal
+    ? memberRemoveConfirmModal.querySelector(
+        '[data-vehicle-member-remove-confirm="true"]'
+      )
+    : null;
+  var memberRemoveCancelButton = memberRemoveConfirmModal
+    ? memberRemoveConfirmModal.querySelector(
+        '[data-vehicle-member-remove-cancel="true"]'
+      )
+    : null;
+
   var editModal = document.getElementById("vehicleEditModal");
   var deleteModal = document.getElementById("vehicleDeleteConfirmModal");
   var deleteMessage = deleteModal
@@ -21,6 +68,8 @@
     ? deleteModal.querySelector("[data-vehicle-delete-cancel]")
     : null;
   var pendingDeleteForm = null;
+  var pendingMemberForm = null;
+  var pendingRemoveForm = null;
 
   function openModal(modalId) {
     if (!modalId) {
@@ -42,9 +91,76 @@
     }
   }
 
+  function updateMemberSearch() {
+    if (!memberModal || !memberSearchInput) return;
+    var query = memberSearchInput.value.trim().toLowerCase();
+    var visibleCount = 0;
+
+    memberRows.forEach(function (row) {
+      var haystack = (row.getAttribute("data-member-search") || "").toLowerCase();
+      var isMatch = query === "" || haystack.indexOf(query) !== -1;
+      row.style.display = isMatch ? "" : "none";
+      if (isMatch) {
+        visibleCount += 1;
+      }
+    });
+
+    if (memberCount) {
+      memberCount.textContent =
+        query === "" ? "ทั้งหมด " + visibleCount + " คน" : "พบ " + visibleCount + " คน";
+    }
+
+    if (memberEmptyState) {
+      memberEmptyState.classList.toggle("hidden", visibleCount !== 0);
+    }
+  }
+
+  function openMemberConfirm(form) {
+    pendingMemberForm = form;
+    var row = form.closest("[data-member-row], tr");
+    var nameEl = row ? row.querySelector("strong") : null;
+    var name =
+      nameEl && nameEl.textContent.trim() !== ""
+        ? nameEl.textContent.trim()
+        : "บุคลากรคนนี้";
+
+    if (memberConfirmMessage) {
+      memberConfirmMessage.textContent =
+        "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลยานพาหนะ";
+    }
+    if (memberConfirmModal) {
+      memberConfirmModal.classList.remove("hidden");
+    }
+  }
+
+  function openMemberRemoveConfirm(form) {
+    pendingRemoveForm = form;
+    var row = form.closest("tr");
+    var nameEl = row ? row.querySelector("strong") : null;
+    var name =
+      nameEl && nameEl.textContent.trim() !== ""
+        ? nameEl.textContent.trim()
+        : "บุคลากรคนนี้";
+
+    if (memberRemoveMessage) {
+      memberRemoveMessage.textContent =
+        "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลยานพาหนะ";
+    }
+    if (memberRemoveConfirmModal) {
+      memberRemoveConfirmModal.classList.remove("hidden");
+    }
+  }
+
   openButtons.forEach(function (button) {
     button.addEventListener("click", function () {
-      openModal(button.getAttribute("data-vehicle-modal-open"));
+      var targetId = button.getAttribute("data-vehicle-modal-open");
+      openModal(targetId);
+
+      if (targetId === "vehicleMemberModal" && memberSearchInput) {
+        memberSearchInput.value = "";
+        updateMemberSearch();
+        memberSearchInput.focus();
+      }
     });
   });
 
@@ -61,6 +177,77 @@
       }
     });
   });
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.matches("[data-member-remove-form]")) {
+      event.preventDefault();
+      openMemberRemoveConfirm(form);
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    var addMemberBtn = event.target.closest("[data-member-add-btn]");
+    if (!addMemberBtn) return;
+    event.preventDefault();
+    var form = addMemberBtn.closest("form");
+    if (form) {
+      openMemberConfirm(form);
+    }
+  });
+
+  if (memberConfirmButton) {
+    memberConfirmButton.addEventListener("click", function () {
+      if (pendingMemberForm) {
+        pendingMemberForm.submit();
+      }
+    });
+  }
+
+  if (memberCancelButton) {
+    memberCancelButton.addEventListener("click", function () {
+      if (memberConfirmModal) {
+        memberConfirmModal.classList.add("hidden");
+      }
+      pendingMemberForm = null;
+    });
+  }
+
+  if (memberRemoveConfirmButton) {
+    memberRemoveConfirmButton.addEventListener("click", function () {
+      if (pendingRemoveForm) {
+        pendingRemoveForm.submit();
+      }
+    });
+  }
+
+  if (memberRemoveCancelButton) {
+    memberRemoveCancelButton.addEventListener("click", function () {
+      if (memberRemoveConfirmModal) {
+        memberRemoveConfirmModal.classList.add("hidden");
+      }
+      pendingRemoveForm = null;
+    });
+  }
+
+  if (memberConfirmModal) {
+    memberConfirmModal.addEventListener("click", function (event) {
+      if (event.target === memberConfirmModal) {
+        memberConfirmModal.classList.add("hidden");
+        pendingMemberForm = null;
+      }
+    });
+  }
+
+  if (memberRemoveConfirmModal) {
+    memberRemoveConfirmModal.addEventListener("click", function (event) {
+      if (event.target === memberRemoveConfirmModal) {
+        memberRemoveConfirmModal.classList.add("hidden");
+        pendingRemoveForm = null;
+      }
+    });
+  }
 
   editButtons.forEach(function (button) {
     button.addEventListener("click", function () {
@@ -208,5 +395,20 @@
   var initialModal = root.getAttribute("data-vehicle-open-modal") || "";
   if (initialModal) {
     openModal(initialModal);
+    if (initialModal === "vehicleMemberModal" && memberSearchInput) {
+      updateMemberSearch();
+      memberSearchInput.focus();
+    }
   }
+
+  if (memberSearchForm && memberSearchInput) {
+    memberSearchForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      updateMemberSearch();
+    });
+
+    memberSearchInput.addEventListener("input", updateMemberSearch);
+  }
+
+  updateMemberSearch();
 })();

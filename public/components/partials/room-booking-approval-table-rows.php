@@ -1,6 +1,6 @@
 <?php if (empty($room_booking_approval_requests)) : ?>
     <tr>
-        <td colspan="8" class="booking-empty">ยังไม่มีรายการรออนุมัติ</td>
+        <td colspan="7" class="booking-empty">ยังไม่มีรายการการจอง</td>
     </tr>
 <?php else : ?>
     <?php foreach ($room_booking_approval_requests as $request_item) : ?>
@@ -19,10 +19,8 @@
         $equipment_text = $equipment_text !== '' ? $equipment_text : '-';
         $contact_phone = trim((string) ($request_item['contactPhone'] ?? ''));
         $contact_label = $contact_phone !== '' ? $contact_phone : '-';
-        $status_reason = trim((string) ($request_item['statusReason'] ?? ''));
-        if ($status_value === 2 && $status_reason === '') {
-            $status_reason = 'ไม่ระบุเหตุผล';
-        }
+        // Requirement: show only status (no rejection reason) on approval list/detail.
+        $status_reason = '-';
         $approval_name = trim((string) ($request_item['approvedByName'] ?? ''));
         if ($approval_name === '' && $status_value !== 0) {
             $approval_name = 'เจ้าหน้าที่ระบบ';
@@ -37,19 +35,12 @@
                 <?= h($request_item['roomName'] ?? '-') ?>
             </td>
             <td>
-                <?= h($date_range) ?>
-            </td>
-            <td>
-                <?= h($time_range) ?>
+                <?= h($date_range) ?><br>
+                <span class="detail-subtext"><?= h($time_range !== '' ? $time_range : '-') ?></span>
             </td>
             <td>
                 <?= h($request_item['requesterName'] ?? '-') ?>
-                <div class="detail-subtext">
-                    <?= h($request_item['departmentName'] ?? '-') ?>
-                </div>
-                <div class="detail-subtext">โทร
-                    <?= h($contact_label) ?>
-                </div>
+                <div class="detail-subtext">โทร <?= h($contact_label) ?></div>
             </td>
             <td>
                 <?= h($request_item['bookingTopic'] ?? '-') ?>
@@ -64,11 +55,6 @@
                 <span class="status-pill <?= h($status_class) ?>">
                     <?= h($status_label) ?>
                 </span>
-                <?php if ($status_value === 2) : ?>
-                    <div class="status-reason">เหตุผล:
-                        <?= h($status_reason) ?>
-                    </div>
-                <?php endif; ?>
             </td>
             <td class="booking-action-cell">
                 <div class="booking-action-group">
@@ -93,7 +79,8 @@
                         data-approval-at="<?= h($approval_at) ?>"
                         data-approval-created="<?= h($created_label) ?>"
                         data-approval-updated="<?= h($updated_label) ?>">
-                        ดูรายละเอียด
+                        <i class="fa-solid fa-eye"></i>
+                        <span class="tooltip">ดูรายละเอียด</span>
                     </button>
                 </div>
             </td>

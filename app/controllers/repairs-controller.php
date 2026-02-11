@@ -10,6 +10,8 @@ require_once __DIR__ . '/../modules/repairs/repository.php';
 require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../services/uploads.php';
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../modules/audit/logger.php';
+require_once __DIR__ . '/../config/state.php';
 
 if (!function_exists('repairs_index')) {
     function repairs_index(): void
@@ -75,7 +77,7 @@ if (!function_exists('repairs_index')) {
                     'message' => 'คุณไม่มีสิทธิ์แก้ไขรายการนี้',
                 ];
                 $edit_item = null;
-            } elseif (($edit_item['status'] ?? '') !== 'PENDING') {
+            } elseif (($edit_item['status'] ?? '') !== REPAIR_STATUS_PENDING) {
                 $alert = [
                     'type' => 'warning',
                     'title' => 'ไม่สามารถแก้ไขได้',
@@ -115,7 +117,7 @@ if (!function_exists('repairs_index')) {
                         'title' => 'ไม่มีสิทธิ์ลบ',
                         'message' => 'คุณไม่มีสิทธิ์ลบรายการนี้',
                     ];
-                } elseif (($target['status'] ?? '') !== 'PENDING') {
+                } elseif (($target['status'] ?? '') !== REPAIR_STATUS_PENDING) {
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถลบได้',
@@ -123,6 +125,9 @@ if (!function_exists('repairs_index')) {
                     ];
                 } else {
                     repair_delete_record($repair_id);
+                    if (function_exists('audit_log')) {
+                        audit_log('repairs', 'DELETE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
+                    }
                     $alert = [
                         'type' => 'success',
                         'title' => 'ลบรายการแล้ว',
@@ -141,7 +146,7 @@ if (!function_exists('repairs_index')) {
                         'title' => 'ไม่มีสิทธิ์แก้ไข',
                         'message' => 'คุณไม่มีสิทธิ์แก้ไขรายการนี้',
                     ];
-                } elseif (($target['status'] ?? '') !== 'PENDING') {
+                } elseif (($target['status'] ?? '') !== REPAIR_STATUS_PENDING) {
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถแก้ไขได้',
@@ -159,6 +164,9 @@ if (!function_exists('repairs_index')) {
                         'detail' => $values['detail'],
                         'location' => $values['location'],
                     ]);
+                    if (function_exists('audit_log')) {
+                        audit_log('repairs', 'UPDATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
+                    }
 
                     try {
                         $existing_files = repair_get_attachments($repair_id);
@@ -208,8 +216,11 @@ if (!function_exists('repairs_index')) {
                     'subject' => $values['subject'],
                     'detail' => $values['detail'],
                     'location' => $values['location'],
-                    'status' => 'PENDING',
+                    'status' => REPAIR_STATUS_PENDING,
                 ]);
+                if (function_exists('audit_log')) {
+                    audit_log('repairs', 'CREATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
+                }
 
                 try {
                     if (!empty($_FILES['attachments'])) {

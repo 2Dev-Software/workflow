@@ -122,13 +122,49 @@ if ($module === 'circulars') {
         }
     }
 } elseif ($module === 'memos') {
-    $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_memos WHERE memoID = ? AND createdByPID = ? LIMIT 1');
+    // Authorized: creator OR current approver (toPID) OR decision actor (approvedByPID) OR admin.
+    $fields = ['createdByPID', 'approvedByPID'];
+    if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'status')) {
+        $fields[] = 'status';
+    }
+    if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'submittedAt')) {
+        $fields[] = 'submittedAt';
+    }
+    if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'toPID')) {
+        $fields[] = 'toPID';
+    }
+    $check_sql = 'SELECT ' . implode(', ', $fields) . ' FROM dh_memos WHERE memoID = ? LIMIT 1';
+    $check = mysqli_prepare($connection, $check_sql);
     if ($check) {
-        mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
+        mysqli_stmt_bind_param($check, 'i', $entity_id);
         mysqli_stmt_execute($check);
         $res = mysqli_stmt_get_result($check);
-        $authorized = $res && mysqli_fetch_assoc($res);
+        $row = $res ? mysqli_fetch_assoc($res) : null;
         mysqli_stmt_close($check);
+
+        if ($row) {
+            $memo_status = strtoupper(trim((string) ($row['status'] ?? '')));
+            $is_submitted_or_legacy = !empty($row['submittedAt']) || in_array($memo_status, [
+                'SUBMITTED',
+                'IN_REVIEW',
+                'RETURNED',
+                'APPROVED_UNSIGNED',
+                'SIGNED',
+                'REJECTED',
+            ], true);
+            $authorized = ((string) ($row['createdByPID'] ?? '') === $current_pid);
+            // Draft and "cancelled-before-submit" are creator-only even if an approver was preselected.
+            if (!$authorized && $memo_status !== 'DRAFT' && $is_submitted_or_legacy && !empty($row['toPID'])) {
+                $authorized = ((string) $row['toPID'] === $current_pid);
+            }
+            if (!$authorized && !empty($row['approvedByPID'])) {
+                $authorized = ((string) $row['approvedByPID'] === $current_pid);
+            }
+        }
+    }
+
+    if (!$authorized && function_exists('rbac_user_has_role')) {
+        $authorized = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
     }
 } elseif ($module === 'repairs') {
     $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_repair_requests WHERE repairID = ? AND requesterPID = ? LIMIT 1');

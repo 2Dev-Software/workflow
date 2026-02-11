@@ -62,7 +62,6 @@ ob_start();
         <div class="booking-card-header">
             <div class="booking-card-title-group">
                 <h2 class="booking-card-title">รายการสถานที่/ห้อง</h2>
-                <p class="booking-card-subtitle">ปรับชื่อห้อง เปลี่ยนสถานะ และกำหนดผู้รับผิดชอบตามหน่วยงาน</p>
             </div>
             <div class="room-admin-actions" data-room-filter>
                 <div class="room-admin-search">
@@ -71,13 +70,28 @@ ob_start();
                         data-room-search-input>
                 </div>
                 <div class="room-admin-filter">
-                    <select class="form-input" data-room-status-filter>
-                        <option value="all">ทุกสถานะ</option>
-                        <option value="available">พร้อมใช้งาน</option>
-                        <option value="paused">ระงับชั่วคราว</option>
-                        <option value="maintenance">กำลังซ่อม</option>
-                        <option value="unavailable">ไม่พร้อมใช้งาน</option>
-                    </select>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <p class="select-value">ทุกสถานะ</p>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+
+                        <div class="custom-options">
+                            <div class="custom-option" data-value="all">ทุกสถานะ</div>
+                            <div class="custom-option" data-value="available">พร้อมใช้งาน</div>
+                            <div class="custom-option" data-value="paused">ระงับชั่วคราว</div>
+                            <div class="custom-option" data-value="maintenance">กำลังซ่อม</div>
+                            <div class="custom-option" data-value="unavailable">ไม่พร้อมใช้งาน</div>
+                        </div>
+
+                        <select class="form-input" name="room_status_filter" data-room-status-filter>
+                            <option value="all" selected>ทุกสถานะ</option>
+                            <option value="available">พร้อมใช้งาน</option>
+                            <option value="paused">ระงับชั่วคราว</option>
+                            <option value="maintenance">กำลังซ่อม</option>
+                            <option value="unavailable">ไม่พร้อมใช้งาน</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="button" class="btn-confirm" data-room-modal-open="roomAddModal">เพิ่มห้องใหม่</button>
             </div>
@@ -131,7 +145,6 @@ ob_start();
                                     <div class="room-admin-room-name">
                                         <?= h($room_name !== '' ? $room_name : 'ไม่ระบุชื่อห้อง') ?>
                                     </div>
-                                    <div class="room-admin-room-meta">ใช้สำหรับการประชุมและกิจกรรมภายในโรงเรียน</div>
                                 </td>
                                 <td>
                                     <span class="room-status-pill <?= h($status_class) ?>">
@@ -142,13 +155,19 @@ ob_start();
                                 <td><?= h($updated_label) ?></td>
                                 <td class="room-admin-actions-cell">
                                     <div class="booking-action-group">
-                                        <button type="button" class="booking-action-btn secondary" data-room-edit="true">แก้ไข</button>
+                                        <button type="button" class="booking-action-btn secondary" data-room-edit="true">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">แก้ไขข้อมูล</span>
+                                        </button>
                                         <form method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>"
                                             data-room-delete-form>
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="room_action" value="delete">
                                             <input type="hidden" name="room_id" value="<?= h((string) $room_id) ?>">
-                                            <button type="button" class="booking-action-btn danger" data-room-delete-btn>ลบ</button>
+                                            <button type="button" class="booking-action-btn danger" data-room-delete-btn>
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>
@@ -167,10 +186,11 @@ ob_start();
         <div class="booking-card-header">
             <div class="booking-card-title-group">
                 <h2 class="booking-card-title">ทีมผู้ดูแลสถานที่</h2>
-                <p class="booking-card-subtitle">รายชื่อผู้รับผิดชอบการจองและอนุมัติห้องในระบบ</p>
             </div>
-            <div class="room-admin-member-count">ทั้งหมด <?= h((string) $room_staff_count) ?> คน</div>
-            <button type="button" class="btn-outline" data-room-modal-open="roomMemberModal">เพิ่มสมาชิก</button>
+            <div>
+                <div class="room-admin-member-count">ทั้งหมด <?= h((string) $room_staff_count) ?> คน</div>
+                <button type="button" class="btn-outline" data-room-modal-open="roomMemberModal">เพิ่มสมาชิก</button>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -215,7 +235,10 @@ ob_start();
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="member_action" value="remove">
                                             <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
-                                            <button type="submit" class="booking-action-btn danger">ลบ</button>
+                                            <button type="submit" class="booking-action-btn danger">
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>
@@ -250,18 +273,33 @@ ob_start();
                 </div>
                 <div class="form-group full">
                     <label class="form-label">สถานะ</label>
-                    <select class="form-input" name="room_status" required>
-                        <?php foreach ($room_status_options as $status_option) : ?>
-                            <option value="<?= h((string) $status_option) ?>"><?= h((string) $status_option) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <p class="select-value">พร้อมใช้งาน</p>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+
+                        <div class="custom-options">
+                            <?php foreach ($room_status_options as $status_label): ?>
+                                <div class="custom-option" data-value="<?= h($status_label) ?>"><?= h($status_label) ?></div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <select class="form-input" name="room_status">
+                            <?php foreach ($room_status_options as $status_label): ?>
+                                <option value="<?= h($status_label) ?>" <?= $status_label === 'พร้อมใช้งาน' ? 'selected' : '' ?>>
+                                    <?= h($status_label) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group full">
                     <label class="form-label">หมายเหตุ</label>
-                    <textarea class="form-input" name="room_note" rows="4" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
+                    <textarea class="form-input" name="room_note" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
                 <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button>
+                    <!-- <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button> -->
                     <button type="submit" class="btn-confirm">บันทึกห้องใหม่</button>
                 </div>
             </form>
@@ -292,18 +330,31 @@ ob_start();
                 </div>
                 <div class="form-group full">
                     <label class="form-label">สถานะ</label>
-                    <select class="form-input" name="room_status" required data-room-edit-status>
-                        <?php foreach ($room_status_options as $status_option) : ?>
-                            <option value="<?= h((string) $status_option) ?>"><?= h((string) $status_option) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <p class="select-value">สถานะ</p>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+
+                        <div class="custom-options">
+                            <?php foreach ($room_status_options as $status_label): ?>
+                                <div class="custom-option" data-value="<?= h($status_label) ?>"><?= h($status_label) ?></div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <select class="form-input" name="room_status" data-room-edit-status>
+                            <?php foreach ($room_status_options as $status_label): ?>
+                                <option value="<?= h($status_label) ?>"><?= h($status_label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group full">
                     <label class="form-label">หมายเหตุ</label>
-                    <textarea class="form-input" name="room_note" rows="4" data-room-edit-note></textarea>
+                    <textarea class="form-input" name="room_note" rows="3" data-room-edit-note placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
                 <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button>
+                    <!-- <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button> -->
                     <button type="submit" class="btn-confirm">บันทึกการเปลี่ยนแปลง</button>
                 </div>
             </form>
@@ -328,57 +379,88 @@ ob_start();
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input class="form-input" type="search" placeholder="ค้นหาบุคลากร" autocomplete="off" data-member-search>
                 </div>
-                <span class="room-admin-member-count" data-member-count>ทั้งหมด <?= h((string) $room_candidate_count) ?> คน</span>
             </form>
 
-            <div class="room-admin-member-grid">
-                <?php if (empty($room_candidate_members)) : ?>
-                    <div class="booking-empty" data-member-empty>ไม่พบบุคลากร</div>
-                <?php else : ?>
-                    <?php foreach ($room_candidate_members as $member) : ?>
-                        <?php
-                        $candidate_pid = (string) ($member['pID'] ?? '');
-                        $candidate_name = trim((string) ($member['name'] ?? ''));
-                        $candidate_position = trim((string) ($member['position_name'] ?? ''));
-                        $candidate_role = trim((string) ($member['role_name'] ?? ''));
-                        $candidate_department = trim((string) ($member['department_name'] ?? ''));
-                        $candidate_phone = trim((string) ($member['telephone'] ?? ''));
-                        $search_blob = trim(implode(' ', [
-                            $candidate_name,
-                            $candidate_position,
-                            $candidate_role,
-                            $candidate_department,
-                            $candidate_phone,
-                        ]));
-                        ?>
-                        <div class="room-admin-member-card" data-member-card
-                            data-member-pid="<?= h($candidate_pid) ?>" data-member-name="<?= h($candidate_name) ?>"
-                            data-member-position="<?= h($candidate_position) ?>" data-member-role="<?= h($candidate_role) ?>"
-                            data-member-department="<?= h($candidate_department) ?>" data-member-search="<?= h($search_blob) ?>">
-                            <div class="room-admin-member-info">
-                                <div class="room-admin-member-name"><?= h($candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ') ?></div>
-                                <div class="room-admin-member-role"><?= h($candidate_position !== '' ? $candidate_position : '-') ?></div>
-                                <div class="room-admin-member-tag"><?= h($candidate_department !== '' ? $candidate_department : '-') ?></div>
-                            </div>
-                            <div class="room-admin-member-actions">
-                                <form method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="member_action" value="add">
-                                    <input type="hidden" name="member_pid" value="<?= h($candidate_pid) ?>">
-                                    <button type="button" class="btn-outline" data-member-add-btn>เพิ่ม</button>
-                                </form>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                    <div class="booking-empty hidden" data-member-empty>ไม่พบบุคลากร</div>
-                <?php endif; ?>
+            <div class="room-admin-member-count" data-member-count>
+                ทั้งหมด <?= h((string) $room_candidate_count) ?> คน
             </div>
+
+            <div class="table-responsive">
+                <table class="custom-table booking-table room-admin-member-table">
+                    <thead>
+                        <tr>
+                            <th>ชื่อ-สกุล</th>
+                            <th>กลุ่มสาระฯ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $candidate_seen = [];
+                        foreach ($room_candidate_members as $candidate):
+                            $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
+                            if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
+                                continue;
+                            }
+                            $candidate_seen[$candidate_pid] = true;
+
+                            $candidate_name = trim((string) ($candidate['name'] ?? ''));
+                            $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
+                            $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
+                            $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
+                            $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
+                            $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+
+                            $member_search = trim(implode(' ', array_filter([
+                                $candidate_pid,
+                                $candidate_name,
+                                $candidate_department,
+                                $candidate_position,
+                                $candidate_tel,
+                            ])));
+                        ?>
+                            <tr data-member-row data-member-search="<?= h($member_search) ?>">
+                                <td>
+                                    <strong><?= h($candidate_name) ?></strong>
+                                    <?php if ($candidate_position !== ''): ?>
+                                        <div class="detail-subtext"><?= h($candidate_position) ?></div>
+                                    <?php endif; ?>
+                                    <?php if ($candidate_tel !== ''): ?>
+                                        <div class="detail-subtext">โทร <?= h($candidate_tel) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span><?= h($candidate_department) ?></span></td>
+                                <td>
+                                    <div class="booking-action-group">
+                                        <form class="booking-action-form" method="POST"
+                                            action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="member_action" value="add">
+                                            <input type="hidden" name="member_pid" value="<?= h($candidate_pid) ?>">
+                                            <button type="submit" class="booking-action-btn add" data-member-add-btn>
+                                                <i class="fa-solid fa-plus"></i>
+                                                <span class="tooltip">เพิ่มสมาชิก</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+
+                        <tr class="booking-empty <?= empty($room_candidate_members) ? '' : 'hidden' ?>" data-member-empty>
+                            <td colspan="3">ไม่พบบุคลากรที่สามารถเพิ่มได้</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
 
 <div id="roomMemberConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box">
+    <div class="alert-box warning">
         <div class="alert-header">
             <div class="icon-circle"><i class="fa-solid fa-user-plus"></i></div>
         </div>

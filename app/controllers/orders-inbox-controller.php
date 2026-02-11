@@ -7,6 +7,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../modules/orders/repository.php';
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../modules/audit/logger.php';
 
 if (!function_exists('orders_inbox_index')) {
     function orders_inbox_index(): void
@@ -42,6 +43,9 @@ if (!function_exists('orders_inbox_index')) {
                 $inbox_id = (int) ($_POST['inbox_id'] ?? 0);
                 if ($action === 'archive' && $inbox_id > 0) {
                     order_archive_inbox($inbox_id, $current_pid);
+                    if (function_exists('audit_log')) {
+                        audit_log('orders', 'ARCHIVE', 'SUCCESS', 'dh_order_inboxes', $inbox_id);
+                    }
                     $alert = [
                         'type' => 'success',
                         'title' => 'จัดเก็บเรียบร้อย',

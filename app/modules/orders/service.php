@@ -7,6 +7,45 @@ require_once __DIR__ . '/../system/system.php';
 require_once __DIR__ . '/../circulars/service.php';
 require_once __DIR__ . '/../audit/logger.php';
 require_once __DIR__ . '/../../services/uploads.php';
+require_once __DIR__ . '/../../services/document-service.php';
+
+if (!function_exists('order_document_number')) {
+    function order_document_number(array $order): string
+    {
+        $orderNo = trim((string) ($order['orderNo'] ?? ''));
+        if ($orderNo !== '') {
+            return $orderNo;
+        }
+        $orderID = (int) ($order['orderID'] ?? 0);
+        return $orderID > 0 ? 'ORDER-' . $orderID : '';
+    }
+}
+
+if (!function_exists('order_sync_document')) {
+    function order_sync_document(int $orderID): ?int
+    {
+        $order = order_get($orderID);
+        if (!$order) {
+            return null;
+        }
+
+        $documentNumber = order_document_number($order);
+        if ($documentNumber === '') {
+            return null;
+        }
+
+        return document_upsert([
+            'documentType' => 'ORDER',
+            'documentNumber' => $documentNumber,
+            'subject' => (string) ($order['subject'] ?? ''),
+            'content' => (string) ($order['detail'] ?? ''),
+            'status' => (string) ($order['status'] ?? ''),
+            'senderName' => (string) ($order['creatorName'] ?? ''),
+            'createdByPID' => (string) ($order['createdByPID'] ?? ''),
+            'updatedByPID' => $order['updatedByPID'] ?? null,
+        ]);
+    }
+}
 
 if (!function_exists('order_resolve_recipients')) {
     function order_resolve_recipients(array $factionIds, array $roleIds, array $personIds): array
@@ -47,6 +86,8 @@ if (!function_exists('order_create_draft')) {
                 ]);
             }
 
+            order_sync_document($orderID);
+
             db_commit();
             audit_log('orders', 'CREATE', 'SUCCESS', 'dh_orders', $orderID);
 
@@ -76,6 +117,7 @@ if (!function_exists('order_attach_files')) {
                 'status' => ORDER_STATUS_COMPLETE,
                 'updatedByPID' => $actorPID,
             ]);
+            order_sync_document($orderID);
             db_commit();
             audit_log('orders', 'ATTACH', 'SUCCESS', 'dh_orders', $orderID);
         } catch (Throwable $e) {
@@ -110,6 +152,10 @@ if (!function_exists('order_send')) {
                 'updatedByPID' => $senderPID,
             ]);
             order_add_route($orderID, 'SEND', $senderPID, null, null);
+            $documentID = order_sync_document($orderID);
+            if ($documentID) {
+                document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
+            }
             db_commit();
             audit_log('orders', 'SEND', 'SUCCESS', 'dh_orders', $orderID);
         } catch (Throwable $e) {

@@ -28,10 +28,10 @@ This file defines the non-negotiable conventions for the workflow system. All ne
 - Position1 (organizational): Director, Deputy Director, Head of department/group, Head of unit, Teacher, Staff.
 - Position2 (system roles): Admin, Registry Officer, Vehicle Officer, Leave Officer, Facility Officer.
 - Primary sources:
-  - `dh_positions` for Position1.
+  - `position` (oID/oName) for Position1.
   - `dh_roles` for Position2.
-- Many-to-many mapping tables will be added (`dh_user_positions`, `dh_user_roles`).
-- Compatibility: `teacher.positionID` and `teacher.roleID` remain as defaults.
+- `dh_user_positions` is deprecated; use `teacher.oID` (and legacy `teacher.positionID` fallback) instead.
+- Compatibility: `teacher.oID`, `teacher.positionID`, and `teacher.roleID` remain as defaults.
 - Role keys used in code: `ADMIN`, `REGISTRY`, `VEHICLE`, `LEAVE`, `FACILITY`.
 
 ## Security Policy

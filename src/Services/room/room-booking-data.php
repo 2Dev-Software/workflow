@@ -16,7 +16,7 @@ if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;
 }
 
-$room_booking_room_list = room_booking_get_rooms($connection);
+$room_booking_room_list = room_booking_get_available_rooms($connection);
 $room_booking_rooms = room_booking_get_room_map($connection);
 $room_booking_columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
 
@@ -38,7 +38,6 @@ $select_fields = [
     'b.endTime',
     'b.attendeeCount',
     'b.status',
-    'b.statusReason',
     'b.approvedByPID',
     'b.approvedAt',
     'b.deletedAt',

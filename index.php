@@ -113,6 +113,105 @@ foreach ($vehicle_events as $date_key => $events) {
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </ul>
+                    <!-- <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <ul>
+                        <?php if (empty($announcement_items)) : ?>
+                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                        <?php else : ?>
+                            <?php foreach ($announcement_items as $announcement) : ?>
+                                <li>
+                                    <p><?= htmlspecialchars($announcement['subject'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul> -->
                 </div>
             </div>
 

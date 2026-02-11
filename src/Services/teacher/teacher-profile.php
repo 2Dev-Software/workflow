@@ -22,7 +22,7 @@ if (!($connection instanceof mysqli)) {
 if ($teacher_pid !== '') {
     try {
         $position = system_position_join($connection, 't', 'p');
-        $sql = 'SELECT t.pID, t.fName, t.fID, t.dID, t.lID, t.oID, t.positionID, t.roleID, t.telephone, t.picture, t.signature, t.status,
+        $sql = 'SELECT t.pID, t.fName, t.fID, t.dID, t.lID, t.positionID, t.roleID, t.telephone, t.picture, t.signature, t.status,
             f.fName AS faction_name,
             d.dName AS department_name,
             l.lName AS level_name,

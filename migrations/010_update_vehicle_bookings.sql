@@ -1,0 +1,18 @@
+ALTER TABLE `dh_vehicle_bookings`
+  ADD COLUMN `department` varchar(255) DEFAULT NULL AFTER `requesterPID`,
+  ADD COLUMN `purpose` text DEFAULT NULL AFTER `department`,
+  ADD COLUMN `location` text DEFAULT NULL AFTER `purpose`,
+  ADD COLUMN `passengerCount` int(11) DEFAULT NULL AFTER `location`,
+  ADD COLUMN `fuelSource` varchar(20) DEFAULT NULL AFTER `passengerCount`,
+  ADD COLUMN `writeDate` date DEFAULT NULL AFTER `fuelSource`,
+  ADD COLUMN `companionCount` int(11) DEFAULT NULL AFTER `writeDate`,
+  ADD COLUMN `companionIds` text DEFAULT NULL AFTER `companionCount`,
+  ADD COLUMN `companionNote` text DEFAULT NULL AFTER `companionIds`,
+  ADD COLUMN `requesterDisplayName` varchar(150) DEFAULT NULL AFTER `companionNote`,
+  ADD COLUMN `attachmentFileID` bigint(20) DEFAULT NULL AFTER `requesterDisplayName`,
+  ADD COLUMN `assignedByPID` varchar(13) DEFAULT NULL AFTER `driverTel`,
+  ADD COLUMN `assignedAt` datetime DEFAULT NULL AFTER `assignedByPID`,
+  ADD COLUMN `assignedNote` text DEFAULT NULL AFTER `assignedAt`,
+  ADD COLUMN `approvalNote` text DEFAULT NULL AFTER `statusReason`,
+  ADD KEY `idx_booking_assignedBy` (`assignedByPID`),
+  ADD KEY `idx_booking_department` (`department`(100));

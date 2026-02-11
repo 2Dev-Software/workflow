@@ -27,7 +27,7 @@ ob_start();
 
         <div class="custom-select-wrapper">
             <div class="custom-select-trigger">
-                <p id="select-value"><?= h($teacher_directory_display_per_page) ?></p>
+                <p id="select-value" class="select-value"><?= h($teacher_directory_display_per_page) ?></p>
                 <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
             </div>
 

@@ -120,16 +120,17 @@ ob_start();
                             <?php foreach ($teacher_directory as $teacher_item) : ?>
                                 <?php
                                 $teacher_pid = (string) ($teacher_item['pID'] ?? '');
-                                $teacher_position_id = (int) ($teacher_item['positionID'] ?? 0);
+                                $director_pid = (string) ($director_pid ?? '');
                                 $position_display = (string) ($teacher_item['position_name'] ?? '');
-                                if ($teacher_position_id === 1 && $position_display !== '' && strpos($position_display, 'ดีบุกพังงาวิทยายน') === false) {
+                                $is_director = $teacher_pid !== '' && $teacher_pid === $director_pid;
+                                if ($is_director && $position_display !== '' && strpos($position_display, 'ดีบุกพังงาวิทยายน') === false) {
                                     $position_display .= 'ดีบุกพังงาวิทยายน';
                                 }
                                 $is_current = $teacher_pid !== '' && $teacher_pid === $exec_duty_current_pid;
                                 $current_status = $is_current ? $exec_duty_current_status : 0;
                                 $status_label = $exec_duty_status_labels[$current_status] ?? ($exec_duty_status_labels[0] ?? '-');
                                 $status_active = $current_status === 1 || $current_status === 2;
-                                $action_label = $teacher_position_id === 1
+                                $action_label = $is_director
                                     ? ($exec_duty_status_labels[1] ?? 'ปฏิบัติราชการ')
                                     : ($exec_duty_status_labels[2] ?? 'รักษาราชการแทน');
                                 ?>

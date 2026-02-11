@@ -3,15 +3,57 @@
  * Level: Production
  * Structure: Module Pattern (IIFE)
  */
-window.addEventListener("load", function () {
-  const overlay = document.getElementById("preloader-overlay");
+/**
+ * Preloader safety:
+ * - Hide on DOMContentLoaded (not waiting for all images/fonts) to avoid "stuck loading".
+ * - Also try again on window load.
+ * - Guard for pages that might not include the preloader overlay.
+ */
+(function () {
+  let hidden = false;
 
-  overlay.classList.add("preloader-hidden");
+  function hidePreloader() {
+    if (hidden) return;
+    const overlay = document.getElementById("preloader-overlay");
+    if (!overlay) return;
+    hidden = true;
 
-  overlay.addEventListener("transitionend", function () {
-    overlay.remove();
-  });
-});
+    overlay.classList.add("preloader-hidden");
+
+    const removeOverlay = function () {
+      if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    };
+
+    // Remove after transition; also enforce a hard timeout to prevent it lingering.
+    // Avoid EventListenerOptions for older Safari compatibility.
+    const onTransitionEnd = function () {
+      overlay.removeEventListener("transitionend", onTransitionEnd);
+      removeOverlay();
+    };
+    overlay.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(removeOverlay, 1200);
+  }
+
+  const onDomReady = function () {
+    document.removeEventListener("DOMContentLoaded", onDomReady);
+    hidePreloader();
+  };
+  document.addEventListener("DOMContentLoaded", onDomReady);
+
+  const onWindowLoad = function () {
+    window.removeEventListener("load", onWindowLoad);
+    hidePreloader();
+  };
+  window.addEventListener("load", onWindowLoad);
+
+  // If this script is loaded after DOMContentLoaded for any reason,
+  // still ensure the preloader is hidden.
+  if (document.readyState !== "loading") {
+    window.setTimeout(hidePreloader, 0);
+  }
+})();
 
 const calendarFallbackEvents = {};
 
@@ -404,10 +446,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const paginationContainer = document.getElementById("pagination");
   const countText = document.getElementById("count-text");
 
-  const dropdownWrapper = document.querySelector(".custom-select-wrapper");
-  const dropdownTrigger = document.querySelector(".custom-select-trigger");
-  const dropdownOptions = document.querySelectorAll(".custom-option");
-  const displayValue = document.getElementById("select-value");
   const hiddenSelect = document.getElementById("real-page-select");
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -613,33 +651,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  //custom-dropdown
-  if (dropdownTrigger && dropdownWrapper) {
-    dropdownTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdownWrapper.classList.toggle("open");
-    });
-
-    dropdownOptions.forEach((option) => {
-      option.addEventListener("click", function () {
-        dropdownOptions.forEach((opt) => opt.classList.remove("selected"));
-        this.classList.add("selected");
-        if (displayValue) displayValue.textContent = this.textContent;
-        dropdownWrapper.classList.remove("open");
-
-        const val = this.getAttribute("data-value") || "10";
-        if (hiddenSelect) hiddenSelect.value = val;
-
-        state.perPage = val;
-        state.page = 1;
-        fetchDirectory();
-      });
-    });
-
-    window.addEventListener("click", (e) => {
-      if (dropdownWrapper && !dropdownWrapper.contains(e.target)) {
-        dropdownWrapper.classList.remove("open");
-      }
+  // Per-page selector:
+  // The visual dropdown is handled by the global ".custom-select-wrapper" handler below.
+  // Here we only react to the real <select> value change to refresh results.
+  if (hiddenSelect) {
+    hiddenSelect.addEventListener("change", () => {
+      state.perPage = hiddenSelect.value || "10";
+      state.page = 1;
+      fetchDirectory();
     });
   }
 
@@ -1090,6 +1109,9 @@ const departmentWrapper = document.getElementById("dept-wrapper");
 const departmentError = document.getElementById("departmentError");
 const companionCountInput = document.getElementById("companionCount");
 const passengerCountInput = document.getElementById("passengerCount");
+const passengerCountDisplay = document.querySelector(
+  "#passengerCountDisplay [data-passenger-count]"
+);
 const memberDropdown = document.getElementById("myDropdown");
 const writeDateInput = document.getElementById("writeDate");
 
@@ -1107,7 +1129,17 @@ function updateCompanionCount() {
   );
   companionCountInput.value = String(checkedBoxes.length);
   if (passengerCountInput) {
-    passengerCountInput.value = String(checkedBoxes.length + 1);
+    const minPassengers = checkedBoxes.length + 1;
+    const currentValue = parseInt(passengerCountInput.value || "0", 10);
+    if (!currentValue || currentValue < minPassengers) {
+      passengerCountInput.value = String(minPassengers);
+    }
+  }
+  if (passengerCountDisplay) {
+    const value = passengerCountInput
+      ? parseInt(passengerCountInput.value || "0", 10)
+      : checkedBoxes.length + 1;
+    passengerCountDisplay.textContent = value > 0 ? value + " คน" : "-";
   }
 }
 
@@ -1177,6 +1209,11 @@ if (endDateInput)
   });
 if (startTimeInput) startTimeInput.addEventListener("change", validateTimeRange);
 if (endTimeInput) endTimeInput.addEventListener("change", validateTimeRange);
+if (passengerCountInput) {
+  passengerCountInput.addEventListener("input", function () {
+    passengerCountInput.setCustomValidity("");
+  });
+}
 
 if (vehicleForm) {
   vehicleForm.addEventListener("submit", function (e) {
@@ -1185,6 +1222,20 @@ if (vehicleForm) {
     if (departmentInput && departmentInput.value.trim() === "") {
       setDepartmentError(true);
       hasError = true;
+    }
+
+    if (passengerCountInput && companionCountInput) {
+      const companionCount = parseInt(companionCountInput.value || "0", 10);
+      const minPassengers = companionCount + 1;
+      const currentValue = parseInt(passengerCountInput.value || "0", 10);
+      if (currentValue < minPassengers) {
+        passengerCountInput.setCustomValidity(
+          `จำนวนผู้เดินทางต้องไม่น้อยกว่า ${minPassengers} คน`
+        );
+        hasError = true;
+      } else {
+        passengerCountInput.setCustomValidity("");
+      }
     }
 
     validateTimeRange();
@@ -1269,39 +1320,13 @@ function renderAttachmentList() {
 
   selectedAttachments.forEach((file, index) => {
     const item = document.createElement("div");
-    item.className = "attachment-item";
-
-    const meta = document.createElement("div");
-    meta.className = "attachment-meta";
-
-    const name = document.createElement("span");
-    name.className = "attachment-name";
-    name.textContent = file.name;
-
-    const size = document.createElement("span");
-    size.className = "attachment-size";
-    size.textContent = formatFileSize(file.size);
-
-    meta.appendChild(name);
-    meta.appendChild(size);
-
-    const actions = document.createElement("div");
-    actions.className = "attachment-actions";
-
-    const viewBtn = document.createElement("button");
-    viewBtn.type = "button";
-    viewBtn.className = "attachment-action view";
-    viewBtn.textContent = "ดูไฟล์";
-    viewBtn.addEventListener("click", () => {
-      const url = URL.createObjectURL(file);
-      window.open(url, "_blank", "noopener");
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
+    item.className = "file-item-wrapper";
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "attachment-action remove";
-    removeBtn.textContent = "ลบไฟล์";
+    removeBtn.className = "delete-btn";
+    removeBtn.innerHTML =
+      '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
     removeBtn.addEventListener("click", () => {
       selectedAttachments = selectedAttachments.filter((_, i) => i !== index);
       syncAttachmentInput();
@@ -1309,11 +1334,65 @@ function renderAttachmentList() {
       setAttachmentError("");
     });
 
-    actions.appendChild(viewBtn);
-    actions.appendChild(removeBtn);
+    const banner = document.createElement("div");
+    banner.className = "file-banner";
 
-    item.appendChild(meta);
-    item.appendChild(actions);
+    const info = document.createElement("div");
+    info.className = "file-info";
+
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "file-icon";
+
+    const icon = document.createElement("i");
+    const isPdf = file.type === "application/pdf";
+    const isImage =
+      file.type === "image/jpeg" || file.type === "image/png";
+    icon.className = isPdf
+      ? "fa-solid fa-file-pdf"
+      : isImage
+      ? "fa-solid fa-file-image"
+      : "fa-solid fa-file";
+    icon.setAttribute("aria-hidden", "true");
+    iconWrap.appendChild(icon);
+
+    const text = document.createElement("div");
+    text.className = "file-text";
+
+    const name = document.createElement("span");
+    name.className = "file-name";
+    name.textContent = file.name;
+
+    const type = document.createElement("span");
+    type.className = "file-type";
+    type.textContent = file.type || "file";
+
+    text.appendChild(name);
+    text.appendChild(type);
+
+    info.appendChild(iconWrap);
+    info.appendChild(text);
+
+    const actions = document.createElement("div");
+    actions.className = "file-actions";
+
+    const viewLink = document.createElement("a");
+    viewLink.href = "javascript:void(0)";
+    viewLink.className = "action-btn";
+    viewLink.title = "ดูตัวอย่าง";
+    viewLink.innerHTML =
+      '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+    viewLink.addEventListener("click", () => {
+      const url = URL.createObjectURL(file);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    actions.appendChild(viewLink);
+    banner.appendChild(info);
+    banner.appendChild(actions);
+
+    item.appendChild(removeBtn);
+    item.appendChild(banner);
     attachmentList.appendChild(item);
   });
 }
@@ -1383,10 +1462,72 @@ document.addEventListener("DOMContentLoaded", function () {
     const trigger = wrapper.querySelector(".custom-select-trigger");
     const options = wrapper.querySelectorAll(".custom-option");
     const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+    const selectInput = wrapper.querySelector("select");
     const valueDisplay = wrapper.querySelector(".select-value");
+    const defaultLabel = valueDisplay ? valueDisplay.textContent : "";
+
+    const isDisabled = () => {
+      if (selectInput && selectInput.disabled) return true;
+      if (hiddenInput && hiddenInput.disabled) return true;
+      return false;
+    };
+
+    const getValue = () => {
+      if (hiddenInput) {
+        return hiddenInput.value;
+      }
+      if (selectInput) {
+        return selectInput.value;
+      }
+      return "";
+    };
+
+    const setValue = (value) => {
+      if (hiddenInput) {
+        hiddenInput.value = value;
+      }
+      if (selectInput) {
+        selectInput.value = value;
+        selectInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    };
+
+    const syncDisplay = () => {
+      wrapper.classList.toggle("is-disabled", isDisabled());
+      if (!valueDisplay) return;
+      const currentValue = getValue();
+      let matchedOption = null;
+      options.forEach((option) => {
+        const isMatch = option.getAttribute("data-value") === currentValue;
+        option.classList.toggle("selected", isMatch);
+        if (isMatch) {
+          matchedOption = option;
+        }
+      });
+
+      if (matchedOption) {
+        valueDisplay.textContent = matchedOption.textContent;
+        return;
+      }
+
+      if (selectInput && selectInput.selectedIndex >= 0) {
+        const selectedOption = selectInput.options[selectInput.selectedIndex];
+        if (selectedOption && selectedOption.textContent) {
+          valueDisplay.textContent = selectedOption.textContent;
+          return;
+        }
+      }
+
+      valueDisplay.textContent = defaultLabel;
+    };
 
     if (trigger) {
       trigger.addEventListener("click", function (e) {
+        if (isDisabled()) {
+          wrapper.classList.remove("open");
+          e.stopPropagation();
+          return;
+        }
         document.querySelectorAll(".custom-select-wrapper").forEach((w) => {
           if (w !== wrapper) w.classList.remove("open");
         });
@@ -1397,19 +1538,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     options.forEach((option) => {
       option.addEventListener("click", function (e) {
-        valueDisplay.textContent = this.textContent;
-
-        if (hiddenInput) {
-          hiddenInput.value = this.getAttribute("data-value");
+        if (isDisabled()) {
+          wrapper.classList.remove("open");
+          e.stopPropagation();
+          return;
         }
-
-        options.forEach((opt) => opt.classList.remove("selected"));
-        this.classList.add("selected");
-
+        setValue(this.getAttribute("data-value"));
+        syncDisplay();
         wrapper.classList.remove("open");
         e.stopPropagation();
       });
     });
+
+    if (selectInput) {
+      selectInput.addEventListener("change", function () {
+        syncDisplay();
+      });
+    }
+
+    syncDisplay();
   });
 
   window.addEventListener("click", function () {

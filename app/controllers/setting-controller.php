@@ -18,7 +18,7 @@ if (!function_exists('setting_index')) {
         $teacher_directory_filter_did = 12;
         $teacher_directory_per_page = 'all';
         $teacher_directory_query = '';
-        $teacher_directory_order_by = 'positionID';
+        $teacher_directory_order_by = 'position';
         require_once __DIR__ . '/../../src/Services/teacher/teacher-directory.php';
 
         $currentThaiYear = (int) date('Y') + 543;
@@ -37,6 +37,7 @@ if (!function_exists('setting_index')) {
         $exec_duty = system_get_exec_duty();
         $exec_duty_current_pid = (string) ($exec_duty['pID'] ?? '');
         $exec_duty_current_status = (int) ($exec_duty['dutyStatus'] ?? 0);
+        $director_pid = system_get_director_pid() ?? '';
 
         $setting_alert = $_SESSION['setting_alert'] ?? null;
         unset($_SESSION['setting_alert']);
@@ -69,6 +70,7 @@ if (!function_exists('setting_index')) {
             'exec_duty_status_labels' => $exec_duty_status_labels,
             'exec_duty_current_pid' => $exec_duty_current_pid,
             'exec_duty_current_status' => $exec_duty_current_status,
+            'director_pid' => $director_pid,
         ]);
     }
 }

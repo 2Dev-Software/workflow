@@ -40,7 +40,10 @@ if (!function_exists('audit_log')) {
 
         $numeric_pid = null;
         if ($actor_pid !== '' && ctype_digit($actor_pid)) {
-            $numeric_pid = (int) $actor_pid;
+            // dh_logs.pID is unsigned int(10); guard against overflow in strict SQL mode.
+            if (strlen($actor_pid) <= 10 && $actor_pid <= '4294967295') {
+                $numeric_pid = (int) $actor_pid;
+            }
         }
 
         $has_actor_pid = db_column_exists($connection, 'dh_logs', 'actorPID');
@@ -62,14 +65,22 @@ if (!function_exists('audit_log')) {
         }
 
         if ($has_session_id) {
+            $session_id = session_id();
+            if (strlen($session_id) > 64) {
+                $session_id = substr($session_id, 0, 64);
+            }
             $columns[] = 'sessionID';
-            $values[] = session_id();
+            $values[] = $session_id;
             $types .= 's';
         }
 
         if ($has_request_id) {
+            $request_id = app_request_id();
+            if (strlen($request_id) > 26) {
+                $request_id = substr($request_id, 0, 26);
+            }
             $columns[] = 'requestID';
-            $values[] = app_request_id();
+            $values[] = $request_id;
             $types .= 's';
         }
 
