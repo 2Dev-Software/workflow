@@ -96,10 +96,10 @@ $receipt_unread = max(0, $receipt_total - $receipt_read);
 
 ob_start();
 ?>
-<div class="content-header">
+<!-- <div class="content-header">
     <h1>หนังสือเวียนของฉัน</h1>
     <p>ติดตามการส่ง ดึงกลับ และสถานะการอ่านของผู้รับ</p>
-</div>
+</div> -->
 
 <style>
     .circular-my-summary-grid {
@@ -130,10 +130,13 @@ ob_start();
     }
 
     .circular-my-filter-grid {
-        display: grid;
-        grid-template-columns: 1.5fr 0.7fr 0.8fr 0.8fr 0.6fr auto auto;
-        gap: 10px;
-        align-items: end;
+        display: flex;
+        /* grid-template-columns: 1.5fr 0.7fr 0.8fr 0.8fr 0.6fr auto auto; */
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+        flex-direction: row;
+        margin: 0 0 40px;
     }
 
     .circular-my-filter-field {
@@ -157,6 +160,15 @@ ob_start();
         vertical-align: top;
     }
 
+    .circular-my-table td:nth-child(n+2) {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .circular-my-table th:nth-child(n+5) {
+        text-align: center;
+    }
+
     .circular-my-subject {
         min-width: 260px;
         max-width: 380px;
@@ -167,7 +179,7 @@ ob_start();
     }
 
     .circular-my-meta {
-        color: var(--color-neutral-medium);
+        color: var(--color-neutral-dark);
         font-size: var(--font-size-desc-2);
         margin-top: 2px;
     }
@@ -175,8 +187,9 @@ ob_start();
     .circular-my-actions {
         display: flex;
         flex-wrap: wrap;
+        justify-content: center;
         gap: 6px;
-        min-width: 220px;
+        min-width: 0px;
     }
 
     .circular-my-actions form {
@@ -185,9 +198,9 @@ ob_start();
 
     .circular-my-actions .btn,
     .circular-my-actions .c-button {
-        height: 34px;
-        padding: 0 12px;
-        min-width: auto;
+        /* height: 34px; */
+        /* padding: 0 12px; */
+        /* min-width: auto; */
     }
 
     .circular-my-receipt-summary {
@@ -262,94 +275,71 @@ ob_start();
 <section class="enterprise-card">
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">สรุปภาพรวม</h2>
-            <p class="enterprise-card-subtitle">ข้อมูลหนังสือเวียนที่คุณเป็นผู้ส่ง</p>
-        </div>
-    </div>
-    <div class="circular-my-summary-grid">
-        <div class="circular-my-summary-card">
-            <p>ทั้งหมด</p>
-            <h3><?= h((string) $summary_total) ?></h3>
-        </div>
-        <div class="circular-my-summary-card">
-            <p>ส่งแล้ว</p>
-            <h3><?= h((string) $summary_sent) ?></h3>
-        </div>
-        <div class="circular-my-summary-card">
-            <p>ดึงกลับ</p>
-            <h3><?= h((string) $summary_recalled) ?></h3>
-        </div>
-        <div class="circular-my-summary-card">
-            <p>อ่านครบทุกผู้รับ</p>
-            <h3><?= h((string) $summary_read_complete) ?></h3>
-        </div>
-    </div>
-</section>
-
-<section class="enterprise-card">
-    <div class="enterprise-card-header">
-        <div class="enterprise-card-title-group">
             <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
-            <p class="enterprise-card-subtitle">ปรับมุมมองให้ตรงรายการที่ต้องการติดตาม</p>
         </div>
     </div>
 
     <form method="GET" class="circular-my-filter-grid">
-        <div class="circular-my-filter-field">
-            <label for="circularQ">ค้นหา</label>
-            <input class="form-input" id="circularQ" type="text" name="q" value="<?= h($filter_query) ?>" placeholder="ค้นหาจากเลขที่หรือหัวเรื่อง">
+        <div class="approval-filter-group">
+            <div class="room-admin-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input class="form-input" type="search" name="q" value=""
+                    placeholder="ค้นหาชื่อผู้จอง/ห้อง/หัวข้อ" autocomplete="off">
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value">ทั้งหมด</p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <div class="custom-option" data-value="all">ทั้งหมด</div>
+                        <div class="custom-option" data-value="pending">ส่งแล้ว</div>
+                        <div class="custom-option" data-value="pending">ส่งแล้ว</div>
+                        <div class="custom-option" data-value="approved">อนุมัติแล้ว</div>
+                        <div class="custom-option" data-value="approved">อนุมัติแล้ว</div>
+                        <div class="custom-option" data-value="rejected">ไม่อนุมัติ/ยกเลิก</div>
+                        <div class="custom-option" data-value="rejected">ไม่อนุมัติ/ยกเลิก</div>
+                    </div>
+
+                    <select class="form-input" name="status">
+                        <option value="all" <?= $room_booking_approval_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
+                        <option value="pending" <?= $room_booking_approval_status === 'pending' ? 'selected' : '' ?>>ส่งแล้ว</option>
+                        <option value="pending" <?= $room_booking_approval_status === 'pending' ? 'selected' : '' ?>>ส่งแล้ว</option>
+                        <option value="approved" <?= $room_booking_approval_status === 'approved' ? 'selected' : '' ?>>อนุมัติแล้ว</option>
+                        <option value="approved" <?= $room_booking_approval_status === 'approved' ? 'selected' : '' ?>>อนุมัติแล้ว</option>
+                        <option value="rejected" <?= $room_booking_approval_status === 'rejected' ? 'selected' : '' ?>>ไม่อนุมัติ/ยกเลิก</option>
+                        <option value="rejected" <?= $room_booking_approval_status === 'rejected' ? 'selected' : '' ?>>ไม่อนุมัติ/ยกเลิก</option>
+                    </select>
+                </div>
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value">ใหม่ไปเก่า</p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <div class="custom-option" data-value="all">ใหม่ไปเก่า</div>
+                        <div class="custom-option" data-value="pending">เก่าไปใหม่</div>
+                    </div>
+
+                    <select class="form-input" name="status">
+                        <option value="all" <?= $room_booking_approval_status === 'all' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
+                        <option value="pending" <?= $room_booking_approval_status === 'pending' ? 'selected' : '' ?>>เก่าไปใหม่</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <div class="circular-my-filter-field">
-            <label for="circularType">ประเภท</label>
-            <select class="form-input" id="circularType" name="type">
-                <option value="all"<?= $filter_type === 'all' ? ' selected' : '' ?>>ทั้งหมด</option>
-                <option value="internal"<?= $filter_type === 'internal' ? ' selected' : '' ?>>ภายใน</option>
-                <option value="external"<?= $filter_type === 'external' ? ' selected' : '' ?>>ภายนอก</option>
-            </select>
-        </div>
-
-        <div class="circular-my-filter-field">
-            <label for="circularStatus">สถานะ</label>
-            <select class="form-input" id="circularStatus" name="status">
-                <option value="all"<?= $filter_status === 'all' ? ' selected' : '' ?>>ทั้งหมด</option>
-                <option value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>"<?= $filter_status === strtolower(INTERNAL_STATUS_SENT) ? ' selected' : '' ?>>ส่งแล้ว</option>
-                <option value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>"<?= $filter_status === strtolower(INTERNAL_STATUS_RECALLED) ? ' selected' : '' ?>>ดึงกลับ</option>
-                <option value="<?= h(strtolower(INTERNAL_STATUS_ARCHIVED)) ?>"<?= $filter_status === strtolower(INTERNAL_STATUS_ARCHIVED) ? ' selected' : '' ?>>จัดเก็บ</option>
-            </select>
-        </div>
-
-        <div class="circular-my-filter-field">
-            <label for="circularSort">เรียงตาม</label>
-            <select class="form-input" id="circularSort" name="sort">
-                <option value="newest"<?= $filter_sort === 'newest' ? ' selected' : '' ?>>ใหม่ไปเก่า</option>
-                <option value="oldest"<?= $filter_sort === 'oldest' ? ' selected' : '' ?>>เก่าไปใหม่</option>
-            </select>
-        </div>
-
-        <div class="circular-my-filter-field">
-            <label for="circularPerPage">จำนวน/หน้า</label>
-            <select class="form-input" id="circularPerPage" name="per_page">
-                <option value="10"<?= $per_page === 10 ? ' selected' : '' ?>>10</option>
-                <option value="20"<?= $per_page === 20 ? ' selected' : '' ?>>20</option>
-                <option value="50"<?= $per_page === 50 ? ' selected' : '' ?>>50</option>
-            </select>
-        </div>
-
-        <div class="circular-my-filter-actions">
-            <button type="submit" class="btn">ค้นหา</button>
-        </div>
-        <div class="circular-my-filter-actions">
-            <a class="c-button c-button--sm btn-outline" href="circular-sent.php">ล้างตัวกรอง</a>
-        </div>
     </form>
-</section>
 
-<section class="enterprise-card">
+    <!-- <section class="enterprise-card"> -->
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
             <h2 class="enterprise-card-title">รายการหนังสือเวียนของฉัน</h2>
-            <p class="enterprise-card-subtitle">พบ <?= h((string) $filtered_total) ?> รายการ</p>
         </div>
     </div>
 
@@ -357,9 +347,7 @@ ob_start();
         <table class="custom-table circular-my-table">
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>เรื่อง</th>
-                    <th>ประเภท</th>
                     <th>สถานะ</th>
                     <th>อ่านแล้ว/ทั้งหมด</th>
                     <th>วันที่ส่ง</th>
@@ -389,19 +377,17 @@ ob_start();
                         ]);
                         ?>
                         <tr>
-                            <td><?= h((string) $circular_id) ?></td>
                             <td>
                                 <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
                                 <?php if (!empty($item['senderFactionName'])) : ?>
                                     <div class="circular-my-meta">ในนาม <?= h((string) $item['senderFactionName']) ?></div>
                                 <?php endif; ?>
                             </td>
-                            <td><?= h((string) $type_label) ?></td>
+
                             <td>
-                                <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>">
-                                    <?= h((string) ($status_meta['label'] ?? '-')) ?>
-                                </span>
+                                <span class="status-pill approved">ส่งแล้ว</span>
                             </td>
+
                             <td><?= h((string) $read_count) ?>/<?= h((string) $recipient_count) ?></td>
                             <td><?= h($date_display) ?></td>
                             <td>
@@ -411,7 +397,22 @@ ob_start();
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="recall">
                                             <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
-                                            <button type="submit" class="btn">ดึงกลับ</button>
+                                            <button type="submit" class="booking-action-btn secondary">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                                <span class="tooltip">ดึงกลับ</span>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+
+                                    <?php if ($item_type === 'EXTERNAL' && $status_key === EXTERNAL_STATUS_PENDING_REVIEW) : ?>
+                                        <form method="POST">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="recall_external">
+                                            <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
+                                            <button type="submit" class="booking-action-btn secondary">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                                <span class="tooltip">ดึงกลับ</span>
+                                            </button>
                                         </form>
                                     <?php endif; ?>
 
@@ -420,12 +421,28 @@ ob_start();
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="resend">
                                             <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
-                                            <button type="submit" class="btn">ส่งใหม่</button>
+                                            <button type="submit" class="booking-action-btn secondary">
+                                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                                <span class="tooltip">ส่งใหม่</span>
+                                            </button>
                                         </form>
-                                        <a class="c-button c-button--sm btn-outline" href="circular-compose.php?edit=<?= h((string) $circular_id) ?>">แก้ไข</a>
+                                        <a class="c-button c-button--sm booking-action-btn secondary" href="circular-compose.php?edit=<?= h((string) $circular_id) ?>">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">แก้ไข</span>
+                                        </a>
                                     <?php endif; ?>
 
-                                    <a class="c-button c-button--sm btn-outline" href="<?= h($receipt_url) ?>">สถานะการอ่าน</a>
+                                    <?php if ($item_type === 'EXTERNAL' && $status_key === EXTERNAL_STATUS_SUBMITTED) : ?>
+                                        <a class="c-button c-button--sm btn-outline" href="outgoing-receive.php?edit=<?= h((string) $circular_id) ?>">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">แก้ไขส่งใหม่</span>
+                                        </a>
+                                    <?php endif; ?>
+
+                                    <a class="c-button c-button--sm booking-action-btn secondary" href="<?= h($receipt_url) ?>">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -436,15 +453,17 @@ ob_start();
     </div>
 
     <?php
-    $pagination_url = $build_url(['page' => null, 'receipt' => null]);
-    component_render('pagination', [
-        'page' => $page,
-        'total_pages' => $total_pages,
-        'base_url' => $pagination_url,
-        'class' => 'u-mt-2',
-    ]);
+    // $pagination_url = $build_url(['page' => null, 'receipt' => null]);
+    // component_render('pagination', [
+    //     'page' => $page,
+    //     'total_pages' => $total_pages,
+    //     'base_url' => $pagination_url,
+    //     'class' => 'u-mt-2',
+    // ]);
     ?>
 </section>
+
+<!-- </section> -->
 
 <?php if ($receipt_circular_id > 0) : ?>
     <section class="enterprise-card">

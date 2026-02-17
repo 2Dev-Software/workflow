@@ -9,6 +9,7 @@
     document.querySelectorAll(".custom-select-wrapper").forEach(function (wrapper) {
       var targetId = wrapper.getAttribute("data-target") || "";
       var input = targetId ? document.getElementById(targetId) : null;
+      var nativeSelect = wrapper.querySelector("select");
       var options = wrapper.querySelectorAll(".custom-option");
       var valueDisplay = wrapper.querySelector(".select-value");
 
@@ -18,10 +19,15 @@
           if (input) {
             input.value = value;
           }
+          if (nativeSelect) {
+            nativeSelect.value = value;
+          }
           if (valueDisplay) {
             valueDisplay.textContent = option.textContent.trim();
           }
-          filterForm.submit();
+          if (input) {
+            filterForm.submit();
+          }
         });
       });
     });
@@ -287,7 +293,15 @@
           button.getAttribute("data-type") || "ประเภทหนังสือ";
       }
       if (modalSubject) {
-        modalSubject.textContent = button.getAttribute("data-subject") || "-";
+        var subjectValue = button.getAttribute("data-subject") || "-";
+        if (
+          modalSubject.tagName === "INPUT" ||
+          modalSubject.tagName === "TEXTAREA"
+        ) {
+          modalSubject.value = subjectValue;
+        } else {
+          modalSubject.textContent = subjectValue;
+        }
       }
       if (modalSender) {
         modalSender.textContent = button.getAttribute("data-sender") || "-";

@@ -213,12 +213,18 @@ ob_start();
                                 </td>
                                 <td class="room-admin-actions-cell">
                                     <div class="booking-action-group">
-                                        <button type="button" class="booking-action-btn secondary" data-vehicle-edit="true">แก้ไข</button>
+                                        <button type="button" class="booking-action-btn secondary" data-vehicle-edit="true">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">แก้ไขข้อมูล</span>
+                                        </button>
                                         <form method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>" data-vehicle-delete-form>
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="vehicle_action" value="delete">
                                             <input type="hidden" name="vehicle_id" value="<?= h((string) $vehicle_id) ?>">
-                                            <button type="button" class="booking-action-btn danger" data-vehicle-delete-btn>ลบ</button>
+                                            <button type="button" class="booking-action-btn danger" data-vehicle-delete-btn>
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>
@@ -286,7 +292,10 @@ ob_start();
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="member_action" value="remove">
                                             <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
-                                            <button type="submit" class="booking-action-btn danger">ลบ</button>
+                                            <button type="submit" class="booking-action-btn danger">
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>
@@ -370,7 +379,7 @@ ob_start();
                         ?>
                             <option value="<?php //h((string) $status_option) 
                                             ?>" <?php //$status_option === $form_values['vehicleStatus'] ? 'selected' : '' 
-                                                                                    ?>>
+                                                ?>>
                                 <?php //h((string) $status_option) 
                                 ?>
                             </option>
@@ -524,7 +533,7 @@ ob_start();
                                 $candidate_position,
                                 $candidate_tel,
                             ])));
-                            ?>
+                        ?>
                             <tr data-member-row data-member-search="<?= h($member_search) ?>">
                                 <td>
                                     <strong><?= h($candidate_name) ?></strong>

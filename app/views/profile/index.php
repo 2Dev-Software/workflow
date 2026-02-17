@@ -20,7 +20,7 @@ ob_start();
 
 <div class="profile-header">
     <div class="profile-pic-wrapper" data-action="profile-image-open">
-        <div class="profile-pic" id="mainProfilePic"<?= $profile_picture !== '' ? ' style="background-image: url(\'' . h($profile_picture) . '\');"' : '' ?>>
+        <div class="profile-pic" id="mainProfilePic" <?= $profile_picture !== '' ? ' style="background-image: url(\'' . h($profile_picture) . '\');"' : '' ?>>
             <div class="profile-overlay" data-action="profile-image-file-open">
                 <i class="fa-solid fa-camera"></i>
             </div>
@@ -34,20 +34,23 @@ ob_start();
         <form class="modal-body upload-body" id="profileImageForm" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <input type="hidden" name="profile_image_upload" value="1">
+
+            <input type="hidden" name="cropped_image_data" id="croppedImageData">
+
             <div class="preview-container" id="previewContainer" data-action="profile-image-file-open">
-                <img id="imagePreview" src="#" alt="Preview" class="hidden">
+                <img id="imagePreview" src="#" alt="Preview" class="hidden" style="max-width: 100%; display: block;">
                 <p id="previewPlaceholder">เลือกรูปภาพ</p>
             </div>
 
-            <input type="file" id="profileFileInput" name="profile_image" hidden accept="image/png, image/jpeg" required>
-
+            <input type="file" id="profileFileInput" name="profile_image" hidden accept="image/png, image/jpeg">
             <div class="file-hint">รองรับไฟล์นามสกุล .JPG , .PNG เท่านั้น ขนาดไม่เกิน 2MB</div>
 
             <div class="modal-button-content upload-actions">
-                <button type="button" class="btn-confirm" data-action="profile-image-confirm">ยืนยัน</button>
+                <button type="button" class="btn-confirm" id="btnConfirmCrop">ยืนยัน</button>
                 <button type="button" class="btn-confirm btn-cancel" data-action="profile-image-cancel">ยกเลิก</button>
             </div>
         </form>
+
     </div>
 </div>
 
@@ -109,7 +112,7 @@ ob_start();
         <div class="signature-content">
             <div class="signature-box" id="mainSignatureBox">
                 <img id="mainSignatureImg" src="<?= h($signature_path) ?>" alt="Signature" class="<?= $signature_path !== '' ? '' : 'hidden' ?>">
-                <p id="noSignatureText"<?= $signature_path !== '' ? ' style="display:none;"' : '' ?>>ไม่มีลายเซ็นในระบบ</p>
+                <p id="noSignatureText" <?= $signature_path !== '' ? ' style="display:none;"' : '' ?>>ไม่มีลายเซ็นในระบบ</p>
             </div>
             <div class="signature-field">
                 <button class="btn-upload" data-action="signature-file-open">
@@ -122,21 +125,21 @@ ob_start();
 
     <div class="modal-overlay hidden" id="signatureModal">
         <div class="modal-content upload-modal">
-        <form class="modal-body upload-body" id="signatureUploadForm" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>" enctype="multipart/form-data">
-            <?= csrf_field() ?>
-            <input type="hidden" name="signature_upload" value="1">
-            <div class="preview-container rectangle-preview" id="signaturePreviewContainer">
-                <img id="signaturePreview" src="#" alt="Signature Preview" class="hidden">
-            </div>
+            <form class="modal-body upload-body" id="signatureUploadForm" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <input type="hidden" name="signature_upload" value="1">
+                <div class="preview-container rectangle-preview" id="signaturePreviewContainer">
+                    <img id="signaturePreview" src="#" alt="Signature Preview" class="hidden">
+                </div>
 
-            <input type="file" id="signatureFileInput" name="signature_file" hidden accept="image/png, image/jpeg" required>
+                <input type="file" id="signatureFileInput" name="signature_file" hidden accept="image/png, image/jpeg" required>
 
-            <div class="modal-button-content upload-actions">
-                <button type="submit" class="btn-confirm">ยืนยัน</button>
-                <button type="button" class="btn-confirm btn-cancel" data-action="signature-cancel">ยกเลิก</button>
-            </div>
-        </form>
-    </div>
+                <div class="modal-button-content upload-actions">
+                    <button type="submit" class="btn-confirm">ยืนยัน</button>
+                    <button type="button" class="btn-confirm btn-cancel" data-action="signature-cancel">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div id="password" class="tab-content<?= $active_tab === 'password' ? ' active' : '' ?>">

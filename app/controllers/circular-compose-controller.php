@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../src/Services/security/security-service.php';
 require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../modules/circulars/service.php';
+require_once __DIR__ . '/../modules/circulars/repository.php';
 require_once __DIR__ . '/../modules/users/lists.php';
 require_once __DIR__ . '/../modules/system/system.php';
 
@@ -31,11 +32,26 @@ if (!function_exists('circular_compose_uploaded_files_count')) {
     }
 }
 
+if (!function_exists('circular_compose_normalize_search')) {
+    function circular_compose_normalize_search(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = preg_replace('/\s+/u', '', $value) ?? '';
+        $value = preg_replace('/[^0-9a-zก-๙]/u', '', $value) ?? '';
+        return $value;
+    }
+}
+
 if (!function_exists('circular_compose_index')) {
     function circular_compose_index(): void
     {
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
+        $receipt_circular_id = isset($_GET['receipt']) ? (int) $_GET['receipt'] : 0;
+        $receipt_stats = [];
+        $receipt_subject = '';
+        $receipt_sender_faction = '';
+        $active_tab = trim((string) ($_GET['tab'] ?? '')) === 'track' ? 'track' : 'compose';
 
         $factions = user_list_factions();
         $teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid): bool {
@@ -46,6 +62,44 @@ if (!function_exists('circular_compose_index')) {
 
             return ctype_digit($pid);
         }));
+
+        $ajax_mode = trim((string) ($_GET['ajax'] ?? ''));
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && $ajax_mode === 'recipient_search') {
+            $query = trim((string) ($_GET['q'] ?? ''));
+            $normalized_query = circular_compose_normalize_search($query);
+            $matched_pids = [];
+
+            if ($normalized_query !== '') {
+                foreach ($teachers as $teacher) {
+                    $pid = trim((string) ($teacher['pID'] ?? ''));
+                    if ($pid === '') {
+                        continue;
+                    }
+
+                    $search_text = circular_compose_normalize_search(
+                        implode(' ', [
+                            (string) ($teacher['fName'] ?? ''),
+                            (string) ($teacher['factionName'] ?? ''),
+                            (string) ($teacher['departmentName'] ?? ''),
+                            $pid,
+                        ])
+                    );
+
+                    if ($search_text !== '' && strpos($search_text, $normalized_query) !== false) {
+                        $matched_pids[] = $pid;
+                    }
+                }
+            }
+
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                'ok' => true,
+                'q' => $query,
+                'total' => count($matched_pids),
+                'pids' => array_values(array_unique($matched_pids)),
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
 
         $sender_from_fid = (int) ($current_user['fID'] ?? 0);
 
@@ -124,6 +178,31 @@ if (!function_exists('circular_compose_index')) {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $post_action = trim((string) ($_POST['action'] ?? ''));
+            if ($post_action !== '') {
+                $active_tab = 'track';
+                if (!csrf_validate($_POST['csrf_token'] ?? null)) {
+                    $alert = ['type' => 'danger', 'title' => 'ไม่สามารถยืนยันความปลอดภัย', 'message' => 'กรุณาลองใหม่อีกครั้ง'];
+                } else {
+                    $circular_id = isset($_POST['circular_id']) ? (int) $_POST['circular_id'] : 0;
+                    if ($post_action === 'recall' && $circular_id > 0) {
+                        $ok = circular_recall_internal($circular_id, $current_pid);
+                        $alert = $ok
+                            ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => '']
+                            : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'มีผู้รับอ่านแล้ว'];
+                    } elseif ($post_action === 'recall_external' && $circular_id > 0) {
+                        $ok = circular_recall_external_before_review($circular_id, $current_pid);
+                        $alert = $ok
+                            ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => 'สามารถแก้ไขและส่งใหม่ได้']
+                            : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'เอกสารถูกพิจารณาแล้วหรือไม่ใช่สิทธิ์ของคุณ'];
+                    } elseif ($post_action === 'resend' && $circular_id > 0) {
+                        $ok = circular_resend_internal($circular_id, $current_pid);
+                        $alert = $ok
+                            ? ['type' => 'success', 'title' => 'ส่งใหม่เรียบร้อย', 'message' => '']
+                            : ['type' => 'warning', 'title' => 'ไม่สามารถส่งใหม่ได้', 'message' => ''];
+                    }
+                }
+            } else {
             $values['subject'] = trim((string) ($_POST['subject'] ?? ''));
             $values['detail'] = trim((string) ($_POST['detail'] ?? ''));
             $values['linkURL'] = trim((string) ($_POST['linkURL'] ?? ''));
@@ -248,7 +327,112 @@ if (!function_exists('circular_compose_index')) {
                     $alert = ['type' => 'danger', 'title' => 'เกิดข้อผิดพลาด', 'message' => $e->getMessage()];
                 }
             }
+            }
         }
+
+        $filter_query = trim((string) ($_GET['q'] ?? ''));
+        $filter_status = strtoupper(trim((string) ($_GET['status'] ?? 'ALL')));
+        $filter_sort = strtolower(trim((string) ($_GET['sort'] ?? 'newest')));
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $per_page = (int) ($_GET['per_page'] ?? 10);
+
+        $allowed_statuses = [
+            'ALL',
+            INTERNAL_STATUS_SENT,
+            INTERNAL_STATUS_RECALLED,
+            EXTERNAL_STATUS_SUBMITTED,
+            EXTERNAL_STATUS_PENDING_REVIEW,
+            EXTERNAL_STATUS_REVIEWED,
+            EXTERNAL_STATUS_FORWARDED,
+        ];
+        if (!in_array($filter_status, $allowed_statuses, true)) {
+            $filter_status = 'ALL';
+        }
+
+        if (!in_array($filter_sort, ['newest', 'oldest'], true)) {
+            $filter_sort = 'newest';
+        }
+
+        if (!in_array($per_page, [10, 20, 50], true)) {
+            $per_page = 10;
+        }
+
+        if ($filter_query !== '' || $filter_status !== 'ALL' || $filter_sort !== 'newest' || isset($_GET['page'])) {
+            $active_tab = 'track';
+        }
+
+        $all_items = circular_list_sent($current_pid);
+        if ($receipt_circular_id > 0) {
+            foreach ($all_items as $sent_item) {
+                if ((int) ($sent_item['circularID'] ?? 0) === $receipt_circular_id) {
+                    $receipt_subject = (string) ($sent_item['subject'] ?? '');
+                    $receipt_sender_faction = (string) ($sent_item['senderFactionName'] ?? '');
+                    $receipt_stats = circular_get_read_stats($receipt_circular_id);
+                    break;
+                }
+            }
+        }
+        $filtered_items = array_values(array_filter($all_items, static function (array $item) use ($filter_status, $filter_query): bool {
+            $item_status = strtoupper(trim((string) ($item['status'] ?? '')));
+            $subject = (string) ($item['subject'] ?? '');
+            $circular_id = (string) (int) ($item['circularID'] ?? 0);
+
+            if ($filter_status !== 'ALL' && $item_status !== $filter_status) {
+                return false;
+            }
+            if ($filter_query !== '') {
+                $haystack = (function_exists('mb_strtolower') ? mb_strtolower($subject . ' ' . $circular_id, 'UTF-8') : strtolower($subject . ' ' . $circular_id));
+                $needle = (function_exists('mb_strtolower') ? mb_strtolower($filter_query, 'UTF-8') : strtolower($filter_query));
+                $position = function_exists('mb_strpos') ? mb_strpos($haystack, $needle, 0, 'UTF-8') : strpos($haystack, $needle);
+                if ($position === false) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+
+        usort($filtered_items, static function (array $a, array $b) use ($filter_sort): int {
+            $time_a = strtotime((string) ($a['createdAt'] ?? '')) ?: 0;
+            $time_b = strtotime((string) ($b['createdAt'] ?? '')) ?: 0;
+            if ($time_a === $time_b) {
+                return ((int) ($b['circularID'] ?? 0)) <=> ((int) ($a['circularID'] ?? 0));
+            }
+            return $filter_sort === 'oldest' ? ($time_a <=> $time_b) : ($time_b <=> $time_a);
+        });
+
+        $filtered_total = count($filtered_items);
+        $total_pages = max(1, (int) ceil($filtered_total / $per_page));
+        if ($page > $total_pages) {
+            $page = $total_pages;
+        }
+        $offset = ($page - 1) * $per_page;
+        $sent_items = array_slice($filtered_items, $offset, $per_page);
+        $read_stats_map = [];
+        $detail_map = [];
+        foreach ($sent_items as $sent_item) {
+            $circular_id = (int) ($sent_item['circularID'] ?? 0);
+            if ($circular_id <= 0) {
+                continue;
+            }
+            $read_stats_map[$circular_id] = circular_get_read_stats($circular_id);
+
+            $circular_row = circular_get($circular_id);
+            $attachments = circular_get_attachments($circular_id);
+            $detail_map[$circular_id] = [
+                'detail' => (string) (($circular_row['detail'] ?? $sent_item['detail'] ?? '')),
+                'senderName' => (string) (($circular_row['senderName'] ?? '')),
+                'senderFactionName' => (string) (($circular_row['senderFactionName'] ?? $sent_item['senderFactionName'] ?? '')),
+                'files' => is_array($attachments) ? $attachments : [],
+            ];
+        }
+        $query_params = [
+            'tab' => 'track',
+            'q' => $filter_query,
+            'status' => strtolower($filter_status),
+            'sort' => $filter_sort,
+            'per_page' => $per_page,
+        ];
 
         view_render('circular/compose', [
             'alert' => $alert,
@@ -259,6 +443,22 @@ if (!function_exists('circular_compose_index')) {
             'edit_circular_id' => $edit_circular_id,
             'editable_circular' => $editable_circular,
             'existing_attachments' => $existing_attachments,
+            'sent_items' => $sent_items,
+            'receipt_circular_id' => $receipt_circular_id,
+            'receipt_subject' => $receipt_subject,
+            'receipt_sender_faction' => $receipt_sender_faction,
+            'receipt_stats' => $receipt_stats,
+            'filter_query' => $filter_query,
+            'filter_status' => strtolower($filter_status),
+            'filter_sort' => $filter_sort,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => $total_pages,
+            'filtered_total' => $filtered_total,
+            'query_params' => $query_params,
+            'active_tab' => $active_tab,
+            'read_stats_map' => $read_stats_map,
+            'detail_map' => $detail_map,
         ]);
     }
 }

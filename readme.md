@@ -1,32 +1,70 @@
-# Production PHP Architecture (Deebuk Platform)
+# Workflow (Deebuk Platform)
 
-A robust, scalable, and secure web application architecture built with **Pure PHP** and **Pure CSS**. designed for high performance and maintainability without the overhead of heavy frameworks.
+Pure PHP workflow system for internal documents, memos, outgoing letters, rooms, and vehicles.
 
-## 🚀 Key Features
+## Quick Start (Production-like local setup)
 
-- **Backend:** Pure PHP 8.x with `mysqli` (Procedural pattern with secure wrapper).
-- **Database:** Secure connection handling, Environment variables (`.env`), and Prepared Statements.
-- **Frontend:** Modular CSS Architecture (Design Tokens, Typography, Strict Breakpoints).
-- **JavaScript:** Organized Module Pattern (IIFE) with jQuery fallback support.
-- **Structure:** PSR-4 Autoloading via Composer and clear separation of concerns (`src/`, `public/`, `config/`).
-- **Security:** Error suppression in production, XSS protection helpers, and secure assets management.
+### Prerequisites
 
-## 📂 Project Structure
+- PHP 8.2+
+- Composer
+- MySQL/MariaDB client (`mysql` command)
+- Local MySQL/MariaDB server running
+
+### 1) Clone and enter project
+
+```bash
+git clone https://github.com/2Dev-Software/workflow.git
+cd workflow
+```
+
+### 2) One command to setup + run
+
+```bash
+make dev
+```
+
+What `make dev` does:
+
+1. Create `.env` from `.env.example` if missing
+2. Install PHP dependencies (`composer install`)
+3. Ensure DB is fully ready from production dump:
+   - expected at least 50 tables
+   - must contain core data (`teacher`, `thesystem`)
+   - if DB is not ready, it will drop/create DB and import dump file
+4. Run smoke checks
+5. Start local server at `http://127.0.0.1:8000`
+
+## Database Commands
+
+```bash
+make db-status   # show DB readiness (tables + core rows)
+make db-ready    # import only if DB is not ready
+make db-import   # force re-import (drop/create DB)
+```
+
+Optional overrides:
+
+```bash
+make dev HOST=0.0.0.0 PORT=8000
+make db-import DB_DUMP_FILE=deebuk_platformdb.real.11022026.sql MIN_TABLES=50
+```
+
+## Dump File
+
+Default production data dump file:
+
+`deebuk_platformdb.real.11022026.sql`
+
+This dump is used by `scripts/dev/ensure-db-ready.sh`.
+
+## Project Structure (short)
 
 ```text
-root/
-├── assets/                 # Compiled assets (CSS, JS, Fonts, Images)
-│   ├── css/
-│   │   ├── abstracts/      # Design tokens & Typography
-│   │   └── main.css        # Main stylesheet
-│   └── js/                 # Application logic (Module pattern)
-├── config/                 # Database & System configurations
-├── public/                 # Web root (Entry point)
-│   ├── components/         # HTML Partials (Head, Navbar, Scripts)
-│   └── index.php           # Main entry file
-├── src/                    # Backend Logic (PSR-4 Autoloaded)
-│   ├── Services/           # Business Logic (Auth, etc.)
-│   └── Utils/              # Helper functions
-├── vendor/                 # Composer dependencies
-├── .env                    # Environment variables (Git ignored)
-└── composer.json           # Dependency definitions
+app/         Controllers, modules, views
+assets/      CSS/JS/images
+config/      Environment + DB connection bootstrap
+migrations/  SQL migrations
+scripts/     CLI scripts and dev automation
+public/      Public API endpoints and shared components
+```

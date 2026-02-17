@@ -7,7 +7,7 @@
     <meta name="title" content="Deebuk WorkFlow - ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน">
     <meta name="description" content="แพลตฟอร์มบริหารจัดการโรงเรียนครบวงจร ปลอดภัย ทันสมัย ใช้งานง่าย">
     <meta name="author" content="Deebuk Platform">
-    
+
     <link rel="canonical" href="<?php echo (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]"; ?>">
 
     <link rel="icon" href="assets/img/favicon/favicon.ico" sizes="any">
@@ -26,4 +26,7 @@
     <link rel="stylesheet" href="assets/css/components.css?v=0.1.0-beta">
     <link rel="stylesheet" href="assets/css/main.css?v=0.1.0-beta">
     <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
 </head>

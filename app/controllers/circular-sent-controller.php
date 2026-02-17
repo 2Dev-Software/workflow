@@ -31,6 +31,11 @@ if (!function_exists('circular_sent_index')) {
                     $alert = $ok
                         ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => '']
                         : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'มีผู้รับอ่านแล้ว'];
+                } elseif ($action === 'recall_external' && $circular_id > 0) {
+                    $ok = circular_recall_external_before_review($circular_id, $current_pid);
+                    $alert = $ok
+                        ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => 'สามารถแก้ไขและส่งใหม่ได้']
+                        : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'เอกสารถูกพิจารณาแล้วหรือไม่ใช่สิทธิ์ของคุณ'];
                 } elseif ($action === 'resend' && $circular_id > 0) {
                     $ok = circular_resend_internal($circular_id, $current_pid);
                     $alert = $ok

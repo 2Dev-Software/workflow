@@ -8,6 +8,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../rbac/roles.php';
 require_once __DIR__ . '/../modules/circulars/repository.php';
+require_once __DIR__ . '/../modules/users/lists.php';
 require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../modules/audit/logger.php';
@@ -17,6 +18,7 @@ if (!function_exists('circular_notice_index')) {
     {
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
+        $factions = user_list_factions();
 
         $connection = db_connection();
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
@@ -35,6 +37,18 @@ if (!function_exists('circular_notice_index')) {
             ? INBOX_TYPE_ACTING_PRINCIPAL
             : INBOX_TYPE_SPECIAL_PRINCIPAL;
 
+        $allowed_boxes = ['normal'];
+        if ($is_registry) {
+            $allowed_boxes[] = 'clerk';
+            $allowed_boxes[] = 'clerk_return';
+        }
+        if ($is_director_box) {
+            $allowed_boxes[] = 'director';
+        }
+        if (!in_array($box, $allowed_boxes, true)) {
+            $box = 'normal';
+        }
+
         $box_map = [
             'normal' => INBOX_TYPE_NORMAL,
             'director' => $director_inbox_type,
@@ -44,7 +58,7 @@ if (!function_exists('circular_notice_index')) {
         $box_key = array_key_exists($box, $box_map) ? $box : 'normal';
         $inbox_type = $box_map[$box_key];
 
-        $is_outside_view = $box_key !== 'normal';
+        $is_outside_view = in_array($box_key, ['director', 'clerk', 'clerk_return'], true);
         $default_type = $is_outside_view ? 'external' : 'all';
 
         $filter_type = (string) ($_GET['type'] ?? $default_type);
@@ -465,6 +479,7 @@ if (!function_exists('circular_notice_index')) {
         view_render('circular/notice', [
             'alert' => $alert,
             'items' => $display_items,
+            'factions' => $factions,
             'box_key' => $box_key,
             'archived' => $archived,
             'filter_type' => $filter_type,

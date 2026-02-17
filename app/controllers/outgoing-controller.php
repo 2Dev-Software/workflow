@@ -16,30 +16,20 @@ if (!function_exists('outgoing_index')) {
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
         $connection = db_connection();
-        $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
-        if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
-            $is_registry = true;
+        $can_manage = outgoing_user_can_manage($connection, $current_pid, $current_user);
+        if (!$can_manage) {
+            http_response_code(403);
+            require __DIR__ . '/../views/errors/403.php';
+            return;
         }
+
         $alert = null;
-        if (!$is_registry) {
-            $alert = [
-                'type' => 'warning',
-                'title' => 'สิทธิ์การใช้งานจำกัด',
-                'message' => 'คุณสามารถดูรายการได้ แต่การออกเลข/แนบไฟล์ทำได้เฉพาะสารบรรณ',
-            ];
-        }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
                     'type' => 'danger',
                     'title' => 'ไม่สามารถยืนยันความปลอดภัย',
                     'message' => 'กรุณาลองใหม่อีกครั้ง',
-                ];
-            } elseif (!$is_registry) {
-                $alert = [
-                    'type' => 'danger',
-                    'title' => 'ไม่มีสิทธิ์แนบไฟล์',
-                    'message' => 'การแนบไฟล์ทำได้เฉพาะสารบรรณ',
                 ];
             } else {
                 $action = $_POST['action'] ?? '';
@@ -68,7 +58,7 @@ if (!function_exists('outgoing_index')) {
         view_render('outgoing/index', [
             'alert' => $alert,
             'items' => $outgoing_items,
-            'is_registry' => $is_registry,
+            'is_registry' => $can_manage,
         ]);
     }
 }

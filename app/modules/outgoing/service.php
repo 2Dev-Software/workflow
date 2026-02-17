@@ -7,6 +7,25 @@ require_once __DIR__ . '/../system/system.php';
 require_once __DIR__ . '/../audit/logger.php';
 require_once __DIR__ . '/../../services/uploads.php';
 require_once __DIR__ . '/../../services/document-service.php';
+require_once __DIR__ . '/../../rbac/roles.php';
+
+if (!function_exists('outgoing_user_can_manage')) {
+    function outgoing_user_can_manage(mysqli $connection, string $pID, array $current_user = []): bool
+    {
+        $pID = trim($pID);
+        if ($pID === '') {
+            return false;
+        }
+
+        if (rbac_user_has_role($connection, $pID, ROLE_ADMIN) || rbac_user_has_role($connection, $pID, ROLE_REGISTRY)) {
+            return true;
+        }
+
+        // Legacy fallback (single role column on teacher)
+        $legacy_role = (int) ($current_user['roleID'] ?? 0);
+        return in_array($legacy_role, [1, 2], true);
+    }
+}
 
 if (!function_exists('outgoing_document_number')) {
     function outgoing_document_number(array $outgoing): string

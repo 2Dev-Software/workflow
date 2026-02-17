@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../../app/db/db.php';
+require_once __DIR__ . '/../../../app/rbac/roles.php';
 require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php';
 require_once __DIR__ . '/../../../src/Services/system/exec-duty-current.php';
 
@@ -12,6 +14,16 @@ if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
     $acting_pid = (string) $exec_duty_current_pid;
 }
 $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
+
+$sidebar_connection = db_connection();
+$is_admin_user = false;
+$is_registry_user = false;
+$can_manage_external_circular = false;
+if ($actor_pid !== '') {
+    $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $role_id === 1;
+    $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $role_id === 2;
+    $can_manage_external_circular = $is_admin_user || $is_registry_user;
+}
 ?>
 <aside class="sidebar close">
     <header class="logo-details">
@@ -92,25 +104,39 @@ $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pi
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="memo.php">บันทึกข้อความของฉัน</a></li>
+                <li><a href="memo.php">บันทึกข้อความ</a></li>
                 <li><a href="memo-inbox.php">Inbox บันทึกข้อความ</a></li>
                 <li><a href="memo-archive.php">บันทึกข้อความที่จัดเก็บ</a></li>
             </ul>
         </li>
 
-        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 2], true)) : ?>
+        <?php if ($can_manage_external_circular) : ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
                         <i class="fa-solid fa-paper-plane"></i>
-                        <p class="link-name">หนังสือออกภายนอก</p>
+                        <p class="link-name">หนังสือเวียนภายนอก</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
                 <ul class="navigation-links-sub-menu">
-                    <li><a href="outgoing.php">หนังสือออกทั้งหมด</a></li>
-                    <li><a href="outgoing-create.php">ออกเลขหนังสือ</a></li>
+                    <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
+                    <?php if ($is_registry_user || $is_admin_user) : ?>
+                        <li><a href="circular-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a></li>
+                        <li><a href="circular-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a></li>
+                    <?php endif; ?>
+                    <li><a href="outgoing.php">ทะเบียนหนังสือออก</a></li>
+                    <li><a href="outgoing-create.php">ออกเลขหนังสือภายนอก</a></li>
                 </ul>
+            </li>
+        <?php endif; ?>
+
+        <?php if ($is_director_or_acting) : ?>
+            <li>
+                <a href="circular-notice.php?box=director&type=external&read=all&sort=newest&view=table1">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                    <p class="link-name">พิจารณาหนังสือเวียนภายนอก</p>
+                </a>
             </li>
         <?php endif; ?>
 

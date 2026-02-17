@@ -19,11 +19,12 @@ if (!function_exists('circular_view_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
         $position_ids = current_user_position_ids();
         $connection = db_connection();
+        $deputy_position_ids = system_position_deputy_ids($connection);
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
         }
-        $is_deputy = in_array(2, $position_ids, true);
+        $is_deputy = !empty(array_intersect($position_ids, $deputy_position_ids));
         $director_pid = system_get_current_director_pid();
         $is_director = $director_pid !== null && $director_pid === $current_pid;
 
@@ -52,13 +53,41 @@ if (!function_exists('circular_view_index')) {
                 ];
             } else {
                 $action = (string) ($_POST['action'] ?? '');
+                $item_type = strtoupper((string) ($item['circularType'] ?? ''));
+                $item_status = strtoupper((string) ($item['status'] ?? ''));
+                $item_inbox_type = (string) ($item['inboxType'] ?? INBOX_TYPE_NORMAL);
                 try {
                     if ($action === 'archive') {
                         circular_archive_inbox($inbox_id, $current_pid);
                         $alert = ['type' => 'success', 'title' => 'จัดเก็บเรียบร้อย', 'message' => ''];
                     }
 
+                    if ($action === 'recall_external' && $is_registry) {
+                        if (
+                            $item_type !== CIRCULAR_TYPE_EXTERNAL
+                            || $item_status !== EXTERNAL_STATUS_PENDING_REVIEW
+                            || (string) ($item['createdByPID'] ?? '') !== $current_pid
+                        ) {
+                            throw new RuntimeException('ไม่สามารถดึงกลับได้ในสถานะปัจจุบัน');
+                        }
+
+                        $ok = circular_recall_external_before_review((int) $item['circularID'], $current_pid);
+                        if (!$ok) {
+                            throw new RuntimeException('ไม่สามารถดึงกลับได้ในสถานะปัจจุบัน');
+                        }
+
+                        $alert = ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => 'สามารถแก้ไขและส่งใหม่ได้'];
+                    }
+
                     if ($action === 'forward') {
+                        $can_forward_internal = $item_type === CIRCULAR_TYPE_INTERNAL && in_array($item_status, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_RECALLED], true);
+                        $can_forward_external = $item_type === CIRCULAR_TYPE_EXTERNAL
+                            && $item_status === EXTERNAL_STATUS_FORWARDED
+                            && $item_inbox_type === INBOX_TYPE_NORMAL
+                            && !$is_deputy;
+                        if (!$can_forward_internal && !$can_forward_external) {
+                            throw new RuntimeException('สถานะเอกสารไม่รองรับการส่งต่อในขั้นตอนนี้');
+                        }
                         $faction_ids = $_POST['faction_ids'] ?? [];
                         $role_ids = $_POST['role_ids'] ?? [];
                         $person_ids = $_POST['person_ids'] ?? [];
@@ -80,6 +109,13 @@ if (!function_exists('circular_view_index')) {
                     }
 
                     if ($action === 'director_review' && $is_director) {
+                        if (
+                            $item_type !== CIRCULAR_TYPE_EXTERNAL
+                            || $item_status !== EXTERNAL_STATUS_PENDING_REVIEW
+                            || !in_array($item_inbox_type, [INBOX_TYPE_SPECIAL_PRINCIPAL, INBOX_TYPE_ACTING_PRINCIPAL], true)
+                        ) {
+                            throw new RuntimeException('สถานะเอกสารไม่รองรับการพิจารณาในขั้นตอนนี้');
+                        }
                         $comment = trim((string) ($_POST['comment'] ?? ''));
                         $new_fid = isset($_POST['extGroupFID']) ? (int) $_POST['extGroupFID'] : null;
                         circular_director_review((int) $item['circularID'], $current_pid, $comment !== '' ? $comment : null, $new_fid && $new_fid > 0 ? $new_fid : null);
@@ -87,12 +123,26 @@ if (!function_exists('circular_view_index')) {
                     }
 
                     if ($action === 'clerk_forward' && $is_registry) {
+                        if (
+                            $item_type !== CIRCULAR_TYPE_EXTERNAL
+                            || $item_status !== EXTERNAL_STATUS_REVIEWED
+                            || $item_inbox_type !== INBOX_TYPE_SARABAN_RETURN
+                        ) {
+                            throw new RuntimeException('สถานะเอกสารไม่รองรับการส่งต่อรองผู้อำนวยการ');
+                        }
                         $fID = isset($_POST['extGroupFID']) ? (int) $_POST['extGroupFID'] : null;
                         circular_registry_forward_to_deputy((int) $item['circularID'], $current_pid, $fID && $fID > 0 ? $fID : null);
                         $alert = ['type' => 'success', 'title' => 'ส่งต่อรองผู้อำนวยการแล้ว', 'message' => ''];
                     }
 
                     if ($action === 'deputy_distribute' && $is_deputy) {
+                        if (
+                            $item_type !== CIRCULAR_TYPE_EXTERNAL
+                            || $item_status !== EXTERNAL_STATUS_FORWARDED
+                            || $item_inbox_type !== INBOX_TYPE_NORMAL
+                        ) {
+                            throw new RuntimeException('สถานะเอกสารไม่รองรับการกระจายหนังสือ');
+                        }
                         $faction_ids = $_POST['faction_ids'] ?? [];
                         $role_ids = $_POST['role_ids'] ?? [];
                         $person_ids = $_POST['person_ids'] ?? [];
@@ -112,7 +162,7 @@ if (!function_exists('circular_view_index')) {
                         $alert = ['type' => 'success', 'title' => 'กระจายหนังสือเรียบร้อย', 'message' => ''];
                     }
 
-                    if ($action === 'announce') {
+                    if ($action === 'announce' && $item_type === CIRCULAR_TYPE_INTERNAL) {
                         circular_set_announcement((int) $item['circularID'], $current_pid);
                         $alert = ['type' => 'success', 'title' => 'ตั้งเป็นข่าวประชาสัมพันธ์แล้ว', 'message' => ''];
                     }
@@ -129,7 +179,9 @@ if (!function_exists('circular_view_index')) {
         $attachments = circular_get_attachments((int) $item['circularID']);
         $factions = user_list_factions();
         $roles = user_list_roles();
-        $teachers = user_list_teachers();
+        $teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid): bool {
+            return trim((string) ($teacher['pID'] ?? '')) !== trim($current_pid);
+        }));
 
         view_render('circular/view', [
             'alert' => $alert,
@@ -142,6 +194,7 @@ if (!function_exists('circular_view_index')) {
             'is_deputy' => $is_deputy,
             'is_director' => $is_director,
             'position_ids' => $position_ids,
+            'current_pid' => $current_pid,
         ]);
     }
 }

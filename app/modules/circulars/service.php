@@ -270,7 +270,7 @@ if (!function_exists('circular_create_internal')) {
 }
 
 if (!function_exists('circular_create_external')) {
-    function circular_create_external(array $data, string $registryPID, bool $sendNow, array $files = []): int
+    function circular_create_external(array $data, string $registryPID, bool $sendNow, array $files = [], ?string $initialReviewerPID = null): int
     {
         $registryNote = $data['registryNote'] ?? null;
         $directorPID = null;
@@ -287,7 +287,10 @@ if (!function_exists('circular_create_external')) {
             }
 
             if ($sendNow) {
-                $directorPID = system_get_current_director_pid();
+                $directorPID = trim((string) ($initialReviewerPID ?? ''));
+                if ($directorPID === '') {
+                    $directorPID = (string) (system_get_current_director_pid() ?? '');
+                }
                 if ($directorPID) {
                     $acting_pid = system_get_acting_director_pid();
                     $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $directorPID)
@@ -435,6 +438,190 @@ if (!function_exists('circular_deputy_distribute')) {
             db_rollback();
             error_log('Deputy distribute failed: ' . $e->getMessage());
             audit_log('circulars', 'DEPUTY_DISTRIBUTE', 'FAIL', 'dh_circulars', $circularID, $e->getMessage());
+            throw $e;
+        }
+    }
+}
+
+if (!function_exists('circular_external_last_reviewer_pid')) {
+    function circular_external_last_reviewer_pid(int $circularID): ?string
+    {
+        $row = db_fetch_one(
+            'SELECT toPID
+             FROM dh_circular_routes
+             WHERE circularID = ? AND action = "SEND" AND toPID IS NOT NULL AND toPID <> ""
+             ORDER BY routeID DESC
+             LIMIT 1',
+            'i',
+            $circularID
+        );
+
+        $pid = trim((string) ($row['toPID'] ?? ''));
+        return $pid !== '' ? $pid : null;
+    }
+}
+
+if (!function_exists('circular_recall_external_before_review')) {
+    function circular_recall_external_before_review(int $circularID, string $registryPID): bool
+    {
+        $circular = circular_get($circularID);
+        if (
+            !$circular
+            || (string) ($circular['createdByPID'] ?? '') !== $registryPID
+            || (string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_EXTERNAL
+            || (string) ($circular['status'] ?? '') !== EXTERNAL_STATUS_PENDING_REVIEW
+        ) {
+            return false;
+        }
+
+        db_begin();
+        try {
+            circular_update_record($circularID, [
+                'status' => EXTERNAL_STATUS_SUBMITTED,
+                'updatedByPID' => $registryPID,
+            ]);
+
+            $stmt = db_query(
+                'UPDATE dh_circular_inboxes
+                 SET isArchived = 1, archivedAt = NOW()
+                 WHERE circularID = ? AND inboxType IN (?, ?) AND isArchived = 0',
+                'iss',
+                $circularID,
+                INBOX_TYPE_SPECIAL_PRINCIPAL,
+                INBOX_TYPE_ACTING_PRINCIPAL
+            );
+            mysqli_stmt_close($stmt);
+
+            circular_add_route($circularID, 'RECALL', $registryPID, null, null, 'EXTERNAL_BEFORE_REVIEW');
+
+            $documentID = circular_sync_document($circularID);
+            $connection = db_connection();
+            if ($documentID && db_table_exists($connection, 'dh_document_recipients')) {
+                $stmt = db_query(
+                    'UPDATE dh_document_recipients
+                     SET inboxStatus = "ARCHIVED"
+                     WHERE documentID = ? AND inboxType IN (?, ?)',
+                    'iss',
+                    $documentID,
+                    INBOX_TYPE_SPECIAL_PRINCIPAL,
+                    INBOX_TYPE_ACTING_PRINCIPAL
+                );
+                mysqli_stmt_close($stmt);
+            }
+
+            db_commit();
+            audit_log('circulars', 'RECALL_EXTERNAL', 'SUCCESS', 'dh_circulars', $circularID, null, [
+                'mode' => 'before_review',
+            ]);
+
+            return true;
+        } catch (Throwable $e) {
+            db_rollback();
+            error_log('External recall failed: ' . $e->getMessage());
+            audit_log('circulars', 'RECALL_EXTERNAL', 'FAIL', 'dh_circulars', $circularID, $e->getMessage(), [
+                'mode' => 'before_review',
+            ]);
+            throw $e;
+        }
+    }
+}
+
+if (!function_exists('circular_edit_and_resend_external')) {
+    function circular_edit_and_resend_external(
+        int $circularID,
+        string $registryPID,
+        array $data,
+        array $files = [],
+        array $removeFileIDs = []
+    ): bool {
+        $circular = circular_get($circularID);
+        if (
+            !$circular
+            || (string) ($circular['createdByPID'] ?? '') !== $registryPID
+            || (string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_EXTERNAL
+            || (string) ($circular['status'] ?? '') !== EXTERNAL_STATUS_SUBMITTED
+        ) {
+            return false;
+        }
+
+        $reviewerPID = trim((string) ($data['reviewerPID'] ?? ''));
+        if ($reviewerPID === '') {
+            $reviewerPID = (string) (circular_external_last_reviewer_pid($circularID) ?? '');
+        }
+        if ($reviewerPID === '') {
+            $reviewerPID = (string) (system_get_current_director_pid() ?? '');
+        }
+        if ($reviewerPID === '') {
+            throw new RuntimeException('ไม่พบผู้พิจารณา กรุณาเลือกผู้พิจารณาอีกครั้ง');
+        }
+
+        $acting_pid = system_get_acting_director_pid();
+        $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $reviewerPID)
+            ? INBOX_TYPE_ACTING_PRINCIPAL
+            : INBOX_TYPE_SPECIAL_PRINCIPAL;
+
+        db_begin();
+        try {
+            circular_update_record($circularID, [
+                'subject' => trim((string) ($data['subject'] ?? '')),
+                'detail' => ($data['detail'] ?? '') !== '' ? trim((string) $data['detail']) : null,
+                'linkURL' => ($data['linkURL'] ?? '') !== '' ? trim((string) $data['linkURL']) : null,
+                'extPriority' => ($data['extPriority'] ?? '') !== '' ? trim((string) $data['extPriority']) : null,
+                'extBookNo' => ($data['extBookNo'] ?? '') !== '' ? trim((string) $data['extBookNo']) : null,
+                'extIssuedDate' => ($data['extIssuedDate'] ?? '') !== '' ? trim((string) $data['extIssuedDate']) : null,
+                'extFromText' => ($data['extFromText'] ?? '') !== '' ? trim((string) $data['extFromText']) : null,
+                'extGroupFID' => !empty($data['extGroupFID']) ? (int) $data['extGroupFID'] : null,
+                'status' => EXTERNAL_STATUS_PENDING_REVIEW,
+                'updatedByPID' => $registryPID,
+            ]);
+
+            $stmt = db_query(
+                'DELETE FROM dh_circular_inboxes WHERE circularID = ? AND inboxType IN (?, ?)',
+                'iss',
+                $circularID,
+                INBOX_TYPE_SPECIAL_PRINCIPAL,
+                INBOX_TYPE_ACTING_PRINCIPAL
+            );
+            mysqli_stmt_close($stmt);
+            circular_add_inboxes($circularID, [$reviewerPID], $director_inbox_type, $registryPID);
+            circular_add_route($circularID, 'SEND', $registryPID, $reviewerPID, !empty($data['extGroupFID']) ? (int) $data['extGroupFID'] : null, 'EDIT_RESEND');
+
+            if (!empty($removeFileIDs)) {
+                circular_soft_delete_attachments($circularID, $removeFileIDs);
+            }
+
+            if (!empty($files)) {
+                upload_store_files($files, CIRCULAR_MODULE_NAME, CIRCULAR_ENTITY_NAME, (string) $circularID, $registryPID, [
+                    'max_files' => 5,
+                ]);
+            }
+
+            $documentID = circular_sync_document($circularID);
+            $connection = db_connection();
+            if ($documentID && db_table_exists($connection, 'dh_document_recipients')) {
+                $stmt = db_query(
+                    'UPDATE dh_document_recipients
+                     SET inboxStatus = "ARCHIVED"
+                     WHERE documentID = ? AND inboxType IN (?, ?)',
+                    'iss',
+                    $documentID,
+                    INBOX_TYPE_SPECIAL_PRINCIPAL,
+                    INBOX_TYPE_ACTING_PRINCIPAL
+                );
+                mysqli_stmt_close($stmt);
+                document_add_recipients($documentID, [$reviewerPID], $director_inbox_type);
+            }
+
+            db_commit();
+            audit_log('circulars', 'EDIT_RESEND_EXTERNAL', 'SUCCESS', 'dh_circulars', $circularID, null, [
+                'reviewer' => $reviewerPID,
+            ]);
+
+            return true;
+        } catch (Throwable $e) {
+            db_rollback();
+            error_log('External edit and resend failed: ' . $e->getMessage());
+            audit_log('circulars', 'EDIT_RESEND_EXTERNAL', 'FAIL', 'dh_circulars', $circularID, $e->getMessage());
             throw $e;
         }
     }

@@ -124,7 +124,7 @@ ob_start();
                                 <td><span class="status-badge <?= h(($item['is_read'] ?? false) ? 'read' : 'unread') ?>"><?= h(($item['is_read'] ?? false) ? 'อ่านแล้ว' : 'ยังไม่อ่าน') ?></span></td>
                                 <td>
                                     <button
-                                        class="button-more-details js-open-circular-modal"
+                                        class="booking-action-btn secondary js-open-circular-modal"
                                         type="button"
                                         data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
                                         data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
@@ -135,7 +135,8 @@ ob_start();
                                         data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
                                         data-type="<?= h((string) ($item['type_label'] ?? '')) ?>"
                                         data-files="<?= h($file_json) ?>">
-                                        <p>รายละเอียด</p>
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
                                 </td>
                             </tr>
@@ -181,14 +182,27 @@ ob_start();
                     </div>
                 </div>
 
-                <div class="footer-modal">
+                <!-- <div class="footer-modal">
                     <form method="POST" id="modalArchiveForm">
-                        <?= csrf_field() ?>
+                        <?php //csrf_field() ?>
                         <input type="hidden" name="inbox_id" id="modalInboxId" value="">
                         <input type="hidden" name="action" value="unarchive">
-                        <button type="submit"><p>ย้ายกลับ</p></button>
+                        <button type="submit" class="">
+                            <p>ย้ายกลับ</p>
+                        </button>
+                    </form>
+                </div> -->
+
+                <div class="footer-modal">
+                    <form method="POST" id="modalArchiveForm">
+                        <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac">                        <input type="hidden" name="inbox_id" id="modalInboxId" value="370">
+                        <input type="hidden" name="action" value="archive">
+                        <button type="submit">
+                            <p>ย้ายกลับ</p>
+                        </button>
                     </form>
                 </div>
+
             </div>
         </div>
     </section>
@@ -202,11 +216,11 @@ ob_start();
                     <p>แสดงตามประเภทหนังสือ</p>
                     <div class="checkbox-group">
                         <div>
-                            <input type="checkbox" class="archive-control-checkbox" data-filter-type value="external"<?= $type_external_checked ? ' checked' : '' ?>>
+                            <input type="checkbox" class="archive-control-checkbox" data-filter-type value="external" <?= $type_external_checked ? ' checked' : '' ?>>
                             <p>ภายนอก</p>
                         </div>
                         <div>
-                            <input type="checkbox" class="archive-control-checkbox" data-filter-type value="internal"<?= $type_internal_checked ? ' checked' : '' ?>>
+                            <input type="checkbox" class="archive-control-checkbox" data-filter-type value="internal" <?= $type_internal_checked ? ' checked' : '' ?>>
                             <p>ภายใน</p>
                         </div>
                     </div>
@@ -216,11 +230,11 @@ ob_start();
                     <p>แสดงตามสถานะหนังสือ</p>
                     <div class="checkbox-group">
                         <div>
-                            <input type="checkbox" class="archive-control-checkbox" data-filter-read value="read"<?= $read_checked ? ' checked' : '' ?>>
+                            <input type="checkbox" class="archive-control-checkbox" data-filter-read value="read" <?= $read_checked ? ' checked' : '' ?>>
                             <p>อ่านแล้ว</p>
                         </div>
                         <div>
-                            <input type="checkbox" class="archive-control-checkbox" data-filter-read value="unread"<?= $unread_checked ? ' checked' : '' ?>>
+                            <input type="checkbox" class="archive-control-checkbox" data-filter-read value="unread" <?= $unread_checked ? ' checked' : '' ?>>
                             <p>ยังไม่อ่าน</p>
                         </div>
                     </div>
@@ -297,7 +311,7 @@ ob_start();
                                         <td><span class="status-badge <?= h(($item['is_read'] ?? false) ? 'read' : 'unread') ?>"><?= h(($item['is_read'] ?? false) ? 'อ่านแล้ว' : 'ยังไม่อ่าน') ?></span></td>
                                         <td>
                                             <button
-                                                class="button-more-details js-open-circular-modal"
+                                                class="booking-action-btn secondary js-open-circular-modal"
                                                 type="button"
                                                 data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
                                                 data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
@@ -313,7 +327,8 @@ ob_start();
                                                 data-consider="<?= h((string) ($item['consider_class'] ?? 'considering')) ?>"
                                                 data-files="<?= h($file_json) ?>"
                                                 data-received-time="<?= h((string) ($item['delivered_time'] ?? '-')) ?>">
-                                                <p>รายละเอียด</p>
+                                                <i class="fa-solid fa-eye"></i>
+                                                <span class="tooltip">ดูรายละเอียด</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -339,7 +354,9 @@ ob_start();
                     <div class="content-modal">
                         <div class="content-topic-sec">
                             <p><strong>ความเร่งด่วน :</strong></p>
-                            <button class="urgency-status normal" id="modalUrgency"><p>ปกติ</p></button>
+                            <button class="urgency-status normal" id="modalUrgency">
+                                <p>ปกติ</p>
+                            </button>
                         </div>
                         <div class="content-topic-sec">
                             <div class="more-details">

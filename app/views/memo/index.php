@@ -17,6 +17,30 @@ $current_position = trim((string) ($current_user['position_name'] ?? ''));
 
 ob_start();
 ?>
+<style>
+    .content-memo .memo-detail {
+        --memo-label-width: 56px;
+    }
+
+    .content-memo .memo-detail .form-group-row.memo-subject-row {
+        gap: 10px;
+    }
+
+    .content-memo .memo-detail .form-group-row.memo-to-row {
+        gap: 10px;
+    }
+
+    .content-memo .memo-detail .form-group-row.memo-subject-row > p:first-child,
+    .content-memo .memo-detail .form-group-row.memo-to-row > p:first-child {
+        width: var(--memo-label-width);
+        min-width: var(--memo-label-width);
+    }
+
+    .content-memo .memo-detail .form-group-row.memo-subject-row input[name="subject"] {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+</style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
     <p>บันทึกข้อความ</p>
@@ -29,7 +53,7 @@ ob_start();
         <div></div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" id="circularComposeForm">
+    <form method="POST" id="circularComposeForm">
         <?= csrf_field() ?>
         <input type="hidden" name="flow_mode" value="CHAIN">
         <input type="hidden" name="to_choice" value="DIRECTOR">
@@ -70,24 +94,12 @@ ob_start();
                 <p><strong>โรงเรียนดีบุกพังงาวิทยายน</strong></p>
             </div>
 
-            <div class="form-group-row">
-                <section>
-                    <p><strong>ที่</strong></p>
-                    <p>รวย 1101/101</p>
-                </section>
-
-                <section>
-                    <p><strong>วันที่</strong></p>
-                    <input type="date" name="writeDate" value="<?= h((string) ($values['writeDate'] ?? '')) ?>">
-                </section>
-            </div>
-
-            <div class="form-group-row">
+            <div class="form-group-row memo-subject-row">
                 <p><strong>เรื่อง</strong></p>
                 <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" required>
             </div>
 
-            <div class="form-group-row">
+            <div class="form-group-row memo-to-row">
                 <p><strong>เรียน</strong></p>
                 <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
             </div>
@@ -95,26 +107,6 @@ ob_start();
             <div class="content-editor">
                 <p><strong>รายละเอียด:</strong></p>
                 <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
-            </div>
-
-            <div class="form-group file-sec">
-                <label><strong>อัปโหลดไฟล์เอกสาร</strong> (ถ้ามี)</label>
-                <section class="upload-layout">
-                    <input type="file" id="fileInput" name="attachments[]" multiple accept="application/pdf,image/png,image/jpeg" style="display: none;" />
-
-                    <div class="upload-box" id="dropzone">
-                        <i class="fa-solid fa-upload"></i>
-                        <p>ลากไฟล์มาวางที่นี่</p>
-                    </div>
-
-                    <div class="file-list" id="fileListContainer"></div>
-                </section>
-            </div>
-
-            <div class="row form-group">
-                <button class="btn btn-upload-small" type="button" id="btnAddFiles">
-                    <p>เพิ่มไฟล์</p>
-                </button>
             </div>
 
             <div class="form-group-row signature">
@@ -162,112 +154,7 @@ tinymce.init({
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('fileInput');
-    const fileList = document.getElementById('fileListContainer');
-    const dropzone = document.getElementById('dropzone');
-    const addFilesBtn = document.getElementById('btnAddFiles');
-
-    const maxFiles = 5;
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    let selectedFiles = [];
-
-    const renderFiles = () => {
-        if (!fileList) return;
-        fileList.innerHTML = '';
-        if (selectedFiles.length === 0) return;
-
-        selectedFiles.forEach((file, index) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'file-item-wrapper';
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            deleteBtn.addEventListener('click', () => {
-                selectedFiles = selectedFiles.filter((_, i) => i !== index);
-                syncFiles();
-                renderFiles();
-            });
-
-            const banner = document.createElement('div');
-            banner.className = 'file-banner';
-
-            const info = document.createElement('div');
-            info.className = 'file-info';
-
-            const icon = document.createElement('div');
-            icon.className = 'file-icon';
-            icon.innerHTML = file.type === 'application/pdf'
-                ? '<i class="fa-solid fa-file-pdf"></i>'
-                : '<i class="fa-solid fa-image"></i>';
-
-            const text = document.createElement('div');
-            text.className = 'file-text';
-
-            const name = document.createElement('div');
-            name.className = 'file-name';
-            name.textContent = file.name;
-
-            const type = document.createElement('div');
-            type.className = 'file-type';
-            type.textContent = file.type || 'ไฟล์แนบ';
-
-            text.appendChild(name);
-            text.appendChild(type);
-
-            info.appendChild(icon);
-            info.appendChild(text);
-            banner.appendChild(info);
-            wrapper.appendChild(deleteBtn);
-            wrapper.appendChild(banner);
-            fileList.appendChild(wrapper);
-        });
-    };
-
-    const syncFiles = () => {
-        if (!fileInput) return;
-        const dt = new DataTransfer();
-        selectedFiles.forEach((file) => dt.items.add(file));
-        fileInput.files = dt.files;
-    };
-
-    const addFiles = (files) => {
-        if (!files) return;
-        const existing = new Set(selectedFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
-        Array.from(files).forEach((file) => {
-            const key = `${file.name}-${file.size}-${file.lastModified}`;
-            if (existing.has(key)) return;
-            if (!allowedTypes.includes(file.type)) return;
-            if (selectedFiles.length >= maxFiles) return;
-            selectedFiles.push(file);
-            existing.add(key);
-        });
-        syncFiles();
-        renderFiles();
-    };
-
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            addFiles(e.target.files);
-        });
-    }
-
-    if (dropzone) {
-        dropzone.addEventListener('click', () => fileInput?.click());
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('active');
-        });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('active');
-            addFiles(e.dataTransfer?.files || []);
-        });
-    }
-
-    addFilesBtn?.addEventListener('click', () => fileInput?.click());
+    return;
 });
 </script>
 <?php

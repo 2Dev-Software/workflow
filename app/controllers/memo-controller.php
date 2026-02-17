@@ -180,7 +180,7 @@ if (!function_exists('memo_index')) {
                         'toPID' => $toPID,
                         'flowMode' => $flow_mode,
                         'createdByPID' => $current_pid,
-                    ], $_FILES['attachments'] ?? []);
+                    ]);
 
                     $alert = [
                         'type' => 'success',

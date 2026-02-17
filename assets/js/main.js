@@ -1688,3 +1688,133 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   };
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  var container = document.getElementById("previewContainer");
+  var image = document.getElementById("imagePreview");
+  var input = document.getElementById("profileFileInput");
+  var placeholder = document.getElementById("previewPlaceholder");
+  var croppedInput = document.getElementById("croppedImageData");
+  var cropper;
+  var isCropping = false;
+
+  container.addEventListener("click", function (e) {
+    if (isCropping) {
+      return;
+    }
+
+    if (
+      e.target.closest(".cropper-container") ||
+      e.target.closest(".cropper-wrap-box")
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    input.click();
+  });
+
+  input.addEventListener("change", function (e) {
+    var files = e.target.files;
+
+    if (files && files.length > 0) {
+      var file = files[0];
+
+      if (!file.type.startsWith("image/")) {
+        alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+        return;
+      }
+
+      var reader = new FileReader();
+
+      reader.onload = function (evt) {
+        image.src = evt.target.result;
+        image.classList.remove("hidden");
+
+        if (placeholder) placeholder.style.display = "none";
+
+        isCropping = true;
+        container.classList.add("cropping-mode");
+
+        input.disabled = true;
+
+        if (cropper) {
+          cropper.destroy();
+        }
+
+        cropper = new Cropper(image, {
+          aspectRatio: 1,
+          viewMode: 3,
+          
+          dragMode: "move", 
+          autoCropArea: 1,
+          
+          cropBoxMovable: false, 
+          cropBoxResizable: false, 
+
+          restore: false,
+          guides: false, 
+          center: false, 
+          highlight: false, 
+          toggleDragModeOnDblclick: false,
+
+          modal: true,
+          background: false,
+
+          checkCrossOrigin: false,
+          ready: function () {
+            var cropperWrap = document.querySelector(".cropper-container");
+            if (cropperWrap) {
+                cropperWrap.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                });
+            }
+          },
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document
+    .getElementById("btnConfirmCrop")
+    .addEventListener("click", function () {
+      if (cropper) {
+        var canvas = cropper.getCroppedCanvas({
+          width: 500,
+          height: 500,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: "high",
+        });
+
+        if (canvas) {
+          croppedInput.value = canvas.toDataURL("image/jpeg", 0.9);
+          document.getElementById("profileImageForm").submit();
+        }
+      }
+    });
+
+  var cancelBtns = document.querySelectorAll(
+    '[data-action="profile-image-cancel"]',
+  );
+  cancelBtns.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+      image.src = "";
+      image.classList.add("hidden");
+      if (placeholder) placeholder.style.display = "block";
+      input.disabled = false;
+      input.value = "";
+
+      isCropping = false;
+      container.classList.remove("cropping-mode");
+
+      document.getElementById("imageModal").classList.add("hidden");
+    });
+  });
+});

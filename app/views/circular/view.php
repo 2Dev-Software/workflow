@@ -11,8 +11,12 @@ $is_registry = (bool) ($is_registry ?? false);
 $is_deputy = (bool) ($is_deputy ?? false);
 $is_director = (bool) ($is_director ?? false);
 $position_ids = (array) ($position_ids ?? []);
+$current_pid = trim((string) ($current_pid ?? ''));
 $sender_name = trim((string) ($item['senderName'] ?? ''));
 $sender_faction_name = trim((string) ($item['senderFactionName'] ?? ''));
+$item_type = strtoupper(trim((string) ($item['circularType'] ?? '')));
+$item_status = strtoupper(trim((string) ($item['status'] ?? '')));
+$item_inbox_type = (string) ($item['inboxType'] ?? INBOX_TYPE_NORMAL);
 $sender_display = '-';
 if ($sender_name !== '' && $sender_faction_name !== '') {
     $sender_display = $sender_name . ' / ' . $sender_faction_name;
@@ -22,7 +26,7 @@ if ($sender_name !== '' && $sender_faction_name !== '') {
     $sender_display = $sender_faction_name;
 }
 
-$status_raw = strtoupper(trim((string) ($item['status'] ?? '')));
+$status_raw = $item_status;
 $status_label_map = [
     INTERNAL_STATUS_DRAFT => 'ร่าง',
     INTERNAL_STATUS_SENT => 'ส่งแล้ว',
@@ -66,9 +70,31 @@ ob_start();
         </div>
         <div class="enterprise-info-row">
             <span class="enterprise-info-label">ประเภท</span>
-            <span class="enterprise-info-value"><?= h((string) ($item['circularType'] ?? '')) ?></span>
+            <span class="enterprise-info-value"><?= h($item_type === CIRCULAR_TYPE_EXTERNAL ? 'หนังสือเวียนภายนอก' : 'หนังสือเวียนภายใน') ?></span>
         </div>
     </div>
+
+    <?php if ($item_type === CIRCULAR_TYPE_EXTERNAL) : ?>
+        <div class="enterprise-divider"></div>
+        <div class="enterprise-info">
+            <div class="enterprise-info-row">
+                <span class="enterprise-info-label">ความเร่งด่วน</span>
+                <span class="enterprise-info-value"><?= h((string) ($item['extPriority'] ?? '-')) ?></span>
+            </div>
+            <div class="enterprise-info-row">
+                <span class="enterprise-info-label">เลขที่หนังสือ</span>
+                <span class="enterprise-info-value"><?= h((string) ($item['extBookNo'] ?? '-')) ?></span>
+            </div>
+            <div class="enterprise-info-row">
+                <span class="enterprise-info-label">ลงวันที่</span>
+                <span class="enterprise-info-value"><?= h((string) ($item['extIssuedDate'] ?? '-')) ?></span>
+            </div>
+            <div class="enterprise-info-row">
+                <span class="enterprise-info-label">จาก</span>
+                <span class="enterprise-info-value"><?= h((string) ($item['extFromText'] ?? '-')) ?></span>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if (!empty($item['detail'])) : ?>
         <div class="enterprise-divider"></div>
@@ -121,28 +147,53 @@ ob_start();
             <button type="submit" class="btn">จัดเก็บ</button>
         </form>
 
-        <?php if ($is_director && ($item['circularType'] ?? '') === 'EXTERNAL' && ($item['status'] ?? '') === EXTERNAL_STATUS_PENDING_REVIEW) : ?>
+        <?php if ($is_registry && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && (string) ($item['createdByPID'] ?? '') === $current_pid) : ?>
+            <form method="POST" class="enterprise-panel">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="recall_external">
+                <p><strong>ดึงกลับก่อนผู้บริหารพิจารณา</strong></p>
+                <button type="submit" class="btn">ดึงกลับ</button>
+                <a class="c-button c-button--sm btn-outline" href="outgoing-receive.php?edit=<?= h((string) (int) ($item['circularID'] ?? 0)) ?>">แก้ไขส่งใหม่</a>
+            </form>
+        <?php endif; ?>
+
+        <?php if ($is_director && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && in_array($item_inbox_type, [INBOX_TYPE_SPECIAL_PRINCIPAL, INBOX_TYPE_ACTING_PRINCIPAL], true)) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="director_review">
                 <label>หมายเหตุ (ผอ.)</label>
                 <textarea name="comment" rows="3" class="form-input booking-textarea"></textarea>
                 <label>กำหนดฝ่าย (fID) ใหม่ (ถ้ามี)</label>
-                <input type="number" name="extGroupFID" class="form-input">
+                <select name="extGroupFID" class="form-input">
+                    <option value="">ไม่กำหนด</option>
+                    <?php foreach ($factions as $faction) : ?>
+                        <option value="<?= h((string) (int) ($faction['fID'] ?? 0)) ?>">
+                            <?= h((string) ($faction['fName'] ?? '')) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
                 <button type="submit" class="btn">ส่งกลับสารบรรณ</button>
             </form>
         <?php endif; ?>
 
-        <?php if ($is_registry && ($item['circularType'] ?? '') === 'EXTERNAL' && in_array((string) ($item['status'] ?? ''), [EXTERNAL_STATUS_REVIEWED, EXTERNAL_STATUS_FORWARDED], true)) : ?>
+        <?php if ($is_registry && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_REVIEWED && $item_inbox_type === INBOX_TYPE_SARABAN_RETURN) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="clerk_forward">
-                <input type="number" name="extGroupFID" placeholder="ระบุฝ่าย (fID)" required class="form-input">
+                <label>เลือกฝ่ายเพื่อส่งต่อรองผู้อำนวยการ</label>
+                <select name="extGroupFID" class="form-input" required>
+                    <option value="">เลือกกลุ่ม/ฝ่าย</option>
+                    <?php foreach ($factions as $faction) : ?>
+                        <?php $faction_id = (int) ($faction['fID'] ?? 0); ?>
+                        <?php if ($faction_id <= 0) { continue; } ?>
+                        <option value="<?= h((string) $faction_id) ?>"><?= h((string) ($faction['fName'] ?? '')) ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <button type="submit" class="btn">ส่งต่อรองผอ.</button>
             </form>
         <?php endif; ?>
 
-        <?php if ($is_deputy && ($item['circularType'] ?? '') === 'EXTERNAL' && ((string) ($item['status'] ?? '')) === EXTERNAL_STATUS_FORWARDED) : ?>
+        <?php if ($is_deputy && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_FORWARDED && $item_inbox_type === INBOX_TYPE_NORMAL) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="deputy_distribute">
@@ -167,29 +218,34 @@ ob_start();
             </form>
         <?php endif; ?>
 
-        <form method="POST" class="enterprise-panel">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="forward">
-            <label>ส่งต่อ</label>
-            <select name="faction_ids[]" multiple class="form-input">
-                <?php foreach ($factions as $faction) : ?>
-                    <option value="<?= h((string) (int) ($faction['fID'] ?? 0)) ?>"><?= h((string) ($faction['fName'] ?? '')) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <select name="role_ids[]" multiple class="form-input">
-                <?php foreach ($roles as $role) : ?>
-                    <option value="<?= h((string) (int) ($role['roleID'] ?? 0)) ?>"><?= h((string) ($role['roleName'] ?? '')) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <select name="person_ids[]" multiple class="form-input">
-                <?php foreach ($teachers as $teacher) : ?>
-                    <option value="<?= h((string) ($teacher['pID'] ?? '')) ?>"><?= h((string) ($teacher['fName'] ?? '')) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="btn">ส่งต่อ</button>
-        </form>
+        <?php if (
+            ($item_type === CIRCULAR_TYPE_INTERNAL && in_array($item_status, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_RECALLED], true))
+            || ($item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_FORWARDED && $item_inbox_type === INBOX_TYPE_NORMAL && !$is_deputy)
+        ) : ?>
+            <form method="POST" class="enterprise-panel">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="forward">
+                <label>ส่งต่อ</label>
+                <select name="faction_ids[]" multiple class="form-input">
+                    <?php foreach ($factions as $faction) : ?>
+                        <option value="<?= h((string) (int) ($faction['fID'] ?? 0)) ?>"><?= h((string) ($faction['fName'] ?? '')) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="role_ids[]" multiple class="form-input">
+                    <?php foreach ($roles as $role) : ?>
+                        <option value="<?= h((string) (int) ($role['roleID'] ?? 0)) ?>"><?= h((string) ($role['roleName'] ?? '')) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="person_ids[]" multiple class="form-input">
+                    <?php foreach ($teachers as $teacher) : ?>
+                        <option value="<?= h((string) ($teacher['pID'] ?? '')) ?>"><?= h((string) ($teacher['fName'] ?? '')) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn">ส่งต่อ</button>
+            </form>
+        <?php endif; ?>
 
-        <?php if (in_array(2, $position_ids, true)) : ?>
+        <?php if ($item_type === CIRCULAR_TYPE_INTERNAL && $is_deputy) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="announce">
