@@ -5,7 +5,7 @@ COMPOSER ?= composer
 HOST ?= 127.0.0.1
 PORT ?= 8000
 DB_DUMP_FILE ?= deebuk_platformdb.real.11022026.sql
-MIN_TABLES ?= 50
+MIN_TABLES ?=
 
 .DEFAULT_GOAL := help
 
@@ -14,8 +14,8 @@ MIN_TABLES ?= 50
 help:
 	@echo "Available targets:"
 	@echo "  make env        - Create .env from .env.example if missing"
-	@echo "  make deps       - Install PHP dependencies via composer"
-	@echo "  make db-ready   - Ensure DB is fully seeded (>= $${MIN_TABLES:-50} tables + core data)"
+	@echo "  make deps       - Check PHP extensions and install dependencies"
+	@echo "  make db-ready   - Ensure DB is fully seeded (auto min tables from dump + core data)"
 	@echo "  make db-import  - Force re-import database dump (drop/create DB)"
 	@echo "  make db-status  - Print database readiness status"
 	@echo "  make smoke      - Run basic runtime checks"
@@ -23,7 +23,7 @@ help:
 	@echo ""
 	@echo "Optional overrides:"
 	@echo "  HOST=127.0.0.1 PORT=8000 DB_DUMP_FILE=deebuk_platformdb.real.11022026.sql"
-	@echo "  MIN_TABLES=50 FORCE_IMPORT=1"
+	@echo "  MIN_TABLES=33 FORCE_IMPORT=1"
 
 env:
 	@if [ ! -f .env ]; then \
@@ -34,6 +34,7 @@ env:
 	fi
 
 deps:
+	@PHP="$(PHP)" bash scripts/dev/check-php-exts.sh
 	@$(COMPOSER) install --no-interaction --prefer-dist
 
 db-ready:

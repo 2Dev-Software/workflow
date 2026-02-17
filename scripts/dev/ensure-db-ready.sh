@@ -6,9 +6,10 @@ cd "$ROOT_DIR"
 
 ENV_FILE="${ENV_FILE:-.env}"
 DB_DUMP_FILE="${DB_DUMP_FILE:-deebuk_platformdb.real.11022026.sql}"
-MIN_TABLES="${MIN_TABLES:-50}"
+MIN_TABLES="${MIN_TABLES:-}"
 FORCE_IMPORT="${FORCE_IMPORT:-0}"
 STATUS_ONLY="${STATUS_ONLY:-0}"
+DB_CLIENT="${DB_CLIENT:-}"
 
 load_env_file() {
   local file="$1"
@@ -31,14 +32,37 @@ load_env_file() {
   done < "$file"
 }
 
-check_required_cmds() {
-  local cmds=(mysql)
-  for cmd in "${cmds[@]}"; do
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-      echo "ERROR: Required command not found: $cmd" >&2
+select_db_client() {
+  if [[ -n "$DB_CLIENT" ]]; then
+    if ! command -v "$DB_CLIENT" >/dev/null 2>&1; then
+      echo "ERROR: DB client not found: $DB_CLIENT" >&2
       exit 1
     fi
-  done
+    return 0
+  fi
+
+  if command -v mariadb >/dev/null 2>&1; then
+    DB_CLIENT="mariadb"
+    return 0
+  fi
+
+  if command -v mysql >/dev/null 2>&1; then
+    DB_CLIENT="mysql"
+    return 0
+  fi
+
+  echo "ERROR: Required command not found: mariadb or mysql" >&2
+  exit 1
+}
+
+infer_min_tables_from_dump() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  local count
+  count="$(grep -c '^CREATE TABLE' "$file" 2>/dev/null || true)"
+  [[ "$count" =~ ^[0-9]+$ ]] || return 1
+  (( count > 0 )) || return 1
+  echo "$count"
 }
 
 load_env_file "$ENV_FILE"
@@ -54,8 +78,18 @@ if [[ ! "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
   exit 1
 fi
 
+if [[ -z "$MIN_TABLES" ]]; then
+  if inferred_min_tables="$(infer_min_tables_from_dump "$DB_DUMP_FILE")"; then
+    MIN_TABLES="$inferred_min_tables"
+    echo "MIN_TABLES not set, auto-detected from dump: $MIN_TABLES"
+  else
+    MIN_TABLES="50"
+    echo "MIN_TABLES not set and dump not found/readable, using fallback: $MIN_TABLES"
+  fi
+fi
+
 if [[ ! "$MIN_TABLES" =~ ^[0-9]+$ ]]; then
-  echo "ERROR: MIN_TABLES must be numeric" >&2
+  echo "ERROR: MIN_TABLES must be numeric, got '$MIN_TABLES'" >&2
   exit 1
 fi
 
@@ -63,9 +97,9 @@ if [[ -n "$DB_PASS" ]]; then
   export MYSQL_PWD="$DB_PASS"
 fi
 
-check_required_cmds
+select_db_client
 
-mysql_base=(mysql --protocol=TCP -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" --default-character-set=utf8mb4)
+mysql_base=("$DB_CLIENT" --protocol=TCP -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" --default-character-set=utf8mb4)
 
 run_query() {
   "${mysql_base[@]}" -Nse "$1"
@@ -103,6 +137,7 @@ print_status() {
   echo "DB Host: $DB_HOST:$DB_PORT"
   echo "DB Name: $DB_NAME"
   echo "Dump: $DB_DUMP_FILE"
+  echo "Min required tables: $MIN_TABLES"
   echo "Tables: $tables"
   echo "teacher rows: $teachers"
   echo "thesystem rows: $systems"

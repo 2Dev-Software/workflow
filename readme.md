@@ -8,8 +8,18 @@ Pure PHP workflow system for internal documents, memos, outgoing letters, rooms,
 
 - PHP 8.2+
 - Composer
+- PHP extensions: `gd`, `iconv`
 - MySQL/MariaDB client (`mysql` command)
 - Local MySQL/MariaDB server running
+
+For Linux, if `make dev` fails on missing PHP extensions:
+
+```bash
+sudo apt update
+sudo apt install -y php-cli php-common php-mysql php-mbstring php-xml php-curl php-zip php-gd
+```
+
+Then run `make dev` again.
 
 ### 1) Clone and enter project
 
@@ -47,8 +57,10 @@ Optional overrides:
 
 ```bash
 make dev HOST=0.0.0.0 PORT=8000
-make db-import DB_DUMP_FILE=deebuk_platformdb.real.11022026.sql MIN_TABLES=50
+make db-import DB_DUMP_FILE=deebuk_platformdb.real.11022026.sql MIN_TABLES=33
 ```
+
+`MIN_TABLES` is optional. If not provided, the script auto-detects expected table count from the dump file.
 
 ## Dump File
 
