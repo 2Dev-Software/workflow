@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -9,6 +10,7 @@ if (!function_exists('system_get_dh_year')) {
     {
         $row = db_fetch_one('SELECT dh_year FROM thesystem ORDER BY ID DESC LIMIT 1');
         $year = $row ? (int) ($row['dh_year'] ?? 0) : 0;
+
         if ($year <= 0) {
             $year = (int) date('Y') + 543;
         }
@@ -22,6 +24,7 @@ if (!function_exists('system_get_dh_status')) {
     {
         $row = db_fetch_one('SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1');
         $status = $row ? (int) ($row['dh_status'] ?? 0) : 0;
+
         if ($status <= 0) {
             $status = 1;
         }
@@ -43,6 +46,7 @@ if (!function_exists('system_get_exec_duty')) {
             ORDER BY l.dutyLogID DESC
             LIMIT 1';
         $row = db_fetch_one($sql);
+
         if (!$row) {
             return [
                 'pID' => '',
@@ -65,12 +69,14 @@ if (!function_exists('system_get_director_pid')) {
     function system_get_director_pid(): ?string
     {
         $row = db_fetch_one('SELECT pID FROM teacher WHERE positionID = 1 AND status = 1 ORDER BY pID ASC LIMIT 1');
+
         if ($row) {
             return (string) ($row['pID'] ?? null);
         }
 
         $connection = db_connection();
         $director_id = system_position_executive_id($connection);
+
         if ($director_id !== null) {
             $row = db_fetch_one('SELECT pID FROM teacher WHERE positionID = ? AND status = 1 ORDER BY pID ASC LIMIT 1', 'i', $director_id);
         }
@@ -83,6 +89,7 @@ if (!function_exists('system_get_acting_director_pid')) {
     function system_get_acting_director_pid(): ?string
     {
         $duty = system_get_exec_duty();
+
         if (($duty['dutyStatus'] ?? 0) === 2 && !empty($duty['pID'])) {
             return (string) $duty['pID'];
         }
@@ -95,6 +102,7 @@ if (!function_exists('system_get_current_director_pid')) {
     function system_get_current_director_pid(): ?string
     {
         $acting = system_get_acting_director_pid();
+
         if ($acting !== null && $acting !== '') {
             return $acting;
         }

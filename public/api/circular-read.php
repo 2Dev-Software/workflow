@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,6 +14,7 @@ require_once __DIR__ . '/../../app/auth/csrf.php';
 require_once __DIR__ . '/../../app/modules/circulars/repository.php';
 
 $current_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ($current_pid === '') {
     json_error('unauthorized', [], 401);
 }

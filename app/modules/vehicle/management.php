@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -7,6 +8,7 @@ if (!function_exists('vehicle_management_supports_soft_delete')) {
     function vehicle_management_supports_soft_delete(): bool
     {
         static $cached = null;
+
         if ($cached !== null) {
             return (bool) $cached;
         }
@@ -27,6 +29,7 @@ if (!function_exists('vehicle_management_list')) {
     {
         $sql = 'SELECT vehicleID, vehicleType, vehicleBrand, vehicleModel, vehiclePlate, vehicleColor, vehicleCapacity, vehicleStatus, createdAt, updatedAt
             FROM dh_vehicles';
+
         if (vehicle_management_supports_soft_delete()) {
             $sql .= "\n            WHERE deletedAt IS NULL";
         }
@@ -47,6 +50,7 @@ if (!function_exists('vehicle_management_get')) {
         $sql = 'SELECT vehicleID, vehicleType, vehicleBrand, vehicleModel, vehiclePlate, vehicleColor, vehicleCapacity, vehicleStatus, createdAt, updatedAt
             FROM dh_vehicles
             WHERE vehicleID = ?';
+
         if (vehicle_management_supports_soft_delete()) {
             $sql .= ' AND deletedAt IS NULL';
         }
@@ -87,6 +91,7 @@ if (!function_exists('vehicle_management_update')) {
         $sql = 'UPDATE dh_vehicles
             SET vehicleType = ?, vehicleBrand = ?, vehicleModel = ?, vehiclePlate = ?, vehicleColor = ?, vehicleCapacity = ?, vehicleStatus = ?, updatedAt = CURRENT_TIMESTAMP
             WHERE vehicleID = ?';
+
         if (vehicle_management_supports_soft_delete()) {
             $sql .= ' AND deletedAt IS NULL';
         }
@@ -115,6 +120,7 @@ if (!function_exists('vehicle_management_delete')) {
         if (!vehicle_management_supports_soft_delete()) {
             $sql = 'DELETE FROM dh_vehicles WHERE vehicleID = ?';
             db_execute($sql, 'i', $vehicle_id);
+
             return;
         }
 

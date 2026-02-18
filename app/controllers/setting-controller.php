@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -25,6 +26,7 @@ if (!function_exists('setting_index')) {
         $maxThaiYear = $currentThaiYear + 1;
         $startThaiYear = 2568;
         $dh_year_value = system_get_dh_year();
+
         if ($dh_year_value < $startThaiYear || $dh_year_value > $maxThaiYear) {
             $dh_year_value = $currentThaiYear;
         }
@@ -52,6 +54,7 @@ if (!function_exists('setting_index')) {
 
         $active_tab = $_GET['tab'] ?? 'settingSystem';
         $allowed_tabs = ['settingSystem', 'settingDuty'];
+
         if (!in_array($active_tab, $allowed_tabs, true)) {
             $active_tab = 'settingSystem';
         }

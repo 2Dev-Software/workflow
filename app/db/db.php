@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/connection.php';
@@ -8,6 +9,7 @@ if (!function_exists('db_prepare')) {
     {
         $connection = db_connection();
         $stmt = mysqli_prepare($connection, $sql);
+
         if ($stmt === false) {
             error_log('Database Error (prepare): ' . mysqli_error($connection));
             throw new RuntimeException('Database prepare failed');
@@ -26,6 +28,7 @@ if (!function_exists('db_bind_params')) {
 
         $bind_params = array_merge([$stmt, $types], $params);
         $refs = [];
+
         foreach ($bind_params as $index => $value) {
             $refs[$index] = &$bind_params[$index];
         }
@@ -71,6 +74,7 @@ if (!function_exists('db_fetch_all')) {
         $stmt = db_query($sql, $types, ...$params);
         $result = mysqli_stmt_get_result($stmt);
         $rows = [];
+
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $rows[] = $row;
@@ -97,6 +101,7 @@ if (!function_exists('db_last_insert_id')) {
     function db_last_insert_id(): int
     {
         $connection = db_connection();
+
         return (int) mysqli_insert_id($connection);
     }
 }
@@ -105,6 +110,7 @@ if (!function_exists('db_begin')) {
     function db_begin(): bool
     {
         $connection = db_connection();
+
         return mysqli_begin_transaction($connection);
     }
 }
@@ -113,6 +119,7 @@ if (!function_exists('db_commit')) {
     function db_commit(): bool
     {
         $connection = db_connection();
+
         return mysqli_commit($connection);
     }
 }
@@ -121,6 +128,7 @@ if (!function_exists('db_rollback')) {
     function db_rollback(): bool
     {
         $connection = db_connection();
+
         return mysqli_rollback($connection);
     }
 }
@@ -129,6 +137,7 @@ if (!function_exists('db_table_exists')) {
     function db_table_exists(mysqli $connection, string $table): bool
     {
         $table = trim($table);
+
         if ($table === '') {
             return false;
         }
@@ -136,8 +145,10 @@ if (!function_exists('db_table_exists')) {
             $connection,
             'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1'
         );
+
         if ($stmt === false) {
             error_log('Database Error (table exists): ' . mysqli_error($connection));
+
             return false;
         }
 
@@ -156,6 +167,7 @@ if (!function_exists('db_column_exists')) {
     {
         $table = trim($table);
         $column = trim($column);
+
         if ($table === '' || $column === '') {
             return false;
         }
@@ -163,8 +175,10 @@ if (!function_exists('db_column_exists')) {
             $connection,
             'SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ? LIMIT 1'
         );
+
         if ($stmt === false) {
             error_log('Database Error (column exists): ' . mysqli_error($connection));
+
             return false;
         }
 

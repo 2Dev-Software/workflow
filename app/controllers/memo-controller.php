@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -31,14 +32,17 @@ if (!function_exists('memo_build_approver_options')) {
                 ORDER BY t.positionID ASC, t.fName ASC';
 
         $rows = db_fetch_all($sql);
+
         foreach ($rows as $row) {
             $pid = trim((string) ($row['pID'] ?? ''));
+
             if ($pid === '') {
                 continue;
             }
             $name = trim((string) ($row['fName'] ?? ''));
             $pos = trim((string) ($row['positionName'] ?? ''));
             $label = $name !== '' ? $name : $pid;
+
             if ($pos !== '') {
                 $label .= ' (' . $pos . ')';
             }
@@ -67,9 +71,11 @@ if (!function_exists('memo_list_sender_factions')) {
         );
 
         $items = [];
+
         foreach ($rows as $row) {
             $fid = (int) ($row['fID'] ?? 0);
             $name = trim((string) ($row['fname'] ?? ''));
+
             if ($fid <= 0 || $name === '') {
                 continue;
             }
@@ -102,6 +108,7 @@ if (!function_exists('memo_index')) {
             MEMO_STATUS_REJECTED,
             MEMO_STATUS_CANCELLED,
         ];
+
         if (!in_array($status_filter, $allowed_status, true)) {
             $status_filter = 'all';
         }
@@ -112,6 +119,7 @@ if (!function_exists('memo_index')) {
 
         $alert = null;
         $default_sender_fid = (string) (int) ($current_user['fID'] ?? 0);
+
         if ($default_sender_fid === '1' || $default_sender_fid === '0') {
             $default_sender_fid = '';
         }
@@ -129,6 +137,7 @@ if (!function_exists('memo_index')) {
 
         $approver_options = memo_build_approver_options($connection);
         $factions = memo_list_sender_factions($connection);
+
         if ($values['sender_fid'] === '' && !empty($factions)) {
             $values['sender_fid'] = (string) ($factions[0]['fID'] ?? '');
         }
@@ -157,10 +166,12 @@ if (!function_exists('memo_index')) {
             } else {
                 $toType = null;
                 $toPID = null;
+
                 if ($values['to_choice'] === 'DIRECTOR') {
                     $toType = 'DIRECTOR';
                 } elseif (str_starts_with($values['to_choice'], 'PERSON:')) {
                     $pid = trim(substr($values['to_choice'], 7));
+
                     if ($pid !== '' && preg_match('/^\\d{1,13}$/', $pid)) {
                         $toType = 'PERSON';
                         $toPID = $pid;
@@ -210,11 +221,13 @@ if (!function_exists('memo_index')) {
 
         $total_pages = 1;
         $filtered_total = 0;
+
         if (!$has_memo_table || !$has_route_table) {
             $memos = [];
         } else {
             $filtered_total = memo_count_by_creator($current_pid, false, $status_filter, $search);
             $total_pages = max(1, (int) ceil($filtered_total / $per_page));
+
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
@@ -223,13 +236,16 @@ if (!function_exists('memo_index')) {
         }
 
         $base_params = [];
+
         if ($search !== '') {
             $base_params['q'] = $search;
         }
+
         if ($status_filter !== 'all') {
             $base_params['status'] = $status_filter;
         }
         $pagination_base_url = 'memo.php';
+
         if (!empty($base_params)) {
             $pagination_base_url .= '?' . http_build_query($base_params);
         }

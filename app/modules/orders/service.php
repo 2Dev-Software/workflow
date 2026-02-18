@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/constants.php';
@@ -13,10 +14,12 @@ if (!function_exists('order_document_number')) {
     function order_document_number(array $order): string
     {
         $orderNo = trim((string) ($order['orderNo'] ?? ''));
+
         if ($orderNo !== '') {
             return $orderNo;
         }
         $orderID = (int) ($order['orderID'] ?? 0);
+
         return $orderID > 0 ? 'ORDER-' . $orderID : '';
     }
 }
@@ -25,11 +28,13 @@ if (!function_exists('order_sync_document')) {
     function order_sync_document(int $orderID): ?int
     {
         $order = order_get($orderID);
+
         if (!$order) {
             return null;
         }
 
         $documentNumber = order_document_number($order);
+
         if ($documentNumber === '') {
             return null;
         }
@@ -69,6 +74,7 @@ if (!function_exists('order_create_draft')) {
     function order_create_draft(array $data, array $files = []): int
     {
         db_begin();
+
         try {
             [$orderNo, $seq] = order_generate_number((int) $data['dh_year']);
             $data['orderNo'] = $orderNo;
@@ -109,6 +115,7 @@ if (!function_exists('order_attach_files')) {
         }
 
         db_begin();
+
         try {
             upload_store_files($files, ORDER_MODULE_NAME, ORDER_ENTITY_NAME, (string) $orderID, $actorPID, [
                 'max_files' => 5,
@@ -133,16 +140,19 @@ if (!function_exists('order_send')) {
     function order_send(int $orderID, string $senderPID, array $recipients): void
     {
         $order = order_get($orderID);
+
         if (!$order || (string) ($order['createdByPID'] ?? '') !== $senderPID || ($order['status'] ?? '') !== ORDER_STATUS_COMPLETE) {
             throw new RuntimeException('ไม่สามารถส่งคำสั่งได้');
         }
 
         db_begin();
+
         try {
             if (!empty($recipients['targets'])) {
                 order_add_recipients($orderID, $recipients['targets']);
             }
             $recipientPIDs = array_filter(array_unique(array_diff($recipients['pids'], [$senderPID])));
+
             if (empty($recipientPIDs)) {
                 throw new RuntimeException('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
             }
@@ -153,6 +163,7 @@ if (!function_exists('order_send')) {
             ]);
             order_add_route($orderID, 'SEND', $senderPID, null, null);
             $documentID = order_sync_document($orderID);
+
             if ($documentID) {
                 document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
             }

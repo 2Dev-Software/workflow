@@ -38,6 +38,7 @@ $status_options = [
 ];
 
 $rows = [];
+
 foreach ($items as $item) {
     $memo_id = (int) ($item['memoID'] ?? 0);
     $status = (string) ($item['status'] ?? '');

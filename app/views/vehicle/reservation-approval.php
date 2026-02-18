@@ -100,6 +100,7 @@ ob_start();
                                         <?php foreach ($vehicle_list as $vehicle_item): ?>
                                             <?php
                                             $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
+
                                             if ($vehicle_id === '') {
                                                 continue;
                                             }
@@ -107,10 +108,12 @@ ob_start();
                                             $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
                                             $model = trim((string) ($vehicle_item['vehicleModel'] ?? ''));
                                             $label = $plate !== '' ? $plate : $type;
+
                                             if ($label === '') {
                                                 $label = $vehicle_id;
                                             }
                                             $detail = trim($type . ' ' . $model);
+
                                             if ($detail !== '') {
                                                 $label .= ' - ' . $detail;
                                             }
@@ -126,12 +129,14 @@ ob_start();
                                         <?php foreach ($vehicle_list as $vehicle_item): ?>
                                             <?php
                                             $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
+
                                             if ($vehicle_id === '') {
                                                 continue;
                                             }
                                             $plate = trim((string) ($vehicle_item['vehiclePlate'] ?? ''));
                                             $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
                                             $label = $plate !== '' ? $plate : $type;
+
                                             if ($label === '') {
                                                 $label = $vehicle_id;
                                             }
@@ -318,6 +323,7 @@ ob_start();
                                                 <?php foreach ($vehicle_list as $vehicle_item): ?>
                                                     <?php
                                                     $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
+
                                                     if ($vehicle_id === '') {
                                                         continue;
                                                     }
@@ -325,10 +331,12 @@ ob_start();
                                                     $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
                                                     $model = trim((string) ($vehicle_item['vehicleModel'] ?? ''));
                                                     $label = $plate !== '' ? $plate : $type;
+
                                                     if ($label === '') {
                                                         $label = $vehicle_id;
                                                     }
                                                     $detail = trim($type . ' ' . $model);
+
                                                     if ($detail !== '') {
                                                         $label .= ' - ' . $detail;
                                                     }
@@ -344,6 +352,7 @@ ob_start();
                                                 <?php foreach ($vehicle_list as $vehicle_item): ?>
                                                     <?php
                                                     $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
+
                                                     if ($vehicle_id === '') {
                                                         continue;
                                                     }
@@ -351,10 +360,12 @@ ob_start();
                                                     $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
                                                     $model = trim((string) ($vehicle_item['vehicleModel'] ?? ''));
                                                     $label = $plate !== '' ? $plate : $type;
+
                                                     if ($label === '') {
                                                         $label = $vehicle_id;
                                                     }
                                                     $detail = trim($type . ' ' . $model);
+
                                                     if ($detail !== '') {
                                                         $label .= ' - ' . $detail;
                                                     }
@@ -381,6 +392,7 @@ ob_start();
                                                     $driver_id = (string) ($driver_item['pID'] ?? '');
                                                     $driver_name = trim((string) ($driver_item['name'] ?? ''));
                                                     $driver_tel = trim((string) ($driver_item['telephone'] ?? ''));
+
                                                     if ($driver_id === '' || $driver_name === '') {
                                                         continue;
                                                     }
@@ -408,6 +420,7 @@ ob_start();
                                                 $driver_id = (string) ($driver_item['pID'] ?? '');
                                                 $driver_name = trim((string) ($driver_item['name'] ?? ''));
                                                 $driver_tel = trim((string) ($driver_item['telephone'] ?? ''));
+
                                                 if ($driver_id === '' || $driver_name === '') {
                                                     continue;
                                                 }

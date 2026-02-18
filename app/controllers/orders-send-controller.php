@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -36,6 +37,7 @@ if (!function_exists('orders_send_index')) {
         $tables_ready = $has_orders_table && $has_recipients_table && $has_inbox_table;
 
         $order = null;
+
         if ($tables_ready) {
             $order = order_get($order_id);
         }
@@ -63,12 +65,15 @@ if (!function_exists('orders_send_index')) {
             } else {
                 try {
                     $targets = [];
+
                     foreach ($values['faction_ids'] as $fid) {
                         $targets[] = ['targetType' => 'UNIT', 'fID' => (int) $fid];
                     }
+
                     foreach ($values['role_ids'] as $rid) {
                         $targets[] = ['targetType' => 'ROLE', 'roleID' => (int) $rid];
                     }
+
                     foreach ($values['person_ids'] as $pid) {
                         $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
                     }

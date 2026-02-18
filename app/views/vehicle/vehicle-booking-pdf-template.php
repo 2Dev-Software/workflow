@@ -15,13 +15,14 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
         $write_date_label = trim((string) ($data['write_date_label'] ?? '-'));
 
         $paragraph_lines = $data['paragraph_lines'] ?? [];
+
         if (!is_array($paragraph_lines)) {
             $paragraph_lines = [];
         }
         $paragraph_lines = array_values(array_filter(array_map(
-            static fn($v) => trim((string) $v),
+            static fn ($v) => trim((string) $v),
             $paragraph_lines
-        ), static fn(string $v) => $v !== ''));
+        ), static fn (string $v) => $v !== ''));
 
         $requester_sig = $data['requester_signature'] ?? null;
         $requester_sig = is_string($requester_sig) && $requester_sig !== '' ? $requester_sig : null;
@@ -43,10 +44,10 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
         $boss_position_line_1 = trim((string) ($data['boss_position_line_1'] ?? '-'));
         $boss_position_line_2 = trim((string) ($data['boss_position_line_2'] ?? ''));
 
-	        $boss_signature = $data['boss_signature'] ?? null;
-	        $boss_signature = is_string($boss_signature) && $boss_signature !== '' ? $boss_signature : null;
+        $boss_signature = $data['boss_signature'] ?? null;
+        $boss_signature = is_string($boss_signature) && $boss_signature !== '' ? $boss_signature : null;
 
-	        $assigned_note_line_2 = $assigned_note !== '' ? $assigned_note : 'อื่นๆ ........................................................';
+        $assigned_note_line_2 = $assigned_note !== '' ? $assigned_note : 'อื่นๆ ........................................................';
 
         ob_start();
         ?>
@@ -186,6 +187,6 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
 	</body>
 	</html>
 	        <?php
-	        return (string) ob_get_clean();
+            return (string) ob_get_clean();
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -57,6 +58,7 @@ if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equal
 }
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ($requester_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'room_booking_check_api', $audit_payload_base);
@@ -65,6 +67,7 @@ if ($requester_pid === '') {
 }
 
 $room_booking_year = (int) ($_POST['dh_year'] ?? 0);
+
 if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;
 }
@@ -72,6 +75,7 @@ if ($room_booking_year <= 0) {
 $room_map = room_booking_get_room_map($connection);
 $room_detail_map = room_booking_get_room_detail_map($connection);
 $room_id = trim((string) ($_POST['roomID'] ?? ''));
+
 if ($room_id === '' || !isset($room_map[$room_id])) {
     if (function_exists('audit_log')) {
         audit_log('room', 'CHECK_AVAILABILITY', 'FAIL', 'dh_room_bookings', null, 'invalid_room', $audit_payload_base);
@@ -82,12 +86,14 @@ if ($room_id === '' || !isset($room_map[$room_id])) {
 $room_detail = $room_detail_map[$room_id] ?? null;
 $room_status = $room_detail ? (string) ($room_detail['roomStatus'] ?? '') : '';
 $room_note = $room_detail ? trim((string) ($room_detail['roomNote'] ?? '')) : '';
+
 if ($room_detail === null) {
     if (function_exists('audit_log')) {
         audit_log('room', 'CHECK_AVAILABILITY', 'FAIL', 'dh_room_bookings', null, 'room_not_found', $audit_payload_base);
     }
     $render_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบข้อมูลห้องที่เลือก');
 }
+
 if (!room_booking_is_room_available($room_status)) {
     if (function_exists('audit_log')) {
         audit_log('room', 'CHECK_AVAILABILITY', 'FAIL', 'dh_room_bookings', null, 'room_unavailable', array_merge($audit_payload_base, [
@@ -97,6 +103,7 @@ if (!room_booking_is_room_available($room_status)) {
     }
     $status_label = $room_status !== '' ? $room_status : 'ไม่พร้อมใช้งาน';
     $message = 'สถานะห้อง: ' . $status_label;
+
     if ($room_note !== '') {
         $message .= ' • ' . $room_note;
     }
@@ -107,6 +114,7 @@ $start_date_raw = trim((string) ($_POST['startDate'] ?? ''));
 $end_date_raw = trim((string) ($_POST['endDate'] ?? ''));
 
 $start_date_obj = DateTime::createFromFormat('Y-m-d', $start_date_raw);
+
 if ($start_date_obj === false) {
     if (function_exists('audit_log')) {
         audit_log('room', 'CHECK_AVAILABILITY', 'FAIL', 'dh_room_bookings', null, 'invalid_start_date', $audit_payload_base);
@@ -159,10 +167,12 @@ $start_time = $start_time_obj->format('H:i:s');
 $end_time = $end_time_obj->format('H:i:s');
 
 $attendee_raw = trim((string) ($_POST['attendeeCount'] ?? ''));
+
 if ($attendee_raw !== '') {
     $attendee_count = filter_var($attendee_raw, FILTER_VALIDATE_INT, [
         'options' => ['min_range' => 1, 'max_range' => 9999],
     ]);
+
     if ($attendee_count === false) {
         if (function_exists('audit_log')) {
             audit_log('room', 'CHECK_AVAILABILITY', 'FAIL', 'dh_room_bookings', null, 'invalid_attendee_count', $audit_payload_base);

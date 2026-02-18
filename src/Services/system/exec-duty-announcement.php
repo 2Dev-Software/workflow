@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
@@ -29,6 +30,7 @@ try {
             $exec_duty_position = trim((string) ($row['positionName'] ?? ''));
 
             $duty_status = (int) ($row['dutyStatus'] ?? 0);
+
             if ($duty_status === 1) {
                 $exec_duty_status_label = 'ปฏิบัติราชการ';
             } elseif ($duty_status === 2) {
@@ -49,6 +51,7 @@ try {
             }
 
             $parts = array_filter(['วันนี้', $exec_duty_name, $exec_duty_position, $exec_duty_status_label]);
+
             if (count($parts) > 1) {
                 $exec_duty_announcement = implode(' ', $parts);
             }
@@ -59,4 +62,3 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
-?>

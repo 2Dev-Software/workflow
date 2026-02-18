@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['signature_upload'])) {
     return;
 }
@@ -40,6 +41,7 @@ if (empty($_FILES['signature_file'])) {
 }
 
 $signature_file = $_FILES['signature_file'];
+
 if ($signature_file['error'] !== UPLOAD_ERR_OK) {
     $set_profile_alert('danger', 'อัปโหลดไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
@@ -47,6 +49,7 @@ if ($signature_file['error'] !== UPLOAD_ERR_OK) {
 }
 
 $max_signature_size = 2 * 1024 * 1024;
+
 if ((int) $signature_file['size'] > $max_signature_size) {
     $set_profile_alert('warning', 'ไฟล์มีขนาดใหญ่เกินไป', 'รองรับไฟล์ขนาดไม่เกิน 2MB');
     header('Location: ' . $redirect_url, true, 303);
@@ -54,12 +57,15 @@ if ((int) $signature_file['size'] > $max_signature_size) {
 }
 
 $signature_mime = '';
+
 if (class_exists('finfo')) {
     $finfo = new finfo(FILEINFO_MIME_TYPE);
+
     if ($finfo) {
         $signature_mime = (string) $finfo->file($signature_file['tmp_name']);
     }
 }
+
 if ($signature_mime === '') {
     $signature_mime = (string) ($signature_file['type'] ?? '');
 }
@@ -68,6 +74,7 @@ $allowed_mime = [
     'image/jpeg' => 'jpg',
     'image/png' => 'png',
 ];
+
 if (!isset($allowed_mime[$signature_mime])) {
     $set_profile_alert('warning', 'รูปแบบไฟล์ไม่ถูกต้อง', 'รองรับเฉพาะไฟล์ .jpg และ .png');
     header('Location: ' . $redirect_url, true, 303);
@@ -75,6 +82,7 @@ if (!isset($allowed_mime[$signature_mime])) {
 }
 
 $safe_pid = preg_replace('/\D+/', '', (string) $teacher_pid);
+
 if ($safe_pid === '') {
     $set_profile_alert('danger', 'อัปโหลดไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
     header('Location: ' . $redirect_url, true, 303);
@@ -82,6 +90,7 @@ if ($safe_pid === '') {
 }
 
 $signature_dir = __DIR__ . '/../../../assets/img/signature/' . $safe_pid;
+
 if (!is_dir($signature_dir) && !mkdir($signature_dir, 0755, true)) {
     error_log('Signature directory create failed: ' . $signature_dir);
     $set_profile_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถบันทึกไฟล์ลายเซ็นได้ในขณะนี้');
@@ -110,6 +119,7 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'SIGNATURE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'prepare_failed');
     }
@@ -119,8 +129,10 @@ if ($update_stmt === false) {
 }
 
 mysqli_stmt_bind_param($update_stmt, 'ss', $signature_path, $teacher_pid);
+
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'SIGNATURE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'execute_failed');
     }

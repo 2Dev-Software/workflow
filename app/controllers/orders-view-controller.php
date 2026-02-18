@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -31,6 +32,7 @@ if (!function_exists('orders_view_index')) {
             $alert = system_not_ready_alert('ยังไม่พบตาราง dh_order_inboxes กรุณารัน migrations/004_create_orders.sql');
         } else {
             $item = order_get_inbox_item($inbox_id, $current_pid);
+
             if (!$item) {
                 header('Location: orders-inbox.php', true, 302);
                 exit();

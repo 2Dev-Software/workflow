@@ -16,6 +16,7 @@ $booking_alert = $booking_alert ?? null;
 $alert = $booking_alert;
 
 $currentThaiYear = (int) date('Y') + 543;
+
 if ($dh_year_value < 2500) {
     $dh_year_value = $currentThaiYear;
 }
@@ -37,6 +38,7 @@ $thai_months = [
 
 $format_thai_date = static function (string $date) use ($thai_months): string {
     $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+
     if ($date_obj === false) {
         return $date;
     }
@@ -56,6 +58,7 @@ $format_thai_date_range = static function (string $start, string $end) use ($for
 
     $start_obj = DateTime::createFromFormat('Y-m-d', $start);
     $end_obj = DateTime::createFromFormat('Y-m-d', $end);
+
     if ($start_obj === false || $end_obj === false) {
         return $format_thai_date($start) . ' - ' . $format_thai_date($end);
     }
@@ -86,9 +89,11 @@ $format_thai_datetime = static function (string $datetime) use ($thai_months): s
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
     }
+
     if ($date_obj === false) {
         return $datetime;
     }
@@ -108,6 +113,7 @@ $status_labels = [
 ];
 
 $room_booking_events_json = json_encode($room_booking_events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
 if ($room_booking_events_json === false) {
     $room_booking_events_json = '{}';
 }
@@ -255,17 +261,17 @@ ob_start();
 
             <!-- <div class="booking-summary">
                 <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_total) 
+                    <h3><?php //h((string) $room_booking_total)
                         ?> รายการ</h3>
                     <p>รายการจองทั้งหมด</p>
                 </div>
                 <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_approved_total) 
+                    <h3><?php //h((string) $room_booking_approved_total)
                         ?> รายการ</h3>
                     <p>อนุมัติแล้ว</p>
                 </div>
                 <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_pending_total) 
+                    <h3><?php //h((string) $room_booking_pending_total)
                         ?> รายการ</h3>
                     <p>รออนุมัติ</p>
                 </div>
@@ -308,12 +314,14 @@ ob_start();
                             // Requester view: show only status (do not display rejection reason).
                             $status_reason_label = '-';
                             $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
+
                             if ($approver_name === '' && !empty($booking_item['approvedByPID'])) {
                                 $approver_name = 'เจ้าหน้าที่ระบบ';
                             }
                             $approval_label = $status_value === 2 ? 'ผู้ไม่อนุมัติ' : 'ผู้อนุมัติ';
                             $approval_name = $status_value === 0 ? 'รอการอนุมัติ' : ($approver_name !== '' ? $approver_name : 'เจ้าหน้าที่ระบบ');
                             $approval_time = $format_thai_datetime((string) ($booking_item['approvedAt'] ?? ''));
+
                             if ($approval_time === '-' || $approval_time === '') {
                                 $approval_at_label = '-';
                             } else {
@@ -418,12 +426,14 @@ ob_start();
                                 // Requester view: show only status (do not display rejection reason).
                                 $status_reason_label = '-';
                                 $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
+
                                 if ($approver_name === '' && !empty($booking_item['approvedByPID'])) {
                                     $approver_name = 'เจ้าหน้าที่ระบบ';
                                 }
                                 $approval_label = $status_value === 2 ? 'ผู้ไม่อนุมัติ' : 'ผู้อนุมัติ';
                                 $approval_name = $status_value === 0 ? 'รอการอนุมัติ' : ($approver_name !== '' ? $approver_name : 'เจ้าหน้าที่ระบบ');
                                 $approval_time = $format_thai_datetime((string) ($booking_item['approvedAt'] ?? ''));
+
                                 if ($approval_time === '-' || $approval_time === '') {
                                     $approval_at_label = '-';
                                 } else {

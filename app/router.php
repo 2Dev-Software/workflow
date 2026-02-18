@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/helpers.php';
@@ -37,6 +38,7 @@ class Router
     {
         $path = (string) (parse_url($uri, PHP_URL_PATH) ?? '/');
         $base = app_base_path();
+
         if ($base !== '' && strpos($path, $base) === 0) {
             $path = substr($path, strlen($base));
         }
@@ -44,13 +46,16 @@ class Router
 
         $method = strtoupper($method);
         $route = $this->routes[$method][$path] ?? null;
+
         if ($route === null) {
             $this->handleNotFound();
+
             return;
         }
 
         foreach ($route['middleware'] as $middleware) {
             $result = $middleware();
+
             if ($result === false) {
                 return;
             }
@@ -63,6 +68,7 @@ class Router
     {
         if ($this->notFoundHandler !== null) {
             call_user_func($this->notFoundHandler);
+
             return;
         }
 
@@ -73,6 +79,7 @@ class Router
     private function normalizePath(string $path): string
     {
         $path = '/' . trim($path, '/');
+
         return $path === '//' ? '/' : $path;
     }
 }

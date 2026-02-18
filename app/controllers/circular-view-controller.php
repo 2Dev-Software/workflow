@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -21,6 +22,7 @@ if (!function_exists('circular_view_index')) {
         $connection = db_connection();
         $deputy_position_ids = system_position_deputy_ids($connection);
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
+
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
         }
@@ -29,11 +31,13 @@ if (!function_exists('circular_view_index')) {
         $is_director = $director_pid !== null && $director_pid === $current_pid;
 
         $inbox_id = isset($_GET['inbox_id']) ? (int) $_GET['inbox_id'] : 0;
+
         if ($inbox_id <= 0) {
             redirect_to('circular-notice.php');
         }
 
         $item = circular_get_inbox_item($inbox_id, $current_pid);
+
         if (!$item) {
             redirect_to('circular-notice.php');
         }
@@ -56,6 +60,7 @@ if (!function_exists('circular_view_index')) {
                 $item_type = strtoupper((string) ($item['circularType'] ?? ''));
                 $item_status = strtoupper((string) ($item['status'] ?? ''));
                 $item_inbox_type = (string) ($item['inboxType'] ?? INBOX_TYPE_NORMAL);
+
                 try {
                     if ($action === 'archive') {
                         circular_archive_inbox($inbox_id, $current_pid);
@@ -72,6 +77,7 @@ if (!function_exists('circular_view_index')) {
                         }
 
                         $ok = circular_recall_external_before_review((int) $item['circularID'], $current_pid);
+
                         if (!$ok) {
                             throw new RuntimeException('ไม่สามารถดึงกลับได้ในสถานะปัจจุบัน');
                         }
@@ -85,6 +91,7 @@ if (!function_exists('circular_view_index')) {
                             && $item_status === EXTERNAL_STATUS_FORWARDED
                             && $item_inbox_type === INBOX_TYPE_NORMAL
                             && !$is_deputy;
+
                         if (!$can_forward_internal && !$can_forward_external) {
                             throw new RuntimeException('สถานะเอกสารไม่รองรับการส่งต่อในขั้นตอนนี้');
                         }
@@ -93,12 +100,15 @@ if (!function_exists('circular_view_index')) {
                         $person_ids = $_POST['person_ids'] ?? [];
 
                         $targets = [];
+
                         foreach ((array) $faction_ids as $fid) {
                             $targets[] = ['targetType' => 'UNIT', 'fID' => (int) $fid];
                         }
+
                         foreach ((array) $role_ids as $rid) {
                             $targets[] = ['targetType' => 'ROLE', 'roleID' => (int) $rid];
                         }
+
                         foreach ((array) $person_ids as $pid) {
                             $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
                         }
@@ -148,12 +158,15 @@ if (!function_exists('circular_view_index')) {
                         $person_ids = $_POST['person_ids'] ?? [];
                         $comment = trim((string) ($_POST['comment'] ?? ''));
                         $targets = [];
+
                         foreach ((array) $faction_ids as $fid) {
                             $targets[] = ['targetType' => 'UNIT', 'fID' => (int) $fid];
                         }
+
                         foreach ((array) $role_ids as $rid) {
                             $targets[] = ['targetType' => 'ROLE', 'roleID' => (int) $rid];
                         }
+
                         foreach ((array) $person_ids as $pid) {
                             $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
                         }
@@ -168,6 +181,7 @@ if (!function_exists('circular_view_index')) {
                     }
                 } catch (Throwable $e) {
                     $message = trim((string) $e->getMessage());
+
                     if ($message === '') {
                         $message = 'โปรดลองอีกครั้ง';
                     }

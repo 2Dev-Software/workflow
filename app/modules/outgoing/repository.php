@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -63,6 +64,7 @@ if (!function_exists('outgoing_get')) {
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             WHERE o.outgoingID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $outgoingID);
     }
 }
@@ -74,6 +76,7 @@ if (!function_exists('outgoing_list')) {
             FROM dh_outgoing_letters
             WHERE deletedAt IS NULL
             ORDER BY createdAt DESC, outgoingID DESC';
+
         return db_fetch_all($sql);
     }
 }
@@ -86,6 +89,7 @@ if (!function_exists('outgoing_get_attachments')) {
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
+
         return db_fetch_all($sql, 'sss', OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID);
     }
 }

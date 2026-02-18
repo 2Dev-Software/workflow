@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -17,13 +18,16 @@ if (!function_exists('outgoing_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
         $connection = db_connection();
         $can_manage = outgoing_user_can_manage($connection, $current_pid, $current_user);
+
         if (!$can_manage) {
             http_response_code(403);
             require __DIR__ . '/../views/errors/403.php';
+
             return;
         }
 
         $alert = null;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -34,6 +38,7 @@ if (!function_exists('outgoing_index')) {
             } else {
                 $action = $_POST['action'] ?? '';
                 $outgoing_id = isset($_POST['outgoing_id']) ? (int) $_POST['outgoing_id'] : 0;
+
                 if ($action === 'attach' && $outgoing_id > 0) {
                     try {
                         outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? []);

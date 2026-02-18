@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['phone_save'])) {
     return;
 }
@@ -54,6 +55,7 @@ $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'select_failed');
     }
@@ -75,6 +77,7 @@ if (!$teacher_row) {
 }
 
 $current_phone = preg_replace('/\D+/', '', (string) ($teacher_row['telephone'] ?? ''));
+
 if ($current_phone === $telephone) {
     $set_profile_alert('warning', 'ไม่มีการเปลี่ยนแปลง', 'เบอร์โทรศัพท์นี้ถูกบันทึกไว้แล้ว');
     header('Location: ' . $redirect_url, true, 303);
@@ -86,6 +89,7 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'prepare_failed');
     }
@@ -98,6 +102,7 @@ mysqli_stmt_bind_param($update_stmt, 'ss', $telephone, $teacher_pid);
 
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PHONE_UPDATE', 'FAIL', 'teacher', $teacher_pid, 'execute_failed');
     }

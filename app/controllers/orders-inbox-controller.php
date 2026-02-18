@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -18,6 +19,7 @@ if (!function_exists('orders_inbox_index')) {
         $search = trim((string) ($_GET['q'] ?? ''));
         $status_filter = strtolower((string) ($_GET['status'] ?? 'all'));
         $allowed_filters = ['all', 'read', 'unread'];
+
         if (!in_array($status_filter, $allowed_filters, true)) {
             $status_filter = 'all';
         }
@@ -41,8 +43,10 @@ if (!function_exists('orders_inbox_index')) {
             } else {
                 $action = $_POST['action'] ?? '';
                 $inbox_id = (int) ($_POST['inbox_id'] ?? 0);
+
                 if ($action === 'archive' && $inbox_id > 0) {
                     order_archive_inbox($inbox_id, $current_pid);
+
                     if (function_exists('audit_log')) {
                         audit_log('orders', 'ARCHIVE', 'SUCCESS', 'dh_order_inboxes', $inbox_id);
                     }
@@ -62,6 +66,7 @@ if (!function_exists('orders_inbox_index')) {
             'read' => 0,
             'unread' => 0,
         ];
+
         if (!$has_inbox_table) {
             if ($alert === null) {
                 $alert = system_not_ready_alert('ยังไม่พบตาราง dh_order_inboxes กรุณารัน migrations/004_create_orders.sql');
@@ -71,6 +76,7 @@ if (!function_exists('orders_inbox_index')) {
             $summary = order_inbox_read_summary($current_pid, $archived, $search);
             $filtered_total = order_count_inbox_filtered($current_pid, $archived, $search, $status_filter);
             $total_pages = max(1, (int) ceil($filtered_total / $per_page));
+
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
@@ -79,13 +85,16 @@ if (!function_exists('orders_inbox_index')) {
         }
 
         $base_params = ['archived' => $archived ? '1' : '0'];
+
         if ($search !== '') {
             $base_params['q'] = $search;
         }
+
         if ($status_filter !== 'all') {
             $base_params['status'] = $status_filter;
         }
         $pagination_base_url = 'orders-inbox.php';
+
         if (!empty($base_params)) {
             $pagination_base_url .= '?' . http_build_query($base_params);
         }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -20,12 +21,14 @@ if (!function_exists('circular_sent_index')) {
         $receipt_sender_faction = '';
 
         $alert = null;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = ['type' => 'danger', 'title' => 'ไม่สามารถยืนยันความปลอดภัย', 'message' => 'กรุณาลองใหม่อีกครั้ง'];
             } else {
                 $action = (string) ($_POST['action'] ?? '');
                 $circular_id = isset($_POST['circular_id']) ? (int) $_POST['circular_id'] : 0;
+
                 if ($action === 'recall' && $circular_id > 0) {
                     $ok = circular_recall_internal($circular_id, $current_pid);
                     $alert = $ok
@@ -55,6 +58,7 @@ if (!function_exists('circular_sent_index')) {
         $per_page = (int) ($_GET['per_page'] ?? 10);
 
         $allowed_types = ['all', 'internal', 'external'];
+
         if (!in_array($filter_type, $allowed_types, true)) {
             $filter_type = 'all';
         }
@@ -70,6 +74,7 @@ if (!function_exists('circular_sent_index')) {
             EXTERNAL_STATUS_REVIEWED,
             EXTERNAL_STATUS_FORWARDED,
         ];
+
         if (!in_array($filter_status, $allowed_statuses, true)) {
             $filter_status = 'ALL';
         }
@@ -79,6 +84,7 @@ if (!function_exists('circular_sent_index')) {
         }
 
         $allowed_per_page = [10, 20, 50];
+
         if (!in_array($per_page, $allowed_per_page, true)) {
             $per_page = 10;
         }
@@ -87,6 +93,7 @@ if (!function_exists('circular_sent_index')) {
         $summary_sent = 0;
         $summary_recalled = 0;
         $summary_read_complete = 0;
+
         foreach ($all_items as $item) {
             $status = strtoupper((string) ($item['status'] ?? ''));
             $read_count = (int) ($item['readCount'] ?? 0);
@@ -95,9 +102,11 @@ if (!function_exists('circular_sent_index')) {
             if ($status === INTERNAL_STATUS_SENT || $status === EXTERNAL_STATUS_FORWARDED) {
                 $summary_sent++;
             }
+
             if ($status === INTERNAL_STATUS_RECALLED) {
                 $summary_recalled++;
             }
+
             if ($recipient_count > 0 && $read_count >= $recipient_count) {
                 $summary_read_complete++;
             }
@@ -115,13 +124,16 @@ if (!function_exists('circular_sent_index')) {
             if ($filter_type !== 'all' && $item_type !== $filter_type) {
                 return false;
             }
+
             if ($filter_status !== 'ALL' && $item_status !== $filter_status) {
                 return false;
             }
+
             if ($filter_query !== '') {
                 $haystack = $lower(trim($subject . ' ' . $circular_id));
                 $needle = $lower($filter_query);
                 $position = function_exists('mb_strpos') ? mb_strpos($haystack, $needle) : strpos($haystack, $needle);
+
                 if ($position === false) {
                     return false;
                 }
@@ -133,6 +145,7 @@ if (!function_exists('circular_sent_index')) {
         usort($filtered_items, static function (array $a, array $b) use ($filter_sort): int {
             $time_a = strtotime((string) ($a['createdAt'] ?? '')) ?: 0;
             $time_b = strtotime((string) ($b['createdAt'] ?? '')) ?: 0;
+
             if ($time_a === $time_b) {
                 return ((int) ($b['circularID'] ?? 0)) <=> ((int) ($a['circularID'] ?? 0));
             }
@@ -146,6 +159,7 @@ if (!function_exists('circular_sent_index')) {
 
         $filtered_total = count($filtered_items);
         $total_pages = max(1, (int) ceil($filtered_total / $per_page));
+
         if ($page > $total_pages) {
             $page = $total_pages;
         }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (!function_exists('vehicle_reservation_get_table_columns')) {
@@ -17,8 +18,10 @@ if (!function_exists('vehicle_reservation_get_table_columns')) {
 
         $cached[$table] = [];
         $result = mysqli_query($connection, 'SHOW COLUMNS FROM `' . $table . '`');
+
         if ($result === false) {
             error_log('Database Error: ' . mysqli_error($connection));
+
             return $cached[$table];
         }
 
@@ -29,6 +32,7 @@ if (!function_exists('vehicle_reservation_get_table_columns')) {
         }
 
         mysqli_free_result($result);
+
         return $cached[$table];
     }
 }

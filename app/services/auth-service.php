@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../helpers.php';
@@ -11,6 +12,7 @@ if (!function_exists('auth_validate_credentials')) {
     {
         $pid = trim($pid);
         $password = (string) $password;
+
         if ($pid === '' || $password === '') {
             return [false, null, 'กรุณากรอกเลขบัตรประชาชนและรหัสผ่านให้ครบถ้วน'];
         }
@@ -20,11 +22,13 @@ if (!function_exists('auth_validate_credentials')) {
         }
 
         $user = user_find_active_by_pid($pid);
+
         if (!$user) {
             return [false, null, 'เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง'];
         }
 
         $stored = (string) ($user['passwordValue'] ?? '');
+
         if (!hash_equals($stored, $password)) {
             return [false, null, 'เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง'];
         }
@@ -37,16 +41,19 @@ if (!function_exists('auth_check_lockout')) {
     function auth_check_lockout(string $pid, string $ip): array
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_login_attempts')) {
             return [true, null];
         }
 
         $row = db_fetch_one('SELECT attemptCount, lockedUntil FROM dh_login_attempts WHERE pID = ? AND ipAddress = ? LIMIT 1', 'ss', $pid, $ip);
+
         if (!$row) {
             return [true, null];
         }
 
         $locked_until = $row['lockedUntil'] ?? null;
+
         if ($locked_until && strtotime((string) $locked_until) > time()) {
             return [false, 'บัญชีถูกล็อกชั่วคราว กรุณาลองใหม่อีกครั้งในภายหลัง'];
         }
@@ -59,6 +66,7 @@ if (!function_exists('auth_record_login_failure')) {
     function auth_record_login_failure(string $pid, string $ip): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_login_attempts')) {
             return;
         }
@@ -81,6 +89,7 @@ if (!function_exists('auth_clear_login_failure')) {
     function auth_clear_login_failure(string $pid, string $ip): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_login_attempts')) {
             return;
         }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Production-grade file responses must never be corrupted by PHP notices/warnings.
@@ -13,6 +14,7 @@ set_error_handler(static function (int $severity, string $message, string $file 
         return false;
     }
     error_log('PHP error [' . $severity . '] ' . $message . ' in ' . $file . ':' . $line);
+
     return true; // Prevent default handler from outputting to the response.
 });
 
@@ -23,6 +25,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../app/modules/audit/logger.php';
 
 $actor_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ($actor_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'vehicle_booking_file');
@@ -74,6 +77,7 @@ $abort = static function (int $status, string $audit_status, string $message, ar
 
 $booking_sql = 'SELECT bookingID, requesterPID FROM dh_vehicle_bookings WHERE bookingID = ? AND deletedAt IS NULL LIMIT 1';
 $booking_stmt = mysqli_prepare($connection, $booking_sql);
+
 if ($booking_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
     $abort(500, 'FAIL', 'booking_prepare_failed');
@@ -99,6 +103,7 @@ if (!$authorized) {
     if (!$is_vehicle_officer) {
         $legacy_role = db_fetch_one('SELECT roleID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1', 's', $actor_pid);
         $legacy_role_id = (int) ($legacy_role['roleID'] ?? 0);
+
         if (in_array($legacy_role_id, [1, 3], true)) {
             $is_vehicle_officer = true;
         }
@@ -119,6 +124,7 @@ $file_sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
     WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND r.fileID = ? AND f.deletedAt IS NULL
     LIMIT 1';
 $file_stmt = mysqli_prepare($connection, $file_sql);
+
 if ($file_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
     $abort(500, 'FAIL', 'file_prepare_failed');
@@ -140,6 +146,7 @@ if (!$file_row) {
 }
 
 $file_path = (string) ($file_row['filePath'] ?? '');
+
 if ($file_path === '') {
     $abort(404, 'FAIL', 'file_path_missing');
 }

@@ -7,6 +7,7 @@ $current_user = (array) ($current_user ?? []);
 $factions = (array) ($factions ?? []);
 
 $selected_sender_fid = trim((string) ($values['sender_fid'] ?? ''));
+
 if ($selected_sender_fid === '' && !empty($factions)) {
     $selected_sender_fid = (string) ($factions[0]['fID'] ?? '');
 }
@@ -67,14 +68,15 @@ ob_start();
                         <p class="select-value">
                             <?php
                             $selected_faction_name = '';
-                            foreach ($factions as $faction) {
-                                if ((string) ($faction['fID'] ?? '') === $selected_sender_fid) {
-                                    $selected_faction_name = (string) ($faction['fname'] ?? '');
-                                    break;
-                                }
-                            }
-                            echo h($selected_faction_name !== '' ? $selected_faction_name : 'เลือกส่วนราชการ');
-                            ?>
+
+foreach ($factions as $faction) {
+    if ((string) ($faction['fID'] ?? '') === $selected_sender_fid) {
+        $selected_faction_name = (string) ($faction['fname'] ?? '');
+        break;
+    }
+}
+echo h($selected_faction_name !== '' ? $selected_faction_name : 'เลือกส่วนราชการ');
+?>
                         </p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>

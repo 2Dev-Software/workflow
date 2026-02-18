@@ -15,6 +15,7 @@ require_once __DIR__ . '/src/Services/room/room-booking-data.php';
 $announcement_items = circular_get_announcements(10);
 $vehicle_events = vehicle_booking_events($room_booking_year);
 $calendar_events = $room_booking_events ?? [];
+
 foreach ($vehicle_events as $date_key => $events) {
     if (!isset($calendar_events[$date_key])) {
         $calendar_events[$date_key] = [];

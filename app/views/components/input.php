@@ -22,12 +22,15 @@ $input_attrs = array_merge($attrs, [
     'type' => $type,
     'placeholder' => $placeholder,
 ]);
+
 if ($type !== 'file') {
     $input_attrs['value'] = $value;
 }
+
 if ($required) {
     $input_attrs['required'] = true;
 }
+
 if ($disabled) {
     $input_attrs['disabled'] = true;
 }

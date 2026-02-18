@@ -5,6 +5,7 @@ if (empty($alert) || !is_array($alert)) {
 
 $alert_type = (string) ($alert['type'] ?? 'danger');
 $allowed_types = ['success', 'warning', 'danger'];
+
 if (!in_array($alert_type, $allowed_types, true)) {
     $alert_type = 'danger';
 }
@@ -16,6 +17,7 @@ $alert_auto = (bool) ($alert['auto'] ?? false);
 $alert_hide_button = (bool) ($alert['hide_button'] ?? false);
 $alert_redirect = (string) ($alert['redirect'] ?? '');
 $alert_delay_ms = (int) ($alert['delay_ms'] ?? 1000);
+
 if ($alert_delay_ms < 0) {
     $alert_delay_ms = 0;
 }

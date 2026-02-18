@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Standardized state machines for document workflows.

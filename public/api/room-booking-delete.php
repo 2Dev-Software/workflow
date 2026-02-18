@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
@@ -64,11 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $raw_input = file_get_contents('php://input');
 $payload = json_decode($raw_input, true);
+
 if (!is_array($payload)) {
     $payload = $_POST;
 }
 
 $csrf_token = (string) ($payload['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+
 if ($csrf_token === '' || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf_token)) {
     if (function_exists('audit_log')) {
         audit_log('security', 'CSRF_FAIL', 'DENY', 'dh_room_bookings', null, 'room_booking_delete_api', [
@@ -83,6 +86,7 @@ if ($csrf_token === '' || empty($_SESSION['csrf_token']) || !hash_equals($_SESSI
 $booking_id = filter_var($payload['booking_id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
+
 if (!$booking_id) {
     if (function_exists('audit_log')) {
         audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', null, 'invalid_payload', [
@@ -101,6 +105,7 @@ $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
             'step' => 'select_prepare_failed',
@@ -127,6 +132,7 @@ if (!$booking_row) {
 }
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ((string) ($booking_row['requesterPID'] ?? '') !== $requester_pid) {
     if (function_exists('audit_log')) {
         audit_log('room', 'DELETE', 'DENY', 'dh_room_bookings', $booking_id, 'not_owner');
@@ -141,6 +147,7 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
             'step' => 'update_prepare_failed',
@@ -155,6 +162,7 @@ mysqli_stmt_bind_param($update_stmt, 'i', $booking_id);
 
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+
     if (function_exists('audit_log')) {
         audit_log('room', 'DELETE', 'FAIL', 'dh_room_bookings', $booking_id, 'db_error', [
             'step' => 'update_execute_failed',

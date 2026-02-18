@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -54,6 +55,7 @@ $set_room_booking_alert = static function (
 };
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     $audit_fail('db_connection_missing');
     $set_room_booking_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
@@ -73,6 +75,7 @@ if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equal
 }
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ($requester_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'room_booking_save', array_merge($audit_payload_base, [
@@ -88,6 +91,7 @@ $room_map = room_booking_get_room_map($connection);
 $room_detail_map = room_booking_get_room_detail_map($connection);
 
 $room_id = trim((string) ($_POST['roomID'] ?? ''));
+
 if ($room_id === '' || !isset($room_map[$room_id])) {
     $audit_fail('invalid_room');
     $set_room_booking_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกห้องหรือสถานที่');
@@ -98,6 +102,7 @@ if ($room_id === '' || !isset($room_map[$room_id])) {
 $room_detail = $room_detail_map[$room_id] ?? null;
 $room_status = $room_detail ? (string) ($room_detail['roomStatus'] ?? '') : '';
 $room_note = $room_detail ? trim((string) ($room_detail['roomNote'] ?? '')) : '';
+
 if ($room_detail === null) {
     $audit_fail('room_not_found', [
         'roomID' => $room_id,
@@ -106,6 +111,7 @@ if ($room_detail === null) {
     header('Location: ' . $redirect_url, true, 303);
     exit();
 }
+
 if (!room_booking_is_room_available($room_status)) {
     $audit_fail('room_unavailable', [
         'roomID' => $room_id,
@@ -114,6 +120,7 @@ if (!room_booking_is_room_available($room_status)) {
     ]);
     $status_label = $room_status !== '' ? $room_status : 'ไม่พร้อมใช้งาน';
     $message = 'สถานะห้อง: ' . $status_label;
+
     if ($room_note !== '') {
         $message .= ' • ' . $room_note;
     }
@@ -126,6 +133,7 @@ $start_date_raw = trim((string) ($_POST['startDate'] ?? ''));
 $end_date_raw = trim((string) ($_POST['endDate'] ?? ''));
 
 $start_date_obj = DateTime::createFromFormat('Y-m-d', $start_date_raw);
+
 if ($start_date_obj === false) {
     $audit_fail('invalid_start_date');
     $set_room_booking_alert('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เริ่มใช้');
@@ -180,6 +188,7 @@ $end_time = $end_time_obj->format('H:i:s');
 $attendee_count = filter_input(INPUT_POST, 'attendeeCount', FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1, 'max_range' => 9999],
 ]);
+
 if ($attendee_count === false || $attendee_count === null) {
     $audit_fail('invalid_attendee_count');
     $set_room_booking_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาระบุจำนวนผู้เข้าร่วม');
@@ -191,6 +200,7 @@ $booking_topic = trim((string) ($_POST['bookingTopic'] ?? ''));
 $booking_detail = trim((string) ($_POST['bookingDetail'] ?? ''));
 $equipment_detail = trim((string) ($_POST['equipmentDetail'] ?? ''));
 $requester_display_name = trim((string) ($teacher_name ?? ''));
+
 if ($requester_display_name === '') {
     $requester_display_name = 'ผู้ใช้งานระบบ';
 }
@@ -203,9 +213,11 @@ $clip_text = static function (string $value, int $limit): string {
     if ($limit <= 0) {
         return $value;
     }
+
     if (function_exists('mb_substr')) {
         return mb_substr($value, 0, $limit);
     }
+
     return substr($value, 0, $limit);
 };
 
@@ -227,6 +239,7 @@ $conflict_sql = 'SELECT roomBookingID FROM dh_room_bookings
     AND startDate <= ? AND COALESCE(endDate, startDate) >= ?
     AND NOT (endTime <= ? OR startTime >= ?)
     LIMIT 1';
+
 try {
     $conflict_stmt = mysqli_prepare($connection, $conflict_sql);
 } catch (mysqli_sql_exception $exception) {
@@ -364,6 +377,7 @@ try {
 } catch (mysqli_sql_exception $exception) {
     $handle_db_exception($exception, 'ระบบขัดข้อง', 'ไม่สามารถบันทึกรายการจองได้ในขณะนี้');
 }
+
 if ($insert_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
     $audit_fail('insert_prepare_failed', [
@@ -376,9 +390,11 @@ if ($insert_stmt === false) {
 
 $bind_params = array_merge([$insert_stmt, $types], $values);
 $bind_refs = [];
+
 foreach ($bind_params as $index => $value) {
     $bind_refs[$index] = &$bind_params[$index];
 }
+
 try {
     call_user_func_array('mysqli_stmt_bind_param', $bind_refs);
 
@@ -399,6 +415,7 @@ try {
 }
 
 $booking_id = (int) mysqli_insert_id($connection);
+
 if (function_exists('audit_log')) {
     audit_log('room', 'CREATE', 'SUCCESS', 'dh_room_bookings', $booking_id, null, [
         'roomID' => $room_id,

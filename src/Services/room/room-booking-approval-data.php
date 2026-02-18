@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -9,6 +10,7 @@ require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     return;
 }
@@ -16,6 +18,7 @@ if (!($connection instanceof mysqli)) {
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $room_booking_approval_year = isset($dh_year_value) ? (int) $dh_year_value : 0;
+
 if ($room_booking_approval_year <= 0) {
     $room_booking_approval_year = (int) date('Y') + 543;
 }
@@ -134,6 +137,7 @@ if ($room_booking_approval_query !== '') {
     if ($search_parts !== []) {
         $where[] = '(' . implode(' OR ', $search_parts) . ')';
         $types .= $search_types;
+
         foreach ($search_params as $v) {
             $params[] = $v;
         }
@@ -154,6 +158,7 @@ try {
     $bind_params = [];
     $bind_params[] = $stmt;
     $bind_params[] = $types;
+
     foreach ($params as $i => $v) {
         $bind_params[] = &$params[$i];
     }
@@ -165,17 +170,20 @@ try {
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
             $status_value = room_booking_status_to_int($connection, $row['status'] ?? 0);
+
             if (!in_array($status_value, [0, 1, 2], true)) {
                 $status_value = $status_value === 1 ? 1 : 2;
             }
 
             $room_id = (string) ($row['roomID'] ?? '');
             $room_name = trim((string) ($row['room_name'] ?? ''));
+
             if ($room_name === '') {
                 $room_name = $room_booking_rooms[$room_id]['roomName'] ?? $room_id;
             }
 
             $requester_name = trim((string) ($row['requester_name'] ?? ''));
+
             if ($requester_name === '') {
                 $requester_name = trim((string) ($row['requesterDisplayName'] ?? ''));
             }
@@ -207,18 +215,22 @@ $status_sort_rank = static function (int $status): int {
     if ($status === 0) {
         return 0; // pending
     }
+
     if ($status === 1) {
         return 1; // approved
     }
+
     return 2; // rejected/others
 };
 
 $timestamp_or_zero = static function ($value): int {
     $value = trim((string) $value);
+
     if ($value === '' || $value === '0000-00-00 00:00:00') {
         return 0;
     }
     $ts = strtotime($value);
+
     return $ts === false ? 0 : $ts;
 };
 
@@ -231,6 +243,7 @@ usort(
 
         $rank_a = $status_sort_rank($status_a);
         $rank_b = $status_sort_rank($status_b);
+
         if ($rank_a !== $rank_b) {
             return $rank_a <=> $rank_b;
         }
@@ -252,6 +265,7 @@ usort(
 
         $id_a = (int) ($a['roomBookingID'] ?? 0);
         $id_b = (int) ($b['roomBookingID'] ?? 0);
+
         return $id_b <=> $id_a;
     }
 );
@@ -260,6 +274,7 @@ $room_booking_approval_total = count($room_booking_approval_requests);
 
 foreach ($room_booking_approval_requests as $request_item) {
     $status_value = (int) ($request_item['status'] ?? 0);
+
     if ($status_value === 1) {
         $room_booking_approval_approved_total += 1;
     } elseif ($status_value === 2) {

@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
@@ -22,6 +23,7 @@ $teacher_directory_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
     'options' => ['default' => 1, 'min_range' => 1],
 ]);
 $teacher_directory_per_page_param = $_GET['per_page'] ?? '10';
+
 if ($teacher_directory_per_page_param === 'all') {
     $teacher_directory_per_page = 'all';
 } else {
@@ -30,6 +32,7 @@ if ($teacher_directory_per_page_param === 'all') {
     ]);
 }
 $teacher_directory_allowed_per_page = [10, 20, 50, 'all'];
+
 if (!in_array($teacher_directory_per_page, $teacher_directory_allowed_per_page, true)) {
     $teacher_directory_per_page = 10;
 }

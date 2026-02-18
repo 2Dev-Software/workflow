@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['exec_duty_save'])) {
     return;
 }
@@ -28,6 +29,7 @@ if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equal
 }
 
 $exec_duty_pid = $_POST['exec_duty_pid'] ?? '';
+
 if (is_array($exec_duty_pid)) {
     $exec_duty_pid = reset($exec_duty_pid) ?: '';
 }
@@ -67,6 +69,7 @@ $duty_status = ($director_pid !== null && $director_pid !== '' && $exec_duty_pid
 $teacher_position_id = (int) ($teacher_row['positionID'] ?? 0);
 $allowed_positions = array_merge([1], system_position_deputy_ids($connection));
 $allowed_positions = array_values(array_unique(array_filter($allowed_positions)));
+
 if (!in_array($teacher_position_id, $allowed_positions, true)) {
     $set_setting_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกผู้บริหารก่อนบันทึก');
     header('Location: ' . $redirect_url, true, 303);
@@ -83,6 +86,7 @@ if (mysqli_begin_transaction($connection) === false) {
 try {
     $current_sql = 'SELECT dutyLogID, pID, dutyStatus FROM dh_exec_duty_logs WHERE dutyStatus IN (1, 2) ORDER BY dutyLogID DESC LIMIT 1 FOR UPDATE';
     $current_result = mysqli_query($connection, $current_sql);
+
     if ($current_result === false) {
         throw new RuntimeException('Failed to fetch current duty log.');
     }
@@ -106,11 +110,13 @@ try {
 
     $reset_sql = 'UPDATE dh_exec_duty_logs SET dutyStatus = 0, end_at = ? WHERE dutyStatus IN (1, 2)';
     $reset_stmt = mysqli_prepare($connection, $reset_sql);
+
     if ($reset_stmt === false) {
         throw new RuntimeException('Failed to prepare duty reset.');
     }
 
     mysqli_stmt_bind_param($reset_stmt, 's', $event_time);
+
     if (mysqli_stmt_execute($reset_stmt) === false) {
         mysqli_stmt_close($reset_stmt);
         throw new RuntimeException('Failed to reset duty logs.');
@@ -119,11 +125,13 @@ try {
 
     $insert_sql = 'INSERT INTO dh_exec_duty_logs (pID, dutyStatus, created_at) VALUES (?, ?, ?)';
     $insert_stmt = mysqli_prepare($connection, $insert_sql);
+
     if ($insert_stmt === false) {
         throw new RuntimeException('Failed to prepare duty insert.');
     }
 
     mysqli_stmt_bind_param($insert_stmt, 'sis', $exec_duty_pid, $duty_status, $event_time);
+
     if (mysqli_stmt_execute($insert_stmt) === false) {
         mysqli_stmt_close($insert_stmt);
         throw new RuntimeException('Failed to insert duty log.');

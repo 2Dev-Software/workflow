@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../helpers.php';
@@ -25,8 +26,10 @@ if (!function_exists('memo_get_table_columns')) {
 
         $cached[$table] = [];
         $result = mysqli_query($connection, 'SHOW COLUMNS FROM `' . $table . '`');
+
         if ($result === false) {
             error_log('Database Error: ' . mysqli_error($connection));
+
             return $cached[$table];
         }
 
@@ -37,6 +40,7 @@ if (!function_exists('memo_get_table_columns')) {
         }
 
         mysqli_free_result($result);
+
         return $cached[$table];
     }
 }
@@ -45,9 +49,11 @@ if (!function_exists('memo_has_column')) {
     function memo_has_column(array $columns, string $column): bool
     {
         $column = trim($column);
+
         if ($column === '') {
             return false;
         }
+
         return in_array($column, $columns, true);
     }
 }
@@ -56,11 +62,13 @@ if (!function_exists('memo_prepare_search')) {
     function memo_prepare_search(?string $term): array
     {
         $term = trim((string) $term);
+
         if ($term === '') {
             return ['', ''];
         }
 
         $max_len = 120;
+
         if (function_exists('mb_substr')) {
             $term = (string) mb_substr($term, 0, $max_len);
         } else {
@@ -68,6 +76,7 @@ if (!function_exists('memo_prepare_search')) {
         }
 
         $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
+
         return [$term, '%' . $escaped . '%'];
     }
 }
@@ -141,6 +150,7 @@ if (!function_exists('memo_list_by_creator')) {
             FROM dh_memos
             WHERE createdByPID = ? AND deletedAt IS NULL
             ORDER BY createdAt DESC, memoID DESC';
+
         return db_fetch_all($sql, 's', $pID);
     }
 }
@@ -162,6 +172,7 @@ if (!function_exists('memo_count_by_creator')) {
         }
 
         [$term, $like] = memo_prepare_search($search);
+
         if ($term !== '') {
             $where .= ' AND (subject LIKE ? ESCAPE \'\\\\\' OR memoNo LIKE ? ESCAPE \'\\\\\')';
             $types .= 'ss';
@@ -170,6 +181,7 @@ if (!function_exists('memo_count_by_creator')) {
         }
 
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_memos WHERE ' . $where, $types, ...$params);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -193,6 +205,7 @@ if (!function_exists('memo_list_by_creator_page')) {
         }
 
         [$term, $like] = memo_prepare_search($search);
+
         if ($term !== '') {
             $where .= ' AND (m.subject LIKE ? ESCAPE \'\\\\\' OR m.memoNo LIKE ? ESCAPE \'\\\\\')';
             $types .= 'ss';
@@ -231,6 +244,7 @@ if (!function_exists('memo_count_by_reviewer')) {
         }
 
         [$term, $like] = memo_prepare_search($search);
+
         if ($term !== '') {
             $where .= ' AND (subject LIKE ? ESCAPE \'\\\\\' OR memoNo LIKE ? ESCAPE \'\\\\\')';
             $types .= 'ss';
@@ -239,6 +253,7 @@ if (!function_exists('memo_count_by_reviewer')) {
         }
 
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_memos WHERE ' . $where, $types, ...$params);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -264,6 +279,7 @@ if (!function_exists('memo_list_by_reviewer_page')) {
         }
 
         [$term, $like] = memo_prepare_search($search);
+
         if ($term !== '') {
             $where .= ' AND (m.subject LIKE ? ESCAPE \'\\\\\' OR m.memoNo LIKE ? ESCAPE \'\\\\\')';
             $types .= 'ss';
@@ -302,6 +318,7 @@ if (!function_exists('memo_get')) {
             LEFT JOIN teacher AS r ON m.directorPID = r.pID
             WHERE m.memoID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $memoID);
     }
 }
@@ -345,6 +362,7 @@ if (!function_exists('memo_get_attachments')) {
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
+
         return db_fetch_all($sql, 'sss', MEMO_MODULE_NAME, MEMO_ENTITY_NAME, (string) $memoID);
     }
 }
@@ -353,11 +371,13 @@ if (!function_exists('memo_get_signed_file')) {
     function memo_get_signed_file(int $memoID): ?array
     {
         $memo = memo_get($memoID);
+
         if (!$memo) {
             return null;
         }
 
         $fileID = (int) ($memo['signedFileID'] ?? 0);
+
         if ($fileID <= 0) {
             return null;
         }
@@ -366,6 +386,7 @@ if (!function_exists('memo_get_signed_file')) {
             FROM dh_files
             WHERE fileID = ? AND deletedAt IS NULL
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $fileID);
     }
 }
@@ -374,6 +395,7 @@ if (!function_exists('memo_add_route')) {
     function memo_add_route(int $memoID, string $action, ?string $fromStatus, ?string $toStatus, string $actorPID, ?string $note = null): void
     {
         $requestID = app_request_id();
+
         if (strlen($requestID) > 26) {
             $requestID = substr($requestID, 0, 26);
         }
@@ -401,6 +423,7 @@ if (!function_exists('memo_list_routes')) {
             LEFT JOIN teacher AS t ON r.actorPID = t.pID
             WHERE r.memoID = ?
             ORDER BY r.createdAt ASC, r.routeID ASC';
+
         return db_fetch_all($sql, 'i', $memoID);
     }
 }

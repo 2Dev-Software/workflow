@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db/db.php';
@@ -46,6 +47,7 @@ if (!function_exists('require_login')) {
         $teacher_pid = (string) $_SESSION['pID'];
 
         $role_row = db_fetch_one('SELECT roleID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1', 's', $teacher_pid);
+
         if (!$role_row) {
             redirect_to_login();
         }

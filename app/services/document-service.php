@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../helpers.php';
@@ -92,8 +93,10 @@ if (!function_exists('document_inbox_counts')) {
     function document_inbox_counts(string $pid): array
     {
         $connection = db_connection();
+
         if (db_table_exists($connection, 'dh_document_recipients')) {
             $row = db_fetch_one('SELECT SUM(inboxStatus = "UNREAD") AS unread, COUNT(*) AS total FROM dh_document_recipients WHERE recipientPID = ?', 's', $pid);
+
             return [
                 'unread' => (int) ($row['unread'] ?? 0),
                 'total' => (int) ($row['total'] ?? 0),
@@ -108,11 +111,13 @@ if (!function_exists('document_next_sequence')) {
     function document_next_sequence(string $sequence_key): ?int
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_sequences')) {
             return null;
         }
 
         $sequence_key = trim($sequence_key);
+
         if ($sequence_key === '') {
             return null;
         }
@@ -120,19 +125,23 @@ if (!function_exists('document_next_sequence')) {
         try {
             db_begin();
             $row = db_fetch_one('SELECT currentValue FROM dh_sequences WHERE seqKey = ? FOR UPDATE', 's', $sequence_key);
+
             if (!$row) {
                 db_execute('INSERT INTO dh_sequences (seqKey, currentValue) VALUES (?, ?)', 'si', $sequence_key, 1);
                 db_commit();
+
                 return 1;
             }
 
             $next = (int) ($row['currentValue'] ?? 0) + 1;
             db_execute('UPDATE dh_sequences SET currentValue = ? WHERE seqKey = ?', 'is', $next, $sequence_key);
             db_commit();
+
             return $next;
         } catch (Throwable $e) {
             db_rollback();
             error_log('Sequence generation failed: ' . $e->getMessage());
+
             return null;
         }
     }
@@ -142,6 +151,7 @@ if (!function_exists('document_upsert')) {
     function document_upsert(array $data): ?int
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_documents')) {
             return null;
         }
@@ -160,6 +170,7 @@ if (!function_exists('document_upsert')) {
         }
 
         $row = db_fetch_one('SELECT id FROM dh_documents WHERE documentType = ? AND documentNumber = ? LIMIT 1', 'ss', $documentType, $documentNumber);
+
         if ($row && isset($row['id'])) {
             $documentID = (int) $row['id'];
             $update = [
@@ -172,11 +183,13 @@ if (!function_exists('document_upsert')) {
             $fields = [];
             $params = [];
             $types = '';
+
             foreach ($update as $field => $value) {
                 $fields[] = $field . ' = ?';
                 $types .= $value === null ? 's' : (is_int($value) ? 'i' : 's');
                 $params[] = $value;
             }
+
             if (!empty($fields)) {
                 $types .= 'i';
                 $params[] = $documentID;
@@ -184,6 +197,7 @@ if (!function_exists('document_upsert')) {
                 $stmt = db_query($sql, $types, ...$params);
                 mysqli_stmt_close($stmt);
             }
+
             return $documentID;
         }
 
@@ -211,12 +225,14 @@ if (!function_exists('document_get_id')) {
     function document_get_id(string $documentType, string $documentNumber): ?int
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_documents')) {
             return null;
         }
 
         $documentType = trim($documentType);
         $documentNumber = trim($documentNumber);
+
         if ($documentType === '' || $documentNumber === '') {
             return null;
         }
@@ -227,6 +243,7 @@ if (!function_exists('document_get_id')) {
             $documentType,
             $documentNumber
         );
+
         if (!$row || !isset($row['id'])) {
             return null;
         }
@@ -239,11 +256,13 @@ if (!function_exists('document_add_recipients')) {
     function document_add_recipients(int $documentID, array $recipientPIDs, string $inboxType = 'normal_inbox'): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_document_recipients')) {
             return;
         }
 
         $recipientPIDs = array_values(array_unique(array_filter(array_map('trim', $recipientPIDs))));
+
         if (empty($recipientPIDs)) {
             return;
         }
@@ -267,17 +286,20 @@ if (!function_exists('document_set_recipient_status')) {
     function document_set_recipient_status(int $documentID, string $recipientPID, string $inboxType, string $status): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_document_recipients')) {
             return;
         }
 
         $allowed = ['UNREAD', 'READ', 'ARCHIVED'];
         $status = strtoupper(trim($status));
+
         if (!in_array($status, $allowed, true)) {
             return;
         }
 
         $readAt = null;
+
         if ($status === 'READ') {
             $readAt = date('Y-m-d H:i:s');
         }
@@ -299,6 +321,7 @@ if (!function_exists('document_mark_read')) {
     function document_mark_read(int $documentID, string $recipientPID): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_document_recipients')) {
             return;
         }
@@ -317,17 +340,20 @@ if (!function_exists('document_record_read_receipt')) {
     function document_record_read_receipt(int $documentID, string $recipientPID): void
     {
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_read_receipts')) {
             return;
         }
 
         $existing = db_fetch_one('SELECT receiptID FROM dh_read_receipts WHERE documentID = ? AND recipientPID = ? LIMIT 1', 'is', $documentID, $recipientPID);
+
         if ($existing) {
             return;
         }
 
         $readAt = date('Y-m-d H:i:s');
         $requestID = app_request_id();
+
         if (strlen($requestID) > 26) {
             $requestID = substr($requestID, 0, 26);
         }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -70,11 +71,13 @@ if (!function_exists('outgoing_uploaded_files_count')) {
 
         if (is_array($files['error'])) {
             $count = 0;
+
             foreach ($files['error'] as $error) {
                 if ((int) $error !== UPLOAD_ERR_NO_FILE) {
                     $count++;
                 }
             }
+
             return $count;
         }
 
@@ -99,8 +102,10 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
                 's',
                 $current_director_pid
             );
+
             if ($director_row) {
                 $label = trim((string) ($director_row['fName'] ?? ''));
+
                 if ($current_director_pid === $acting_pid) {
                     $label .= ' (รองรักษาราชการแทน)';
                 } elseif ($current_director_pid === $director_pid) {
@@ -115,18 +120,22 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
         }
 
         $deputy_position_ids = system_position_deputy_ids($connection);
+
         if (!empty($deputy_position_ids)) {
             $placeholders = implode(', ', array_fill(0, count($deputy_position_ids), '?'));
             $types = str_repeat('i', count($deputy_position_ids));
             $sql = 'SELECT pID, fName FROM teacher WHERE status = 1 AND positionID IN (' . $placeholders . ') ORDER BY fName ASC';
             $deputies = db_fetch_all($sql, $types, ...$deputy_position_ids);
+
             foreach ($deputies as $deputy) {
                 $pid = trim((string) ($deputy['pID'] ?? ''));
+
                 if ($pid === '' || isset($seen[$pid])) {
                     continue;
                 }
 
                 $label = trim((string) ($deputy['fName'] ?? ''));
+
                 if ($pid === $acting_pid) {
                     $label .= ' (รองรักษาราชการแทน)';
                 } else {
@@ -154,17 +163,21 @@ if (!function_exists('outgoing_create_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
         $connection = db_connection();
         $can_manage = outgoing_user_can_manage($connection, $current_pid, $current_user);
+
         if (!$can_manage) {
             http_response_code(403);
             require __DIR__ . '/../views/errors/403.php';
+
             return;
         }
 
         if ($is_receive_page) {
             $factions = user_list_factions();
             $allowed_faction_ids = [];
+
             foreach ($factions as $faction) {
                 $fid = (int) ($faction['fID'] ?? 0);
+
                 if ($fid > 0) {
                     $allowed_faction_ids[$fid] = true;
                 }
@@ -172,8 +185,10 @@ if (!function_exists('outgoing_create_index')) {
 
             $reviewers = outgoing_receive_get_reviewers();
             $reviewer_ids = [];
+
             foreach ($reviewers as $reviewer) {
                 $pid = trim((string) ($reviewer['pID'] ?? ''));
+
                 if ($pid !== '') {
                     $reviewer_ids[$pid] = true;
                 }
@@ -198,6 +213,7 @@ if (!function_exists('outgoing_create_index')) {
 
             if ($edit_circular_id > 0) {
                 $candidate = circular_get($edit_circular_id);
+
                 if (
                     $candidate
                     && (string) ($candidate['createdByPID'] ?? '') === $current_pid
@@ -220,10 +236,12 @@ if (!function_exists('outgoing_create_index')) {
                         $values['detail'] = (string) ($candidate['detail'] ?? '');
 
                         $last_reviewer_pid = circular_external_last_reviewer_pid($edit_circular_id);
+
                         if ($last_reviewer_pid !== null && isset($reviewer_ids[$last_reviewer_pid])) {
                             $values['reviewerPID'] = $last_reviewer_pid;
                         } else {
                             $current_director_pid = (string) (system_get_current_director_pid() ?? '');
+
                             if ($current_director_pid !== '' && isset($reviewer_ids[$current_director_pid])) {
                                 $values['reviewerPID'] = $current_director_pid;
                             }
@@ -250,6 +268,7 @@ if (!function_exists('outgoing_create_index')) {
                 $values['reviewerPID'] = trim((string) ($_POST['reviewerPID'] ?? ''));
 
                 $ext_group_fid_int = (int) $values['extGroupFID'];
+
                 if ($ext_group_fid_int <= 0 || !isset($allowed_faction_ids[$ext_group_fid_int])) {
                     $values['extGroupFID'] = '';
                 } else {
@@ -306,6 +325,7 @@ if (!function_exists('outgoing_create_index')) {
                 } else {
                     try {
                         $dh_year = system_get_dh_year();
+
                         if ($is_edit_mode && $edit_circular_id > 0) {
                             $existing = db_fetch_one(
                                 'SELECT circularID FROM dh_circulars WHERE dh_year = ? AND extBookNo = ? AND deletedAt IS NULL AND circularID <> ? LIMIT 1',
@@ -322,14 +342,17 @@ if (!function_exists('outgoing_create_index')) {
                                 $values['extBookNo']
                             );
                         }
+
                         if ($existing) {
                             throw new RuntimeException('เลขที่หนังสือนี้ถูกใช้งานแล้วในปีสารบรรณปัจจุบัน');
                         }
 
                         if ($is_edit_mode && $edit_circular_id > 0) {
                             $allowed_file_ids = [];
+
                             foreach ($existing_attachments as $attachment) {
                                 $file_id = (int) ($attachment['fileID'] ?? 0);
+
                                 if ($file_id > 0) {
                                     $allowed_file_ids[$file_id] = true;
                                 }
@@ -343,6 +366,7 @@ if (!function_exists('outgoing_create_index')) {
 
                             $remaining_files_count = max(0, count($existing_attachments) - count($remove_file_ids));
                             $uploading_files_count = outgoing_uploaded_files_count($attachments);
+
                             if (($remaining_files_count + $uploading_files_count) > 5) {
                                 throw new RuntimeException('แนบไฟล์รวมได้สูงสุด 5 ไฟล์');
                             }
@@ -364,6 +388,7 @@ if (!function_exists('outgoing_create_index')) {
                                 $attachments,
                                 $remove_file_ids
                             );
+
                             if (!$updated) {
                                 throw new RuntimeException('ไม่สามารถแก้ไขและส่งใหม่ได้ในสถานะปัจจุบัน');
                             }

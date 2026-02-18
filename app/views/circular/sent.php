@@ -61,6 +61,7 @@ $format_thai_datetime = static function (?string $date_value) use ($thai_months)
     }
 
     $timestamp = strtotime($date_value);
+
     if ($timestamp === false) {
         return $date_value;
     }
@@ -75,6 +76,7 @@ $format_thai_datetime = static function (?string $date_value) use ($thai_months)
 
 $build_url = static function (array $override = []) use ($query_params): string {
     $params = array_merge($query_params, $override);
+
     foreach ($params as $key => $value) {
         if ($value === null || $value === '') {
             unset($params[$key]);
@@ -82,11 +84,13 @@ $build_url = static function (array $override = []) use ($query_params): string 
     }
 
     $query = http_build_query($params);
+
     return 'circular-sent.php' . ($query !== '' ? ('?' . $query) : '');
 };
 
 $receipt_total = count($receipt_stats);
 $receipt_read = 0;
+
 foreach ($receipt_stats as $stat) {
     if ((int) ($stat['isRead'] ?? 0) === 1) {
         $receipt_read++;
@@ -460,7 +464,7 @@ ob_start();
     //     'base_url' => $pagination_url,
     //     'class' => 'u-mt-2',
     // ]);
-    ?>
+?>
 </section>
 
 <!-- </section> -->
@@ -502,7 +506,7 @@ ob_start();
                     <?php else : ?>
                         <?php foreach ($receipt_stats as $stat) : ?>
                             <?php
-                            $is_read = (int) ($stat['isRead'] ?? 0) === 1;
+                        $is_read = (int) ($stat['isRead'] ?? 0) === 1;
                             $read_at_display = $format_thai_datetime((string) ($stat['readAt'] ?? ''));
                             ?>
                             <tr>

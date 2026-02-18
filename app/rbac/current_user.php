@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db/db.php';
@@ -23,6 +24,7 @@ if (!function_exists('current_user')) {
     function current_user(): ?array
     {
         $pID = current_user_id();
+
         if ($pID === null) {
             return null;
         }
@@ -53,11 +55,13 @@ if (!function_exists('current_user_role_ids')) {
     function current_user_role_ids(): array
     {
         $pID = current_user_id();
+
         if ($pID === null) {
             return [];
         }
 
         $connection = db_connection();
+
         return rbac_get_user_role_ids($connection, $pID);
     }
 }
@@ -66,11 +70,13 @@ if (!function_exists('current_user_position_ids')) {
     function current_user_position_ids(): array
     {
         $pID = current_user_id();
+
         if ($pID === null) {
             return [];
         }
 
         $connection = db_connection();
+
         return rbac_get_user_position_ids($connection, $pID);
     }
 }

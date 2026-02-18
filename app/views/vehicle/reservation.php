@@ -239,12 +239,14 @@ ob_start();
                             $status_label = $status_meta['label'];
                             $status_class = $status_meta['class'];
                             $updated_at = trim((string) ($booking['updatedAt'] ?? ''));
+
                             if ($updated_at === '' || $updated_at === '0000-00-00 00:00:00') {
                                 $updated_at = (string) ($booking['createdAt'] ?? '');
                             }
                             $updated_date = $updated_at !== '' ? substr($updated_at, 0, 10) : '';
                             $updated_time = $updated_at !== '' && strlen($updated_at) >= 16 ? substr($updated_at, 11, 5) : '';
                             $updated_date_label = '-';
+
                             if ($updated_date !== '') {
                                 if (is_callable($format_thai_date_range)) {
                                     $updated_date_label = $format_thai_date_range($updated_date, $updated_date);
@@ -259,6 +261,7 @@ ob_start();
                             $start_date = $start_at !== '' ? substr($start_at, 0, 10) : '';
                             $end_date = $end_at !== '' ? substr($end_at, 0, 10) : '';
                             $date_range = '-';
+
                             if ($start_date !== '') {
                                 if (is_callable($format_thai_date_range)) {
                                     $date_range = $format_thai_date_range($start_date, $end_date !== '' ? $end_date : $start_date);
@@ -270,6 +273,7 @@ ob_start();
                             }
 
                             $time_range = '-';
+
                             if ($start_at !== '' && $end_at !== '') {
                                 $start_time = substr($start_at, 11, 5);
                                 $end_time = substr($end_at, 11, 5);

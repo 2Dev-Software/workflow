@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -16,6 +17,7 @@ if (!function_exists('room_booking_index')) {
 
         $dh_year_value = system_get_dh_year();
         $currentThaiYear = (int) date('Y') + 543;
+
         if ($dh_year_value < 2500) {
             $dh_year_value = $currentThaiYear;
         }

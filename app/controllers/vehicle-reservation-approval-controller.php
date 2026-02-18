@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -19,6 +20,7 @@ if (!function_exists('vehicle_reservation_approval_index')) {
         $role_id = (int) ($teacher['roleID'] ?? 0);
         $position_id = (int) ($teacher['positionID'] ?? 0);
         $acting_pid = '';
+
         if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
             $acting_pid = (string) $exec_duty_current_pid;
         }
@@ -27,6 +29,7 @@ if (!function_exists('vehicle_reservation_approval_index')) {
         // roleID mapping (legacy): 1=ADMIN, 3=VEHICLE
         $vehicle_approval_is_admin = $role_id === 1;
         $vehicle_approval_is_vehicle_officer = $role_id === 3;
+
         if (!$vehicle_approval_is_director && !$vehicle_approval_is_vehicle_officer && !$vehicle_approval_is_admin) {
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'APPROVAL_ACCESS', 'DENY', null, null, 'not_authorized_role', [
@@ -40,6 +43,7 @@ if (!function_exists('vehicle_reservation_approval_index')) {
 
         $currentThaiYear = (int) date('Y') + 543;
         $dh_year_value = (int) ($dh_year !== '' ? $dh_year : $currentThaiYear);
+
         if ($dh_year_value < 2500) {
             $dh_year_value = $currentThaiYear;
         }
@@ -64,6 +68,7 @@ if (!function_exists('vehicle_reservation_approval_index')) {
 
         $format_thai_date = static function (string $date) use ($thai_months): string {
             $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+
             if ($date_obj === false) {
                 return $date;
             }
@@ -83,6 +88,7 @@ if (!function_exists('vehicle_reservation_approval_index')) {
 
             $start_obj = DateTime::createFromFormat('Y-m-d', $start);
             $end_obj = DateTime::createFromFormat('Y-m-d', $end);
+
             if ($start_obj === false || $end_obj === false) {
                 return $format_thai_date($start) . ' - ' . $format_thai_date($end);
             }
@@ -113,9 +119,11 @@ if (!function_exists('vehicle_reservation_approval_index')) {
             }
 
             $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
             if ($date_obj === false) {
                 $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
             }
+
             if ($date_obj === false) {
                 return $datetime;
             }
@@ -141,12 +149,14 @@ if (!function_exists('vehicle_reservation_approval_index')) {
         ];
 
         $vehicle_approval_alert = null;
+
         if (isset($_SESSION['vehicle_approval_alert'])) {
             $vehicle_approval_alert = $_SESSION['vehicle_approval_alert'];
             unset($_SESSION['vehicle_approval_alert']);
         }
 
         $vehicle_approval_return_url = 'vehicle-reservation-approval.php';
+
         if (!empty($_SERVER['QUERY_STRING'])) {
             $vehicle_approval_return_url .= '?' . $_SERVER['QUERY_STRING'];
         }

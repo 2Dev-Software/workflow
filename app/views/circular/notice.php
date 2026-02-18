@@ -32,12 +32,15 @@ $existing_attachments = (array) ($existing_attachments ?? []);
 
 $current_user = current_user() ?? [];
 $sender_name = trim((string) ($current_user['fName'] ?? ''));
+
 if ($sender_name === '') {
     $sender_name = (string) ($current_user['pID'] ?? '');
 }
 $faction_name_map = [];
+
 foreach ($factions as $faction) {
     $fid = (int) ($faction['fID'] ?? 0);
+
     if ($fid <= 0) {
         continue;
     }
@@ -45,13 +48,16 @@ foreach ($factions as $faction) {
 }
 $sender_from_fid = (int) ($current_user['fID'] ?? 0);
 $sender_faction_display = '';
+
 if ($sender_from_fid > 0 && isset($faction_name_map[$sender_from_fid])) {
     $sender_faction_display = (string) $faction_name_map[$sender_from_fid];
 } else {
     $sender_faction_display = trim((string) ($current_user['faction_name'] ?? ''));
 }
+
 if ($sender_faction_display === '') {
     $position_name = trim((string) ($current_user['position_name'] ?? ''));
+
     if ($position_name !== '') {
         $sender_faction_display = 'ตำแหน่ง ' . $position_name . ' (' . $sender_name . ')';
     } else {
@@ -70,6 +76,7 @@ $faction_members = [];
 $department_groups = [];
 $executive_members = [];
 $subject_head_members = [];
+
 foreach ($teachers as $teacher) {
     $fid = (int) ($teacher['fID'] ?? 0);
     $did = (int) ($teacher['dID'] ?? 0);
@@ -77,9 +84,11 @@ foreach ($teachers as $teacher) {
     $pid = trim((string) ($teacher['pID'] ?? ''));
     $name = trim((string) ($teacher['fName'] ?? ''));
     $department_name = trim((string) ($teacher['departmentName'] ?? ''));
+
     if ($pid === '' || $name === '') {
         continue;
     }
+
     if ($fid > 0) {
         if (!isset($faction_members[$fid])) {
             $faction_members[$fid] = [];
@@ -105,6 +114,7 @@ foreach ($teachers as $teacher) {
     }
 
     $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
+
     if (
         $did > 0 &&
         $department_name !== '' &&
@@ -141,6 +151,7 @@ usort($subject_head_members, static function (array $a, array $b): int {
 });
 
 $special_groups = [];
+
 if (!empty($executive_members)) {
     $special_groups[] = [
         'key' => 'special-executive',
@@ -148,6 +159,7 @@ if (!empty($executive_members)) {
         'members' => $executive_members,
     ];
 }
+
 if (!empty($subject_head_members)) {
     $special_groups[] = [
         'key' => 'special-subject-head',
@@ -157,13 +169,16 @@ if (!empty($subject_head_members)) {
 }
 
 $sender_factions = [];
+
 foreach ($factions as $faction) {
     $fid = (int) ($faction['fID'] ?? 0);
     $faction_name = trim((string) ($faction['fName'] ?? ''));
+
     if ($fid <= 0 || $faction_name === '') {
         continue;
     }
     $normalized_faction_name = preg_replace('/\s+/u', '', $faction_name);
+
     if (strpos((string) $normalized_faction_name, 'ฝ่ายบริหาร') !== false) {
         continue;
     }
@@ -364,6 +379,7 @@ ob_start();
                                 $is_read = (bool) ($item['is_read'] ?? false);
                                 $file_json = (string) ($item['files_json'] ?? '[]');
                                 $sender_modal_text = trim((string) ($item['sender_name'] ?? '-'));
+
                                 if (!empty($item['sender_faction_name'])) {
                                     $sender_modal_text .= "\n" . trim((string) $item['sender_faction_name']);
                                 }

@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['change_password'])) {
     return;
 }
@@ -56,6 +57,7 @@ $select_stmt = mysqli_prepare($connection, $select_sql);
 
 if ($select_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PASSWORD_CHANGE', 'FAIL', 'teacher', $teacher_pid, 'select_failed');
     }
@@ -96,6 +98,7 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PASSWORD_CHANGE', 'FAIL', 'teacher', $teacher_pid, 'prepare_failed');
     }
@@ -105,8 +108,10 @@ if ($update_stmt === false) {
 }
 
 mysqli_stmt_bind_param($update_stmt, 'ss', $new_password, $teacher_pid);
+
 if (mysqli_stmt_execute($update_stmt) === false) {
     mysqli_stmt_close($update_stmt);
+
     if (function_exists('audit_log')) {
         audit_log('profile', 'PASSWORD_CHANGE', 'FAIL', 'teacher', $teacher_pid, 'execute_failed');
     }

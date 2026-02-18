@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/constants.php';
@@ -13,6 +14,7 @@ if (!function_exists('outgoing_user_can_manage')) {
     function outgoing_user_can_manage(mysqli $connection, string $pID, array $current_user = []): bool
     {
         $pID = trim($pID);
+
         if ($pID === '') {
             return false;
         }
@@ -23,6 +25,7 @@ if (!function_exists('outgoing_user_can_manage')) {
 
         // Legacy fallback (single role column on teacher)
         $legacy_role = (int) ($current_user['roleID'] ?? 0);
+
         return in_array($legacy_role, [1, 2], true);
     }
 }
@@ -31,10 +34,12 @@ if (!function_exists('outgoing_document_number')) {
     function outgoing_document_number(array $outgoing): string
     {
         $number = trim((string) ($outgoing['outgoingNo'] ?? ''));
+
         if ($number !== '') {
             return $number;
         }
         $outgoingID = (int) ($outgoing['outgoingID'] ?? 0);
+
         return $outgoingID > 0 ? 'OUT-' . $outgoingID : '';
     }
 }
@@ -43,11 +48,13 @@ if (!function_exists('outgoing_sync_document')) {
     function outgoing_sync_document(int $outgoingID): ?int
     {
         $outgoing = outgoing_get($outgoingID);
+
         if (!$outgoing) {
             return null;
         }
 
         $documentNumber = outgoing_document_number($outgoing);
+
         if ($documentNumber === '') {
             return null;
         }
@@ -72,6 +79,7 @@ if (!function_exists('outgoing_prefix')) {
         $code = $_ENV['OUTGOING_CODE'] ?? '01234';
         $prefix = trim((string) $prefix);
         $code = trim((string) $code);
+
         return $code !== '' ? $prefix . $code : $prefix;
     }
 }
@@ -82,6 +90,7 @@ if (!function_exists('outgoing_generate_number')) {
         $row = db_fetch_one('SELECT outgoingSeq FROM dh_outgoing_letters WHERE dh_year = ? ORDER BY outgoingSeq DESC LIMIT 1 FOR UPDATE', 'i', $year);
         $seq = $row ? ((int) $row['outgoingSeq'] + 1) : 1;
         $number = outgoing_prefix() . '/' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+
         return [$number, $seq];
     }
 }
@@ -90,6 +99,7 @@ if (!function_exists('outgoing_create_draft')) {
     function outgoing_create_draft(array $data, array $files = []): int
     {
         db_begin();
+
         try {
             [$outgoingNo, $seq] = outgoing_generate_number((int) $data['dh_year']);
             $data['outgoingNo'] = $outgoingNo;
@@ -129,6 +139,7 @@ if (!function_exists('outgoing_attach_files')) {
         }
 
         db_begin();
+
         try {
             upload_store_files($files, OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID, $actorPID, [
                 'max_files' => 5,

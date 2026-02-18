@@ -1,4 +1,5 @@
 <?php
+
 // This file is included from both controller and view contexts.
 // When included inside a function (e.g. view rendering), `$connection` from the global scope
 // is not automatically available, and `require_once` may skip re-including config/connection.php.
@@ -6,6 +7,7 @@
 if (!isset($connection) || !($connection instanceof mysqli)) {
     require_once __DIR__ . '/../../../config/connection.php';
 }
+
 if (!isset($connection) || !($connection instanceof mysqli)) {
     $connection = $GLOBALS['connection'] ?? null;
 }
@@ -38,4 +40,3 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
-?>

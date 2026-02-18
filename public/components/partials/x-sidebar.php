@@ -10,6 +10,7 @@ $actor_pid = (string) ($_SESSION['pID'] ?? '');
 
 // Exec duty: dutyStatus 2 means "acting director" (รองรักษาการแทน).
 $acting_pid = '';
+
 if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
     $acting_pid = (string) $exec_duty_current_pid;
 }
@@ -19,6 +20,7 @@ $sidebar_connection = db_connection();
 $is_admin_user = false;
 $is_registry_user = false;
 $can_manage_external_circular = false;
+
 if ($actor_pid !== '') {
     $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $role_id === 1;
     $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $role_id === 2;
@@ -36,11 +38,12 @@ if ($actor_pid !== '') {
     <main class="profile-section">
         <?php
         $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
-        $profile_picture = '';
-        if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
-            $profile_picture = $profile_picture_raw;
-        }
-        ?>
+$profile_picture = '';
+
+if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+    $profile_picture = $profile_picture_raw;
+}
+?>
         <div class="profile-image">
             <?php if ($profile_picture !== '') : ?>
                 <img src="<?= htmlspecialchars($profile_picture, ENT_QUOTES, 'UTF-8') ?>" alt="Profile image">

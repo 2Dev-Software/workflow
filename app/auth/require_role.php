@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/require_login.php';
@@ -33,11 +34,13 @@ if (!function_exists('require_role')) {
         require_login();
 
         $pID = (string) ($_SESSION['pID'] ?? '');
+
         if ($pID === '') {
             redirect_to_login();
         }
 
         $connection = db_connection();
+
         if (!rbac_user_has_role($connection, $pID, $role_key)) {
             render_forbidden('Unauthorized');
         }
@@ -50,11 +53,13 @@ if (!function_exists('require_any_role')) {
         require_login();
 
         $pID = (string) ($_SESSION['pID'] ?? '');
+
         if ($pID === '') {
             redirect_to_login();
         }
 
         $connection = db_connection();
+
         if (!rbac_user_has_any_role($connection, $pID, $role_keys)) {
             render_forbidden('Unauthorized');
         }

@@ -20,9 +20,11 @@ $textarea_attrs = array_merge($attrs, [
     'rows' => $rows,
     'placeholder' => $placeholder,
 ]);
+
 if ($required) {
     $textarea_attrs['required'] = true;
 }
+
 if ($disabled) {
     $textarea_attrs['disabled'] = true;
 }

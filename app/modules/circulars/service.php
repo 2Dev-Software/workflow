@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/constants.php';
@@ -27,6 +28,7 @@ if (!function_exists('circular_sync_document')) {
     function circular_sync_document(int $circularID): ?int
     {
         $circular = circular_get($circularID);
+
         if (!$circular) {
             return null;
         }
@@ -57,19 +59,23 @@ if (!function_exists('circular_resolve_person_ids')) {
         $personIds = array_values(array_filter(array_map('trim', $personIds), static function (string $pid): bool {
             return $pid !== '' && ctype_digit($pid);
         }));
+
         foreach ($personIds as $pid) {
             $pids[] = $pid;
         }
 
         $factionIds = array_values(array_filter(array_map('intval', $factionIds)));
+
         if (!empty($factionIds)) {
             $placeholders = implode(', ', array_fill(0, count($factionIds), '?'));
             $types = str_repeat('i', count($factionIds));
             $sql = 'SELECT pID FROM teacher WHERE status = 1 AND fID IN (' . $placeholders . ')';
             $stmt = db_query($sql, $types, ...$factionIds);
             $result = mysqli_stmt_get_result($stmt);
+
             while ($result && ($row = mysqli_fetch_assoc($result))) {
                 $pid = trim((string) ($row['pID'] ?? ''));
+
                 if ($pid !== '' && ctype_digit($pid)) {
                     $pids[] = $pid;
                 }
@@ -78,14 +84,17 @@ if (!function_exists('circular_resolve_person_ids')) {
         }
 
         $roleIds = array_values(array_filter(array_map('intval', $roleIds)));
+
         if (!empty($roleIds)) {
             $placeholders = implode(', ', array_fill(0, count($roleIds), '?'));
             $types = str_repeat('i', count($roleIds));
             $sql = 'SELECT pID FROM teacher WHERE status = 1 AND roleID IN (' . $placeholders . ')';
             $stmt = db_query($sql, $types, ...$roleIds);
             $result = mysqli_stmt_get_result($stmt);
+
             while ($result && ($row = mysqli_fetch_assoc($result))) {
                 $pid = trim((string) ($row['pID'] ?? ''));
+
                 if ($pid !== '' && ctype_digit($pid)) {
                     $pids[] = $pid;
                 }
@@ -99,8 +108,10 @@ if (!function_exists('circular_resolve_person_ids')) {
                     WHERE t.status = 1 AND ur.roleID IN (' . $placeholders . ')';
                 $stmt = db_query($sql, $types, ...$roleIds);
                 $result = mysqli_stmt_get_result($stmt);
+
                 while ($result && ($row = mysqli_fetch_assoc($result))) {
                     $pid = trim((string) ($row['pID'] ?? ''));
+
                     if ($pid !== '' && ctype_digit($pid)) {
                         $pids[] = $pid;
                     }
@@ -115,8 +126,10 @@ if (!function_exists('circular_resolve_person_ids')) {
                     WHERE t.status = 1 AND ur.role_id IN (' . $placeholders . ')';
                 $stmt = db_query($sql, $types, ...$roleIds);
                 $result = mysqli_stmt_get_result($stmt);
+
                 while ($result && ($row = mysqli_fetch_assoc($result))) {
                     $pid = trim((string) ($row['pID'] ?? ''));
+
                     if ($pid !== '' && ctype_digit($pid)) {
                         $pids[] = $pid;
                     }
@@ -138,6 +151,7 @@ if (!function_exists('circular_registry_pids')) {
     {
         $connection = db_connection();
         $registry_ids = rbac_resolve_role_ids($connection, ROLE_REGISTRY);
+
         if (empty($registry_ids)) {
             return [];
         }
@@ -148,6 +162,7 @@ if (!function_exists('circular_registry_pids')) {
         $stmt = db_query($sql, $types, ...$registry_ids);
         $result = mysqli_stmt_get_result($stmt);
         $pids = [];
+
         while ($result && ($row = mysqli_fetch_assoc($result))) {
             $pids[] = (string) $row['pID'];
         }
@@ -160,6 +175,7 @@ if (!function_exists('circular_registry_pids')) {
                 WHERE t.status = 1 AND ur.roleID IN (' . $placeholders . ')';
             $stmt = db_query($sql, $types, ...$registry_ids);
             $result = mysqli_stmt_get_result($stmt);
+
             while ($result && ($row = mysqli_fetch_assoc($result))) {
                 $pids[] = (string) $row['pID'];
             }
@@ -173,6 +189,7 @@ if (!function_exists('circular_registry_pids')) {
                 WHERE t.status = 1 AND ur.role_id IN (' . $placeholders . ')';
             $stmt = db_query($sql, $types, ...$registry_ids);
             $result = mysqli_stmt_get_result($stmt);
+
             while ($result && ($row = mysqli_fetch_assoc($result))) {
                 $pids[] = (string) $row['pID'];
             }
@@ -189,6 +206,7 @@ if (!function_exists('circular_find_deputy_by_fid')) {
         $connection = db_connection();
         $director_pid = system_get_director_pid();
         $deputy_ids = system_position_deputy_ids($connection);
+
         if (!empty($deputy_ids)) {
             $placeholders = implode(', ', array_fill(0, count($deputy_ids), '?'));
             $types = str_repeat('i', count($deputy_ids));
@@ -227,6 +245,7 @@ if (!function_exists('circular_create_internal')) {
         $sender = (string) $data['createdByPID'];
 
         db_begin();
+
         try {
             $circularID = circular_create_record($data);
             circular_add_route($circularID, 'CREATE', $sender, null, null, null);
@@ -236,6 +255,7 @@ if (!function_exists('circular_create_internal')) {
             }
 
             $recipientPIDs = array_filter(array_unique(array_diff($recipients['pids'], [$sender])));
+
             if (!empty($recipientPIDs)) {
                 circular_add_inboxes($circularID, $recipientPIDs, INBOX_TYPE_NORMAL, $sender);
                 circular_add_route($circularID, 'SEND', $sender, null, null, null);
@@ -246,6 +266,7 @@ if (!function_exists('circular_create_internal')) {
             }
 
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
             }
@@ -276,6 +297,7 @@ if (!function_exists('circular_create_external')) {
         $directorPID = null;
         $acting_pid = null;
         db_begin();
+
         try {
             $circularID = circular_create_record($data);
             circular_add_route($circularID, 'CREATE', $registryPID, null, null, $registryNote ? (string) $registryNote : null);
@@ -288,9 +310,11 @@ if (!function_exists('circular_create_external')) {
 
             if ($sendNow) {
                 $directorPID = trim((string) ($initialReviewerPID ?? ''));
+
                 if ($directorPID === '') {
                     $directorPID = (string) (system_get_current_director_pid() ?? '');
                 }
+
                 if ($directorPID) {
                     $acting_pid = system_get_acting_director_pid();
                     $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $directorPID)
@@ -306,6 +330,7 @@ if (!function_exists('circular_create_external')) {
             }
 
             $documentID = circular_sync_document($circularID);
+
             if ($documentID && !empty($directorPID)) {
                 $inboxType = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $directorPID)
                     ? INBOX_TYPE_ACTING_PRINCIPAL
@@ -330,8 +355,10 @@ if (!function_exists('circular_director_review')) {
     function circular_director_review(int $circularID, string $directorPID, ?string $comment, ?int $newFID): void
     {
         db_begin();
+
         try {
             $current = circular_get($circularID);
+
             if (!$current || (string) ($current['status'] ?? '') !== EXTERNAL_STATUS_PENDING_REVIEW) {
                 throw new RuntimeException('สถานะเอกสารไม่ถูกต้องสำหรับการพิจารณา');
             }
@@ -339,6 +366,7 @@ if (!function_exists('circular_director_review')) {
                 'status' => EXTERNAL_STATUS_REVIEWED,
                 'updatedByPID' => $directorPID,
             ];
+
             if ($newFID !== null && $newFID > 0) {
                 $update['extGroupFID'] = $newFID;
             }
@@ -346,11 +374,13 @@ if (!function_exists('circular_director_review')) {
             circular_add_route($circularID, 'RETURN', $directorPID, null, $newFID, $comment);
 
             $registryPIDs = circular_registry_pids();
+
             if (!empty($registryPIDs)) {
                 circular_add_inboxes($circularID, $registryPIDs, INBOX_TYPE_SARABAN_RETURN, $directorPID);
             }
 
             $documentID = circular_sync_document($circularID);
+
             if ($documentID && !empty($registryPIDs)) {
                 document_add_recipients($documentID, $registryPIDs, INBOX_TYPE_SARABAN_RETURN);
             }
@@ -370,12 +400,15 @@ if (!function_exists('circular_registry_forward_to_deputy')) {
     function circular_registry_forward_to_deputy(int $circularID, string $registryPID, ?int $fID): ?string
     {
         db_begin();
+
         try {
             $current = circular_get($circularID);
+
             if (!$current || (string) ($current['status'] ?? '') !== EXTERNAL_STATUS_REVIEWED) {
                 throw new RuntimeException('สถานะเอกสารไม่ถูกต้องสำหรับการส่งต่อ');
             }
             $deputyPID = circular_find_deputy_by_fid($fID);
+
             if (!$deputyPID) {
                 throw new RuntimeException('ไม่พบรองผู้อำนวยการตามฝ่ายที่ระบุ');
             }
@@ -386,6 +419,7 @@ if (!function_exists('circular_registry_forward_to_deputy')) {
             ]);
             circular_add_route($circularID, 'FORWARD', $registryPID, $deputyPID, $fID, null);
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 document_add_recipients($documentID, [$deputyPID], INBOX_TYPE_NORMAL);
             }
@@ -406,19 +440,24 @@ if (!function_exists('circular_deputy_distribute')) {
     function circular_deputy_distribute(int $circularID, string $deputyPID, array $recipients, ?string $note = null): void
     {
         db_begin();
+
         try {
             $current = circular_get($circularID);
+
             if (!$current || (string) ($current['status'] ?? '') !== EXTERNAL_STATUS_FORWARDED) {
                 throw new RuntimeException('สถานะเอกสารไม่ถูกต้องสำหรับการกระจายหนังสือ');
             }
+
             if (!empty($recipients['targets'])) {
                 circular_add_recipients($circularID, $recipients['targets']);
             }
 
             $recipientPIDs = array_filter(array_unique(array_diff($recipients['pids'], [$deputyPID])));
+
             if (empty($recipientPIDs)) {
                 throw new RuntimeException('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
             }
+
             if (!empty($recipientPIDs)) {
                 circular_add_inboxes($circularID, $recipientPIDs, INBOX_TYPE_NORMAL, $deputyPID);
             }
@@ -428,6 +467,7 @@ if (!function_exists('circular_deputy_distribute')) {
             ]);
             circular_add_route($circularID, 'APPROVE', $deputyPID, null, null, $note);
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
             }
@@ -457,6 +497,7 @@ if (!function_exists('circular_external_last_reviewer_pid')) {
         );
 
         $pid = trim((string) ($row['toPID'] ?? ''));
+
         return $pid !== '' ? $pid : null;
     }
 }
@@ -465,6 +506,7 @@ if (!function_exists('circular_recall_external_before_review')) {
     function circular_recall_external_before_review(int $circularID, string $registryPID): bool
     {
         $circular = circular_get($circularID);
+
         if (
             !$circular
             || (string) ($circular['createdByPID'] ?? '') !== $registryPID
@@ -475,6 +517,7 @@ if (!function_exists('circular_recall_external_before_review')) {
         }
 
         db_begin();
+
         try {
             circular_update_record($circularID, [
                 'status' => EXTERNAL_STATUS_SUBMITTED,
@@ -496,6 +539,7 @@ if (!function_exists('circular_recall_external_before_review')) {
 
             $documentID = circular_sync_document($circularID);
             $connection = db_connection();
+
             if ($documentID && db_table_exists($connection, 'dh_document_recipients')) {
                 $stmt = db_query(
                     'UPDATE dh_document_recipients
@@ -535,6 +579,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
         array $removeFileIDs = []
     ): bool {
         $circular = circular_get($circularID);
+
         if (
             !$circular
             || (string) ($circular['createdByPID'] ?? '') !== $registryPID
@@ -545,12 +590,15 @@ if (!function_exists('circular_edit_and_resend_external')) {
         }
 
         $reviewerPID = trim((string) ($data['reviewerPID'] ?? ''));
+
         if ($reviewerPID === '') {
             $reviewerPID = (string) (circular_external_last_reviewer_pid($circularID) ?? '');
         }
+
         if ($reviewerPID === '') {
             $reviewerPID = (string) (system_get_current_director_pid() ?? '');
         }
+
         if ($reviewerPID === '') {
             throw new RuntimeException('ไม่พบผู้พิจารณา กรุณาเลือกผู้พิจารณาอีกครั้ง');
         }
@@ -561,6 +609,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
             : INBOX_TYPE_SPECIAL_PRINCIPAL;
 
         db_begin();
+
         try {
             circular_update_record($circularID, [
                 'subject' => trim((string) ($data['subject'] ?? '')),
@@ -598,6 +647,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
 
             $documentID = circular_sync_document($circularID);
             $connection = db_connection();
+
             if ($documentID && db_table_exists($connection, 'dh_document_recipients')) {
                 $stmt = db_query(
                     'UPDATE dh_document_recipients
@@ -631,22 +681,26 @@ if (!function_exists('circular_recall_internal')) {
     function circular_recall_internal(int $circularID, string $senderPID): bool
     {
         $owner = db_fetch_one('SELECT createdByPID, circularType FROM dh_circulars WHERE circularID = ? LIMIT 1', 'i', $circularID);
+
         if (!$owner || (string) ($owner['createdByPID'] ?? '') !== $senderPID || (string) ($owner['circularType'] ?? '') !== CIRCULAR_TYPE_INTERNAL) {
             return false;
         }
 
         $current = circular_get($circularID);
+
         if (!$current || (string) ($current['status'] ?? '') !== INTERNAL_STATUS_SENT) {
             return false;
         }
 
         $row = db_fetch_one('SELECT COUNT(*) AS readCount FROM dh_circular_inboxes WHERE circularID = ? AND isRead = 1', 'i', $circularID);
         $readCount = $row ? (int) $row['readCount'] : 0;
+
         if ($readCount > 0) {
             return false;
         }
 
         db_begin();
+
         try {
             circular_update_record($circularID, [
                 'status' => INTERNAL_STATUS_RECALLED,
@@ -656,11 +710,13 @@ if (!function_exists('circular_recall_internal')) {
             mysqli_stmt_close($stmt);
             circular_add_route($circularID, 'RECALL', $senderPID, null, null, null);
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 db_query('UPDATE dh_document_recipients SET inboxStatus = "ARCHIVED" WHERE documentID = ?', 'i', $documentID);
             }
             db_commit();
             audit_log('circulars', 'RECALL', 'SUCCESS', 'dh_circulars', $circularID);
+
             return true;
         } catch (Throwable $e) {
             db_rollback();
@@ -675,25 +731,31 @@ if (!function_exists('circular_forward')) {
     function circular_forward(int $circularID, string $fromPID, array $recipients): void
     {
         db_begin();
+
         try {
             $current = circular_get($circularID);
+
             if ($current && (string) ($current['circularType'] ?? '') === CIRCULAR_TYPE_INTERNAL) {
                 if ((string) ($current['status'] ?? '') !== INTERNAL_STATUS_SENT) {
                     throw new RuntimeException('สถานะเอกสารไม่ถูกต้องสำหรับการส่งต่อ');
                 }
             }
+
             if (!empty($recipients['targets'])) {
                 circular_add_recipients($circularID, $recipients['targets']);
             }
             $recipientPIDs = array_filter(array_unique(array_diff($recipients['pids'], [$fromPID])));
+
             if (empty($recipientPIDs)) {
                 throw new RuntimeException('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
             }
+
             if (!empty($recipientPIDs)) {
                 circular_add_inboxes($circularID, $recipientPIDs, INBOX_TYPE_NORMAL, $fromPID);
             }
             circular_add_route($circularID, 'FORWARD', $fromPID, null, null, null);
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
             }
@@ -712,17 +774,21 @@ if (!function_exists('circular_resend_internal')) {
     function circular_resend_internal(int $circularID, string $senderPID): bool
     {
         $circular = circular_get($circularID);
+
         if (!$circular || (string) ($circular['createdByPID'] ?? '') !== $senderPID) {
             return false;
         }
+
         if ((string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_INTERNAL) {
             return false;
         }
+
         if ((string) ($circular['status'] ?? '') !== INTERNAL_STATUS_RECALLED) {
             return false;
         }
 
         $targets = circular_get_recipient_targets($circularID);
+
         if (empty($targets)) {
             return false;
         }
@@ -730,8 +796,10 @@ if (!function_exists('circular_resend_internal')) {
         $factions = [];
         $roles = [];
         $persons = [];
+
         foreach ($targets as $target) {
             $type = (string) ($target['targetType'] ?? '');
+
             if ($type === 'UNIT' && !empty($target['fID'])) {
                 $factions[] = (int) $target['fID'];
             } elseif ($type === 'ROLE' && !empty($target['roleID'])) {
@@ -742,11 +810,13 @@ if (!function_exists('circular_resend_internal')) {
         }
 
         $recipientPIDs = circular_resolve_person_ids($factions, $roles, $persons);
+
         if (empty($recipientPIDs)) {
             return false;
         }
 
         db_begin();
+
         try {
             $stmt = db_query('DELETE FROM dh_circular_inboxes WHERE circularID = ?', 'i', $circularID);
             mysqli_stmt_close($stmt);
@@ -757,11 +827,13 @@ if (!function_exists('circular_resend_internal')) {
             ]);
             circular_add_route($circularID, 'SEND', $senderPID, null, null, 'RESEND');
             $documentID = circular_sync_document($circularID);
+
             if ($documentID) {
                 document_add_recipients($documentID, $recipientPIDs, INBOX_TYPE_NORMAL);
             }
             db_commit();
             audit_log('circulars', 'RESEND', 'SUCCESS', 'dh_circulars', $circularID);
+
             return true;
         } catch (Throwable $e) {
             db_rollback();
@@ -813,22 +885,27 @@ if (!function_exists('circular_edit_and_resend_internal')) {
         array $removeFileIDs = []
     ): bool {
         $circular = circular_get($circularID);
+
         if (!$circular || (string) ($circular['createdByPID'] ?? '') !== $senderPID) {
             return false;
         }
+
         if ((string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_INTERNAL) {
             return false;
         }
+
         if ((string) ($circular['status'] ?? '') !== INTERNAL_STATUS_RECALLED) {
             return false;
         }
 
         $recipientPIDs = array_filter(array_unique(array_diff((array) ($recipients['pids'] ?? []), [$senderPID])));
+
         if (empty($recipientPIDs)) {
             throw new RuntimeException('กรุณาเลือกผู้รับอย่างน้อย 1 รายการ');
         }
 
         db_begin();
+
         try {
             circular_update_record($circularID, [
                 'subject' => (string) ($data['subject'] ?? ''),
@@ -841,6 +918,7 @@ if (!function_exists('circular_edit_and_resend_internal')) {
 
             $stmt = db_query('DELETE FROM dh_circular_recipients WHERE circularID = ?', 'i', $circularID);
             mysqli_stmt_close($stmt);
+
             if (!empty($recipients['targets'])) {
                 circular_add_recipients($circularID, (array) $recipients['targets']);
             }
@@ -862,6 +940,7 @@ if (!function_exists('circular_edit_and_resend_internal')) {
 
             $documentID = circular_sync_document($circularID);
             $connection = db_connection();
+
             if ($documentID && db_table_exists($connection, 'dh_document_recipients')) {
                 $stmt = db_query('DELETE FROM dh_document_recipients WHERE documentID = ?', 'i', $documentID);
                 mysqli_stmt_close($stmt);
@@ -870,6 +949,7 @@ if (!function_exists('circular_edit_and_resend_internal')) {
 
             db_commit();
             audit_log('circulars', 'EDIT_RESEND_INTERNAL', 'SUCCESS', 'dh_circulars', $circularID);
+
             return true;
         } catch (Throwable $e) {
             db_rollback();

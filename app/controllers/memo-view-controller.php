@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -30,14 +31,17 @@ if (!function_exists('memo_build_approver_options')) {
                 ORDER BY t.positionID ASC, t.fName ASC';
 
         $rows = db_fetch_all($sql);
+
         foreach ($rows as $row) {
             $pid = trim((string) ($row['pID'] ?? ''));
+
             if ($pid === '') {
                 continue;
             }
             $name = trim((string) ($row['fName'] ?? ''));
             $pos = trim((string) ($row['positionName'] ?? ''));
             $label = $name !== '' ? $name : $pid;
+
             if ($pos !== '') {
                 $label .= ' (' . $pos . ')';
             }
@@ -55,9 +59,11 @@ if (!function_exists('memo_view_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
 
         $memo_id = (int) ($_GET['memo_id'] ?? 0);
+
         if ($memo_id <= 0) {
             http_response_code(400);
             echo 'Bad Request';
+
             return;
         }
 
@@ -77,6 +83,7 @@ if (!function_exists('memo_view_index')) {
                 'approver_options' => [],
                 'access' => [],
             ]);
+
             return;
         }
 
@@ -99,11 +106,13 @@ if (!function_exists('memo_view_index')) {
                         ];
 
                         $to_choice = trim((string) ($_POST['to_choice'] ?? ''));
+
                         if ($to_choice === 'DIRECTOR') {
                             $data['toType'] = 'DIRECTOR';
                             $data['toPID'] = null;
                         } elseif (str_starts_with($to_choice, 'PERSON:')) {
                             $pid = trim(substr($to_choice, 7));
+
                             if ($pid !== '' && preg_match('/^\\d{1,13}$/', $pid)) {
                                 $data['toType'] = 'PERSON';
                                 $data['toPID'] = $pid;
@@ -219,9 +228,11 @@ if (!function_exists('memo_view_index')) {
         }
 
         $memo = memo_get($memo_id);
+
         if (!$memo) {
             http_response_code(404);
             echo 'Not Found';
+
             return;
         }
 
@@ -242,6 +253,7 @@ if (!function_exists('memo_view_index')) {
         if (!$is_creator && !$is_approver && !$is_admin) {
             http_response_code(403);
             require __DIR__ . '/../views/errors/403.php';
+
             return;
         }
 
@@ -252,6 +264,7 @@ if (!function_exists('memo_view_index')) {
 
         $attachments = memo_get_attachments($memo_id);
         $signed_file = memo_get_signed_file($memo_id);
+
         if (is_array($signed_file) && !empty($signed_file['fileID'])) {
             $signed_id = (int) $signed_file['fileID'];
             $attachments = array_values(array_filter($attachments, static function (array $file) use ($signed_id): bool {

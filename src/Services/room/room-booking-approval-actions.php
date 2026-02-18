@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,6 +18,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $redirect_url = 'room-booking-approval.php';
 $return_url = trim((string) ($_POST['return_url'] ?? ''));
+
 if ($return_url !== '' && strpos($return_url, $redirect_url) === 0) {
     $redirect_url = $return_url;
 }
@@ -38,6 +40,7 @@ $raw_action = trim((string) ($_POST['approval_action'] ?? ''));
 $raw_booking_id = (int) ($_POST['room_booking_id'] ?? 0);
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     if (function_exists('audit_log')) {
         audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'db_connection_missing');
@@ -59,6 +62,7 @@ if (
 }
 
 $action = $raw_action;
+
 if (!in_array($action, ['approve', 'reject'], true)) {
     if (function_exists('audit_log')) {
         audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'invalid_action', [
@@ -69,6 +73,7 @@ if (!in_array($action, ['approve', 'reject'], true)) {
 }
 
 $booking_id = $raw_booking_id;
+
 if ($booking_id <= 0) {
     if (function_exists('audit_log')) {
         audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', null, 'invalid_booking_id');
@@ -77,6 +82,7 @@ if ($booking_id <= 0) {
 }
 
 $approver_pid = trim((string) ($_SESSION['pID'] ?? ''));
+
 if ($approver_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'room_booking_approval_actions');
@@ -109,13 +115,12 @@ try {
     $current_status = room_booking_status_to_int($connection, $check_row['status'] ?? 0);
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $booking_id, 'status_check_failed');
     }
     $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถตรวจสอบรายการจองได้ในขณะนี้');
 }
-
-
 
 $next_status = $action === 'approve' ? 1 : 2;
 $status_param = room_booking_status_to_db($connection, $next_status);
@@ -141,6 +146,7 @@ try {
     $bind_params = [];
     $bind_params[] = $update_stmt;
     $bind_params[] = $types;
+
     foreach ($bind_values as $i => $v) {
         $bind_params[] = &$bind_values[$i];
     }
@@ -175,6 +181,7 @@ try {
     $set_room_booking_approval_alert('success', 'บันทึกสำเร็จ', 'บันทึกการไม่อนุมัติเรียบร้อยแล้ว');
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('room', $action === 'approve' ? 'APPROVE' : 'REJECT', 'FAIL', 'dh_room_bookings', $booking_id, $exception->getMessage());
     }

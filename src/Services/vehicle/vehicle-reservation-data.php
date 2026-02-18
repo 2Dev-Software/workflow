@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../../config/connection.php';
@@ -7,10 +8,11 @@ require_once __DIR__ . '/vehicle-reservation-utils.php';
 function vehicle_reservation_get_departments(mysqli $connection): array
 {
     $departments = [];
-    $sql = "SELECT dID, dName FROM department WHERE dID != 12 ORDER BY dName ASC";
+    $sql = 'SELECT dID, dName FROM department WHERE dID != 12 ORDER BY dName ASC';
 
     try {
         $result = mysqli_query($connection, $sql);
+
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $departments[] = [
@@ -31,10 +33,11 @@ function vehicle_reservation_get_departments(mysqli $connection): array
 function vehicle_reservation_get_factions(mysqli $connection): array
 {
     $factions = [];
-    $sql = "SELECT fID, fName FROM faction ORDER BY fName ASC";
+    $sql = 'SELECT fID, fName FROM faction ORDER BY fName ASC';
 
     try {
         $result = mysqli_query($connection, $sql);
+
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $factions[] = [
@@ -55,10 +58,11 @@ function vehicle_reservation_get_factions(mysqli $connection): array
 function vehicle_reservation_get_teachers(mysqli $connection): array
 {
     $teachers = [];
-    $sql = "SELECT pID, fName, picture FROM teacher WHERE status = 1 ORDER BY fName ASC";
+    $sql = 'SELECT pID, fName, picture FROM teacher WHERE status = 1 ORDER BY fName ASC';
 
     try {
         $result = mysqli_query($connection, $sql);
+
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $teachers[] = [
@@ -79,6 +83,7 @@ function vehicle_reservation_get_teachers(mysqli $connection): array
 function vehicle_reservation_get_bookings(mysqli $connection, int $year, string $requester_pid): array
 {
     $requester_pid = trim($requester_pid);
+
     if ($requester_pid === '') {
         return [];
     }
@@ -141,6 +146,7 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
 
     if ($stmt === false) {
         error_log('Database Error: ' . mysqli_error($connection));
+
         return [];
     }
 
@@ -164,7 +170,7 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
 function vehicle_reservation_get_booking_attachments(mysqli $connection, array $booking_ids): array
 {
     $booking_ids = array_values(array_unique(array_filter(array_map(
-        static fn($id): string => preg_replace('/\D+/', '', (string) $id),
+        static fn ($id): string => preg_replace('/\D+/', '', (string) $id),
         $booking_ids
     ))));
 
@@ -181,8 +187,10 @@ function vehicle_reservation_get_booking_attachments(mysqli $connection, array $
         ORDER BY r.refID ASC';
 
     $stmt = mysqli_prepare($connection, $sql);
+
     if ($stmt === false) {
         error_log('Database Error: ' . mysqli_error($connection));
+
         return [];
     }
 
@@ -191,6 +199,7 @@ function vehicle_reservation_get_booking_attachments(mysqli $connection, array $
     $types = 'ss' . str_repeat('s', count($booking_ids));
     $params = array_merge([$stmt, $types, $module_name, $entity_name], $booking_ids);
     $bind_refs = [];
+
     foreach ($params as $index => $value) {
         $bind_refs[$index] = &$params[$index];
     }
@@ -202,16 +211,20 @@ function vehicle_reservation_get_booking_attachments(mysqli $connection, array $
     } catch (mysqli_sql_exception $exception) {
         mysqli_stmt_close($stmt);
         error_log('Database Exception: ' . $exception->getMessage());
+
         return [];
     }
 
     $attachments = [];
+
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
             $booking_id = (string) ($row['entityID'] ?? '');
+
             if ($booking_id === '') {
                 continue;
             }
+
             if (!isset($attachments[$booking_id])) {
                 $attachments[$booking_id] = [];
             }
@@ -226,5 +239,6 @@ function vehicle_reservation_get_booking_attachments(mysqli $connection, array $
     }
 
     mysqli_stmt_close($stmt);
+
     return $attachments;
 }

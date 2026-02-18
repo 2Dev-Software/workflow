@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -14,6 +15,7 @@ if (!function_exists('teacher_phone_directory_index')) {
             'options' => ['default' => 1, 'min_range' => 1],
         ]);
         $teacher_directory_per_page_param = $_GET['per_page'] ?? '10';
+
         if ($teacher_directory_per_page_param === 'all') {
             $teacher_directory_per_page = 'all';
         } else {
@@ -22,6 +24,7 @@ if (!function_exists('teacher_phone_directory_index')) {
             ]);
         }
         $teacher_directory_allowed_per_page = [10, 20, 50, 'all'];
+
         if (!in_array($teacher_directory_per_page, $teacher_directory_allowed_per_page, true)) {
             $teacher_directory_per_page = 10;
         }

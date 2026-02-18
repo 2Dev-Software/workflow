@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -14,6 +15,7 @@ if (!function_exists('room_booking_approval_index')) {
     {
         $current_user = current_user() ?? [];
         $current_role_id = (int) ($current_user['roleID'] ?? 0);
+
         if (!in_array($current_role_id, [1, 5], true)) {
             if (function_exists('audit_log')) {
                 audit_log('room', 'APPROVAL_ACCESS', 'DENY', null, null, 'not_authorized_role', [
@@ -28,6 +30,7 @@ if (!function_exists('room_booking_approval_index')) {
 
         $dh_year_value = system_get_dh_year();
         $currentThaiYear = (int) date('Y') + 543;
+
         if ($dh_year_value < 2500) {
             $dh_year_value = $currentThaiYear;
         }
@@ -51,6 +54,7 @@ if (!function_exists('room_booking_approval_index')) {
 
         $format_thai_date = static function (string $date) use ($thai_months): string {
             $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+
             if ($date_obj === false) {
                 return $date;
             }
@@ -70,6 +74,7 @@ if (!function_exists('room_booking_approval_index')) {
 
             $start_obj = DateTime::createFromFormat('Y-m-d', $start);
             $end_obj = DateTime::createFromFormat('Y-m-d', $end);
+
             if ($start_obj === false || $end_obj === false) {
                 return $format_thai_date($start) . ' - ' . $format_thai_date($end);
             }
@@ -100,9 +105,11 @@ if (!function_exists('room_booking_approval_index')) {
             }
 
             $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
             if ($date_obj === false) {
                 $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
             }
+
             if ($date_obj === false) {
                 return $datetime;
             }
@@ -134,6 +141,7 @@ if (!function_exists('room_booking_approval_index')) {
         unset($_SESSION['room_booking_approval_alert']);
 
         $room_booking_approval_return_url = 'room-booking-approval.php';
+
         if (!empty($_SERVER['QUERY_STRING'])) {
             $room_booking_approval_return_url .= '?' . $_SERVER['QUERY_STRING'];
         }

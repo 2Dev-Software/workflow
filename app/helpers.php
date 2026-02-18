@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (!function_exists('app_env')) {
@@ -8,9 +9,11 @@ if (!function_exists('app_env')) {
             return $_ENV[$key];
         }
         $value = getenv($key);
+
         if ($value !== false) {
             return $value;
         }
+
         return $default;
     }
 }
@@ -20,6 +23,7 @@ if (!function_exists('app_is_debug')) {
     {
         $env = strtolower((string) app_env('APP_ENV', 'production'));
         $debug = app_env('APP_DEBUG', null);
+
         if ($debug !== null) {
             return filter_var($debug, FILTER_VALIDATE_BOOLEAN);
         }
@@ -48,6 +52,7 @@ if (!function_exists('app_base_path')) {
     {
         $script = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
         $base = rtrim(str_replace('\\', '/', dirname($script)), '/');
+
         return $base === '/' ? '' : $base;
     }
 }
@@ -57,6 +62,7 @@ if (!function_exists('app_url')) {
     {
         $base = app_base_path();
         $path = '/' . ltrim($path, '/');
+
         return $base . $path;
     }
 }
@@ -70,6 +76,7 @@ if (!function_exists('app_request_id')) {
 
         $id = bin2hex(random_bytes(16));
         $_SERVER['APP_REQUEST_ID'] = $id;
+
         return $id;
     }
 }
@@ -127,6 +134,7 @@ if (!function_exists('request_wants_json')) {
     function request_wants_json(): bool
     {
         $accept = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
+
         return stripos($accept, 'application/json') !== false;
     }
 }
@@ -147,11 +155,13 @@ if (!function_exists('flash_get')) {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
         if (!isset($_SESSION['_flash'][$key])) {
             return $default;
         }
         $value = $_SESSION['_flash'][$key];
         unset($_SESSION['_flash'][$key]);
+
         return $value;
     }
 }

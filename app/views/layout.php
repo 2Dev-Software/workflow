@@ -6,7 +6,7 @@ require_once __DIR__ . '/view.php';
 <html lang="th">
 <?php require __DIR__ . '/../../public/components/x-head.php'; ?>
 <body<?= component_attr($body_attrs ?? []) ?>>
-<?php //require __DIR__ . '/../../public/components/layout/preloader.php'; ?>
+<?php //require __DIR__ . '/../../public/components/layout/preloader.php';?>
 
     <?php if (!empty($alert)) : ?>
         <?php $alert = $alert; ?>

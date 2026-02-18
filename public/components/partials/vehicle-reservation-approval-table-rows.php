@@ -16,6 +16,7 @@
         $end_date = $end_at !== '' ? substr($end_at, 0, 10) : '';
         $date_range = $format_thai_date_range($start_date, $end_date !== '' ? $end_date : $start_date);
         $time_range = '-';
+
         if ($start_at !== '' && $end_at !== '') {
             $start_time = substr($start_at, 11, 5);
             $end_time = substr($end_at, 11, 5);
@@ -23,11 +24,13 @@
         }
 
         $requester_name = trim((string) ($request_item['requesterDisplayName'] ?? ''));
+
         if ($requester_name === '') {
             $requester_name = trim((string) ($request_item['requester_name'] ?? ''));
         }
         // Show the requester's department from teacher master data (more reliable than free-text booking.department).
         $department_name = trim((string) ($request_item['department_name'] ?? ''));
+
         if ($department_name === '') {
             $department_name = trim((string) ($request_item['department'] ?? ''));
         }
@@ -35,10 +38,12 @@
         $purpose_text = trim((string) ($request_item['purpose'] ?? ''));
         $purpose_text = $purpose_text !== '' ? $purpose_text : '-';
         $purpose_display = $purpose_text;
+
         if ($purpose_text !== '-' && $purpose_text !== '') {
             $max_chars = 50;
             $purpose_trimmed = trim($purpose_text);
             $purpose_len = function_exists('mb_strlen') ? mb_strlen($purpose_trimmed, 'UTF-8') : strlen($purpose_trimmed);
+
             if ($purpose_len > $max_chars) {
                 $purpose_slice = function_exists('mb_substr')
                     ? mb_substr($purpose_trimmed, 0, $max_chars, 'UTF-8')
@@ -53,6 +58,7 @@
         $driver_name = trim((string) ($request_item['driverName'] ?? ''));
         $driver_tel = trim((string) ($request_item['driverTel'] ?? ''));
         $driver_label = $driver_name !== '' ? $driver_name : '-';
+
         if ($driver_tel !== '') {
             $driver_label .= ' (' . $driver_tel . ')';
         }
@@ -67,6 +73,7 @@
         $vehicle_plate = trim((string) ($request_item['vehiclePlate'] ?? ''));
         $vehicle_type = trim((string) ($request_item['vehicleType'] ?? ''));
         $vehicle_label = $vehicle_plate !== '' ? $vehicle_plate : $vehicle_type;
+
         if ($vehicle_label === '') {
             $vehicle_label = (string) ($request_item['vehicleID'] ?? '-');
         }
@@ -74,6 +81,7 @@
         $vehicle_detail = trim($vehicle_detail) !== '' ? trim($vehicle_detail) : '-';
 
         $approval_name = trim((string) ($request_item['approver_name'] ?? ''));
+
         if ($status_key === 'ASSIGNED') {
             $approval_name = $assigned_name !== '' ? $assigned_name : ($approval_name !== '' ? $approval_name : 'เจ้าหน้าที่ระบบ');
         } elseif ($approval_name === '' && $status_key !== 'PENDING') {

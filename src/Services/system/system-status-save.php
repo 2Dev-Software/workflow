@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['dh_status_save'])) {
     return;
 }
@@ -11,6 +12,7 @@ require_once __DIR__ . '/../../../app/db/connection.php';
 require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
 $connection = db_connection();
+
 if (!($connection instanceof mysqli)) {
     error_log('Database Error: invalid connection');
     $_SESSION['setting_alert'] = [
@@ -53,6 +55,7 @@ $select_result = mysqli_query($connection, $select_sql);
 
 if ($select_result === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('system', 'UPDATE_STATUS', 'FAIL', 'thesystem', null, 'select_failed');
     }
@@ -84,6 +87,7 @@ $update_stmt = mysqli_prepare($connection, $update_sql);
 
 if ($update_stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
+
     if (function_exists('audit_log')) {
         audit_log('system', 'UPDATE_STATUS', 'FAIL', 'thesystem', $system_id, 'prepare_failed');
     }

@@ -17,9 +17,11 @@ $select_attrs = array_merge($attrs, [
     'id' => $id,
     'name' => $name,
 ]);
+
 if ($required) {
     $select_attrs['required'] = true;
 }
+
 if ($disabled) {
     $select_attrs['disabled'] = true;
 }
@@ -32,6 +34,7 @@ if ($disabled) {
         <?php foreach ($options as $value => $text) : ?>
             <?php
             $is_selected = false;
+
             if (is_array($selected)) {
                 $is_selected = in_array((string) $value, array_map('strval', $selected), true);
             } else {

@@ -12,6 +12,7 @@ $status_map = [
 ];
 
 $rows = [];
+
 foreach ($orders as $order) {
     $status = (string) ($order['status'] ?? '');
     $status_meta = $status_map[$status] ?? ['label' => $status !== '' ? $status : '-', 'variant' => 'neutral'];

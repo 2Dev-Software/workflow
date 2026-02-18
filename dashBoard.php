@@ -32,7 +32,7 @@ $dashboard_counts = dashboard_counts($current_pid);
                         <p>หนังสือเวียนใหม่ที่รออ่าน</p>
                     </div>
                 <div class="content-info">
-                        <p><?php //(int) ($dashboard_counts['unread_circulars'] ?? 0) 
+                        <p><?php //(int) ($dashboard_counts['unread_circulars'] ?? 0)
                             ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
@@ -42,7 +42,7 @@ $dashboard_counts = dashboard_counts($current_pid);
                         <p>คำสั่งราชการใหม่ที่รออ่าน</p>
                     </div>
                 <div class="content-info">
-                        <p><?php //(int) ($dashboard_counts['unread_orders'] ?? 0) 
+                        <p><?php //(int) ($dashboard_counts['unread_orders'] ?? 0)
                             ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
@@ -52,7 +52,7 @@ $dashboard_counts = dashboard_counts($current_pid);
                         <p>หนังสือที่รอเสนอผู้บริหาร</p>
                     </div>
                 <div class="content-info">
-                        <p><?php //(int) ($dashboard_counts['pending_manager'] ?? 0) 
+                        <p><?php //(int) ($dashboard_counts['pending_manager'] ?? 0)
                             ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>
@@ -62,7 +62,7 @@ $dashboard_counts = dashboard_counts($current_pid);
                         <p>หนังสือที่รอเซ็นอนุมัติ</p>
                     </div>
                 <div class="content-info">
-                        <p><?php //(int) ($dashboard_counts['pending_approvals'] ?? 0) 
+                        <p><?php //(int) ($dashboard_counts['pending_approvals'] ?? 0)
                             ?></p>
                         <i class="fa-book fa-solid"></i>
                     </div>

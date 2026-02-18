@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/constants.php';
@@ -12,10 +13,12 @@ if (!function_exists('memo_document_number')) {
     function memo_document_number(array $memo): string
     {
         $memoNo = trim((string) ($memo['memoNo'] ?? ''));
+
         if ($memoNo !== '') {
             return $memoNo;
         }
         $memoID = (int) ($memo['memoID'] ?? 0);
+
         return $memoID > 0 ? 'MEMO-' . $memoID : '';
     }
 }
@@ -24,11 +27,13 @@ if (!function_exists('memo_sync_document')) {
     function memo_sync_document(int $memoID): ?int
     {
         $memo = memo_get($memoID);
+
         if (!$memo) {
             return null;
         }
 
         $documentNumber = memo_document_number($memo);
+
         if ($documentNumber === '') {
             return null;
         }
@@ -50,21 +55,26 @@ if (!function_exists('memo_next_sequence_for_year')) {
     function memo_next_sequence_for_year(int $year): int
     {
         $year = (int) $year;
+
         if ($year <= 0) {
             $year = system_get_dh_year();
         }
 
         $connection = db_connection();
+
         if (db_table_exists($connection, 'dh_sequences')) {
             $seqKey = 'memo:' . $year;
             $row = db_fetch_one('SELECT currentValue FROM dh_sequences WHERE seqKey = ? FOR UPDATE', 's', $seqKey);
+
             if (!$row) {
                 db_execute('INSERT INTO dh_sequences (seqKey, currentValue) VALUES (?, ?)', 'si', $seqKey, 1);
+
                 return 1;
             }
 
             $next = (int) ($row['currentValue'] ?? 0) + 1;
             db_execute('UPDATE dh_sequences SET currentValue = ? WHERE seqKey = ?', 'is', $next, $seqKey);
+
             return $next;
         }
 
@@ -73,6 +83,7 @@ if (!function_exists('memo_next_sequence_for_year')) {
             'i',
             $year
         );
+
         return $row ? ((int) ($row['memoSeq'] ?? 0) + 1) : 1;
     }
 }
@@ -82,6 +93,7 @@ if (!function_exists('memo_generate_number')) {
     {
         $seq = memo_next_sequence_for_year($year);
         $memoNo = $year . '/' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+
         return [$memoNo, $seq];
     }
 }
@@ -90,6 +102,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
     function memo_resolve_chain_approvers(string $creatorPID): array
     {
         $creatorPID = trim($creatorPID);
+
         if ($creatorPID === '') {
             throw new RuntimeException('ไม่พบผู้สร้างเอกสาร');
         }
@@ -99,6 +112,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
             's',
             $creatorPID
         );
+
         if (!$creator) {
             throw new RuntimeException('ไม่พบข้อมูลผู้สร้างเอกสาร');
         }
@@ -123,6 +137,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
                 $creatorPID,
                 $fID
             );
+
             if ($head && !empty($head['pID'])) {
                 $headPID = trim((string) $head['pID']);
             }
@@ -131,6 +146,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
         // รองผู้อำนวยการ (ตามสายงานเดียวกันก่อน) จากนั้นค่อย fallback
         $connection = db_connection();
         $deputyPositionIDs = system_position_deputy_ids($connection);
+
         if (!empty($deputyPositionIDs)) {
             $placeholders = implode(', ', array_fill(0, count($deputyPositionIDs), '?'));
             $types = str_repeat('i', count($deputyPositionIDs));
@@ -148,6 +164,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
                 $typesWith = 'si' . $types;
                 $paramsWith = array_merge([$creatorPID, $fID], $params);
                 $row = db_fetch_one($sql, $typesWith, ...$paramsWith);
+
                 if ($row && !empty($row['pID'])) {
                     $deputyPID = trim((string) $row['pID']);
                 }
@@ -164,6 +181,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
                 $typesWith = 's' . $types;
                 $paramsWith = array_merge([$creatorPID], $params);
                 $row = db_fetch_one($sql, $typesWith, ...$paramsWith);
+
                 if ($row && !empty($row['pID'])) {
                     $deputyPID = trim((string) $row['pID']);
                 }
@@ -189,9 +207,11 @@ if (!function_exists('memo_resolve_first_reviewer')) {
         if ($headPID !== '') {
             return [$headPID, 'HEAD'];
         }
+
         if ($deputyPID !== '') {
             return [$deputyPID, 'DEPUTY'];
         }
+
         if ($directorPID !== '') {
             return [$directorPID, 'DIRECTOR'];
         }
@@ -204,6 +224,7 @@ if (!function_exists('memo_is_chain_mode')) {
     function memo_is_chain_mode(array $memo): bool
     {
         $mode = strtoupper(trim((string) ($memo['flowMode'] ?? '')));
+
         if ($mode === '') {
             return true;
         }
@@ -217,6 +238,7 @@ if (!function_exists('memo_infer_chain_stage_by_actor')) {
     {
         $actorPID = trim($actorPID);
         $stage = strtoupper(trim((string) ($memo['flowStage'] ?? '')));
+
         if ($stage !== '' && $stage !== 'OWNER') {
             return $stage;
         }
@@ -224,9 +246,11 @@ if (!function_exists('memo_infer_chain_stage_by_actor')) {
         if ($actorPID !== '' && $actorPID === trim((string) ($memo['headPID'] ?? ''))) {
             return 'HEAD';
         }
+
         if ($actorPID !== '' && $actorPID === trim((string) ($memo['deputyPID'] ?? ''))) {
             return 'DEPUTY';
         }
+
         if ($actorPID !== '' && $actorPID === trim((string) ($memo['directorPID'] ?? ''))) {
             return 'DIRECTOR';
         }
@@ -250,6 +274,7 @@ if (!function_exists('memo_resolve_next_chain_reviewer')) {
             if ($deputyPID !== '') {
                 return [$deputyPID, 'DEPUTY'];
             }
+
             if ($directorPID !== '') {
                 return [$directorPID, 'DIRECTOR'];
             }
@@ -271,11 +296,13 @@ if (!function_exists('memo_create_draft')) {
     function memo_create_draft(array $data, array $files = []): int
     {
         $creatorPID = trim((string) ($data['createdByPID'] ?? ''));
+
         if ($creatorPID === '') {
             throw new RuntimeException('ไม่พบผู้สร้างเอกสาร');
         }
 
         $flowMode = strtoupper(trim((string) ($data['flowMode'] ?? 'CHAIN')));
+
         if ($flowMode !== 'DIRECT') {
             $flowMode = 'CHAIN';
         }
@@ -296,6 +323,7 @@ if (!function_exists('memo_create_draft')) {
         }
 
         db_begin();
+
         try {
             $memoID = memo_create_record([
                 'dh_year' => (int) $data['dh_year'],
@@ -323,6 +351,7 @@ if (!function_exists('memo_create_draft')) {
 
             db_commit();
             audit_log('memos', 'CREATE', 'SUCCESS', MEMO_ENTITY_NAME, $memoID);
+
             return $memoID;
         } catch (Throwable $e) {
             db_rollback();
@@ -337,26 +366,32 @@ if (!function_exists('memo_update_draft')) {
     function memo_update_draft(int $memoID, string $actorPID, array $data, array $files = []): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if ((string) ($memo['createdByPID'] ?? '') !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์แก้ไขรายการนี้');
             }
 
             $status = (string) ($memo['status'] ?? '');
+
             if (!in_array($status, [MEMO_STATUS_DRAFT, MEMO_STATUS_RETURNED], true)) {
                 throw new RuntimeException('แก้ไขได้เฉพาะรายการ ร่าง/ตีกลับแก้ไข');
             }
 
             $subject = trim((string) ($data['subject'] ?? ''));
+
             if ($subject === '') {
                 throw new RuntimeException('กรุณากรอกหัวข้อ');
             }
@@ -375,11 +410,13 @@ if (!function_exists('memo_update_draft')) {
                 $existing = memo_get_attachments($memoID);
                 $normalized = upload_normalize_files($files);
                 $upload_count = 0;
+
                 foreach ($normalized as $file) {
                     if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                         $upload_count++;
                     }
                 }
+
                 if (count($existing) + $upload_count > 5) {
                     throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
                 }
@@ -403,13 +440,16 @@ if (!function_exists('memo_submit')) {
     function memo_submit(int $memoID, string $actorPID): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
@@ -419,6 +459,7 @@ if (!function_exists('memo_submit')) {
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_DRAFT, MEMO_STATUS_RETURNED], true)) {
                 throw new RuntimeException('ไม่สามารถส่งเสนอได้ในสถานะปัจจุบัน');
             }
@@ -438,6 +479,7 @@ if (!function_exists('memo_submit')) {
                     'deputyPID' => $deputyPID,
                     'directorPID' => $directorPID,
                 ];
+
                 if ($chain['headPID'] === '' && $chain['deputyPID'] === '' && $chain['directorPID'] === '') {
                     $chain = memo_resolve_chain_approvers($actorPID);
                 } else {
@@ -459,6 +501,7 @@ if (!function_exists('memo_submit')) {
                     // For older records, treat as PERSON when PID is set.
                     $toType = $toPID !== '' ? 'PERSON' : '';
                 }
+
                 if ($toPID === '' || !preg_match('/^\\d{1,13}$/', $toPID)) {
                     throw new RuntimeException('กรุณาเลือกผู้พิจารณา (เรียน)');
                 }
@@ -471,6 +514,7 @@ if (!function_exists('memo_submit')) {
 
             $memoNo = trim((string) ($memo['memoNo'] ?? ''));
             $memoSeq = (int) ($memo['memoSeq'] ?? 0);
+
             if ($memoNo === '' || $memoSeq <= 0) {
                 [$memoNo, $memoSeq] = memo_generate_number((int) ($memo['dh_year'] ?? system_get_dh_year()));
             }
@@ -495,6 +539,7 @@ if (!function_exists('memo_submit')) {
             memo_add_route($memoID, $fromStatus === MEMO_STATUS_RETURNED ? 'RESUBMIT' : 'SUBMIT', $fromStatus, MEMO_STATUS_SUBMITTED, $actorPID, null);
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_add_recipients($documentID, [$toPID], INBOX_TYPE_NORMAL);
             }
@@ -514,38 +559,48 @@ if (!function_exists('memo_mark_in_review')) {
     function memo_mark_in_review(int $memoID, string $actorPID): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             return;
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT memoID, status, toPID, firstReadAt FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 db_commit();
+
                 return;
             }
 
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 db_commit();
+
                 return;
             }
 
             $status = (string) ($memo['status'] ?? '');
+
             if (!in_array($status, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 db_commit();
+
                 return;
             }
 
             $updates = [];
             $toStatus = $status;
+
             if ($status === MEMO_STATUS_SUBMITTED) {
                 $updates['status'] = MEMO_STATUS_IN_REVIEW;
                 $toStatus = MEMO_STATUS_IN_REVIEW;
             }
+
             if (empty($memo['firstReadAt'])) {
                 $updates['firstReadAt'] = date('Y-m-d H:i:s');
             }
+
             if (!empty($updates)) {
                 $updates['updatedByPID'] = $actorPID;
                 memo_update_record($memoID, $updates);
@@ -553,6 +608,7 @@ if (!function_exists('memo_mark_in_review')) {
             }
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -571,16 +627,20 @@ if (!function_exists('memo_return')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
+
         if ($note === '') {
             throw new RuntimeException('กรุณากรอกความเห็น');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
@@ -590,6 +650,7 @@ if (!function_exists('memo_return')) {
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถตีกลับได้ในสถานะปัจจุบัน');
             }
@@ -598,6 +659,7 @@ if (!function_exists('memo_return')) {
             $toPID = trim((string) ($memo['toPID'] ?? ''));
             $toType = (string) ($memo['toType'] ?? '');
             $flowStage = strtoupper(trim((string) ($memo['flowStage'] ?? 'OWNER')));
+
             if (memo_is_chain_mode($memo)) {
                 $toPID = trim((string) ($memo['createdByPID'] ?? ''));
                 $toType = 'PERSON';
@@ -612,6 +674,7 @@ if (!function_exists('memo_return')) {
                 'flowStage' => $flowStage,
                 'updatedByPID' => $actorPID,
             ];
+
             if (empty($memo['firstReadAt'])) {
                 $updates['firstReadAt'] = $now;
             }
@@ -620,6 +683,7 @@ if (!function_exists('memo_return')) {
             ]);
             memo_add_route($memoID, 'RETURN', $fromStatus, MEMO_STATUS_RETURNED, $actorPID, $note);
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -640,21 +704,26 @@ if (!function_exists('memo_recall')) {
     function memo_recall(int $memoID, string $actorPID): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['createdByPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์ดึงกลับรายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW, MEMO_STATUS_APPROVED_UNSIGNED], true)) {
                 throw new RuntimeException('ดึงกลับได้เฉพาะรายการที่อยู่ระหว่างพิจารณา');
             }
@@ -685,34 +754,42 @@ if (!function_exists('memo_forward')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์ส่งต่อรายการนี้');
             }
+
             if (!memo_is_chain_mode($memo)) {
                 throw new RuntimeException('รายการนี้ไม่ได้อยู่ในโหมดเสนอแฟ้มตามลำดับ');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถส่งต่อได้ในสถานะปัจจุบัน');
             }
 
             $currentStage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+
             if (!in_array($currentStage, ['HEAD', 'DEPUTY'], true)) {
                 throw new RuntimeException('ส่งต่อได้เฉพาะหัวหน้ากลุ่ม/รองผู้อำนวยการ');
             }
 
             [$nextPID, $nextStage] = memo_resolve_next_chain_reviewer($memo, $currentStage);
+
             if ($nextPID === '' || !preg_match('/^\\d{1,13}$/', $nextPID)) {
                 throw new RuntimeException('ไม่พบผู้รับผิดชอบลำดับถัดไป');
             }
@@ -731,6 +808,7 @@ if (!function_exists('memo_forward')) {
             memo_add_route($memoID, 'FORWARD', $fromStatus, MEMO_STATUS_SUBMITTED, $actorPID, $note !== '' ? $note : null);
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -753,27 +831,33 @@ if (!function_exists('memo_director_approve')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์พิจารณารายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถอนุมัติได้ในสถานะปัจจุบัน');
             }
 
             if (memo_is_chain_mode($memo)) {
                 $stage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+
                 if ($stage !== 'DIRECTOR') {
                     throw new RuntimeException('อนุมัติขั้นสุดท้ายได้เฉพาะผู้อำนวยการ/ผู้รักษาการ');
                 }
@@ -796,9 +880,11 @@ if (!function_exists('memo_director_approve')) {
             memo_add_route($memoID, 'DIRECTOR_APPROVE', $fromStatus, MEMO_STATUS_SIGNED, $actorPID, $note !== '' ? $note : null);
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
+
                 if ($ownerPID !== '') {
                     document_add_recipients($documentID, [$ownerPID], INBOX_TYPE_NORMAL);
                 }
@@ -820,30 +906,37 @@ if (!function_exists('memo_director_reject')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
+
         if ($note === '') {
             throw new RuntimeException('กรุณากรอกความเห็น');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์พิจารณารายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถไม่อนุมัติได้ในสถานะปัจจุบัน');
             }
 
             if (memo_is_chain_mode($memo)) {
                 $stage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+
                 if ($stage !== 'DIRECTOR') {
                     throw new RuntimeException('ไม่อนุมัติขั้นสุดท้ายได้เฉพาะผู้อำนวยการ/ผู้รักษาการ');
                 }
@@ -866,9 +959,11 @@ if (!function_exists('memo_director_reject')) {
             memo_add_route($memoID, 'DIRECTOR_REJECT', $fromStatus, MEMO_STATUS_REJECTED, $actorPID, $note);
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
+
                 if ($ownerPID !== '') {
                     document_add_recipients($documentID, [$ownerPID], INBOX_TYPE_NORMAL);
                 }
@@ -890,30 +985,37 @@ if (!function_exists('memo_reject')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
+
         if ($note === '') {
             throw new RuntimeException('กรุณากรอกเหตุผล/ความเห็น');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์พิจารณารายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถไม่อนุมัติได้ในสถานะปัจจุบัน');
             }
 
             if (memo_is_chain_mode($memo)) {
                 $stage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+
                 if ($stage !== 'DIRECTOR') {
                     throw new RuntimeException('ไม่อนุมัติขั้นสุดท้ายได้เฉพาะผู้อำนวยการ/ผู้รักษาการ');
                 }
@@ -931,6 +1033,7 @@ if (!function_exists('memo_reject')) {
                 'approvedAt' => $now,
                 'updatedByPID' => $actorPID,
             ];
+
             if (empty($memo['firstReadAt'])) {
                 $updates['firstReadAt'] = $now;
             }
@@ -939,6 +1042,7 @@ if (!function_exists('memo_reject')) {
             ]);
             memo_add_route($memoID, 'REJECT', $fromStatus, MEMO_STATUS_REJECTED, $actorPID, $note);
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -960,24 +1064,30 @@ if (!function_exists('memo_approve_unsigned')) {
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
+
         if ($note === '') {
             $note = 'อนุมัติ รอแนบไฟล์ฉบับลงนาม';
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์พิจารณารายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
                 throw new RuntimeException('ไม่สามารถอนุมัติได้ในสถานะปัจจุบัน');
             }
@@ -995,6 +1105,7 @@ if (!function_exists('memo_approve_unsigned')) {
                 'approvedAt' => $now,
                 'updatedByPID' => $actorPID,
             ];
+
             if (empty($memo['firstReadAt'])) {
                 $updates['firstReadAt'] = $now;
             }
@@ -1003,6 +1114,7 @@ if (!function_exists('memo_approve_unsigned')) {
             ]);
             memo_add_route($memoID, 'APPROVE_UNSIGNED', $fromStatus, MEMO_STATUS_APPROVED_UNSIGNED, $actorPID, $note);
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -1024,27 +1136,34 @@ if (!function_exists('memo_sign_with_upload')) {
     {
         $actorPID = trim($actorPID);
         $note = trim((string) $note);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
+
         if (empty($file)) {
             throw new RuntimeException('กรุณาแนบไฟล์ฉบับลงนามแล้ว');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์ลงนามรายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW, MEMO_STATUS_APPROVED_UNSIGNED], true)) {
                 throw new RuntimeException('ไม่สามารถลงนามได้ในสถานะปัจจุบัน');
             }
+
             if (memo_is_chain_mode($memo)) {
                 throw new RuntimeException('โหมดเสนอแฟ้มตามลำดับไม่รองรับการลงนามด้วยการอัปโหลดไฟล์');
             }
@@ -1053,6 +1172,7 @@ if (!function_exists('memo_sign_with_upload')) {
                 'max_files' => 1,
             ]);
             $fileID = (int) ($stored[0]['fileID'] ?? 0);
+
             if ($fileID <= 0) {
                 throw new RuntimeException('แนบไฟล์ไม่สำเร็จ');
             }
@@ -1071,6 +1191,7 @@ if (!function_exists('memo_sign_with_upload')) {
             memo_add_route($memoID, 'SIGN', $fromStatus, MEMO_STATUS_SIGNED, $actorPID, $note !== '' ? $note : null);
 
             $documentID = memo_sync_document($memoID);
+
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
@@ -1091,21 +1212,26 @@ if (!function_exists('memo_cancel')) {
     function memo_cancel(int $memoID, string $actorPID): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if ((string) ($memo['createdByPID'] ?? '') !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์ยกเลิกรายการนี้');
             }
 
             $fromStatus = (string) ($memo['status'] ?? '');
+
             if (in_array($fromStatus, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true)) {
                 throw new RuntimeException('ไม่สามารถยกเลิกได้ เนื่องจากปิดงานแล้ว');
             }
@@ -1118,6 +1244,7 @@ if (!function_exists('memo_cancel')) {
                 'updatedByPID' => $actorPID,
             ]);
             memo_add_route($memoID, 'CANCEL', $fromStatus, MEMO_STATUS_CANCELLED, $actorPID, null);
+
             if (trim((string) ($memo['memoNo'] ?? '')) !== '') {
                 memo_sync_document($memoID);
             }
@@ -1137,29 +1264,36 @@ if (!function_exists('memo_set_archived')) {
     function memo_set_archived(int $memoID, string $actorPID, bool $archived): void
     {
         $actorPID = trim($actorPID);
+
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
         }
 
         db_begin();
+
         try {
             $memo = db_fetch_one('SELECT memoID, createdByPID, status, isArchived FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
+
             if (!$memo) {
                 throw new RuntimeException('ไม่พบบันทึกข้อความ');
             }
+
             if ((string) ($memo['createdByPID'] ?? '') !== $actorPID) {
                 throw new RuntimeException('ไม่มีสิทธิ์จัดเก็บรายการนี้');
             }
 
             $status = (string) ($memo['status'] ?? '');
+
             if ($archived && !in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED, MEMO_STATUS_CANCELLED], true)) {
                 throw new RuntimeException('สามารถจัดเก็บได้เฉพาะรายการที่ปิดงานแล้ว');
             }
 
             $flag = $archived ? 1 : 0;
             $existing = (int) ($memo['isArchived'] ?? 0);
+
             if ($existing === $flag) {
                 db_commit();
+
                 return;
             }
 
@@ -1169,6 +1303,7 @@ if (!function_exists('memo_set_archived')) {
                 'updatedByPID' => $actorPID,
             ]);
             memo_add_route($memoID, 'ARCHIVE', (string) ($memo['status'] ?? ''), (string) ($memo['status'] ?? ''), $actorPID, $archived ? 'archive' : 'unarchive');
+
             if (trim((string) ($memo['memoNo'] ?? '')) !== '') {
                 memo_sync_document($memoID);
             }

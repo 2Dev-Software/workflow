@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -48,6 +49,7 @@ $set_room_alert = static function (string $type, string $title, string $message 
 };
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     $audit_fail('db_connection_missing');
     $set_room_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
@@ -69,12 +71,15 @@ $action = (string) ($_POST['room_action'] ?? '');
 
 $normalize_text = static function (string $value, int $limit = 0): string {
     $value = trim($value);
+
     if ($limit <= 0) {
         return $value;
     }
+
     if (function_exists('mb_substr')) {
         return mb_substr($value, 0, $limit);
     }
+
     return substr($value, 0, $limit);
 };
 
@@ -101,12 +106,14 @@ try {
         if ($action === 'add') {
             $check_sql = 'SELECT roomID FROM dh_rooms WHERE roomName = ? AND deletedAt IS NULL LIMIT 1';
             $check_stmt = mysqli_prepare($connection, $check_sql);
+
             if ($check_stmt) {
                 mysqli_stmt_bind_param($check_stmt, 's', $room_name);
                 mysqli_stmt_execute($check_stmt);
                 $check_result = mysqli_stmt_get_result($check_stmt);
                 $exists = $check_result && mysqli_fetch_assoc($check_result);
                 mysqli_stmt_close($check_stmt);
+
                 if ($exists) {
                     $audit_fail('duplicate_room_name', null, [
                         'roomName' => $room_name,
@@ -120,6 +127,7 @@ try {
             $sql = 'INSERT INTO dh_rooms (roomName, roomStatus, roomNote, createdAt, updatedAt)
                 VALUES (?, ?, ?, NOW(), NOW())';
             $stmt = mysqli_prepare($connection, $sql);
+
             if ($stmt === false) {
                 error_log('Database Error: ' . mysqli_error($connection));
                 $audit_fail('insert_prepare_failed', null, [
@@ -131,6 +139,7 @@ try {
                 mysqli_stmt_execute($stmt);
                 $affected = mysqli_stmt_affected_rows($stmt);
                 mysqli_stmt_close($stmt);
+
                 if ($affected > 0) {
                     if (function_exists('audit_log')) {
                         $room_id = (int) mysqli_insert_id($connection);
@@ -148,6 +157,7 @@ try {
             $room_id = filter_input(INPUT_POST, 'room_id', FILTER_VALIDATE_INT, [
                 'options' => ['min_range' => 1],
             ]);
+
             if ($room_id === null || $room_id === false) {
                 $audit_fail('invalid_room_id');
                 $set_room_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบรหัสห้องที่ต้องการแก้ไข');
@@ -157,12 +167,14 @@ try {
 
             $check_sql = 'SELECT roomID FROM dh_rooms WHERE roomName = ? AND roomID <> ? AND deletedAt IS NULL LIMIT 1';
             $check_stmt = mysqli_prepare($connection, $check_sql);
+
             if ($check_stmt) {
                 mysqli_stmt_bind_param($check_stmt, 'si', $room_name, $room_id);
                 mysqli_stmt_execute($check_stmt);
                 $check_result = mysqli_stmt_get_result($check_stmt);
                 $exists = $check_result && mysqli_fetch_assoc($check_result);
                 mysqli_stmt_close($check_stmt);
+
                 if ($exists) {
                     $audit_fail('duplicate_room_name', $room_id, [
                         'roomName' => $room_name,
@@ -177,6 +189,7 @@ try {
                 SET roomName = ?, roomStatus = ?, roomNote = ?, updatedAt = NOW()
                 WHERE roomID = ? AND deletedAt IS NULL';
             $stmt = mysqli_prepare($connection, $sql);
+
             if ($stmt === false) {
                 error_log('Database Error: ' . mysqli_error($connection));
                 $audit_fail('update_prepare_failed', $room_id, [
@@ -188,6 +201,7 @@ try {
                 mysqli_stmt_execute($stmt);
                 $affected = mysqli_stmt_affected_rows($stmt);
                 mysqli_stmt_close($stmt);
+
                 if ($affected > 0) {
                     if (function_exists('audit_log')) {
                         audit_log('room', 'UPDATE', 'SUCCESS', 'dh_rooms', $room_id, null, [
@@ -205,6 +219,7 @@ try {
         $room_id = filter_input(INPUT_POST, 'room_id', FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]);
+
         if ($room_id === null || $room_id === false) {
             $audit_fail('invalid_room_id');
             $set_room_alert('danger', 'ข้อมูลไม่ถูกต้อง', 'ไม่พบรหัสห้องที่ต้องการลบ');
@@ -214,12 +229,14 @@ try {
 
         $check_sql = 'SELECT COUNT(*) AS total FROM dh_room_bookings WHERE roomID = ? AND deletedAt IS NULL';
         $check_stmt = mysqli_prepare($connection, $check_sql);
+
         if ($check_stmt) {
             mysqli_stmt_bind_param($check_stmt, 'i', $room_id);
             mysqli_stmt_execute($check_stmt);
             $check_result = mysqli_stmt_get_result($check_stmt);
             $check_row = $check_result ? mysqli_fetch_assoc($check_result) : null;
             mysqli_stmt_close($check_stmt);
+
             if ($check_row && (int) ($check_row['total'] ?? 0) > 0) {
                 $audit_fail('delete_has_bookings', $room_id, [
                     'bookingTotal' => (int) ($check_row['total'] ?? 0),
@@ -234,6 +251,7 @@ try {
             SET deletedAt = NOW(), updatedAt = NOW()
             WHERE roomID = ? AND deletedAt IS NULL';
         $stmt = mysqli_prepare($connection, $sql);
+
         if ($stmt === false) {
             error_log('Database Error: ' . mysqli_error($connection));
             $audit_fail('delete_prepare_failed', $room_id, [
@@ -245,6 +263,7 @@ try {
             mysqli_stmt_execute($stmt);
             $affected = mysqli_stmt_affected_rows($stmt);
             mysqli_stmt_close($stmt);
+
             if ($affected > 0) {
                 if (function_exists('audit_log')) {
                     audit_log('room', 'DELETE', 'SUCCESS', 'dh_rooms', $room_id);

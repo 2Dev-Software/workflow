@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../helpers.php';
@@ -12,6 +13,7 @@ if (!function_exists('health_index')) {
         $checks = [];
 
         $checks['db_connection'] = false;
+
         try {
             $connection = db_connection();
             $checks['db_connection'] = $connection instanceof mysqli;
@@ -21,6 +23,7 @@ if (!function_exists('health_index')) {
 
         $checks['migrations_table'] = db_table_exists(db_connection(), 'dh_migrations');
         $version = null;
+
         if ($checks['migrations_table']) {
             $row = db_fetch_one('SELECT MAX(version) AS version FROM dh_migrations');
             $version = $row ? (int) ($row['version'] ?? 0) : null;
@@ -44,6 +47,7 @@ if (!function_exists('health_index')) {
 
         $required_extensions = ['mysqli', 'openssl', 'mbstring', 'json', 'fileinfo'];
         $extensions = [];
+
         foreach ($required_extensions as $ext) {
             $extensions[$ext] = extension_loaded($ext);
         }

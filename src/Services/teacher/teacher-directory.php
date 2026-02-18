@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
@@ -29,9 +30,11 @@ try {
         FROM teacher AS t
         LEFT JOIN department AS d ON t.dID = d.dID
         WHERE t.status = 1';
+
     if ($teacher_directory_filter_did !== null) {
         $count_sql .= ' AND t.dID = ?';
     }
+
     if ($has_search) {
         $count_sql .= ' AND (t.fName LIKE ? OR t.telephone LIKE ? OR d.dName LIKE ?)';
     }
@@ -76,13 +79,15 @@ try {
         LEFT JOIN department AS d ON t.dID = d.dID
         ' . $position['join'] . '
         WHERE t.status = 1';
+
     if ($teacher_directory_filter_did !== null) {
         $sql .= ' AND t.dID = ?';
     }
+
     if ($has_search) {
         $sql .= ' AND (t.fName LIKE ? OR t.telephone LIKE ? OR d.dName LIKE ?)';
     }
-    
+
     $sql .= ' ORDER BY ' . $teacher_directory_order_sql;
 
     $limit = null;
@@ -129,4 +134,3 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
-?>

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -36,6 +37,7 @@ if (!function_exists('orders_manage_index')) {
             } else {
                 $action = $_POST['action'] ?? '';
                 $order_id = (int) ($_POST['order_id'] ?? 0);
+
                 if ($action === 'attach' && $order_id > 0) {
                     try {
                         order_attach_files($order_id, $current_pid, $_FILES['attachments'] ?? []);
@@ -56,6 +58,7 @@ if (!function_exists('orders_manage_index')) {
         }
 
         $total_pages = 1;
+
         if (!$has_orders_table || !$has_inbox_table) {
             if ($alert === null) {
                 $alert = system_not_ready_alert('ยังไม่พบตารางคำสั่ง กรุณารัน migrations/004_create_orders.sql');
@@ -64,6 +67,7 @@ if (!function_exists('orders_manage_index')) {
         } else {
             $total_count = order_count_drafts($current_pid);
             $total_pages = max(1, (int) ceil($total_count / $per_page));
+
             if ($page > $total_pages) {
                 $page = $total_pages;
             }

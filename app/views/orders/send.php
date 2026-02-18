@@ -9,16 +9,19 @@ $roles = $roles ?? [];
 $teachers = $teachers ?? [];
 
 $faction_options = ['' => 'เลือกกลุ่ม/ฝ่าย'];
+
 foreach ($factions as $faction) {
     $faction_options[(int) ($faction['fID'] ?? 0)] = (string) ($faction['fName'] ?? '');
 }
 
 $role_options = ['' => 'เลือกบทบาทในระบบ'];
+
 foreach ($roles as $role) {
     $role_options[(int) ($role['roleID'] ?? 0)] = (string) ($role['roleName'] ?? '');
 }
 
 $person_options = ['' => 'เลือกบุคคล'];
+
 foreach ($teachers as $teacher) {
     $person_options[(string) ($teacher['pID'] ?? '')] = (string) ($teacher['fName'] ?? '');
 }

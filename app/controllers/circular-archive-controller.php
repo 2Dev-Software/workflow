@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -18,6 +19,7 @@ if (!function_exists('circular_archive_index')) {
 
         $connection = db_connection();
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
+
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
         }
@@ -56,17 +58,21 @@ if (!function_exists('circular_archive_index')) {
         if (!in_array($filter_type, $allowed_types, true)) {
             $filter_type = $default_type;
         }
+
         if (!in_array($filter_read, $allowed_reads, true)) {
             $filter_read = 'all';
         }
+
         if (!in_array($filter_sort, $allowed_sort, true)) {
             $filter_sort = 'newest';
         }
+
         if (!in_array($filter_view, $allowed_views, true)) {
             $filter_view = 'table1';
         }
 
         $alert = null;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -83,6 +89,7 @@ if (!function_exists('circular_archive_index')) {
 
                 if ($action === 'unarchive' && $inbox_id > 0) {
                     circular_unarchive_inbox($inbox_id, $current_pid);
+
                     if (function_exists('audit_log')) {
                         audit_log('circulars', 'UNARCHIVE', 'SUCCESS', 'dh_circular_inboxes', $inbox_id);
                     }
@@ -101,6 +108,7 @@ if (!function_exists('circular_archive_index')) {
                     } else {
                         foreach ($selected_ids as $selected_id) {
                             circular_unarchive_inbox($selected_id, $current_pid);
+
                             if (function_exists('audit_log')) {
                                 audit_log('circulars', 'UNARCHIVE', 'SUCCESS', 'dh_circular_inboxes', $selected_id);
                             }
@@ -121,6 +129,7 @@ if (!function_exists('circular_archive_index')) {
         }, $circular_inbox)));
 
         $detail_map = [];
+
         if (!empty($circular_ids)) {
             $placeholders = implode(', ', array_fill(0, count($circular_ids), '?'));
             $types = str_repeat('i', count($circular_ids));
@@ -128,12 +137,14 @@ if (!function_exists('circular_archive_index')) {
                 FROM dh_circulars
                 WHERE circularID IN (' . $placeholders . ')';
             $rows = db_fetch_all($sql, $types, ...$circular_ids);
+
             foreach ($rows as $row) {
                 $detail_map[(int) $row['circularID']] = $row;
             }
         }
 
         $items = [];
+
         foreach ($circular_inbox as $item) {
             $circular_id = (int) ($item['circularID'] ?? 0);
             $detail = $detail_map[$circular_id] ?? [];
@@ -155,18 +166,22 @@ if (!function_exists('circular_archive_index')) {
             if ($filter_type === 'internal' && $type !== 'INTERNAL') {
                 return false;
             }
+
             if ($filter_type === 'external' && $type !== 'EXTERNAL') {
                 return false;
             }
+
             if ($filter_read === 'read' && !$is_read) {
                 return false;
             }
+
             if ($filter_read === 'unread' && $is_read) {
                 return false;
             }
 
             if ($filter_search !== '') {
                 $haystack = strtolower(trim(($item['subject'] ?? '') . ' ' . ($item['senderName'] ?? '') . ' ' . ($item['extBookNo'] ?? '')));
+
                 if (strpos($haystack, strtolower($filter_search)) === false) {
                     return false;
                 }
@@ -178,16 +193,20 @@ if (!function_exists('circular_archive_index')) {
         usort($items, static function (array $a, array $b) use ($filter_sort): int {
             $time_a = strtotime((string) ($a['deliveredAt'] ?? $a['createdAt'] ?? '')) ?: 0;
             $time_b = strtotime((string) ($b['deliveredAt'] ?? $b['createdAt'] ?? '')) ?: 0;
+
             if ($time_a === $time_b) {
                 return 0;
             }
+
             if ($filter_sort === 'oldest') {
                 return $time_a <=> $time_b;
             }
+
             return $time_b <=> $time_a;
         });
 
         $attachments_map = [];
+
         if (!empty($items) && db_table_exists($connection, 'dh_file_refs')) {
             $entity_ids = array_values(array_unique(array_map(static function (array $item): string {
                 return (string) ($item['circularID'] ?? '');
@@ -203,11 +222,14 @@ if (!function_exists('circular_archive_index')) {
                     WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID IN (' . $placeholders . ') AND f.deletedAt IS NULL
                     ORDER BY r.refID ASC';
                 $rows = db_fetch_all($sql, $types, ...$params);
+
                 foreach ($rows as $row) {
                     $entity_id = (string) ($row['entityID'] ?? '');
+
                     if ($entity_id === '') {
                         continue;
                     }
+
                     if (!isset($attachments_map[$entity_id])) {
                         $attachments_map[$entity_id] = [];
                     }
@@ -243,9 +265,11 @@ if (!function_exists('circular_archive_index')) {
                 if ($box_key === 'clerk') {
                     return 'กำลังเสนอ';
                 }
+
                 if ($box_key === 'director') {
                     return 'รอพิจารณา';
                 }
+
                 return 'รอพิจารณา';
             }
 
@@ -265,14 +289,17 @@ if (!function_exists('circular_archive_index')) {
 
         $exec_duty = system_get_exec_duty();
         $director_label = 'ผอ./รักษาการ';
+
         if (!empty($exec_duty['pID']) && (int) ($exec_duty['dutyStatus'] ?? 0) === 2) {
             $name = trim((string) ($exec_duty['name'] ?? ''));
             $director_label = $name !== '' ? $name . ' (รักษาราชการแทน)' : $director_label;
         } else {
             $director_pid = system_get_director_pid();
+
             if ($director_pid) {
                 $row = db_fetch_one('SELECT fName FROM teacher WHERE pID = ? LIMIT 1', 's', $director_pid);
                 $name = $row ? (string) ($row['fName'] ?? '') : '';
+
                 if ($name !== '') {
                     $director_label = 'ผอ. ' . $name;
                 }
@@ -284,10 +311,12 @@ if (!function_exists('circular_archive_index')) {
                 return '-';
             }
             $timestamp = strtotime($date_value);
+
             if ($timestamp === false) {
                 return $date_value;
             }
             $year = (int) date('Y', $timestamp) + 543;
+
             return date('d/m/', $timestamp) . $year;
         };
 
@@ -297,6 +326,7 @@ if (!function_exists('circular_archive_index')) {
             }
 
             $timestamp = strtotime($date_value);
+
             if ($timestamp === false) {
                 return $date_value;
             }
@@ -333,13 +363,16 @@ if (!function_exists('circular_archive_index')) {
                 return '-';
             }
             $timestamp = strtotime($date_value);
+
             if ($timestamp === false) {
                 return $date_value;
             }
+
             return date('H:i', $timestamp) . ' น.';
         };
 
         $display_items = [];
+
         foreach ($items as $item) {
             $circular_id = (int) ($item['circularID'] ?? 0);
             $priority = trim((string) ($item['extPriority'] ?? ''));
@@ -350,6 +383,7 @@ if (!function_exists('circular_archive_index')) {
             $consider_class = $consider_class_map[$status_key] ?? 'considering';
             $files = $attachments_map[(string) $circular_id] ?? [];
             $files_json = json_encode($files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
             if ($files_json === false) {
                 $files_json = '[]';
             }

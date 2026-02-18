@@ -6,6 +6,7 @@ $items = (array) ($items ?? []);
 $is_registry = (bool) ($is_registry ?? false);
 
 $rows = [];
+
 foreach ($items as $item) {
     $status = (string) ($item['status'] ?? '');
     $is_waiting = $status === OUTGOING_STATUS_WAITING_ATTACHMENT;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../app/bootstrap.php';
@@ -19,6 +20,7 @@ $upload_root = rtrim((string) app_env('UPLOAD_ROOT', __DIR__ . '/../storage/uplo
 $results[] = ['Upload dir writable', is_writable($upload_root)];
 
 $required_extensions = ['mysqli', 'openssl', 'mbstring', 'json', 'fileinfo'];
+
 foreach ($required_extensions as $ext) {
     $results[] = ["PHP extension {$ext}", extension_loaded($ext)];
 }

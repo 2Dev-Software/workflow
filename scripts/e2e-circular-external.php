@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../app/config/constants.php';
@@ -41,6 +42,7 @@ try {
     $must($registry_row !== null, 'ไม่พบผู้ทดสอบสารบรรณ (registry test user)');
 
     $original_role_id = (int) ($registry_row['roleID'] ?? 0);
+
     if ($original_role_id !== 2) {
         db_execute('UPDATE teacher SET roleID = 2 WHERE pID = ?', 's', $registry_pid);
         $role_restore = ['pID' => $registry_pid, 'roleID' => $original_role_id];
@@ -285,6 +287,7 @@ try {
         $ids = array_values(array_unique(array_filter(array_map('intval', $created_circular_ids), static function (int $id): bool {
             return $id > 0;
         })));
+
         if (!empty($ids)) {
             $placeholders = implode(', ', array_fill(0, count($ids), '?'));
             $types = str_repeat('i', count($ids));
@@ -301,6 +304,7 @@ try {
 
 $passed = 0;
 $failed = 0;
+
 foreach ($results as $row) {
     if ($row['ok']) {
         $passed++;
@@ -311,9 +315,11 @@ foreach ($results as $row) {
 
 echo "External Circular E2E Result\n";
 echo "===========================\n";
+
 foreach ($results as $row) {
     $icon = $row['ok'] ? '[PASS]' : '[FAIL]';
     echo $icon . ' ' . $row['id'] . ' ' . $row['title'];
+
     if ($row['detail'] !== '') {
         echo ' | ' . $row['detail'];
     }
@@ -325,4 +331,3 @@ echo 'Passed: ' . $passed . "\n";
 echo 'Failed: ' . $failed . "\n";
 
 exit($failed > 0 ? 1 : 0);
-

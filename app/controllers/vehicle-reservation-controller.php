@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -20,10 +21,12 @@ if (!function_exists('vehicle_reservation_index')) {
 
         $position_id = (int) ($teacher['positionID'] ?? 0);
         $acting_pid = '';
+
         if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
             $acting_pid = (string) $exec_duty_current_pid;
         }
         $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $current_pid);
+
         if ($is_director_or_acting) {
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'RESERVATION_ACCESS', 'DENY', null, null, 'director_or_acting_cannot_book', [
@@ -43,6 +46,7 @@ if (!function_exists('vehicle_reservation_index')) {
 
         $currentThaiYear = (int) date('Y') + 543;
         $dh_year_value = (int) ($dh_year !== '' ? $dh_year : $currentThaiYear);
+
         if ($dh_year_value < 2500) {
             $dh_year_value = $currentThaiYear;
         }
@@ -79,11 +83,13 @@ if (!function_exists('vehicle_reservation_index')) {
 
         $format_thai_date = static function (string $date) use ($thai_months): string {
             $date = trim($date);
+
             if ($date === '' || strpos($date, '0000-00-00') === 0) {
                 return '-';
             }
 
             $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+
             if ($date_obj === false) {
                 return $date;
             }
@@ -110,6 +116,7 @@ if (!function_exists('vehicle_reservation_index')) {
 
             $start_obj = DateTime::createFromFormat('Y-m-d', $start);
             $end_obj = DateTime::createFromFormat('Y-m-d', $end);
+
             if ($start_obj === false || $end_obj === false) {
                 return trim($format_thai_date($start) . ' - ' . $format_thai_date($end));
             }
@@ -136,14 +143,17 @@ if (!function_exists('vehicle_reservation_index')) {
 
         $format_thai_datetime = static function (string $datetime) use ($thai_months): string {
             $datetime = trim($datetime);
+
             if ($datetime === '' || $datetime === '0000-00-00 00:00:00') {
                 return '-';
             }
 
             $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
             if ($date_obj === false) {
                 $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
             }
+
             if ($date_obj === false) {
                 return $datetime;
             }
@@ -175,14 +185,16 @@ if (!function_exists('vehicle_reservation_index')) {
         $vehicle_teachers = vehicle_reservation_get_teachers($connection);
         $vehicle_booking_history = vehicle_reservation_get_bookings($connection, $vehicle_booking_year, $requester_pid);
         $vehicle_booking_ids = array_values(array_filter(array_map(
-            static fn(array $booking): int => (int) ($booking['bookingID'] ?? 0),
+            static fn (array $booking): int => (int) ($booking['bookingID'] ?? 0),
             $vehicle_booking_history
         )));
         $vehicle_booking_attachments = vehicle_reservation_get_booking_attachments($connection, $vehicle_booking_ids);
 
         $vehicle_teacher_map = [];
+
         foreach ($vehicle_teachers as $teacher_item) {
             $teacher_id = trim((string) ($teacher_item['id'] ?? ''));
+
             if ($teacher_id === '') {
                 continue;
             }
@@ -190,24 +202,29 @@ if (!function_exists('vehicle_reservation_index')) {
         }
 
         $vehicle_booking_payload = [];
+
         foreach ($vehicle_booking_history as $booking_item) {
             $booking_id = (int) ($booking_item['bookingID'] ?? 0);
             $status_key = strtoupper((string) ($booking_item['status'] ?? 'PENDING'));
             $status_meta = $vehicle_reservation_status_labels[$status_key] ?? $vehicle_reservation_status_labels['PENDING'];
             $companion_ids = [];
             $raw_companions = $booking_item['companionIds'] ?? null;
+
             if (is_string($raw_companions) && $raw_companions !== '') {
                 $decoded = json_decode($raw_companions, true);
+
                 if (is_array($decoded)) {
                     $companion_ids = array_values(array_filter(array_map(
-                        static fn($id): string => trim((string) $id),
+                        static fn ($id): string => trim((string) $id),
                         $decoded
                     )));
                 }
             }
             $companion_names = [];
+
             foreach ($companion_ids as $companion_id) {
                 $name = $vehicle_teacher_map[$companion_id] ?? '';
+
                 if ($name !== '') {
                     $companion_names[] = $name;
                 }
@@ -215,6 +232,7 @@ if (!function_exists('vehicle_reservation_index')) {
             $attachments = $vehicle_booking_attachments[(string) $booking_id] ?? [];
 
             $updated_at_value = trim((string) ($booking_item['updatedAt'] ?? ''));
+
             if ($updated_at_value === '' || $updated_at_value === '0000-00-00 00:00:00') {
                 $updated_at_value = (string) ($booking_item['createdAt'] ?? '');
             }

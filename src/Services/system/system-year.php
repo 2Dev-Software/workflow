@@ -1,4 +1,5 @@
 <?php
+
 if (!isset($connection) || !($connection instanceof mysqli)) {
     require_once __DIR__ . '/../../../config/connection.php';
 }
@@ -35,4 +36,3 @@ try {
 
 // Make the value available across include scopes (some views are rendered inside functions).
 $GLOBALS['dh_year'] = $dh_year;
-?>

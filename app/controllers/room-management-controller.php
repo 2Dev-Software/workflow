@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -13,6 +14,7 @@ if (!function_exists('room_management_index')) {
     {
         $current_user = current_user() ?? [];
         $current_role_id = (int) ($current_user['roleID'] ?? 0);
+
         if (!in_array($current_role_id, [1, 5], true)) {
             if (function_exists('audit_log')) {
                 audit_log('room', 'MANAGEMENT_ACCESS', 'DENY', null, null, 'not_authorized_role', [

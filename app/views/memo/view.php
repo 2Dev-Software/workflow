@@ -40,8 +40,10 @@ $memo_no = trim((string) ($memo['memoNo'] ?? ''));
 $status = (string) ($memo['status'] ?? '');
 $status_meta = $status_map[$status] ?? ['label' => $status !== '' ? $status : '-', 'variant' => 'neutral'];
 $action_url = (string) ($action_url ?? '');
+
 if ($action_url === '') {
     $action_url = 'memo-view.php';
+
     if ($memo_id > 0) {
         $action_url .= '?memo_id=' . $memo_id;
     }
@@ -72,9 +74,11 @@ $can_reject = $can_review && !$is_chain;
 
 $to_type = (string) ($memo['toType'] ?? '');
 $approver_label = trim((string) ($memo['approverName'] ?? ''));
+
 if ($approver_label === '' && $to_type === 'DIRECTOR') {
     $approver_label = 'ผอ./รักษาการ';
 }
+
 if ($approver_label === '') {
     $approver_label = '-';
 }
@@ -96,11 +100,13 @@ $thai_months = [
 
 $format_thai_date = static function (?string $date_value) use ($thai_months): string {
     $date_value = trim((string) $date_value);
+
     if ($date_value === '' || $date_value === '0000-00-00') {
         return '-';
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d', $date_value);
+
     if ($date_obj === false) {
         return $date_value;
     }
@@ -115,14 +121,17 @@ $format_thai_date = static function (?string $date_value) use ($thai_months): st
 
 $format_thai_datetime = static function (?string $datetime_value) use ($thai_months): string {
     $datetime_value = trim((string) $datetime_value);
+
     if ($datetime_value === '' || strpos($datetime_value, '0000-00-00') === 0) {
         return '-';
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime_value);
+
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime_value);
     }
+
     if ($date_obj === false) {
         return $datetime_value;
     }
@@ -137,6 +146,7 @@ $format_thai_datetime = static function (?string $datetime_value) use ($thai_mon
 
 $display_text = static function (?string $value): string {
     $value = trim((string) $value);
+
     return $value !== '' ? $value : '-';
 };
 
@@ -312,48 +322,49 @@ ob_start();
 
                 <?php
                 $selected_to_choice = 'DIRECTOR';
-                if ((string) ($memo['toType'] ?? '') === 'PERSON' && !empty($memo['toPID'])) {
-                    $selected_to_choice = 'PERSON:' . (string) ($memo['toPID'] ?? '');
-                }
-                ?>
+
+        if ((string) ($memo['toType'] ?? '') === 'PERSON' && !empty($memo['toPID'])) {
+            $selected_to_choice = 'PERSON:' . (string) ($memo['toPID'] ?? '');
+        }
+        ?>
                 <?php component_render('select', [
-                    'name' => 'to_choice',
-                    'label' => 'เรียน (ผู้พิจารณา/ผู้ลงนาม)',
-                    'options' => $approver_options,
-                    'selected' => $selected_to_choice,
-                ]); ?>
+            'name' => 'to_choice',
+            'label' => 'เรียน (ผู้พิจารณา/ผู้ลงนาม)',
+            'options' => $approver_options,
+            'selected' => $selected_to_choice,
+        ]); ?>
 
                 <?php component_render('input', [
-                    'name' => 'subject',
-                    'label' => 'หัวข้อ',
-                    'value' => (string) ($memo['subject'] ?? ''),
-                    'required' => true,
-                ]); ?>
+            'name' => 'subject',
+            'label' => 'หัวข้อ',
+            'value' => (string) ($memo['subject'] ?? ''),
+            'required' => true,
+        ]); ?>
 
                 <?php component_render('textarea', [
-                    'name' => 'detail',
-                    'label' => 'รายละเอียด',
-                    'value' => (string) ($memo['detail'] ?? ''),
-                    'rows' => 6,
-                ]); ?>
+            'name' => 'detail',
+            'label' => 'รายละเอียด',
+            'value' => (string) ($memo['detail'] ?? ''),
+            'rows' => 6,
+        ]); ?>
 
                 <?php component_render('input', [
-                    'name' => 'attachments[]',
-                    'label' => 'แนบไฟล์เพิ่ม (สูงสุด 5 ไฟล์)',
-                    'type' => 'file',
-                    'attrs' => [
-                        'multiple' => true,
-                        'accept' => 'application/pdf,image/png,image/jpeg',
-                    ],
-                    'help' => 'รองรับ PDF / PNG / JPG',
-                ]); ?>
+            'name' => 'attachments[]',
+            'label' => 'แนบไฟล์เพิ่ม (สูงสุด 5 ไฟล์)',
+            'type' => 'file',
+            'attrs' => [
+                'multiple' => true,
+                'accept' => 'application/pdf,image/png,image/jpeg',
+            ],
+            'help' => 'รองรับ PDF / PNG / JPG',
+        ]); ?>
 
                 <div class="booking-actions">
                     <?php component_render('button', [
-                        'label' => 'บันทึกการแก้ไข',
-                        'variant' => 'primary',
-                        'type' => 'submit',
-                    ]); ?>
+                'label' => 'บันทึกการแก้ไข',
+                'variant' => 'primary',
+                'type' => 'submit',
+            ]); ?>
                 </div>
             </form>
         </section>
@@ -373,11 +384,11 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="submit">
                         <?php component_render('button', [
-                            'label' => 'ส่งเสนอ',
-                            'variant' => 'primary',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งเสนอ? หลังส่งแล้วจะแก้ไขเนื้อหาไม่ได้จนกว่าจะถูกตีกลับ")'],
-                        ]); ?>
+                    'label' => 'ส่งเสนอ',
+                    'variant' => 'primary',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งเสนอ? หลังส่งแล้วจะแก้ไขเนื้อหาไม่ได้จนกว่าจะถูกตีกลับ")'],
+                ]); ?>
                     </form>
                 <?php endif; ?>
 
@@ -386,11 +397,11 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="recall">
                         <?php component_render('button', [
-                            'label' => 'ดึงกลับเพื่อแก้ไข',
-                            'variant' => 'secondary',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการดึงกลับเพื่อแก้ไข?")'],
-                        ]); ?>
+                    'label' => 'ดึงกลับเพื่อแก้ไข',
+                    'variant' => 'secondary',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการดึงกลับเพื่อแก้ไข?")'],
+                ]); ?>
                     </form>
                 <?php endif; ?>
 
@@ -399,11 +410,11 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="cancel">
                         <?php component_render('button', [
-                            'label' => 'ยกเลิก',
-                            'variant' => 'danger',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการยกเลิก?")'],
-                        ]); ?>
+                    'label' => 'ยกเลิก',
+                    'variant' => 'danger',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการยกเลิก?")'],
+                ]); ?>
                     </form>
                 <?php endif; ?>
 
@@ -412,10 +423,10 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="<?= $is_archived ? 'unarchive' : 'archive' ?>">
                         <?php component_render('button', [
-                            'label' => $is_archived ? 'นำออกจากที่จัดเก็บ' : 'จัดเก็บ',
-                            'variant' => 'secondary',
-                            'type' => 'submit',
-                        ]); ?>
+                    'label' => $is_archived ? 'นำออกจากที่จัดเก็บ' : 'จัดเก็บ',
+                    'variant' => 'secondary',
+                    'type' => 'submit',
+                ]); ?>
                     </form>
                 <?php endif; ?>
             </div>
@@ -436,19 +447,19 @@ ob_start();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="forward">
                     <?php component_render('textarea', [
-                        'id' => 'forward_note',
-                        'name' => 'note',
-                        'label' => 'ความเห็นก่อนส่งต่อ (ถ้ามี)',
-                        'value' => '',
-                        'rows' => 3,
-                    ]); ?>
+                'id' => 'forward_note',
+                'name' => 'note',
+                'label' => 'ความเห็นก่อนส่งต่อ (ถ้ามี)',
+                'value' => '',
+                'rows' => 3,
+            ]); ?>
                     <div class="booking-actions">
                         <?php component_render('button', [
-                            'label' => $is_chain_head ? 'ส่งต่อรองผู้อำนวยการ' : 'ส่งต่อผู้อำนวยการ',
-                            'variant' => 'primary',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งต่อรายการ?")'],
-                        ]); ?>
+                    'label' => $is_chain_head ? 'ส่งต่อรองผู้อำนวยการ' : 'ส่งต่อผู้อำนวยการ',
+                    'variant' => 'primary',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งต่อรายการ?")'],
+                ]); ?>
                     </div>
                 </form>
 
@@ -458,20 +469,20 @@ ob_start();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="return">
                     <?php component_render('textarea', [
-                        'id' => 'return_note',
-                        'name' => 'note',
-                        'label' => 'ความเห็น (สำหรับตีกลับแก้ไข)',
-                        'value' => '',
-                        'rows' => 3,
-                        'required' => true,
-                    ]); ?>
+                'id' => 'return_note',
+                'name' => 'note',
+                'label' => 'ความเห็น (สำหรับตีกลับแก้ไข)',
+                'value' => '',
+                'rows' => 3,
+                'required' => true,
+            ]); ?>
                     <div class="booking-actions">
                         <?php component_render('button', [
-                            'label' => 'ตีกลับแก้ไข',
-                            'variant' => 'danger',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
-                        ]); ?>
+                    'label' => 'ตีกลับแก้ไข',
+                    'variant' => 'danger',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
+                ]); ?>
                     </div>
                 </form>
             <?php endif; ?>
@@ -482,19 +493,19 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="director_approve">
                         <?php component_render('textarea', [
-                            'id' => 'director_approve_note',
-                            'name' => 'note',
-                            'label' => 'ความเห็นผู้อำนวยการ (ถ้ามี)',
-                            'value' => '',
-                            'rows' => 3,
-                        ]); ?>
+                    'id' => 'director_approve_note',
+                    'name' => 'note',
+                    'label' => 'ความเห็นผู้อำนวยการ (ถ้ามี)',
+                    'value' => '',
+                    'rows' => 3,
+                ]); ?>
                         <div class="booking-actions">
                             <?php component_render('button', [
-                                'label' => 'อนุมัติและปิดงาน',
-                                'variant' => 'primary',
-                                'type' => 'submit',
-                                'attrs' => ['onclick' => 'return confirm("ยืนยันการอนุมัติรายการนี้?")'],
-                            ]); ?>
+                        'label' => 'อนุมัติและปิดงาน',
+                        'variant' => 'primary',
+                        'type' => 'submit',
+                        'attrs' => ['onclick' => 'return confirm("ยืนยันการอนุมัติรายการนี้?")'],
+                    ]); ?>
                         </div>
                     </form>
                 <?php endif; ?>
@@ -505,20 +516,20 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="director_reject">
                         <?php component_render('textarea', [
-                            'id' => 'director_reject_note',
-                            'name' => 'note',
-                            'label' => 'เหตุผลไม่อนุมัติ',
-                            'value' => '',
-                            'rows' => 3,
-                            'required' => true,
-                        ]); ?>
+                    'id' => 'director_reject_note',
+                    'name' => 'note',
+                    'label' => 'เหตุผลไม่อนุมัติ',
+                    'value' => '',
+                    'rows' => 3,
+                    'required' => true,
+                ]); ?>
                         <div class="booking-actions">
                             <?php component_render('button', [
-                                'label' => 'ไม่อนุมัติ',
-                                'variant' => 'danger',
-                                'type' => 'submit',
-                                'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติรายการนี้?")'],
-                            ]); ?>
+                        'label' => 'ไม่อนุมัติ',
+                        'variant' => 'danger',
+                        'type' => 'submit',
+                        'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติรายการนี้?")'],
+                    ]); ?>
                         </div>
                     </form>
                 <?php endif; ?>
@@ -529,20 +540,20 @@ ob_start();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="return">
                     <?php component_render('textarea', [
-                        'id' => 'director_return_note',
-                        'name' => 'note',
-                        'label' => 'ตีกลับเพื่อแก้ไข',
-                        'value' => '',
-                        'rows' => 3,
-                        'required' => true,
-                    ]); ?>
+                'id' => 'director_return_note',
+                'name' => 'note',
+                'label' => 'ตีกลับเพื่อแก้ไข',
+                'value' => '',
+                'rows' => 3,
+                'required' => true,
+            ]); ?>
                     <div class="booking-actions">
                         <?php component_render('button', [
-                            'label' => 'ตีกลับแก้ไข',
-                            'variant' => 'danger',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
-                        ]); ?>
+                    'label' => 'ตีกลับแก้ไข',
+                    'variant' => 'danger',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
+                ]); ?>
                     </div>
                 </form>
             <?php endif; ?>
@@ -555,20 +566,20 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reject">
                         <?php component_render('textarea', [
-                            'id' => 'reject_note',
-                            'name' => 'note',
-                            'label' => 'เหตุผล/ความเห็น (ไม่อนุมัติ)',
-                            'value' => '',
-                            'rows' => 3,
-                            'required' => true,
-                        ]); ?>
+                    'id' => 'reject_note',
+                    'name' => 'note',
+                    'label' => 'เหตุผล/ความเห็น (ไม่อนุมัติ)',
+                    'value' => '',
+                    'rows' => 3,
+                    'required' => true,
+                ]); ?>
                         <div class="booking-actions">
                             <?php component_render('button', [
-                                'label' => 'ไม่อนุมัติ',
-                                'variant' => 'danger',
-                                'type' => 'submit',
-                                'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติ?")'],
-                            ]); ?>
+                        'label' => 'ไม่อนุมัติ',
+                        'variant' => 'danger',
+                        'type' => 'submit',
+                        'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติ?")'],
+                    ]); ?>
                         </div>
                     </form>
                 <?php endif; ?>
@@ -579,18 +590,18 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="approve_unsigned">
                         <?php component_render('textarea', [
-                            'id' => 'approve_unsigned_note',
-                            'name' => 'note',
-                            'label' => 'ความเห็น (อนุมัติแต่รอแนบไฟล์เซ็น)',
-                            'value' => '',
-                            'rows' => 3,
-                        ]); ?>
+                    'id' => 'approve_unsigned_note',
+                    'name' => 'note',
+                    'label' => 'ความเห็น (อนุมัติแต่รอแนบไฟล์เซ็น)',
+                    'value' => '',
+                    'rows' => 3,
+                ]); ?>
                         <div class="booking-actions">
                             <?php component_render('button', [
-                                'label' => 'อนุมัติ (รอแนบไฟล์เซ็น)',
-                                'variant' => 'secondary',
-                                'type' => 'submit',
-                            ]); ?>
+                        'label' => 'อนุมัติ (รอแนบไฟล์เซ็น)',
+                        'variant' => 'secondary',
+                        'type' => 'submit',
+                    ]); ?>
                         </div>
                     </form>
                 <?php endif; ?>
@@ -602,28 +613,28 @@ ob_start();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="sign_upload">
                     <?php component_render('textarea', [
-                        'id' => 'sign_note',
-                        'name' => 'note',
-                        'label' => 'ความเห็น (ถ้ามี)',
-                        'value' => '',
-                        'rows' => 2,
-                    ]); ?>
+                'id' => 'sign_note',
+                'name' => 'note',
+                'label' => 'ความเห็น (ถ้ามี)',
+                'value' => '',
+                'rows' => 2,
+            ]); ?>
                     <?php component_render('input', [
-                        'name' => 'signed_attachment',
-                        'label' => 'แนบไฟล์ฉบับลงนามแล้ว (PDF/PNG/JPG)',
-                        'type' => 'file',
-                        'required' => true,
-                        'attrs' => [
-                            'accept' => 'application/pdf,image/png,image/jpeg',
-                        ],
-                    ]); ?>
+                'name' => 'signed_attachment',
+                'label' => 'แนบไฟล์ฉบับลงนามแล้ว (PDF/PNG/JPG)',
+                'type' => 'file',
+                'required' => true,
+                'attrs' => [
+                    'accept' => 'application/pdf,image/png,image/jpeg',
+                ],
+            ]); ?>
                     <div class="booking-actions">
                         <?php component_render('button', [
-                            'label' => 'ลงนาม (อัปโหลดไฟล์)',
-                            'variant' => 'primary',
-                            'type' => 'submit',
-                            'attrs' => ['onclick' => 'return confirm("ยืนยันการลงนาม? เมื่อบันทึกแล้วจะแก้ไขไม่ได้")'],
-                        ]); ?>
+                    'label' => 'ลงนาม (อัปโหลดไฟล์)',
+                    'variant' => 'primary',
+                    'type' => 'submit',
+                    'attrs' => ['onclick' => 'return confirm("ยืนยันการลงนาม? เมื่อบันทึกแล้วจะแก้ไขไม่ได้")'],
+                ]); ?>
                     </div>
                 </form>
             <?php endif; ?>

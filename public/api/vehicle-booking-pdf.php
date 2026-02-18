@@ -1,9 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
-use Mpdf\Mpdf;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
 
 // Production-grade PDF responses must never be corrupted by PHP notices/warnings.
 ini_set('display_errors', '0');
@@ -20,6 +21,7 @@ set_error_handler(static function (int $severity, string $message, string $file 
         return false;
     }
     error_log('PHP error [' . $severity . '] ' . $message . ' in ' . $file . ':' . $line);
+
     return true; // Prevent default handler from outputting to the response.
 });
 
@@ -27,6 +29,7 @@ $__pdf_abort = static function (int $status) use ($__pdf_initial_ob_level): void
     while (ob_get_level() > $__pdf_initial_ob_level) {
         ob_end_clean();
     }
+
     if (ob_get_level() > 0) {
         ob_clean();
     }
@@ -57,6 +60,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
 $booking_id = filter_input(INPUT_GET, 'booking_id', FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
+
 if (!$booking_id) {
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'FAIL', 'dh_vehicle_bookings', null, 'invalid_booking_id', [
@@ -77,6 +81,7 @@ $actor_pid = (string) ($_SESSION['pID'] ?? '');
 
 // Authorization: requester OR director OR vehicle officer
 $booking_row = null;
+
 try {
     $booking_row = db_fetch_one(
         'SELECT bookingID, requesterPID FROM dh_vehicle_bookings WHERE bookingID = ? AND deletedAt IS NULL LIMIT 1',
@@ -85,11 +90,13 @@ try {
     );
 } catch (Throwable $e) {
     error_log('Database Exception (booking lookup pdf): ' . $e->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'booking_lookup_failed', [], 'GET', 500);
     }
     $__pdf_abort(500);
 }
+
 if (!$booking_row) {
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'booking_not_found', [], 'GET', 404);
@@ -98,6 +105,7 @@ if (!$booking_row) {
 }
 
 $authorized = (string) ($booking_row['requesterPID'] ?? '') === $actor_pid;
+
 if (!$authorized) {
     $is_director = system_get_current_director_pid() === $actor_pid;
     $is_vehicle_officer = rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE)
@@ -108,6 +116,7 @@ if (!$authorized) {
         try {
             $legacy_role = db_fetch_one('SELECT roleID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1', 's', $actor_pid);
             $legacy_role_id = (int) ($legacy_role['roleID'] ?? 0);
+
             if (in_array($legacy_role_id, [1, 3], true)) {
                 $is_vehicle_officer = true;
             }
@@ -143,10 +152,12 @@ $thai_months = [
 
 $format_thai_date = static function (?string $date) use ($thai_months): string {
     $date = trim((string) $date);
+
     if ($date === '' || strpos($date, '0000-00-00') === 0) {
         return '-';
     }
     $obj = DateTime::createFromFormat('Y-m-d', $date);
+
     if ($obj === false) {
         return $date;
     }
@@ -154,26 +165,32 @@ $format_thai_date = static function (?string $date) use ($thai_months): string {
     $month = (int) $obj->format('n');
     $year = (int) $obj->format('Y') + 543;
     $month_label = $thai_months[$month] ?? '';
+
     return trim($day . ' ' . $month_label . ' ' . $year);
 };
 
 $format_thai_time = static function (?string $datetime): string {
     $datetime = trim((string) $datetime);
+
     if ($datetime === '' || strpos($datetime, '0000-00-00') === 0) {
         return '-';
     }
     $obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
     if ($obj === false) {
         $obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
     }
+
     if ($obj === false) {
         return $datetime;
     }
+
     return str_replace(':', '.', $obj->format('H:i'));
 };
 
 $fuel_label = static function (?string $fuel): string {
     $fuel = strtolower(trim((string) $fuel));
+
     return match ($fuel) {
         'central' => 'ส่วนกลาง',
         'project' => 'โครงการ',
@@ -184,22 +201,26 @@ $fuel_label = static function (?string $fuel): string {
 
 $safe_file_to_data_uri = static function (?string $relative_path): ?string {
     $relative_path = trim((string) $relative_path);
+
     if ($relative_path === '') {
         return null;
     }
 
     // Only allow local project files.
     $project_root = realpath(__DIR__ . '/../..');
+
     if ($project_root === false) {
         return null;
     }
 
     $relative_path = ltrim($relative_path, '/');
+
     // Allowlist signature paths only (prevents reading arbitrary local files).
     if (!preg_match('#^assets/img/signature/#', $relative_path)) {
         return null;
     }
     $candidate = realpath($project_root . '/' . $relative_path);
+
     if ($candidate === false || strpos($candidate, $project_root) !== 0 || !is_file($candidate)) {
         return null;
     }
@@ -210,11 +231,13 @@ $safe_file_to_data_uri = static function (?string $relative_path): ?string {
         'jpg', 'jpeg' => 'image/jpeg',
         default => null,
     };
+
     if ($mime === null) {
         return null;
     }
 
     $contents = @file_get_contents($candidate);
+
     if ($contents === false || $contents === '') {
         return null;
     }
@@ -258,6 +281,7 @@ $optional_columns = [
     'assignedNote',
     'approvalNote',
 ];
+
 foreach ($optional_columns as $column) {
     if (vehicle_reservation_has_column($vehicle_columns, $column)) {
         $select_fields[] = 'b.' . $column;
@@ -270,6 +294,7 @@ $app_position = system_position_join($connection, 'app', 'papp');
 
 $assigned_join = '';
 $assigned_select = '';
+
 if ($has_assigned) {
     $assigned_select = ',
         asg.fName AS assigned_name,
@@ -306,8 +331,10 @@ $sql = 'SELECT ' . implode(', ', $select_fields) . ',
     LIMIT 1';
 
 $row = null;
+
 try {
     $stmt = mysqli_prepare($connection, $sql);
+
     if ($stmt === false) {
         error_log('Database Error (prepare pdf): ' . mysqli_error($connection));
         $__pdf_abort(500);
@@ -333,9 +360,11 @@ $is_rejected = in_array($status_key, ['REJECTED', 'CANCELLED'], true);
 
 $created_at = trim((string) ($row['createdAt'] ?? ''));
 $write_date = (string) ($row['writeDate'] ?? '');
+
 if ($write_date === '' || strpos($write_date, '0000-00-00') === 0) {
     $write_date = $created_at !== '' ? substr($created_at, 0, 10) : '';
 }
+
 if ($write_date === '') {
     $start_at_fallback = (string) ($row['startAt'] ?? '');
     $write_date = $start_at_fallback !== '' ? substr($start_at_fallback, 0, 10) : '';
@@ -347,10 +376,12 @@ $start_date = $start_at !== '' ? substr($start_at, 0, 10) : '';
 $end_date = $end_at !== '' ? substr($end_at, 0, 10) : $start_date;
 
 $day_count_label = '-';
+
 try {
     if ($start_date !== '' && $end_date !== '') {
         $start_obj = DateTime::createFromFormat('Y-m-d', $start_date);
         $end_obj = DateTime::createFromFormat('Y-m-d', $end_date);
+
         if ($start_obj && $end_obj) {
             $diff = $start_obj->diff($end_obj);
             $days = (int) $diff->days + 1;
@@ -362,12 +393,14 @@ try {
 }
 
 $requester_name = trim((string) ($row['requesterDisplayName'] ?? ''));
+
 if ($requester_name === '') {
     $requester_name = trim((string) ($row['requester_name'] ?? ''));
 }
 
 $requester_position = trim((string) ($row['requester_position'] ?? ''));
 $requester_department = trim((string) ($row['department'] ?? ''));
+
 if ($requester_department === '') {
     $requester_department = trim((string) ($row['requester_department'] ?? ''));
 }
@@ -382,11 +415,14 @@ $fuel = $fuel_label((string) ($row['fuelSource'] ?? ''));
 $companion_names = [];
 $companion_ids_raw = (string) ($row['companionIds'] ?? '');
 $companion_ids = [];
+
 if ($companion_ids_raw !== '') {
     $decoded = json_decode($companion_ids_raw, true);
+
     if (is_array($decoded)) {
         foreach ($decoded as $pid) {
             $pid = trim((string) $pid);
+
             if ($pid !== '') {
                 $companion_ids[] = $pid;
             }
@@ -394,28 +430,35 @@ if ($companion_ids_raw !== '') {
     }
 }
 $companion_ids = array_values(array_unique(array_filter($companion_ids)));
+
 if (!empty($companion_ids)) {
     try {
         $placeholders = implode(', ', array_fill(0, count($companion_ids), '?'));
         $types = str_repeat('s', count($companion_ids));
 
         $stmt = mysqli_prepare($connection, 'SELECT pID, fName FROM teacher WHERE status = 1 AND pID IN (' . $placeholders . ')');
+
         if ($stmt) {
             $bind_params = array_merge([$stmt, $types], $companion_ids);
             $refs = [];
+
             foreach ($bind_params as $index => $value) {
                 $refs[$index] = &$bind_params[$index];
             }
+
             if (call_user_func_array('mysqli_stmt_bind_param', $refs) !== false) {
                 mysqli_stmt_execute($stmt);
                 $result = mysqli_stmt_get_result($stmt);
                 $name_map = [];
+
                 while ($result && ($r = mysqli_fetch_assoc($result))) {
                     $pid = trim((string) ($r['pID'] ?? ''));
+
                     if ($pid !== '') {
                         $name_map[$pid] = trim((string) ($r['fName'] ?? ''));
                     }
                 }
+
                 foreach ($companion_ids as $pid) {
                     if (!empty($name_map[$pid])) {
                         $companion_names[] = $name_map[$pid];
@@ -430,6 +473,7 @@ if (!empty($companion_ids)) {
 }
 
 $companion_label = '';
+
 if (!empty($companion_names)) {
     $companion_label = implode(', ', $companion_names);
 }
@@ -458,9 +502,11 @@ $assigned_sig = $safe_file_to_data_uri((string) ($row['assigned_signature'] ?? '
 
 $resolve_director_at = static function (mysqli $connection, string $datetime): array {
     $datetime = trim($datetime);
+
     if ($datetime === '' || strpos($datetime, '0000-00-00') === 0) {
         $pid = (string) (system_get_current_director_pid() ?? '');
         $acting_now = (string) (system_get_acting_director_pid() ?? '');
+
         return [
             'pID' => $pid,
             'acting' => $acting_now !== '' && $acting_now === $pid,
@@ -477,6 +523,7 @@ $resolve_director_at = static function (mysqli $connection, string $datetime): a
                 ORDER BY created_at DESC, dutyLogID DESC
                 LIMIT 1'
         );
+
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, 'ss', $datetime, $datetime);
             mysqli_stmt_execute($stmt);
@@ -485,6 +532,7 @@ $resolve_director_at = static function (mysqli $connection, string $datetime): a
             mysqli_stmt_close($stmt);
 
             $acting_pid = $row ? trim((string) ($row['pID'] ?? '')) : '';
+
             if ($acting_pid !== '') {
                 return [
                     'pID' => $acting_pid,
@@ -503,6 +551,7 @@ $resolve_director_at = static function (mysqli $connection, string $datetime): a
 };
 
 $director_ref_dt = $approved_at;
+
 if ($director_ref_dt === '') {
     if ($write_date !== '' && strpos($write_date, '0000-00-00') !== 0) {
         $director_ref_dt = $write_date . ' 00:00:00';
@@ -517,6 +566,7 @@ $boss_is_acting = !empty($director_context['acting']);
 
 $boss_name = '';
 $boss_signature_path = '';
+
 if ($boss_pid !== '') {
     try {
         $boss_position = system_position_join($connection, 't', 'p');
@@ -529,6 +579,7 @@ if ($boss_pid !== '') {
             's',
             $boss_pid
         );
+
         if ($boss_row) {
             $boss_name = trim((string) ($boss_row['fName'] ?? ''));
             $boss_signature_path = trim((string) ($boss_row['signature'] ?? ''));
@@ -606,17 +657,21 @@ try {
     // Use a versioned temp dir to avoid stale/corrupt font-cache artifacts across font updates.
     // Cache key changes automatically when Sarabun font binaries change.
     $font_sig_parts = [];
+
     foreach (['Sarabun-Regular.ttf', 'Sarabun-Bold.ttf', 'Sarabun-Italic.ttf', 'Sarabun-BoldItalic.ttf'] as $font_file) {
         $path = $mpdf_font_dir . '/' . $font_file;
+
         if (is_file($path)) {
             $font_sig_parts[] = $font_file . ':' . filesize($path) . ':' . filemtime($path);
         }
     }
     $cache_key = substr(sha1(implode('|', $font_sig_parts) . '|sarabun|otl=255|winTypo'), 0, 12);
     $mpdf_tmp = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'workflow-mpdf-' . $cache_key;
+
     if (!is_dir($mpdf_tmp)) {
         @mkdir($mpdf_tmp, 0777, true);
     }
+
     if (!is_dir($mpdf_tmp) || !is_writable($mpdf_tmp)) {
         $mpdf_tmp = sys_get_temp_dir();
     }
@@ -662,6 +717,7 @@ try {
     ]);
 } catch (Throwable $e) {
     error_log('PDF init failed: ' . $e->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'pdf_init_failed', [], 'GET', 500);
     }
@@ -669,9 +725,11 @@ try {
 }
 
 $mpdf->SetTitle('Vehicle booking #' . $booking_id);
+
 try {
     // Guard against stray zero-width spaces from copy/paste which can render as tofu squares in PDFs.
     $html_clean = preg_replace('/[\\x{200B}\\x{FEFF}]/u', '', $html);
+
     if (is_string($html_clean) && $html_clean !== '') {
         $html = $html_clean;
     }
@@ -682,9 +740,11 @@ try {
 
     // Official-friendly filename (Thai + ASCII fallback) for government documents.
     $filename_date = '';
+
     try {
         if ($write_date !== '' && strpos($write_date, '0000-00-00') !== 0) {
             $dt = DateTime::createFromFormat('Y-m-d', $write_date);
+
             if ($dt instanceof DateTime) {
                 $filename_date = ((int) $dt->format('Y') + 543) . $dt->format('md');
             }
@@ -705,6 +765,7 @@ try {
 
     // Output as string so we can set a robust Content-Disposition with UTF-8 filename*.
     $pdf = $mpdf->Output('', 'S');
+
     if (!is_string($pdf) || $pdf === '') {
         throw new RuntimeException('PDF output is empty');
     }
@@ -713,6 +774,7 @@ try {
     while (ob_get_level() > $__pdf_initial_ob_level) {
         ob_end_clean();
     }
+
     if (ob_get_level() > 0) {
         ob_clean();
     }
@@ -738,6 +800,7 @@ try {
     echo $pdf;
 } catch (Throwable $e) {
     error_log('PDF render failed: ' . $e->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'pdf_render_failed', [], 'GET', 500);
     }

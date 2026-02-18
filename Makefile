@@ -9,7 +9,7 @@ MIN_TABLES ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env deps db-ready db-import db-status smoke dev
+.PHONY: help env deps db-ready db-import db-status smoke lint-php refactor dev
 
 help:
 	@echo "Available targets:"
@@ -19,6 +19,8 @@ help:
 	@echo "  make db-import  - Force re-import database dump (drop/create DB)"
 	@echo "  make db-status  - Print database readiness status"
 	@echo "  make smoke      - Run basic runtime checks"
+	@echo "  make lint-php   - Validate PHP syntax across project"
+	@echo "  make refactor   - Run consistent non-breaking PHP refactor style pass"
 	@echo "  make dev        - Setup everything and start local server"
 	@echo ""
 	@echo "Optional overrides:"
@@ -48,6 +50,18 @@ db-status:
 
 smoke:
 	@$(PHP) scripts/smoke-test.php
+
+lint-php:
+	@find . \
+		-path './vendor' -prune -o \
+		-path './storage' -prune -o \
+		-path './tmp' -prune -o \
+		-type f -name '*.php' -print | \
+		xargs -I{} $(PHP) -l "{}" >/dev/null
+	@echo "PHP syntax check passed."
+
+refactor:
+	@./vendor/bin/php-cs-fixer fix --config=php-cs-fixer.dist.php --using-cache=yes --verbose
 
 dev: env deps db-ready smoke
 	@echo "Starting PHP server at http://$(HOST):$(PORT)"

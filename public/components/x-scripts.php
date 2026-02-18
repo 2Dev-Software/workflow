@@ -4,6 +4,7 @@ $asset_version = static function (string $relativePath): string {
     $relativePath = ltrim($relativePath, '/');
     $fullPath = __DIR__ . '/../../' . $relativePath;
     $mtime = @filemtime($fullPath);
+
     return $mtime ? (string) $mtime : '0.1.0-beta';
 };
 ?>

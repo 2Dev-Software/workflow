@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,6 +12,7 @@ $logoutRequested = $scriptName === 'logout.php'
 if ($logoutRequested) {
     require_once __DIR__ . '/../../../app/modules/audit/logger.php';
     $actor_pid = $_SESSION['pID'] ?? null;
+
     if ($actor_pid) {
         audit_log('auth', 'LOGOUT', 'SUCCESS', 'teacher', $actor_pid, null);
     }
@@ -38,4 +40,3 @@ if ($logoutRequested) {
     header('Location: ' . $loginPath, true, 302);
     exit();
 }
-?>

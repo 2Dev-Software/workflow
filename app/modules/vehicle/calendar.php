@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -17,25 +18,30 @@ if (!function_exists('vehicle_booking_events')) {
             ORDER BY b.startAt ASC';
 
         $rows = db_fetch_all($sql, 'i', $year);
+
         foreach ($rows as $row) {
             $status = strtoupper((string) ($row['status'] ?? ''));
+
             if (!in_array($status, ['ASSIGNED', 'APPROVED', 'COMPLETED'], true)) {
                 continue;
             }
 
             $startAt = (string) ($row['startAt'] ?? '');
             $endAt = (string) ($row['endAt'] ?? '');
+
             if ($startAt === '' || $endAt === '') {
                 continue;
             }
 
             $startDate = DateTime::createFromFormat('Y-m-d H:i:s', $startAt) ?: DateTime::createFromFormat('Y-m-d H:i', $startAt);
             $endDate = DateTime::createFromFormat('Y-m-d H:i:s', $endAt) ?: DateTime::createFromFormat('Y-m-d H:i', $endAt);
+
             if (!$startDate || !$endDate) {
                 continue;
             }
 
             $title = trim((string) ($row['vehiclePlate'] ?? ''));
+
             if ($title === '') {
                 $title = trim((string) ($row['vehicleType'] ?? 'รถยนต์'));
             }
@@ -58,8 +64,10 @@ if (!function_exists('vehicle_booking_events')) {
             $endDateOnly = clone $endDate;
             $endDateOnly->setTime(0, 0, 0);
             $cursor->setTime(0, 0, 0);
+
             while ($cursor <= $endDateOnly) {
                 $key = $cursor->format('Y-n-j');
+
                 if (!isset($events[$key])) {
                     $events[$key] = [];
                 }

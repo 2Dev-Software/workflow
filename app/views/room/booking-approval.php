@@ -73,6 +73,7 @@ ob_start();
                             <?php foreach ($room_booking_room_list as $room_item): ?>
                                 <?php
                                 $room_id = trim((string) ($room_item['roomID'] ?? ''));
+
                                 if ($room_id === '') {
                                     continue;
                                 }
@@ -88,6 +89,7 @@ ob_start();
                             <?php foreach ($room_booking_room_list as $room_item): ?>
                                 <?php
                                 $room_id = trim((string) ($room_item['roomID'] ?? ''));
+
                                 if ($room_id === '') {
                                     continue;
                                 }

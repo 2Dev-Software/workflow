@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -23,6 +24,7 @@ if (!function_exists('vehicle_management_index')) {
         $connection = db_connection();
 
         $is_vehicle_officer = rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN, ROLE_VEHICLE]);
+
         if (!$is_vehicle_officer && in_array((int) ($current_user['roleID'] ?? 0), [1, 3], true)) {
             $is_vehicle_officer = true;
         }
@@ -53,6 +55,7 @@ if (!function_exists('vehicle_management_index')) {
         unset($_SESSION['vehicle_management_edit']);
 
         $has_table = db_table_exists($connection, 'dh_vehicles');
+
         if (!$has_table) {
             $alert = system_not_ready_alert('ยังไม่พบตารางยานพาหนะ กรุณาตรวจสอบ schema dh_vehicles');
         }
@@ -67,34 +70,43 @@ if (!function_exists('vehicle_management_index')) {
 
         $normalize_text = static function ($value, int $max_len): string {
             $value = trim((string) $value);
+
             if ($value === '') {
                 return '';
             }
+
             if (function_exists('mb_substr')) {
                 return mb_substr($value, 0, $max_len);
             }
+
             return substr($value, 0, $max_len);
         };
 
         $normalize_capacity = static function ($value): int {
             $capacity = (int) $value;
+
             if ($capacity <= 0) {
                 return 4;
             }
+
             if ($capacity > 99) {
                 return 99;
             }
+
             return $capacity;
         };
 
         $resolve_single_role_id = static function (string $role_key, int $fallback_id) use ($connection): int {
             $role_ids = rbac_resolve_role_ids($connection, $role_key);
+
             foreach ($role_ids as $role_id) {
                 $role_id = (int) $role_id;
+
                 if ($role_id > 0) {
                     return $role_id;
                 }
             }
+
             return $fallback_id;
         };
 
@@ -110,8 +122,10 @@ if (!function_exists('vehicle_management_index')) {
                 $set_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
             } else {
                 $member_action = trim((string) ($_POST['member_action'] ?? ''));
+
                 if ($member_action !== '') {
                     $member_pid = trim((string) ($_POST['member_pid'] ?? ''));
+
                     if ($member_pid === '' || !preg_match('/^\\d{13}$/', $member_pid)) {
                         if (function_exists('audit_log')) {
                             audit_log('vehicle', 'OFFICER_MANAGE', 'FAIL', 'teacher', null, 'invalid_member_pid', [
@@ -127,8 +141,10 @@ if (!function_exists('vehicle_management_index')) {
                                 $sql = 'UPDATE teacher SET roleID = ?
                                     WHERE pID = ? AND status = 1 AND (roleID IS NULL OR roleID = 0 OR roleID = ?)';
                                 $stmt = mysqli_prepare($connection, $sql);
+
                                 if ($stmt === false) {
                                     error_log('Database Error: ' . mysqli_error($connection));
+
                                     if (function_exists('audit_log')) {
                                         audit_log('vehicle', 'ASSIGN_OFFICER', 'FAIL', 'teacher', $member_pid, 'prepare_failed', [
                                             'roleID' => $vehicle_role_id,
@@ -161,8 +177,10 @@ if (!function_exists('vehicle_management_index')) {
                                 $sql = 'UPDATE teacher SET roleID = ?
                                     WHERE pID = ? AND status = 1 AND roleID = ?';
                                 $stmt = mysqli_prepare($connection, $sql);
+
                                 if ($stmt === false) {
                                     error_log('Database Error: ' . mysqli_error($connection));
+
                                     if (function_exists('audit_log')) {
                                         audit_log('vehicle', 'REMOVE_OFFICER', 'FAIL', 'teacher', $member_pid, 'prepare_failed', [
                                             'roleID' => $general_role_id,
@@ -201,6 +219,7 @@ if (!function_exists('vehicle_management_index')) {
                             }
                         } catch (Throwable $e) {
                             error_log('Vehicle member management error: ' . $e->getMessage());
+
                             if (function_exists('audit_log')) {
                                 audit_log('vehicle', 'OFFICER_MANAGE', 'FAIL', 'teacher', $member_pid, $e->getMessage());
                             }
@@ -216,6 +235,7 @@ if (!function_exists('vehicle_management_index')) {
                     $set_alert('warning', 'ระบบยังไม่พร้อมใช้งาน', 'ยังไม่พบตารางยานพาหนะ กรุณาตรวจสอบ schema dh_vehicles');
                 } else {
                     $action = (string) ($_POST['vehicle_action'] ?? '');
+
                     if (!in_array($action, ['add', 'edit', 'delete'], true)) {
                         if (function_exists('audit_log')) {
                             audit_log('vehicle', 'MANAGE', 'FAIL', 'dh_vehicles', null, 'invalid_vehicle_action', [
@@ -259,6 +279,7 @@ if (!function_exists('vehicle_management_index')) {
                                     }
                                     $set_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุประเภทรถและทะเบียนรถ');
                                     $_SESSION['vehicle_management_open_modal'] = $action === 'add' ? 'vehicleAddModal' : 'vehicleEditModal';
+
                                     if ($action === 'add') {
                                         $_SESSION['vehicle_management_form'] = $payload;
                                     } else {
@@ -275,6 +296,7 @@ if (!function_exists('vehicle_management_index')) {
                                     $set_alert('success', 'บันทึกสำเร็จ', 'เพิ่มยานพาหนะเรียบร้อยแล้ว');
                                 } else {
                                     $vehicle_id = (int) ($_POST['vehicle_id'] ?? 0);
+
                                     if ($vehicle_id <= 0) {
                                         if (function_exists('audit_log')) {
                                             audit_log('vehicle', 'UPDATE', 'FAIL', 'dh_vehicles', null, 'invalid_vehicle_id');
@@ -290,6 +312,7 @@ if (!function_exists('vehicle_management_index')) {
 
                             if ($action === 'delete') {
                                 $vehicle_id = (int) ($_POST['vehicle_id'] ?? 0);
+
                                 if ($vehicle_id <= 0) {
                                     if (function_exists('audit_log')) {
                                         audit_log('vehicle', 'DELETE', 'FAIL', 'dh_vehicles', null, 'invalid_vehicle_id');
@@ -303,6 +326,7 @@ if (!function_exists('vehicle_management_index')) {
                             }
                         } catch (Throwable $e) {
                             error_log('Vehicle management error: ' . $e->getMessage());
+
                             if (function_exists('audit_log')) {
                                 audit_log('vehicle', 'MANAGE', 'FAIL', 'dh_vehicles', null, $e->getMessage());
                             }
@@ -324,6 +348,7 @@ if (!function_exists('vehicle_management_index')) {
 
         $map_member = static function (array $row): array {
             $name = trim((string) ($row['fName'] ?? ''));
+
             if ($name === '') {
                 $name = 'ไม่ระบุชื่อ';
             }
@@ -353,12 +378,14 @@ if (!function_exists('vehicle_management_index')) {
                 ORDER BY t.fName';
 
             $stmt = mysqli_prepare($connection, $staff_sql);
+
             if ($stmt === false) {
                 throw new RuntimeException('Database prepare failed: ' . mysqli_error($connection));
             }
             mysqli_stmt_bind_param($stmt, 'i', $vehicle_role_id);
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
+
             if ($result !== false) {
                 while ($row = mysqli_fetch_assoc($result)) {
                     $vehicle_staff_members[] = $map_member($row);
@@ -378,12 +405,14 @@ if (!function_exists('vehicle_management_index')) {
                 ORDER BY t.fName';
 
             $stmt = mysqli_prepare($connection, $candidate_sql);
+
             if ($stmt === false) {
                 throw new RuntimeException('Database prepare failed: ' . mysqli_error($connection));
             }
             mysqli_stmt_bind_param($stmt, 'i', $general_role_id);
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
+
             if ($result !== false) {
                 while ($row = mysqli_fetch_assoc($result)) {
                     $vehicle_candidate_members[] = $map_member($row);
@@ -392,6 +421,7 @@ if (!function_exists('vehicle_management_index')) {
             mysqli_stmt_close($stmt);
         } catch (Throwable $e) {
             error_log('Vehicle member data error: ' . $e->getMessage());
+
             if (empty($alert)) {
                 $alert = [
                     'type' => 'danger',

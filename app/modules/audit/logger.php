@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -34,11 +35,13 @@ if (!function_exists('audit_log')) {
         $server_name = (string) ($_SERVER['SERVER_NAME'] ?? '');
 
         $payload_json = $payload ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
+
         if ($payload_json === false) {
             $payload_json = null;
         }
 
         $numeric_pid = null;
+
         if ($actor_pid !== '' && ctype_digit($actor_pid)) {
             // dh_logs.pID is unsigned int(10); guard against overflow in strict SQL mode.
             if (strlen($actor_pid) <= 10 && $actor_pid <= '4294967295') {
@@ -66,6 +69,7 @@ if (!function_exists('audit_log')) {
 
         if ($has_session_id) {
             $session_id = session_id();
+
             if (strlen($session_id) > 64) {
                 $session_id = substr($session_id, 0, 64);
             }
@@ -76,6 +80,7 @@ if (!function_exists('audit_log')) {
 
         if ($has_request_id) {
             $request_id = app_request_id();
+
             if (strlen($request_id) > 26) {
                 $request_id = substr($request_id, 0, 26);
             }

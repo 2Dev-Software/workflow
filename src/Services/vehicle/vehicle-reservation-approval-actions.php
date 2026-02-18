@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -22,6 +23,7 @@ require_once __DIR__ . '/vehicle-reservation-utils.php';
 // $GLOBALS as a safe fallback to avoid fatal errors.
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
 $teacher = $teacher ?? ($GLOBALS['teacher'] ?? []);
+
 if (!($connection instanceof mysqli)) {
     return;
 }
@@ -35,6 +37,7 @@ $vehicle_supports_status = vehicle_reservation_has_column($vehicle_master_column
 
 $redirect_url = 'vehicle-reservation-approval.php';
 $return_url = trim((string) ($_POST['return_url'] ?? ''));
+
 if ($return_url !== '' && strpos($return_url, $redirect_url) === 0) {
     $redirect_url = $return_url;
 }
@@ -69,6 +72,7 @@ if (
 }
 
 $action = $raw_action;
+
 if (!in_array($action, ['approve', 'reject'], true)) {
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'APPROVAL', 'FAIL', 'dh_vehicle_bookings', $raw_booking_id > 0 ? $raw_booking_id : null, 'invalid_action', [
@@ -79,6 +83,7 @@ if (!in_array($action, ['approve', 'reject'], true)) {
 }
 
 $booking_id = $raw_booking_id;
+
 if ($booking_id <= 0) {
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'APPROVAL', 'FAIL', 'dh_vehicle_bookings', null, 'invalid_booking_id');
@@ -87,6 +92,7 @@ if ($booking_id <= 0) {
 }
 
 $actor_pid = trim((string) ($_SESSION['pID'] ?? ''));
+
 if ($actor_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'vehicle_reservation_approval_actions');
@@ -131,6 +137,7 @@ try {
     $current_status = strtoupper(trim((string) ($check_row['status'] ?? 'PENDING')));
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'APPROVAL', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'status_check_failed');
     }
@@ -143,6 +150,7 @@ $approved_at = date('Y-m-d H:i:s');
 if ($is_director && in_array($current_status, ['ASSIGNED', 'APPROVED', 'REJECTED'], true) && $approval_note === '') {
     if (function_exists('audit_log')) {
         $audit_action = 'FINAL_DECISION';
+
         if ($action === 'approve') {
             $audit_action = $current_status === 'ASSIGNED' ? 'FINAL_APPROVE' : 'FINAL_APPROVE_OVERRIDE';
         } elseif ($action === 'reject') {
@@ -167,6 +175,7 @@ if ($action === 'approve') {
         }
 
         $assign_vehicle_id = (int) ($_POST['assign_vehicle_id'] ?? 0);
+
         if ($assign_vehicle_id <= 0) {
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'ASSIGN', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'vehicle_required');
@@ -175,11 +184,14 @@ if ($action === 'approve') {
         }
 
         $vehicle_exists = false;
+
         try {
             $vehicle_check_sql = 'SELECT vehicleID FROM dh_vehicles WHERE vehicleID = ?';
+
             if ($vehicle_supports_soft_delete) {
                 $vehicle_check_sql .= ' AND deletedAt IS NULL';
             }
+
             if ($vehicle_supports_status) {
                 $vehicle_check_sql .= " AND vehicleStatus = 'พร้อมใช้งาน'";
             }
@@ -205,9 +217,11 @@ if ($action === 'approve') {
         }
 
         $assign_driver_pid = trim((string) ($_POST['assign_driver_pid'] ?? ''));
+
         if ($assign_driver_pid !== '' && !ctype_digit($assign_driver_pid)) {
             $assign_driver_pid = preg_replace('/\D+/', '', $assign_driver_pid);
         }
+
         if ($assign_driver_pid === '') {
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'ASSIGN', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'driver_required');
@@ -217,6 +231,7 @@ if ($action === 'approve') {
 
         $assign_driver_name = '';
         $assign_driver_tel = '';
+
         try {
             $driver_stmt = mysqli_prepare($connection, 'SELECT pID, fName, telephone FROM teacher WHERE pID = ? AND status = 1 LIMIT 1');
             mysqli_stmt_bind_param($driver_stmt, 's', $assign_driver_pid);
@@ -238,6 +253,7 @@ if ($action === 'approve') {
             $assign_driver_tel = trim((string) ($driver_row['telephone'] ?? ''));
         } catch (mysqli_sql_exception $exception) {
             error_log('Database Exception: ' . $exception->getMessage());
+
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'ASSIGN', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'driver_lookup_failed', [
                     'driverPID' => $assign_driver_pid,
@@ -296,11 +312,13 @@ if ($action === 'approve') {
                 $bind_values[] = $actor_pid;
                 $types .= 's';
             }
+
             if (vehicle_reservation_has_column($vehicle_columns, 'assignedAt')) {
                 $set_fields[] = 'assignedAt = ?';
                 $bind_values[] = $approved_at;
                 $types .= 's';
             }
+
             if ($assigned_note_present && vehicle_reservation_has_column($vehicle_columns, 'assignedNote')) {
                 $set_fields[] = 'assignedNote = ?';
                 $bind_values[] = $assigned_note !== '' ? $assigned_note : null;
@@ -317,6 +335,7 @@ if ($action === 'approve') {
             $bind_params = [];
             $bind_params[] = $update_stmt;
             $bind_params[] = $types;
+
             foreach ($bind_values as $i => $v) {
                 $bind_params[] = &$bind_values[$i];
             }
@@ -375,6 +394,7 @@ if ($action === 'approve') {
                 $bind_params = [];
                 $bind_params[] = $update_stmt;
                 $bind_params[] = $types;
+
                 foreach ($bind_values as $i => $v) {
                     $bind_params[] = &$bind_values[$i];
                 }
@@ -395,6 +415,7 @@ if ($action === 'approve') {
         // Vehicle officer may update assigned vehicle/driver while status is ASSIGNED ("กำลังดำเนินการ").
         if ($is_vehicle_officer) {
             $assign_vehicle_id = (int) ($_POST['assign_vehicle_id'] ?? 0);
+
             if ($assign_vehicle_id <= 0) {
                 if (function_exists('audit_log')) {
                     audit_log('vehicle', 'ASSIGN_UPDATE', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'vehicle_required');
@@ -403,11 +424,14 @@ if ($action === 'approve') {
             }
 
             $vehicle_exists = false;
+
             try {
                 $vehicle_check_sql = 'SELECT vehicleID FROM dh_vehicles WHERE vehicleID = ?';
+
                 if ($vehicle_supports_soft_delete) {
                     $vehicle_check_sql .= ' AND deletedAt IS NULL';
                 }
+
                 if ($vehicle_supports_status) {
                     $vehicle_check_sql .= " AND vehicleStatus = 'พร้อมใช้งาน'";
                 }
@@ -433,9 +457,11 @@ if ($action === 'approve') {
             }
 
             $assign_driver_pid = trim((string) ($_POST['assign_driver_pid'] ?? ''));
+
             if ($assign_driver_pid !== '' && !ctype_digit($assign_driver_pid)) {
                 $assign_driver_pid = preg_replace('/\D+/', '', $assign_driver_pid);
             }
+
             if ($assign_driver_pid === '') {
                 if (function_exists('audit_log')) {
                     audit_log('vehicle', 'ASSIGN_UPDATE', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'driver_required');
@@ -445,6 +471,7 @@ if ($action === 'approve') {
 
             $assign_driver_name = '';
             $assign_driver_tel = '';
+
             try {
                 $driver_stmt = mysqli_prepare($connection, 'SELECT pID, fName, telephone FROM teacher WHERE pID = ? AND status = 1 LIMIT 1');
                 mysqli_stmt_bind_param($driver_stmt, 's', $assign_driver_pid);
@@ -466,6 +493,7 @@ if ($action === 'approve') {
                 $assign_driver_tel = trim((string) ($driver_row['telephone'] ?? ''));
             } catch (mysqli_sql_exception $exception) {
                 error_log('Database Exception: ' . $exception->getMessage());
+
                 if (function_exists('audit_log')) {
                     audit_log('vehicle', 'ASSIGN_UPDATE', 'FAIL', 'dh_vehicle_bookings', $booking_id, 'driver_lookup_failed', [
                         'driverPID' => $assign_driver_pid,
@@ -526,11 +554,13 @@ if ($action === 'approve') {
                     $bind_values[] = $actor_pid;
                     $types .= 's';
                 }
+
                 if (vehicle_reservation_has_column($vehicle_columns, 'assignedAt')) {
                     $set_fields[] = 'assignedAt = ?';
                     $bind_values[] = $approved_at;
                     $types .= 's';
                 }
+
                 if ($assigned_note_present && vehicle_reservation_has_column($vehicle_columns, 'assignedNote')) {
                     $set_fields[] = 'assignedNote = ?';
                     $bind_values[] = $assigned_note !== '' ? $assigned_note : null;
@@ -547,6 +577,7 @@ if ($action === 'approve') {
                 $bind_params = [];
                 $bind_params[] = $update_stmt;
                 $bind_params[] = $types;
+
                 foreach ($bind_values as $i => $v) {
                     $bind_params[] = &$bind_values[$i];
                 }
@@ -625,6 +656,7 @@ if ($action === 'approve') {
             $bind_params = [];
             $bind_params[] = $update_stmt;
             $bind_params[] = $types;
+
             foreach ($bind_values as $i => $v) {
                 $bind_params[] = &$bind_values[$i];
             }
@@ -655,6 +687,7 @@ if ($action === 'approve') {
 
 if ($action === 'reject') {
     $can_reject = false;
+
     if (in_array($current_status, ['ASSIGNED', 'APPROVED', 'REJECTED'], true) && $is_director) {
         $can_reject = true;
     }
@@ -705,6 +738,7 @@ if ($action === 'reject') {
         $bind_params = [];
         $bind_params[] = $update_stmt;
         $bind_params[] = $types;
+
         foreach ($bind_values as $i => $v) {
             $bind_params[] = &$bind_values[$i];
         }

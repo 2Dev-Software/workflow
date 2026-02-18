@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../helpers.php';
@@ -23,6 +24,7 @@ if (!function_exists('attachment_store')) {
         }
 
         $max_size = (int) app_env('UPLOAD_MAX_BYTES', 10 * 1024 * 1024);
+
         if (($file['size'] ?? 0) > $max_size) {
             return [false, null, 'ไฟล์มีขนาดใหญ่เกินกำหนด'];
         }
@@ -30,11 +32,13 @@ if (!function_exists('attachment_store')) {
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
         $allowed = attachment_allowed_types();
+
         if (!isset($allowed[$mime])) {
             return [false, null, 'ประเภทไฟล์ไม่ถูกอนุญาต'];
         }
 
         $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+
         if (!in_array($ext, $allowed[$mime], true)) {
             return [false, null, 'นามสกุลไฟล์ไม่ตรงกับประเภทที่อนุญาต'];
         }
@@ -42,6 +46,7 @@ if (!function_exists('attachment_store')) {
         $storage_root = rtrim((string) app_env('UPLOAD_ROOT', __DIR__ . '/../../storage/uploads'), '/');
         $category = preg_replace('/[^a-zA-Z0-9_-]/', '', $category);
         $target_dir = $storage_root . '/' . $category;
+
         if (!is_dir($target_dir) && !mkdir($target_dir, 0750, true) && !is_dir($target_dir)) {
             return [false, null, 'ไม่สามารถสร้างโฟลเดอร์เก็บไฟล์'];
         }
@@ -81,11 +86,13 @@ if (!function_exists('attachment_save')) {
         ?string $note = null
     ): array {
         [$ok, $meta, $error] = attachment_store($file, $category, $owner_pid);
+
         if (!$ok || $meta === null) {
             return [false, null, $error];
         }
 
         $connection = db_connection();
+
         if (!db_table_exists($connection, 'dh_files') || !db_table_exists($connection, 'dh_file_refs')) {
             return [true, $meta, null];
         }
@@ -119,6 +126,7 @@ if (!function_exists('attachment_save')) {
         mysqli_stmt_close($ref_stmt);
 
         $meta['file_id'] = $file_id;
+
         return [true, $meta, null];
     }
 }

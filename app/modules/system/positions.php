@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -40,11 +41,13 @@ if (!function_exists('system_position_executive_id')) {
         }
 
         $row = db_fetch_one('SELECT positionID FROM dh_positions WHERE positionName LIKE ? LIMIT 1', 's', '%ผู้อำนวยการ%');
+
         if ($row && isset($row['positionID'])) {
             return (int) $row['positionID'];
         }
 
         $row = db_fetch_one('SELECT positionID FROM dh_positions WHERE positionID = 1 LIMIT 1');
+
         if ($row && isset($row['positionID'])) {
             return (int) $row['positionID'];
         }
@@ -62,16 +65,19 @@ if (!function_exists('system_position_deputy_ids')) {
 
         $rows = db_fetch_all('SELECT positionID FROM dh_positions WHERE positionName LIKE ? ORDER BY positionID ASC', 's', 'รองผู้อำนวยการ%');
         $ids = [];
+
         foreach ($rows as $row) {
             $ids[] = (int) ($row['positionID'] ?? 0);
         }
 
         $ids = array_values(array_unique(array_filter($ids)));
+
         if (!empty($ids)) {
             return $ids;
         }
 
         $fallback = db_fetch_all('SELECT positionID FROM dh_positions WHERE positionID IN (2,3,4)');
+
         foreach ($fallback as $row) {
             $ids[] = (int) ($row['positionID'] ?? 0);
         }

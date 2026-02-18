@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -55,4 +56,3 @@ if ($teacher_pid !== '') {
         error_log('Database Exception: ' . $e->getMessage());
     }
 }
-?>

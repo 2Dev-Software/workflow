@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -10,10 +11,12 @@ if (!function_exists('order_doc_number')) {
     function order_doc_number(array $order): string
     {
         $orderNo = trim((string) ($order['orderNo'] ?? ''));
+
         if ($orderNo !== '') {
             return $orderNo;
         }
         $orderID = (int) ($order['orderID'] ?? 0);
+
         return $orderID > 0 ? 'ORDER-' . $orderID : '';
     }
 }
@@ -25,11 +28,13 @@ if (!function_exists('order_prepare_search')) {
     function order_prepare_search(?string $term): array
     {
         $term = trim((string) $term);
+
         if ($term === '') {
             return ['', ''];
         }
 
         $max_len = 120;
+
         if (function_exists('mb_substr')) {
             $term = (string) mb_substr($term, 0, $max_len);
         } else {
@@ -37,6 +42,7 @@ if (!function_exists('order_prepare_search')) {
         }
 
         $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
+
         return [$term, '%' . $escaped . '%'];
     }
 }
@@ -50,6 +56,7 @@ if (!function_exists('order_build_inbox_filters')) {
         $params = [$pID, $archivedFlag];
 
         [$term, $like] = order_prepare_search($search);
+
         if ($term !== '') {
             $conditions[] = '(o.orderNo LIKE ? ESCAPE \'\\\\\' OR o.subject LIKE ? ESCAPE \'\\\\\' OR t.fName LIKE ? ESCAPE \'\\\\\')';
             $types .= 'sss';
@@ -162,6 +169,7 @@ if (!function_exists('order_add_inboxes')) {
     function order_add_inboxes(int $orderID, array $recipientPIDs, ?string $deliveredByPID): void
     {
         $recipientPIDs = array_values(array_unique(array_filter(array_map('trim', $recipientPIDs))));
+
         if (empty($recipientPIDs)) {
             return;
         }
@@ -187,6 +195,7 @@ if (!function_exists('order_get')) {
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             WHERE o.orderID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $orderID);
     }
 }
@@ -200,6 +209,7 @@ if (!function_exists('order_list_drafts')) {
             FROM dh_orders AS o
             WHERE o.createdByPID = ? AND o.deletedAt IS NULL
             ORDER BY o.createdAt DESC, o.orderID DESC';
+
         return db_fetch_all($sql, 's', $pID);
     }
 }
@@ -216,6 +226,7 @@ if (!function_exists('order_list_inbox')) {
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             WHERE i.pID = ? AND i.isArchived = ?
             ORDER BY i.deliveredAt DESC, i.inboxID DESC';
+
         return db_fetch_all($sql, 'si', $pID, $archivedFlag);
     }
 }
@@ -225,6 +236,7 @@ if (!function_exists('order_count_inbox')) {
     {
         $archivedFlag = $archived ? 1 : 0;
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_order_inboxes WHERE pID = ? AND isArchived = ?', 'si', $pID, $archivedFlag);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -244,6 +256,7 @@ if (!function_exists('order_list_inbox_page')) {
             WHERE i.pID = ? AND i.isArchived = ?
             ORDER BY i.deliveredAt DESC, i.inboxID DESC
             LIMIT ? OFFSET ?';
+
         return db_fetch_all($sql, 'siii', $pID, $archivedFlag, $limit, $offset);
     }
 }
@@ -258,6 +271,7 @@ if (!function_exists('order_count_inbox_filtered')) {
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             WHERE ' . $filter['where'];
         $row = db_fetch_one($sql, $filter['types'], ...$filter['params']);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -316,6 +330,7 @@ if (!function_exists('order_get_inbox_item')) {
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             WHERE i.inboxID = ? AND i.pID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'is', $inboxID, $pID);
     }
 }
@@ -328,10 +343,13 @@ if (!function_exists('order_mark_read')) {
 
         $row = db_fetch_one('SELECT orderID FROM dh_order_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
         $orderID = (int) ($row['orderID'] ?? 0);
+
         if ($orderID > 0) {
             $order = order_get($orderID);
+
             if ($order) {
                 $documentNumber = order_doc_number($order);
+
                 if ($documentNumber !== '') {
                     $documentID = document_upsert([
                         'documentType' => 'ORDER',
@@ -343,10 +361,12 @@ if (!function_exists('order_mark_read')) {
                         'createdByPID' => (string) ($order['createdByPID'] ?? ''),
                         'updatedByPID' => $order['updatedByPID'] ?? null,
                     ]);
+
                     if ($documentID) {
                         document_mark_read($documentID, $pID);
                         document_record_read_receipt($documentID, $pID);
                     }
+
                     if (function_exists('audit_log')) {
                         audit_log('orders', 'READ', 'SUCCESS', 'dh_orders', $orderID, null, [
                             'inbox_id' => $inboxID,
@@ -367,10 +387,13 @@ if (!function_exists('order_archive_inbox')) {
 
         $row = db_fetch_one('SELECT orderID FROM dh_order_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
         $orderID = (int) ($row['orderID'] ?? 0);
+
         if ($orderID > 0) {
             $order = order_get($orderID);
+
             if ($order) {
                 $documentNumber = order_doc_number($order);
+
                 if ($documentNumber !== '') {
                     $documentID = document_upsert([
                         'documentType' => 'ORDER',
@@ -382,6 +405,7 @@ if (!function_exists('order_archive_inbox')) {
                         'createdByPID' => (string) ($order['createdByPID'] ?? ''),
                         'updatedByPID' => $order['updatedByPID'] ?? null,
                     ]);
+
                     if ($documentID) {
                         document_set_recipient_status($documentID, $pID, 'normal_inbox', 'ARCHIVED');
                     }
@@ -399,6 +423,7 @@ if (!function_exists('order_get_attachments')) {
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
+
         return db_fetch_all($sql, 'sss', ORDER_MODULE_NAME, ORDER_ENTITY_NAME, (string) $orderID);
     }
 }
@@ -411,6 +436,7 @@ if (!function_exists('order_get_read_stats')) {
             INNER JOIN teacher AS t ON i.pID = t.pID
             WHERE i.orderID = ?
             ORDER BY t.fName ASC';
+
         return db_fetch_all($sql, 'i', $orderID);
     }
 }
@@ -419,6 +445,7 @@ if (!function_exists('order_count_drafts')) {
     function order_count_drafts(string $pID): int
     {
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_orders WHERE createdByPID = ? AND deletedAt IS NULL', 's', $pID);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -435,6 +462,7 @@ if (!function_exists('order_list_drafts_page')) {
             WHERE o.createdByPID = ? AND o.deletedAt IS NULL
             ORDER BY o.createdAt DESC, o.orderID DESC
             LIMIT ? OFFSET ?';
+
         return db_fetch_all($sql, 'sii', $pID, $limit, $offset);
     }
 }

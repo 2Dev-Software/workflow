@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../app/bootstrap.php';
@@ -15,6 +16,7 @@ $router = new Router();
 
 $router->get('/', function (): void {
     app_session_start();
+
     if (!empty($_SESSION['pID'])) {
         redirect_to('/dashboard');
     }

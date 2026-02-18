@@ -1,4 +1,5 @@
 <?php
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['vehicle_reservation_save'])) {
     return;
 }
@@ -32,12 +33,15 @@ $set_vehicle_alert = static function (
 
 $text_preview = static function (string $value, int $max_len = 120): string {
     $value = trim($value);
+
     if ($value === '') {
         return '';
     }
+
     if (function_exists('mb_substr')) {
         return mb_substr($value, 0, $max_len);
     }
+
     return substr($value, 0, $max_len);
 };
 
@@ -68,6 +72,7 @@ if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equal
 }
 
 $requester_pid = (string) ($_SESSION['pID'] ?? '');
+
 if ($requester_pid === '') {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'vehicle_reservation_save');
@@ -77,26 +82,31 @@ if ($requester_pid === '') {
 }
 
 $vehicle_year = (int) ($_POST['dh_year'] ?? 0);
+
 if ($vehicle_year <= 0) {
     $vehicle_year = (int) date('Y') + 543;
 }
 
 $department = trim((string) ($_POST['department'] ?? ''));
+
 if ($department === '') {
     $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการ', 'department_required');
 }
 
 $department_pool = [];
+
 foreach (vehicle_reservation_get_departments($connection) as $dept) {
     if (!empty($dept['name'])) {
         $department_pool[$dept['name']] = true;
     }
 }
+
 foreach (vehicle_reservation_get_factions($connection) as $faction) {
     if (!empty($faction['name'])) {
         $department_pool[$faction['name']] = true;
     }
 }
+
 if (!isset($department_pool[$department])) {
     $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกส่วนราชการจากรายการที่กำหนด', 'department_invalid', [
         'department' => $department,
@@ -105,8 +115,10 @@ if (!isset($department_pool[$department])) {
 
 $write_date_raw = trim((string) ($_POST['writeDate'] ?? ''));
 $write_date = '';
+
 if ($write_date_raw !== '') {
     $write_date_obj = DateTime::createFromFormat('Y-m-d', $write_date_raw);
+
     if ($write_date_obj === false) {
         $abort('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เขียนให้ถูกต้อง', 'write_date_invalid', [
             'writeDate' => $write_date_raw,
@@ -116,11 +128,13 @@ if ($write_date_raw !== '') {
 }
 
 $purpose = trim((string) ($_POST['purpose'] ?? ''));
+
 if ($purpose === '') {
     $abort('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุวัตถุประสงค์การใช้รถ', 'purpose_required');
 }
 
 $location = trim((string) ($_POST['location'] ?? ''));
+
 if ($location === '') {
     $abort('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุสถานที่ปลายทาง', 'location_required');
 }
@@ -129,6 +143,7 @@ $start_date_raw = trim((string) ($_POST['startDate'] ?? ''));
 $end_date_raw = trim((string) ($_POST['endDate'] ?? ''));
 
 $start_date_obj = DateTime::createFromFormat('Y-m-d', $start_date_raw);
+
 if ($start_date_obj === false) {
     $abort('danger', 'วันที่ไม่ถูกต้อง', 'กรุณาเลือกวันที่เริ่มเดินทาง', 'start_date_invalid', [
         'startDate' => $start_date_raw,
@@ -187,6 +202,7 @@ $end_at = $end_at_obj->format('Y-m-d H:i:s');
 
 $fuel_source = trim((string) ($_POST['fuelSource'] ?? ''));
 $allowed_fuel_sources = ['central', 'project', 'user'];
+
 if (!in_array($fuel_source, $allowed_fuel_sources, true)) {
     $abort('danger', 'ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกแหล่งน้ำมันเชื้อเพลิง', 'fuel_source_invalid', [
         'fuelSource' => $fuel_source,
@@ -194,17 +210,20 @@ if (!in_array($fuel_source, $allowed_fuel_sources, true)) {
 }
 
 $companion_ids = $_POST['companionIds'] ?? [];
+
 if (!is_array($companion_ids)) {
     $companion_ids = [];
 }
 $companion_ids = array_values(array_unique(array_filter(array_map(
-    static fn($id): string => trim((string) $id),
+    static fn ($id): string => trim((string) $id),
     $companion_ids
 ))));
 
 $teacher_ids = [];
+
 foreach (vehicle_reservation_get_teachers($connection) as $teacher) {
     $teacher_id = trim((string) ($teacher['id'] ?? ''));
+
     if ($teacher_id !== '') {
         $teacher_ids[$teacher_id] = true;
     }
@@ -212,7 +231,7 @@ foreach (vehicle_reservation_get_teachers($connection) as $teacher) {
 
 $companion_ids = array_values(array_filter(
     $companion_ids,
-    static fn(string $id): bool => isset($teacher_ids[$id])
+    static fn (string $id): bool => isset($teacher_ids[$id])
 ));
 
 $companion_count = count($companion_ids);
@@ -224,8 +243,10 @@ $min_passengers = max(1, $companion_count + 1);
 $passenger_count = $passenger_input > 0 ? max($passenger_input, $min_passengers) : $min_passengers;
 
 $companion_ids_json = null;
+
 if ($companion_count > 0) {
     $encoded = json_encode($companion_ids, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
     if ($encoded !== false) {
         $companion_ids_json = $encoded;
     }
@@ -243,6 +264,7 @@ $allowed_mime = [
 $cleanup_uploads = static function (array $files): void {
     foreach ($files as $file) {
         $path = __DIR__ . '/../../../' . ($file['filePath'] ?? '');
+
         if ($path !== '' && is_file($path)) {
             @unlink($path);
         }
@@ -252,6 +274,7 @@ $cleanup_uploads = static function (array $files): void {
 if (is_array($attachments) && isset($attachments['name']) && is_array($attachments['name'])) {
     $total_files = count($attachments['name']);
     $valid_files = 0;
+
     for ($i = 0; $i < $total_files; $i++) {
         if (($attachments['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             continue;
@@ -267,11 +290,13 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
     }
 
     $finfo = null;
+
     if (class_exists('finfo')) {
         $finfo = new finfo(FILEINFO_MIME_TYPE);
     }
 
     $upload_dir = __DIR__ . '/../../../assets/uploads/vehicle-bookings';
+
     if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
         error_log('Upload directory create failed: ' . $upload_dir);
         $abort('danger', 'ระบบขัดข้อง', 'ไม่สามารถแนบไฟล์ได้ในขณะนี้', 'upload_dir_create_failed');
@@ -279,9 +304,11 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
 
     for ($i = 0; $i < $total_files; $i++) {
         $error = $attachments['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+
         if ($error === UPLOAD_ERR_NO_FILE) {
             continue;
         }
+
         if ($error !== UPLOAD_ERR_OK) {
             $cleanup_uploads($uploaded_files);
             $abort('danger', 'แนบไฟล์ไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง', 'upload_error', [
@@ -290,6 +317,7 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
         }
 
         $size = (int) ($attachments['size'][$i] ?? 0);
+
         if ($size > $max_file_size) {
             $cleanup_uploads($uploaded_files);
             $abort('warning', 'ไฟล์มีขนาดใหญ่เกินไป', 'รองรับไฟล์ขนาดไม่เกิน 10MB ต่อไฟล์', 'file_too_large', [
@@ -300,9 +328,11 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
 
         $tmp_name = $attachments['tmp_name'][$i] ?? '';
         $file_mime = '';
+
         if ($finfo && $tmp_name !== '') {
             $file_mime = (string) $finfo->file($tmp_name);
         }
+
         if ($file_mime === '') {
             $file_mime = (string) ($attachments['type'][$i] ?? '');
         }
@@ -363,15 +393,18 @@ $add_param('purpose', 's', $purpose);
 $add_param('location', 's', $location);
 $add_param('passengerCount', 'i', $passenger_count);
 $add_param('fuelSource', 's', $fuel_source);
+
 if ($write_date !== '') {
     $add_param('writeDate', 's', $write_date);
 }
 $add_param('companionCount', 'i', $companion_count);
+
 if ($companion_ids_json !== null) {
     $add_param('companionIds', 's', $companion_ids_json);
 }
 
 $requester_display_name = trim((string) ($teacher_name ?? ''));
+
 if ($requester_display_name !== '') {
     $add_param('requesterDisplayName', 's', $requester_display_name);
 }
@@ -387,17 +420,20 @@ if (mysqli_begin_transaction($connection) === false) {
 
 try {
     $insert_stmt = mysqli_prepare($connection, $insert_sql);
+
     if ($insert_stmt === false) {
         throw new RuntimeException('Failed to prepare booking insert.');
     }
 
     $bind_params = array_merge([$insert_stmt, $types], $values);
     $bind_refs = [];
+
     foreach ($bind_params as $index => $value) {
         $bind_refs[$index] = &$bind_params[$index];
     }
 
     call_user_func_array('mysqli_stmt_bind_param', $bind_refs);
+
     if (mysqli_stmt_execute($insert_stmt) === false) {
         mysqli_stmt_close($insert_stmt);
         throw new RuntimeException('Failed to insert booking.');
@@ -407,10 +443,12 @@ try {
     mysqli_stmt_close($insert_stmt);
 
     $attachment_file_ids = [];
+
     foreach ($uploaded_files as $uploaded_file) {
         $file_sql = 'INSERT INTO dh_files (fileName, filePath, mimeType, fileSize, checksumSHA256, storageProvider, version, uploadedByPID)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
         $file_stmt = mysqli_prepare($connection, $file_sql);
+
         if ($file_stmt === false) {
             throw new RuntimeException('Failed to prepare file insert.');
         }
@@ -442,6 +480,7 @@ try {
         $ref_sql = 'INSERT INTO dh_file_refs (fileID, moduleName, entityName, entityID, note, attachedByPID)
             VALUES (?, ?, ?, ?, ?, ?)';
         $ref_stmt = mysqli_prepare($connection, $ref_sql);
+
         if ($ref_stmt === false) {
             throw new RuntimeException('Failed to prepare file reference insert.');
         }
@@ -451,6 +490,7 @@ try {
         $entity_id = (string) $booking_id;
         $note = 'vehicle_reservation_attachment';
         mysqli_stmt_bind_param($ref_stmt, 'isssss', $attachment_file_id, $module_name, $entity_name, $entity_id, $note, $requester_pid);
+
         if (mysqli_stmt_execute($ref_stmt) === false) {
             mysqli_stmt_close($ref_stmt);
             throw new RuntimeException('Failed to insert file reference.');
@@ -461,11 +501,13 @@ try {
     if (!empty($attachment_file_ids) && vehicle_reservation_has_column($vehicle_columns, 'attachmentFileID')) {
         $update_sql = 'UPDATE dh_vehicle_bookings SET attachmentFileID = ? WHERE bookingID = ?';
         $update_stmt = mysqli_prepare($connection, $update_sql);
+
         if ($update_stmt === false) {
             throw new RuntimeException('Failed to prepare attachment update.');
         }
         $first_attachment_id = (int) $attachment_file_ids[0];
         mysqli_stmt_bind_param($update_stmt, 'ii', $first_attachment_id, $booking_id);
+
         if (mysqli_stmt_execute($update_stmt) === false) {
             mysqli_stmt_close($update_stmt);
             throw new RuntimeException('Failed to update attachment reference.');
@@ -477,6 +519,7 @@ try {
 } catch (Throwable $e) {
     mysqli_rollback($connection);
     error_log('Vehicle Booking Error: ' . $e->getMessage());
+
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'CREATE', 'FAIL', 'dh_vehicle_bookings', null, $e->getMessage());
     }

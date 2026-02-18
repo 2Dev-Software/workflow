@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/connection.php';
 
 $connection = $connection ?? null;
+
 if (!$connection instanceof mysqli) {
     fwrite(STDERR, "Database connection not available.\n");
     exit(1);
@@ -11,6 +13,7 @@ if (!$connection instanceof mysqli) {
 
 $dir = __DIR__ . '/../migrations';
 $files = glob($dir . '/*.sql');
+
 if ($files === false || empty($files)) {
     fwrite(STDOUT, "No migration files found.\n");
     exit(0);
@@ -31,12 +34,13 @@ CREATE TABLE IF NOT EXISTS `dh_migrations` (
 SQL;
 
 if (!mysqli_query($connection, $create_migrations_table)) {
-    fwrite(STDERR, "Failed to create migrations table: " . mysqli_error($connection) . "\n");
+    fwrite(STDERR, 'Failed to create migrations table: ' . mysqli_error($connection) . "\n");
     exit(1);
 }
 
 $check_stmt = mysqli_prepare($connection, 'SELECT 1 FROM dh_migrations WHERE version = ? LIMIT 1');
 $insert_stmt = mysqli_prepare($connection, 'INSERT INTO dh_migrations (version, name) VALUES (?, ?)');
+
 if ($check_stmt === false || $insert_stmt === false) {
     fwrite(STDERR, "Failed to prepare migration statements.\n");
     exit(1);
@@ -44,6 +48,7 @@ if ($check_stmt === false || $insert_stmt === false) {
 
 foreach ($files as $file) {
     $base = basename($file);
+
     if (!preg_match('/^(\\d+)_/u', $base, $matches)) {
         continue;
     }
@@ -53,12 +58,14 @@ foreach ($files as $file) {
     mysqli_stmt_bind_param($check_stmt, 'i', $version);
     mysqli_stmt_execute($check_stmt);
     $result = mysqli_stmt_get_result($check_stmt);
+
     if ($result && mysqli_fetch_assoc($result)) {
         fwrite(STDOUT, "Skip {$base} (already applied)\n");
         continue;
     }
 
     $sql = file_get_contents($file);
+
     if ($sql === false || trim($sql) === '') {
         fwrite(STDOUT, "Skip {$base} (empty file)\n");
         continue;
@@ -71,9 +78,11 @@ foreach ($files as $file) {
 
     do {
         $result = mysqli_store_result($connection);
+
         if ($result instanceof mysqli_result) {
             mysqli_free_result($result);
         }
+
         if (mysqli_errno($connection)) {
             fwrite(STDERR, "Failed {$base}: " . mysqli_error($connection) . "\n");
             exit(1);
@@ -81,6 +90,7 @@ foreach ($files as $file) {
     } while (mysqli_more_results($connection) && mysqli_next_result($connection));
 
     mysqli_stmt_bind_param($insert_stmt, 'is', $version, $base);
+
     if (!mysqli_stmt_execute($insert_stmt)) {
         fwrite(STDERR, "Failed to record migration {$base}: " . mysqli_error($connection) . "\n");
         exit(1);

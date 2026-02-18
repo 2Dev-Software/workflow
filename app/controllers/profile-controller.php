@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -20,12 +21,14 @@ if (!function_exists('profile_index')) {
 
         $active_tab = $_GET['tab'] ?? 'personal';
         $allowed_tabs = ['personal', 'signature', 'password'];
+
         if (!in_array($active_tab, $allowed_tabs, true)) {
             $active_tab = 'personal';
         }
 
         $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
         $profile_picture = '';
+
         if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
             $profile_picture = $profile_picture_raw;
         }

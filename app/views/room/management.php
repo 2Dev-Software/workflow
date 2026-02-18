@@ -35,9 +35,11 @@ $format_thai_datetime = static function (string $datetime) use ($thai_months): s
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
     }
+
     if ($date_obj === false) {
         return $datetime;
     }
@@ -397,28 +399,30 @@ ob_start();
                     <tbody>
                         <?php
                         $candidate_seen = [];
-                        foreach ($room_candidate_members as $candidate):
-                            $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
-                            if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
-                                continue;
-                            }
-                            $candidate_seen[$candidate_pid] = true;
 
-                            $candidate_name = trim((string) ($candidate['name'] ?? ''));
-                            $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
-                            $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
-                            $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
-                            $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
-                            $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+foreach ($room_candidate_members as $candidate):
+    $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
 
-                            $member_search = trim(implode(' ', array_filter([
-                                $candidate_pid,
-                                $candidate_name,
-                                $candidate_department,
-                                $candidate_position,
-                                $candidate_tel,
-                            ])));
-                        ?>
+    if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
+        continue;
+    }
+    $candidate_seen[$candidate_pid] = true;
+
+    $candidate_name = trim((string) ($candidate['name'] ?? ''));
+    $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
+    $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
+    $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
+    $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
+    $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+
+    $member_search = trim(implode(' ', array_filter([
+        $candidate_pid,
+        $candidate_name,
+        $candidate_department,
+        $candidate_position,
+        $candidate_tel,
+    ])));
+    ?>
                             <tr data-member-row data-member-search="<?= h($member_search) ?>">
                                 <td>
                                     <strong><?= h($candidate_name) ?></strong>

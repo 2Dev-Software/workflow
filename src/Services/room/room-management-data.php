@@ -1,8 +1,10 @@
 <?php
+
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     return;
 }
@@ -17,6 +19,7 @@ $unassigned_role_id = 0;
 
 $map_member = static function (array $row): array {
     $name = trim((string) ($row['fName'] ?? ''));
+
     if ($name === '') {
         $name = 'ไม่ระบุชื่อ';
     }
@@ -46,6 +49,7 @@ $staff_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
 
 try {
     $stmt = mysqli_prepare($connection, $staff_sql);
+
     if ($stmt === false) {
         error_log('Database Error: ' . mysqli_error($connection));
         $room_management_alert = [
@@ -90,6 +94,7 @@ $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
 
 try {
     $stmt = mysqli_prepare($connection, $candidate_sql);
+
     if ($stmt === false) {
         error_log('Database Error: ' . mysqli_error($connection));
         $room_management_alert = $room_management_alert ?? [
@@ -113,6 +118,7 @@ try {
     }
 } catch (mysqli_sql_exception $exception) {
     error_log('Database Exception: ' . $exception->getMessage());
+
     if ($room_management_alert === null) {
         $room_management_alert = [
             'type' => 'danger',
@@ -134,6 +140,7 @@ $room_sql = 'SELECT roomID, roomName, roomStatus, roomNote, createdAt, updatedAt
 
 try {
     $result = mysqli_query($connection, $room_sql);
+
     if ($result === false) {
         error_log('Database Error: ' . mysqli_error($connection));
         $room_management_alert = $room_management_alert ?? [

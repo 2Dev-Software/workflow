@@ -33,3 +33,12 @@ Thumbs.db
 *.log
 error_log
 debug.log
+.php-cs-fixer.cache
+
+# =========================================
+# 6. LOCAL EXPORTS & TEMP ARTIFACTS
+# =========================================
+LINUX*.sql
+LINUX*.csv
+tmp/pdfs/*
+!tmp/pdfs/.gitkeep

@@ -22,6 +22,7 @@
         // Requirement: show only status (no rejection reason) on approval list/detail.
         $status_reason = '-';
         $approval_name = trim((string) ($request_item['approvedByName'] ?? ''));
+
         if ($approval_name === '' && $status_value !== 0) {
             $approval_name = 'เจ้าหน้าที่ระบบ';
         }

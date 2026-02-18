@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../views/view.php';
@@ -23,6 +24,7 @@ if (!function_exists('repairs_index')) {
 
         $is_facility = rbac_user_has_role($connection, $current_pid, ROLE_FACILITY)
             || rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
+
         if (!$is_facility && in_array((int) ($current_user['roleID'] ?? 0), [1, 5], true)) {
             $is_facility = true;
         }
@@ -36,6 +38,7 @@ if (!function_exists('repairs_index')) {
 
         $view_id = (int) ($_GET['view_id'] ?? 0);
         $edit_id = (int) ($_GET['edit_id'] ?? 0);
+
         if ($edit_id > 0) {
             $view_id = 0;
         }
@@ -48,14 +51,17 @@ if (!function_exists('repairs_index')) {
             if (!$repair) {
                 return false;
             }
+
             if ($is_facility) {
                 return true;
             }
+
             return (string) ($repair['requesterPID'] ?? '') === $pid;
         };
 
         if ($view_id > 0 && $has_table) {
             $view_item = repair_get($view_id);
+
             if (!$can_access_repair($view_item, $current_pid, $is_facility)) {
                 $alert = [
                     'type' => 'danger',
@@ -70,6 +76,7 @@ if (!function_exists('repairs_index')) {
 
         if ($edit_id > 0 && $has_table) {
             $edit_item = repair_get($edit_id);
+
             if (!$can_access_repair($edit_item, $current_pid, $is_facility)) {
                 $alert = [
                     'type' => 'danger',
@@ -111,6 +118,7 @@ if (!function_exists('repairs_index')) {
                 $alert = system_not_ready_alert('ยังไม่พบตาราง dh_repair_requests กรุณารัน migrations/005_create_repairs_memos.sql');
             } elseif ($action === 'delete') {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
+
                 if (!$can_access_repair($target, $current_pid, $is_facility)) {
                     $alert = [
                         'type' => 'danger',
@@ -125,6 +133,7 @@ if (!function_exists('repairs_index')) {
                     ];
                 } else {
                     repair_delete_record($repair_id);
+
                     if (function_exists('audit_log')) {
                         audit_log('repairs', 'DELETE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
                     }
@@ -140,6 +149,7 @@ if (!function_exists('repairs_index')) {
                 }
             } elseif ($action === 'update') {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
+
                 if (!$can_access_repair($target, $current_pid, $is_facility)) {
                     $alert = [
                         'type' => 'danger',
@@ -164,6 +174,7 @@ if (!function_exists('repairs_index')) {
                         'detail' => $values['detail'],
                         'location' => $values['location'],
                     ]);
+
                     if (function_exists('audit_log')) {
                         audit_log('repairs', 'UPDATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
                     }
@@ -172,14 +183,17 @@ if (!function_exists('repairs_index')) {
                         $existing_files = repair_get_attachments($repair_id);
                         $normalized = upload_normalize_files($_FILES['attachments'] ?? []);
                         $upload_count = 0;
+
                         foreach ($normalized as $file) {
                             if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                                 $upload_count++;
                             }
                         }
+
                         if (count($existing_files) + $upload_count > 5) {
                             throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
                         }
+
                         if (!empty($_FILES['attachments'])) {
                             upload_store_files($_FILES['attachments'], REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, (string) $repair_id, $current_pid, [
                                 'max_files' => 5,
@@ -218,6 +232,7 @@ if (!function_exists('repairs_index')) {
                     'location' => $values['location'],
                     'status' => REPAIR_STATUS_PENDING,
                 ]);
+
                 if (function_exists('audit_log')) {
                     audit_log('repairs', 'CREATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
                 }
@@ -259,6 +274,7 @@ if (!function_exists('repairs_index')) {
         } elseif ($is_facility) {
             $total_count = repair_count_all();
             $total_pages = max(1, (int) ceil($total_count / $per_page));
+
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
@@ -267,6 +283,7 @@ if (!function_exists('repairs_index')) {
         } else {
             $total_count = repair_count_by_requester($current_pid);
             $total_pages = max(1, (int) ceil($total_count / $per_page));
+
             if ($page > $total_pages) {
                 $page = $total_pages;
             }

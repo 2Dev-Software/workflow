@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../helpers.php';
@@ -8,9 +9,11 @@ if (!function_exists('view_render')) {
     {
         $template = trim($template, '/');
         $path = __DIR__ . '/' . $template . '.php';
+
         if (!file_exists($path)) {
             http_response_code(500);
             echo 'View not found';
+
             return;
         }
 
@@ -23,10 +26,12 @@ if (!function_exists('component_attr')) {
     function component_attr(array $attrs = []): string
     {
         $pairs = [];
+
         foreach ($attrs as $key => $value) {
             if ($value === null || $value === false) {
                 continue;
             }
+
             if ($value === true) {
                 $pairs[] = h((string) $key);
                 continue;
@@ -43,6 +48,7 @@ if (!function_exists('component_render')) {
     {
         $name = trim($name, '/');
         $path = __DIR__ . '/components/' . $name . '.php';
+
         if (!file_exists($path)) {
             return '';
         }

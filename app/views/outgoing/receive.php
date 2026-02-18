@@ -22,6 +22,7 @@ $existing_attachments = (array) ($existing_attachments ?? []);
 $has_reviewer_options = !empty($reviewers);
 
 $selected_group_name = 'เลือกกลุ่ม/ฝ่าย';
+
 foreach ($factions as $faction_item) {
     if ((string) ($faction_item['fID'] ?? '') === (string) ($values['extGroupFID'] ?? '')) {
         $selected_group_name = (string) ($faction_item['fName'] ?? $selected_group_name);
@@ -30,6 +31,7 @@ foreach ($factions as $faction_item) {
 }
 
 $selected_reviewer_name = 'เลือกผู้พิจารณา';
+
 foreach ($reviewers as $reviewer_item) {
     if ((string) ($reviewer_item['pID'] ?? '') === (string) ($values['reviewerPID'] ?? '')) {
         $selected_reviewer_name = (string) ($reviewer_item['label'] ?? $selected_reviewer_name);
@@ -106,7 +108,9 @@ ob_start();
                         <div class="custom-option<?= (string) $values['extGroupFID'] === '' ? ' selected' : '' ?>" data-value="">เลือกกลุ่ม/ฝ่าย</div>
                         <?php foreach ($factions as $faction_item) : ?>
                             <?php $fid = (int) ($faction_item['fID'] ?? 0); ?>
-                            <?php if ($fid <= 0) { continue; } ?>
+                            <?php if ($fid <= 0) {
+                                continue;
+                            } ?>
                             <div class="custom-option<?= (string) $values['extGroupFID'] === (string) $fid ? ' selected' : '' ?>" data-value="<?= h((string) $fid) ?>"><?= h((string) ($faction_item['fName'] ?? '')) ?></div>
                         <?php endforeach; ?>
                     </div>
@@ -115,7 +119,9 @@ ob_start();
                         <option value="" <?= (string) $values['extGroupFID'] === '' ? 'selected' : '' ?>>เลือกกลุ่ม/ฝ่าย</option>
                         <?php foreach ($factions as $faction_item) : ?>
                             <?php $fid = (int) ($faction_item['fID'] ?? 0); ?>
-                            <?php if ($fid <= 0) { continue; } ?>
+                            <?php if ($fid <= 0) {
+                                continue;
+                            } ?>
                             <option value="<?= h((string) $fid) ?>" <?= (string) $values['extGroupFID'] === (string) $fid ? 'selected' : '' ?>><?= h((string) ($faction_item['fName'] ?? '')) ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -150,7 +156,9 @@ ob_start();
                         <div class="custom-option<?= (string) $values['reviewerPID'] === '' ? ' selected' : '' ?>" data-value="">เลือกผู้พิจารณา</div>
                         <?php foreach ($reviewers as $reviewer_item) : ?>
                             <?php $reviewer_pid = trim((string) ($reviewer_item['pID'] ?? '')); ?>
-                            <?php if ($reviewer_pid === '') { continue; } ?>
+                            <?php if ($reviewer_pid === '') {
+                                continue;
+                            } ?>
                             <div class="custom-option<?= (string) $values['reviewerPID'] === $reviewer_pid ? ' selected' : '' ?>" data-value="<?= h($reviewer_pid) ?>"><?= h((string) ($reviewer_item['label'] ?? '')) ?></div>
                         <?php endforeach; ?>
                     </div>
@@ -159,7 +167,9 @@ ob_start();
                         <option value="" <?= (string) $values['reviewerPID'] === '' ? 'selected' : '' ?>>เลือกผู้พิจารณา</option>
                         <?php foreach ($reviewers as $reviewer_item) : ?>
                             <?php $reviewer_pid = trim((string) ($reviewer_item['pID'] ?? '')); ?>
-                            <?php if ($reviewer_pid === '') { continue; } ?>
+                            <?php if ($reviewer_pid === '') {
+                                continue;
+                            } ?>
                             <option value="<?= h($reviewer_pid) ?>" <?= (string) $values['reviewerPID'] === $reviewer_pid ? 'selected' : '' ?>><?= h((string) ($reviewer_item['label'] ?? '')) ?></option>
                         <?php endforeach; ?>
                     </select>

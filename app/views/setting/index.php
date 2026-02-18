@@ -123,6 +123,7 @@ ob_start();
                                 $director_pid = (string) ($director_pid ?? '');
                                 $position_display = (string) ($teacher_item['position_name'] ?? '');
                                 $is_director = $teacher_pid !== '' && $teacher_pid === $director_pid;
+
                                 if ($is_director && $position_display !== '' && strpos($position_display, 'ดีบุกพังงาวิทยายน') === false) {
                                     $position_display .= 'ดีบุกพังงาวิทยายน';
                                 }

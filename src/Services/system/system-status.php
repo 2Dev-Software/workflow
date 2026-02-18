@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../../../config/connection.php';
 
 $dh_status = 1;
@@ -22,4 +23,3 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
-?>

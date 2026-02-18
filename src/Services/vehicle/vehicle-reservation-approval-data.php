@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -12,6 +13,7 @@ require_once __DIR__ . '/vehicle-reservation-utils.php';
 require_once __DIR__ . '/vehicle-reservation-data.php';
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     return;
 }
@@ -26,6 +28,7 @@ $vehicle_approval_is_director = $current_director_pid !== null && $current_direc
 // Executive (director / acting director) scope for filtering to prevent mixing decisions across executives.
 $acting_director_pid = system_get_acting_director_pid();
 $vehicle_approval_exec_pid = null;
+
 if ($position_id === 1) {
     $vehicle_approval_exec_pid = $actor_pid;
 } elseif ($acting_director_pid !== null && $acting_director_pid !== '' && $acting_director_pid === $actor_pid) {
@@ -38,6 +41,7 @@ $vehicle_approval_is_vehicle_officer = $role_id === 3;
 $vehicle_approval_can_assign = $vehicle_approval_is_vehicle_officer && !$vehicle_approval_is_admin;
 $vehicle_approval_can_finalize = $vehicle_approval_is_director;
 $vehicle_approval_mode = 'viewer';
+
 if ($vehicle_approval_can_assign && $vehicle_approval_can_finalize) {
     $vehicle_approval_mode = 'both';
 } elseif ($vehicle_approval_can_finalize) {
@@ -47,6 +51,7 @@ if ($vehicle_approval_can_assign && $vehicle_approval_can_finalize) {
 }
 
 $vehicle_approval_year = isset($dh_year_value) ? (int) $dh_year_value : 0;
+
 if ($vehicle_approval_year <= 0) {
     $vehicle_approval_year = (int) date('Y') + 543;
 }
@@ -59,17 +64,20 @@ $vehicle_approval_date_to = trim((string) ($_GET['date_to'] ?? ''));
 $vehicle_approval_page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $vehicle_approval_per_page_param = (string) ($_GET['per_page'] ?? '10');
 $vehicle_approval_per_page = 10;
+
 if ($vehicle_approval_per_page_param === 'all') {
     $vehicle_approval_per_page = 'all';
 } else {
     $vehicle_approval_per_page = (int) $vehicle_approval_per_page_param;
 }
 $vehicle_approval_allowed_per_page = [10, 20, 50, 'all'];
+
 if (!in_array($vehicle_approval_per_page, $vehicle_approval_allowed_per_page, true)) {
     $vehicle_approval_per_page = 10;
 }
 
 $pending_statuses = ['PENDING', 'ASSIGNED'];
+
 if ($vehicle_approval_mode === 'director') {
     // Directors act after officers assign.
     $pending_statuses = ['ASSIGNED'];
@@ -84,6 +92,7 @@ if ($vehicle_approval_mode === 'director') {
 // Requirement: executives should see "กำลังดำเนินการ" (ASSIGNED), "อนุมัติการจองสำเร็จ" (APPROVED),
 // and "ไม่อนุมัติ" (REJECTED).
 $vehicle_approval_visible_statuses = null;
+
 if ($vehicle_approval_mode === 'director') {
     $vehicle_approval_visible_statuses = ['ASSIGNED', 'APPROVED', 'REJECTED'];
 } elseif ($vehicle_approval_exec_pid !== null && !$vehicle_approval_can_finalize && !$vehicle_approval_can_assign) {
@@ -108,26 +117,32 @@ if (!isset($status_filter_map[$vehicle_approval_status])) {
 }
 
 $vehicle_list = [];
+
 try {
     $vehicle_table_columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicles');
     $vehicle_sql = 'SELECT vehicleID, vehiclePlate, vehicleType, vehicleBrand, vehicleModel FROM dh_vehicles';
     $vehicle_conditions = [];
+
     if (vehicle_reservation_has_column($vehicle_table_columns, 'deletedAt')) {
         $vehicle_conditions[] = 'deletedAt IS NULL';
     }
+
     if (vehicle_reservation_has_column($vehicle_table_columns, 'vehicleStatus')) {
         // Only show vehicles that are ready to use in assignment/filter dropdowns.
         $vehicle_conditions[] = "vehicleStatus = 'พร้อมใช้งาน'";
     }
+
     if (!empty($vehicle_conditions)) {
         $vehicle_sql .= ' WHERE ' . implode(' AND ', $vehicle_conditions);
     }
     $vehicle_sql .= ' ORDER BY vehiclePlate ASC';
 
     $vehicle_stmt = mysqli_prepare($connection, $vehicle_sql);
+
     if ($vehicle_stmt) {
         mysqli_stmt_execute($vehicle_stmt);
         $vehicle_result = mysqli_stmt_get_result($vehicle_stmt);
+
         while ($vehicle_result && ($row = mysqli_fetch_assoc($vehicle_result))) {
             $vehicle_list[] = $row;
         }
@@ -138,11 +153,14 @@ try {
 }
 
 $vehicle_driver_list = [];
+
 try {
     $driver_stmt = mysqli_prepare($connection, 'SELECT pID, fName, telephone FROM teacher WHERE status = 1 ORDER BY fName ASC');
+
     if ($driver_stmt) {
         mysqli_stmt_execute($driver_stmt);
         $driver_result = mysqli_stmt_get_result($driver_stmt);
+
         while ($driver_result && ($row = mysqli_fetch_assoc($driver_result))) {
             $vehicle_driver_list[] = [
                 'pID' => (string) ($row['pID'] ?? ''),
@@ -206,6 +224,7 @@ $select_fields[] = 'req.telephone AS requester_phone';
 $select_fields[] = 'dep.dName AS department_name';
 $select_fields[] = 'app.fName AS approver_name';
 $assigned_join = '';
+
 if (vehicle_reservation_has_column($vehicle_columns, 'assignedByPID')) {
     $select_fields[] = 'asg.fName AS assigned_name';
     $assigned_join = 'LEFT JOIN teacher AS asg ON b.assignedByPID = asg.pID';
@@ -235,6 +254,7 @@ if (is_array($vehicle_approval_visible_statuses) && $vehicle_approval_visible_st
     $placeholders = implode(', ', array_fill(0, count($vehicle_approval_visible_statuses), '?'));
     $where[] = 'b.status IN (' . $placeholders . ')';
     $types .= str_repeat('s', count($vehicle_approval_visible_statuses));
+
     foreach ($vehicle_approval_visible_statuses as $status_value) {
         $params[] = $status_value;
     }
@@ -248,12 +268,14 @@ if ($vehicle_approval_vehicle !== 'all' && $vehicle_approval_vehicle !== '') {
 
 if ($vehicle_approval_status !== 'all') {
     $status_values = $status_filter_map[$vehicle_approval_status];
+
     if ($status_values === []) {
         $where[] = '0=1';
     } else {
         $placeholders = implode(', ', array_fill(0, count($status_values), '?'));
         $where[] = 'b.status IN (' . $placeholders . ')';
         $types .= str_repeat('s', count($status_values));
+
         foreach ($status_values as $status_value) {
             $params[] = $status_value;
         }
@@ -276,6 +298,7 @@ if ($vehicle_approval_query !== '') {
         $search_types .= 's';
         $search_params[] = $search_like;
     }
+
     if (vehicle_reservation_has_column($vehicle_columns, 'location')) {
         $search_parts[] = 'b.location LIKE ?';
         $search_types .= 's';
@@ -289,6 +312,7 @@ if ($vehicle_approval_query !== '') {
     if ($search_parts !== []) {
         $where[] = '(' . implode(' OR ', $search_parts) . ')';
         $types .= $search_types;
+
         foreach ($search_params as $value) {
             $params[] = $value;
         }
@@ -297,6 +321,7 @@ if ($vehicle_approval_query !== '') {
 
 if ($vehicle_approval_date_from !== '') {
     $date_from_obj = DateTime::createFromFormat('Y-m-d', $vehicle_approval_date_from);
+
     if ($date_from_obj !== false) {
         $where[] = 'b.startAt >= ?';
         $types .= 's';
@@ -306,6 +331,7 @@ if ($vehicle_approval_date_from !== '') {
 
 if ($vehicle_approval_date_to !== '') {
     $date_to_obj = DateTime::createFromFormat('Y-m-d', $vehicle_approval_date_to);
+
     if ($date_to_obj !== false) {
         $where[] = 'b.endAt <= ?';
         $types .= 's';
@@ -356,12 +382,14 @@ try {
     $bind_params = [];
     $bind_params[] = $count_stmt;
     $bind_params[] = $types;
+
     foreach ($params as $i => $v) {
         $bind_params[] = &$params[$i];
     }
     call_user_func_array('mysqli_stmt_bind_param', $bind_params);
     mysqli_stmt_execute($count_stmt);
     $count_result = mysqli_stmt_get_result($count_stmt);
+
     if ($count_result && ($row = mysqli_fetch_assoc($count_result))) {
         $vehicle_approval_total = (int) ($row['total'] ?? 0);
     }
@@ -391,17 +419,20 @@ if ($vehicle_approval_per_page !== 'all') {
 }
 
 $vehicle_booking_requests = [];
+
 try {
     $stmt = mysqli_prepare($connection, $sql);
     $bind_params = [];
     $bind_params[] = $stmt;
     $bind_params[] = $types;
+
     foreach ($params as $i => $v) {
         $bind_params[] = &$params[$i];
     }
     call_user_func_array('mysqli_stmt_bind_param', $bind_params);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
+
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
             $vehicle_booking_requests[] = $row;
@@ -437,7 +468,7 @@ foreach ($vehicle_booking_requests as $item) {
 }
 
 $booking_ids = array_values(array_filter(array_map(
-    static fn(array $booking): int => (int) ($booking['bookingID'] ?? 0),
+    static fn (array $booking): int => (int) ($booking['bookingID'] ?? 0),
     $vehicle_booking_requests
 )));
 $vehicle_booking_attachments = vehicle_reservation_get_booking_attachments($connection, $booking_ids);

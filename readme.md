@@ -51,6 +51,8 @@ What `make dev` does:
 make db-status   # show DB readiness (tables + core rows)
 make db-ready    # import only if DB is not ready
 make db-import   # force re-import (drop/create DB)
+make lint-php    # syntax check all project PHP files
+make refactor    # run consistent non-breaking refactor style pass
 ```
 
 Optional overrides:

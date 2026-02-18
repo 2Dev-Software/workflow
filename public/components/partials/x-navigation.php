@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php';
 
 $teacher = $teacher ?? ($GLOBALS['teacher'] ?? []);
 $dh_year_value = (string) ($dh_year ?? ($GLOBALS['dh_year'] ?? ''));
+
 if ($dh_year_value === '' || !is_numeric($dh_year_value)) {
     $dh_year_value = (string) ((int) date('Y') + 543);
 }

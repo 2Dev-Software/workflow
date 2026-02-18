@@ -55,9 +55,11 @@ $format_thai_datetime = static function (string $datetime) use ($thai_months): s
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
     }
+
     if ($date_obj === false) {
         return $datetime;
     }
@@ -72,11 +74,13 @@ $format_thai_datetime = static function (string $datetime) use ($thai_months): s
 
 $format_thai_date = static function (string $date) use ($thai_months): string {
     $date = trim($date);
+
     if ($date === '' || strpos($date, '0000-00-00') === 0) {
         return '-';
     }
 
     $date_obj = DateTime::createFromFormat('Y-m-d', $date);
+
     if ($date_obj === false) {
         return $date;
     }
@@ -157,6 +161,7 @@ ob_start();
                             $vehicle_color = trim((string) ($vehicle['vehicleColor'] ?? ''));
                             $vehicle_capacity = (int) ($vehicle['vehicleCapacity'] ?? 0);
                             $vehicle_status = trim((string) ($vehicle['vehicleStatus'] ?? ''));
+
                             if ($vehicle_status === '') {
                                 $vehicle_status = $status_options[0] ?? 'พร้อมใช้งาน';
                             }
@@ -375,15 +380,15 @@ ob_start();
                         </select>
                     </div>
                     <!-- <select class="form-input" name="vehicle_status" required>
-                        <?php //foreach ($status_options as $status_option) : 
+                        <?php //foreach ($status_options as $status_option) :
                         ?>
-                            <option value="<?php //h((string) $status_option) 
-                                            ?>" <?php //$status_option === $form_values['vehicleStatus'] ? 'selected' : '' 
+                            <option value="<?php //h((string) $status_option)
+                                            ?>" <?php //$status_option === $form_values['vehicleStatus'] ? 'selected' : ''
                                                 ?>>
-                                <?php //h((string) $status_option) 
+                                <?php //h((string) $status_option)
                                 ?>
                             </option>
-                        <?php //endforeach; 
+                        <?php //endforeach;
                         ?>
                     </select> -->
                 </div>
@@ -512,28 +517,30 @@ ob_start();
                     <tbody>
                         <?php
                         $candidate_seen = [];
-                        foreach ($vehicle_candidate_members as $candidate) :
-                            $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
-                            if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
-                                continue;
-                            }
-                            $candidate_seen[$candidate_pid] = true;
 
-                            $candidate_name = trim((string) ($candidate['name'] ?? ''));
-                            $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
-                            $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
-                            $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
-                            $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
-                            $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+foreach ($vehicle_candidate_members as $candidate) :
+    $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
 
-                            $member_search = trim(implode(' ', array_filter([
-                                $candidate_pid,
-                                $candidate_name,
-                                $candidate_department,
-                                $candidate_position,
-                                $candidate_tel,
-                            ])));
-                        ?>
+    if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
+        continue;
+    }
+    $candidate_seen[$candidate_pid] = true;
+
+    $candidate_name = trim((string) ($candidate['name'] ?? ''));
+    $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
+    $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
+    $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
+    $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
+    $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+
+    $member_search = trim(implode(' ', array_filter([
+        $candidate_pid,
+        $candidate_name,
+        $candidate_department,
+        $candidate_position,
+        $candidate_tel,
+    ])));
+    ?>
                             <tr data-member-row data-member-search="<?= h($member_search) ?>">
                                 <td>
                                     <strong><?= h($candidate_name) ?></strong>

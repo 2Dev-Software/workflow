@@ -35,6 +35,7 @@ $headers = $is_facility
     : ['หัวข้อ', 'สถานที่/อุปกรณ์', 'สถานะ', 'เวลา', 'จัดการ'];
 
 $rows = [];
+
 foreach ($requests as $req) {
     $status_key = (string) ($req['status'] ?? 'PENDING');
     $status = $status_map[$status_key] ?? ['label' => $status_key, 'variant' => 'pending'];
@@ -75,12 +76,14 @@ foreach ($requests as $req) {
 }
 
 $detail_status = null;
+
 if ($view_item) {
     $detail_key = (string) ($view_item['status'] ?? 'PENDING');
     $detail_status = $status_map[$detail_key] ?? ['label' => $detail_key, 'variant' => 'pending'];
 }
 
 $edit_status = null;
+
 if ($edit_item) {
     $edit_key = (string) ($edit_item['status'] ?? 'PENDING');
     $edit_status = $status_map[$edit_key] ?? ['label' => $edit_key, 'variant' => 'pending'];

@@ -18,6 +18,7 @@ $item_type = strtoupper(trim((string) ($item['circularType'] ?? '')));
 $item_status = strtoupper(trim((string) ($item['status'] ?? '')));
 $item_inbox_type = (string) ($item['inboxType'] ?? INBOX_TYPE_NORMAL);
 $sender_display = '-';
+
 if ($sender_name !== '' && $sender_faction_name !== '') {
     $sender_display = $sender_name . ' / ' . $sender_faction_name;
 } elseif ($sender_name !== '') {
@@ -39,6 +40,7 @@ $status_label_map = [
 ];
 $status_label = $status_label_map[$status_raw] ?? $status_raw;
 $status_class = 'pending';
+
 if (in_array($status_raw, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED, EXTERNAL_STATUS_REVIEWED, EXTERNAL_STATUS_FORWARDED], true)) {
     $status_class = 'approved';
 } elseif (in_array($status_raw, [INTERNAL_STATUS_RECALLED], true)) {
@@ -185,7 +187,9 @@ ob_start();
                     <option value="">เลือกกลุ่ม/ฝ่าย</option>
                     <?php foreach ($factions as $faction) : ?>
                         <?php $faction_id = (int) ($faction['fID'] ?? 0); ?>
-                        <?php if ($faction_id <= 0) { continue; } ?>
+                        <?php if ($faction_id <= 0) {
+                            continue;
+                        } ?>
                         <option value="<?= h((string) $faction_id) ?>"><?= h((string) ($faction['fName'] ?? '')) ?></option>
                     <?php endforeach; ?>
                 </select>

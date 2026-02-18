@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -35,6 +36,7 @@ if (!function_exists('repair_list_by_requester')) {
             FROM dh_repair_requests
             WHERE requesterPID = ? AND deletedAt IS NULL
             ORDER BY createdAt DESC, repairID DESC';
+
         return db_fetch_all($sql, 's', $pID);
     }
 }
@@ -47,6 +49,7 @@ if (!function_exists('repair_list_all')) {
             LEFT JOIN teacher AS t ON r.requesterPID = t.pID
             WHERE r.deletedAt IS NULL
             ORDER BY r.createdAt DESC, r.repairID DESC';
+
         return db_fetch_all($sql);
     }
 }
@@ -55,6 +58,7 @@ if (!function_exists('repair_count_by_requester')) {
     function repair_count_by_requester(string $pID): int
     {
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_repair_requests WHERE requesterPID = ? AND deletedAt IS NULL', 's', $pID);
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -69,6 +73,7 @@ if (!function_exists('repair_list_by_requester_page')) {
             WHERE requesterPID = ? AND deletedAt IS NULL
             ORDER BY createdAt DESC, repairID DESC
             LIMIT ? OFFSET ?';
+
         return db_fetch_all($sql, 'sii', $pID, $limit, $offset);
     }
 }
@@ -77,6 +82,7 @@ if (!function_exists('repair_count_all')) {
     function repair_count_all(): int
     {
         $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_repair_requests WHERE deletedAt IS NULL');
+
         return (int) ($row['total'] ?? 0);
     }
 }
@@ -92,6 +98,7 @@ if (!function_exists('repair_list_all_page')) {
             WHERE r.deletedAt IS NULL
             ORDER BY r.createdAt DESC, r.repairID DESC
             LIMIT ? OFFSET ?';
+
         return db_fetch_all($sql, 'ii', $limit, $offset);
     }
 }
@@ -138,6 +145,7 @@ if (!function_exists('repair_get')) {
             LEFT JOIN teacher AS t ON r.requesterPID = t.pID
             WHERE r.repairID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $repairID);
     }
 }
@@ -150,6 +158,7 @@ if (!function_exists('repair_get_attachments')) {
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
+
         return db_fetch_all($sql, 'sss', REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, (string) $repairID);
     }
 }

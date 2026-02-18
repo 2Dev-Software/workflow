@@ -1,4 +1,5 @@
 <?php
+
 $login_alert = $login_alert ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
@@ -15,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         http_response_code(403);
         $set_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
+
         return;
     }
 
@@ -28,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     if ($pID === '' || $password === '') {
         http_response_code(400);
         $set_alert('danger', 'เข้าสู่ระบบไม่สำเร็จ', 'กรุณากรอกเลขบัตรประชาชนและรหัสผ่านให้ครบถ้วน');
+
         return;
     }
 
@@ -36,13 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $stmt = mysqli_prepare($connection, $sql);
 
     if ($stmt === false) {
-        error_log("Database Error: " . mysqli_error($connection));
+        error_log('Database Error: ' . mysqli_error($connection));
         http_response_code(500);
         $set_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเข้าสู่ระบบได้ในขณะนี้');
+
         return;
     }
 
-    mysqli_stmt_bind_param($stmt, "ss", $pID, $password);
+    mysqli_stmt_bind_param($stmt, 'ss', $pID, $password);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     $row = $result ? mysqli_fetch_assoc($result) : null;
@@ -52,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         http_response_code(401);
         $set_alert('danger', 'เข้าสู่ระบบไม่สำเร็จ', 'กรุณาตรวจสอบเลขบัตรประชาชนหรือรหัสผ่านอีกครั้ง');
         audit_log('auth', 'LOGIN', 'FAIL', 'teacher', null, 'Invalid credentials', ['pID' => $pID]);
+
         return;
     }
 
@@ -66,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     } else {
         mysqli_stmt_execute($status_stmt);
         $status_result = mysqli_stmt_get_result($status_stmt);
+
         if ($status_row = mysqli_fetch_assoc($status_result)) {
             $dh_status = (int) $status_row['dh_status'];
         }
@@ -81,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         ];
         $status_alert = $status_titles[$dh_status] ?? ['ระบบไม่พร้อมใช้งาน', 'ขณะนี้ระบบไม่พร้อมใช้งาน'];
         $set_alert('warning', $status_alert[0], $status_alert[1]);
+
         return;
     }
 
@@ -100,6 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             'delay_ms' => 1000,
         ]
     );
+
     return;
 }
-?>

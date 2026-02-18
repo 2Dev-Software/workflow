@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -29,6 +30,7 @@ require_once __DIR__ . '/../../app/config/constants.php';
 require_once __DIR__ . '/../../app/rbac/roles.php';
 
 $allowed_modules = ['circulars', 'orders', 'outgoing', 'memos', 'repairs'];
+
 if (!in_array($module, $allowed_modules, true)) {
     http_response_code(400);
     exit();
@@ -40,6 +42,7 @@ $file_sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.
     WHERE r.moduleName = ? AND r.entityID = ? AND r.fileID = ? AND f.deletedAt IS NULL
     LIMIT 1';
 $stmt = mysqli_prepare($connection, $file_sql);
+
 if ($stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
     http_response_code(500);
@@ -62,6 +65,7 @@ $authorized = false;
 
 if ($module === 'circulars') {
     $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_circulars WHERE circularID = ? AND createdByPID = ? LIMIT 1');
+
     if ($check) {
         mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
         mysqli_stmt_execute($check);
@@ -69,8 +73,10 @@ if ($module === 'circulars') {
         $authorized = $res && mysqli_fetch_assoc($res);
         mysqli_stmt_close($check);
     }
+
     if (!$authorized) {
         $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_circular_inboxes WHERE circularID = ? AND pID = ? LIMIT 1');
+
         if ($check) {
             mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
             mysqli_stmt_execute($check);
@@ -81,6 +87,7 @@ if ($module === 'circulars') {
     }
 } elseif ($module === 'orders') {
     $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_orders WHERE orderID = ? AND createdByPID = ? LIMIT 1');
+
     if ($check) {
         mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
         mysqli_stmt_execute($check);
@@ -88,8 +95,10 @@ if ($module === 'circulars') {
         $authorized = $res && mysqli_fetch_assoc($res);
         mysqli_stmt_close($check);
     }
+
     if (!$authorized) {
         $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_order_inboxes WHERE orderID = ? AND pID = ? LIMIT 1');
+
         if ($check) {
             mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
             mysqli_stmt_execute($check);
@@ -100,17 +109,21 @@ if ($module === 'circulars') {
     }
 } elseif ($module === 'outgoing') {
     $role_ids = rbac_resolve_role_ids($connection, ROLE_REGISTRY);
+
     if (empty($role_ids)) {
         $role_ids = [2];
     }
+
     if (!empty($role_ids)) {
         $placeholders = implode(', ', array_fill(0, count($role_ids), '?'));
         $types = str_repeat('i', count($role_ids));
         $sql = 'SELECT 1 FROM teacher WHERE pID = ? AND roleID IN (' . $placeholders . ') LIMIT 1';
         $stmt = mysqli_prepare($connection, $sql);
+
         if ($stmt) {
             $params = array_merge([$stmt, 's' . $types, $current_pid], $role_ids);
             $refs = [];
+
             foreach ($params as $i => $val) {
                 $refs[$i] = &$params[$i];
             }
@@ -124,17 +137,21 @@ if ($module === 'circulars') {
 } elseif ($module === 'memos') {
     // Authorized: creator OR current approver (toPID) OR decision actor (approvedByPID) OR admin.
     $fields = ['createdByPID', 'approvedByPID'];
+
     if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'status')) {
         $fields[] = 'status';
     }
+
     if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'submittedAt')) {
         $fields[] = 'submittedAt';
     }
+
     if (function_exists('db_column_exists') && db_column_exists($connection, 'dh_memos', 'toPID')) {
         $fields[] = 'toPID';
     }
     $check_sql = 'SELECT ' . implode(', ', $fields) . ' FROM dh_memos WHERE memoID = ? LIMIT 1';
     $check = mysqli_prepare($connection, $check_sql);
+
     if ($check) {
         mysqli_stmt_bind_param($check, 'i', $entity_id);
         mysqli_stmt_execute($check);
@@ -153,10 +170,12 @@ if ($module === 'circulars') {
                 'REJECTED',
             ], true);
             $authorized = ((string) ($row['createdByPID'] ?? '') === $current_pid);
+
             // Draft and "cancelled-before-submit" are creator-only even if an approver was preselected.
             if (!$authorized && $memo_status !== 'DRAFT' && $is_submitted_or_legacy && !empty($row['toPID'])) {
                 $authorized = ((string) $row['toPID'] === $current_pid);
             }
+
             if (!$authorized && !empty($row['approvedByPID'])) {
                 $authorized = ((string) $row['approvedByPID'] === $current_pid);
             }
@@ -168,6 +187,7 @@ if ($module === 'circulars') {
     }
 } elseif ($module === 'repairs') {
     $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_repair_requests WHERE repairID = ? AND requesterPID = ? LIMIT 1');
+
     if ($check) {
         mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
         mysqli_stmt_execute($check);
@@ -183,6 +203,7 @@ if (!$authorized) {
 }
 
 $file_path = (string) ($file_row['filePath'] ?? '');
+
 if ($file_path === '') {
     http_response_code(404);
     exit();
@@ -193,9 +214,11 @@ $base_assets = realpath(__DIR__ . '/../../assets/uploads');
 $target_path = realpath(__DIR__ . '/../../' . $file_path);
 
 $valid = false;
+
 if ($target_path && $base_storage && strpos($target_path, $base_storage) === 0) {
     $valid = true;
 }
+
 if ($target_path && $base_assets && strpos($target_path, $base_assets) === 0) {
     $valid = true;
 }

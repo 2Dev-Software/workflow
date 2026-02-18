@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -7,11 +8,13 @@ require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/room-booking-utils.php';
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
+
 if (!($connection instanceof mysqli)) {
     return;
 }
 
 $room_booking_year = isset($room_booking_year) ? (int) $room_booking_year : 0;
+
 if ($room_booking_year <= 0) {
     $room_booking_year = (int) date('Y') + 543;
 }
@@ -77,6 +80,7 @@ if ($stmt === false) {
             $row['roomName'] = $room_booking_rooms[$room_id] ?? $room_id;
 
             $requester_name = trim((string) ($row['requester_name'] ?? ''));
+
             if ($requester_name === '') {
                 $requester_name = trim((string) ($row['requesterDisplayName'] ?? ''));
             }
@@ -102,11 +106,11 @@ if ($stmt === false) {
 $room_booking_total = count($room_bookings);
 $room_booking_approved_total = count(array_filter(
     $room_bookings,
-    static fn(array $item): bool => (int) ($item['status'] ?? 0) === 1
+    static fn (array $item): bool => (int) ($item['status'] ?? 0) === 1
 ));
 $room_booking_pending_total = count(array_filter(
     $room_bookings,
-    static fn(array $item): bool => (int) ($item['status'] ?? 0) === 0
+    static fn (array $item): bool => (int) ($item['status'] ?? 0) === 0
 ));
 
 $room_booking_pid = (string) ($_SESSION['pID'] ?? '');
@@ -114,7 +118,7 @@ $my_bookings = $room_booking_pid === ''
     ? []
     : array_values(array_filter(
         $room_bookings,
-        static fn(array $item): bool => (string) ($item['requesterPID'] ?? '') === $room_booking_pid
+        static fn (array $item): bool => (string) ($item['requesterPID'] ?? '') === $room_booking_pid
     ));
 
 $sort_bookings_latest = static function (array $left, array $right): int {

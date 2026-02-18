@@ -184,7 +184,7 @@ ob_start();
 
                 <!-- <div class="footer-modal">
                     <form method="POST" id="modalArchiveForm">
-                        <?php //csrf_field() ?>
+                        <?php //csrf_field()?>
                         <input type="hidden" name="inbox_id" id="modalInboxId" value="">
                         <input type="hidden" name="action" value="unarchive">
                         <button type="submit" class="">

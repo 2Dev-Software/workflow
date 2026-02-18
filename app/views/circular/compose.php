@@ -30,12 +30,15 @@ $receipt_stats = (array) ($receipt_stats ?? []);
 
 $current_user = current_user() ?? [];
 $sender_name = trim((string) ($current_user['fName'] ?? ''));
+
 if ($sender_name === '') {
     $sender_name = (string) ($current_user['pID'] ?? '');
 }
 $faction_name_map = [];
+
 foreach ($factions as $faction) {
     $fid = (int) ($faction['fID'] ?? 0);
+
     if ($fid <= 0) {
         continue;
     }
@@ -43,13 +46,16 @@ foreach ($factions as $faction) {
 }
 $sender_from_fid = (int) ($current_user['fID'] ?? 0);
 $sender_faction_display = '';
+
 if ($sender_from_fid > 0 && isset($faction_name_map[$sender_from_fid])) {
     $sender_faction_display = (string) $faction_name_map[$sender_from_fid];
 } else {
     $sender_faction_display = trim((string) ($current_user['faction_name'] ?? ''));
 }
+
 if ($sender_faction_display === '') {
     $position_name = trim((string) ($current_user['position_name'] ?? ''));
+
     if ($position_name !== '') {
         $sender_faction_display = 'ตำแหน่ง ' . $position_name . ' (' . $sender_name . ')';
     } else {
@@ -104,6 +110,7 @@ $format_thai_datetime = static function (?string $date_value) use ($thai_months)
     }
 
     $timestamp = strtotime($date_value);
+
     if ($timestamp === false) {
         return $date_value;
     }
@@ -122,6 +129,7 @@ $format_thai_date_long = static function (?string $date_value) use ($thai_months
     }
 
     $timestamp = strtotime($date_value);
+
     if ($timestamp === false) {
         return $date_value;
     }
@@ -140,18 +148,21 @@ $format_thai_date_long = static function (?string $date_value) use ($thai_months
 
 $build_track_url = static function (array $override = []) use ($query_params): string {
     $params = array_merge($query_params, $override);
+
     foreach ($params as $key => $value) {
         if ($value === null || $value === '') {
             unset($params[$key]);
         }
     }
     $query = http_build_query($params);
+
     return 'circular-compose.php' . ($query !== '' ? ('?' . $query) : '');
 };
 
 $build_url = $build_track_url;
 $receipt_total = count($receipt_stats);
 $receipt_read = 0;
+
 foreach ($receipt_stats as $stat) {
     if ((int) ($stat['isRead'] ?? 0) === 1) {
         $receipt_read++;
@@ -170,6 +181,7 @@ $faction_members = [];
 $department_groups = [];
 $executive_members = [];
 $subject_head_members = [];
+
 foreach ($teachers as $teacher) {
     $fid = (int) ($teacher['fID'] ?? 0);
     $did = (int) ($teacher['dID'] ?? 0);
@@ -177,9 +189,11 @@ foreach ($teachers as $teacher) {
     $pid = trim((string) ($teacher['pID'] ?? ''));
     $name = trim((string) ($teacher['fName'] ?? ''));
     $department_name = trim((string) ($teacher['departmentName'] ?? ''));
+
     if ($pid === '' || $name === '') {
         continue;
     }
+
     if ($fid > 0) {
         if (!isset($faction_members[$fid])) {
             $faction_members[$fid] = [];
@@ -205,6 +219,7 @@ foreach ($teachers as $teacher) {
     }
 
     $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
+
     if (
         $did > 0 &&
         $department_name !== '' &&
@@ -241,6 +256,7 @@ usort($subject_head_members, static function (array $a, array $b): int {
 });
 
 $special_groups = [];
+
 if (!empty($executive_members)) {
     $special_groups[] = [
         'key' => 'special-executive',
@@ -248,6 +264,7 @@ if (!empty($executive_members)) {
         'members' => $executive_members,
     ];
 }
+
 if (!empty($subject_head_members)) {
     $special_groups[] = [
         'key' => 'special-subject-head',
@@ -782,16 +799,19 @@ ob_start();
                                 <?php foreach ($factions as $faction) : ?>
                                     <?php
                                     $fid = (int) ($faction['fID'] ?? 0);
+
                                     if ($fid <= 0) {
                                         continue;
                                     }
                                     $fid_value = (string) $fid;
                                     $faction_name = trim((string) ($faction['fName'] ?? ''));
+
                                     if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) {
                                         continue;
                                     }
                                     $members = $faction_members[$fid] ?? [];
                                     $member_payload = [];
+
                                     foreach ($members as $member) {
                                         $member_payload[] = [
                                             'pID' => (string) ($member['pID'] ?? ''),
@@ -800,13 +820,16 @@ ob_start();
                                         ];
                                     }
                                     $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
                                     if ($member_payload_json === false) {
                                         $member_payload_json = '[]';
                                     }
                                     $member_total = count($members);
                                     $has_selected_member = false;
+
                                     foreach ($members as $member) {
                                         $member_pid = (string) ($member['pID'] ?? '');
+
                                         if ($member_pid !== '' && $is_selected($member_pid, $selected_people)) {
                                             $has_selected_member = true;
                                             break;
@@ -840,6 +863,7 @@ ob_start();
                                                     <?php
                                                     $member_pid = (string) ($member['pID'] ?? '');
                                                     $member_name = (string) ($member['name'] ?? '');
+
                                                     if ($member_pid === '' || $member_name === '') {
                                                         continue;
                                                     }
@@ -874,18 +898,22 @@ ob_start();
                                     $did = (int) ($department_group['dID'] ?? 0);
                                     $department_name = trim((string) ($department_group['name'] ?? ''));
                                     $members = (array) ($department_group['members'] ?? []);
+
                                     if ($did <= 0 || $department_name === '' || empty($members)) {
                                         continue;
                                     }
 
                                     $member_payload = [];
                                     $has_selected_member = false;
+
                                     foreach ($members as $member) {
                                         $member_pid = (string) ($member['pID'] ?? '');
                                         $member_name = (string) ($member['name'] ?? '');
+
                                         if ($member_pid === '' || $member_name === '') {
                                             continue;
                                         }
+
                                         if ($is_selected($member_pid, $selected_people)) {
                                             $has_selected_member = true;
                                         }
@@ -895,10 +923,12 @@ ob_start();
                                             'faction' => $department_name,
                                         ];
                                     }
+
                                     if (empty($member_payload)) {
                                         continue;
                                     }
                                     $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
                                     if ($member_payload_json === false) {
                                         $member_payload_json = '[]';
                                     }
@@ -952,18 +982,22 @@ ob_start();
                                     $group_key = trim((string) ($special_group['key'] ?? ''));
                                     $group_name = trim((string) ($special_group['name'] ?? ''));
                                     $members = (array) ($special_group['members'] ?? []);
+
                                     if ($group_key === '' || $group_name === '' || empty($members)) {
                                         continue;
                                     }
 
                                     $member_payload = [];
                                     $has_selected_member = false;
+
                                     foreach ($members as $member) {
                                         $member_pid = (string) ($member['pID'] ?? '');
                                         $member_name = (string) ($member['name'] ?? '');
+
                                         if ($member_pid === '' || $member_name === '') {
                                             continue;
                                         }
+
                                         if ($is_selected($member_pid, $selected_people)) {
                                             $has_selected_member = true;
                                         }
@@ -979,6 +1013,7 @@ ob_start();
                                     }
 
                                     $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
                                     if ($member_payload_json === false) {
                                         $member_payload_json = '[]';
                                     }
@@ -1098,17 +1133,18 @@ ob_start();
                         <p class="select-value">
                             <?php
                             $status_label = 'ทั้งหมด';
-                            if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
-                                $status_label = 'ส่งแล้ว';
-                            } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
-                                $status_label = 'ดึงกลับ';
-                            } elseif ($filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) {
-                                $status_label = 'รอพิจารณา';
-                            } elseif ($filter_status === strtolower(EXTERNAL_STATUS_REVIEWED)) {
-                                $status_label = 'พิจารณาแล้ว';
-                            }
-                            echo h($status_label);
-                            ?>
+
+if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
+    $status_label = 'ส่งแล้ว';
+} elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
+    $status_label = 'ดึงกลับ';
+} elseif ($filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) {
+    $status_label = 'รอพิจารณา';
+} elseif ($filter_status === strtolower(EXTERNAL_STATUS_REVIEWED)) {
+    $status_label = 'พิจารณาแล้ว';
+}
+echo h($status_label);
+?>
                         </p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
@@ -1192,10 +1228,12 @@ ob_start();
                         $detail_sender_faction = trim((string) ($detail_row['senderFactionName'] ?? $sender_faction_name));
                         $attachments = (array) ($detail_row['files'] ?? []);
                         $files_json = json_encode($attachments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
                         if ($files_json === false) {
                             $files_json = '[]';
                         }
                         $consider_class = 'considering';
+
                         if (in_array($status_key, [INTERNAL_STATUS_RECALLED], true)) {
                             $consider_class = 'considered';
                         } elseif (in_array($status_key, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED, EXTERNAL_STATUS_REVIEWED, EXTERNAL_STATUS_FORWARDED], true)) {
@@ -1203,8 +1241,10 @@ ob_start();
                         }
                         $stats_rows = [];
                         $has_any_read = $read_count > 0;
+
                         foreach ((array) ($read_stats_map[$circular_id] ?? []) as $stat) {
                             $is_read = (int) ($stat['isRead'] ?? 0) === 1;
+
                             if ($is_read) {
                                 $has_any_read = true;
                             }
@@ -1216,6 +1256,7 @@ ob_start();
                             ];
                         }
                         $stats_json = json_encode($stats_rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
                         if ($stats_json === false) {
                             $stats_json = '[]';
                         }
@@ -1312,7 +1353,7 @@ ob_start();
     //     'base_url' => $pagination_url,
     //     'class' => 'u-mt-2',
     // ]);
-    ?>
+?>
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (!function_exists('csrf_token')) {
@@ -20,6 +21,7 @@ if (!function_exists('csrf_field')) {
     function csrf_field(): string
     {
         $token = csrf_token();
+
         return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
     }
 }
@@ -32,6 +34,7 @@ if (!function_exists('csrf_validate')) {
         }
 
         $session_token = $_SESSION['csrf_token'] ?? '';
+
         if ($token === null || $token === '' || $session_token === '') {
             return false;
         }

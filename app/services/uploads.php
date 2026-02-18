@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db/db.php';
@@ -19,6 +20,7 @@ if (!function_exists('upload_normalize_files')) {
 
             if (is_array($data['name'])) {
                 $count = count($data['name']);
+
                 for ($i = 0; $i < $count; $i++) {
                     $normalized[] = [
                         'field' => $field,
@@ -107,12 +109,14 @@ if (!function_exists('upload_store_files')) {
 
         foreach ($normalized as $file) {
             $error = (int) $file['error'];
+
             if ($error !== UPLOAD_ERR_OK) {
                 throw new RuntimeException('อัปโหลดไฟล์ไม่สำเร็จ');
             }
 
             $tmp = (string) $file['tmp_name'];
             $size = (int) $file['size'];
+
             if ($size <= 0 || $size > $max_size) {
                 throw new RuntimeException('ขนาดไฟล์เกินกำหนด');
             }
@@ -134,11 +138,13 @@ if (!function_exists('upload_store_files')) {
 
             $date_path = date('Y/m');
             $module_path = rtrim($base_dir, '/\\') . '/' . $module . '/' . $date_path;
+
             if (!is_dir($module_path) && !mkdir($module_path, 0775, true) && !is_dir($module_path)) {
                 throw new RuntimeException('ไม่สามารถสร้างโฟลเดอร์อัปโหลดได้');
             }
 
             $target_path = $module_path . '/' . $filename;
+
             if (!move_uploaded_file($tmp, $target_path)) {
                 throw new RuntimeException('บันทึกไฟล์ไม่สำเร็จ');
             }

@@ -22,6 +22,7 @@ $status_options = [
 ];
 
 $rows = [];
+
 foreach ($items as $item) {
     $is_read = (int) ($item['isRead'] ?? 0) === 1;
     $rows[] = [
@@ -57,9 +58,11 @@ foreach ($items as $item) {
 
 $summary_title = $archived ? 'คำสั่งที่จัดเก็บ' : 'คำสั่งใหม่';
 $subtitle_parts = [$summary_title];
+
 if ($search !== '') {
     $subtitle_parts[] = 'ค้นหา "' . $search . '"';
 }
+
 if ($status_filter !== 'all') {
     $subtitle_parts[] = 'สถานะ: ' . ($status_options[$status_filter] ?? '');
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
@@ -56,6 +57,7 @@ if (!function_exists('circular_update_record')) {
 
         foreach ($data as $field => $value) {
             $fields[] = $field . ' = ?';
+
             if (is_int($value)) {
                 $types .= 'i';
             } else {
@@ -117,6 +119,7 @@ if (!function_exists('circular_add_inboxes')) {
     function circular_add_inboxes(int $circularID, array $recipientPIDs, string $inboxType, ?string $deliveredByPID): void
     {
         $recipientPIDs = array_values(array_unique(array_filter(array_map('trim', $recipientPIDs))));
+
         if (empty($recipientPIDs)) {
             return;
         }
@@ -188,8 +191,10 @@ if (!function_exists('circular_mark_read')) {
 
         $row = db_fetch_one('SELECT circularID FROM dh_circular_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
         $circularID = (int) ($row['circularID'] ?? 0);
+
         if ($circularID > 0) {
             $circular = circular_get($circularID);
+
             if ($circular) {
                 $documentType = strtoupper((string) ($circular['circularType'] ?? CIRCULAR_TYPE_INTERNAL)) === CIRCULAR_TYPE_EXTERNAL ? 'EXTERNAL' : 'INTERNAL';
                 $documentNumber = circular_doc_number($circularID);
@@ -203,10 +208,12 @@ if (!function_exists('circular_mark_read')) {
                     'createdByPID' => (string) ($circular['createdByPID'] ?? ''),
                     'updatedByPID' => $circular['updatedByPID'] ?? null,
                 ]);
+
                 if ($documentID) {
                     document_mark_read($documentID, $pID);
                     document_record_read_receipt($documentID, $pID);
                 }
+
                 if (function_exists('audit_log')) {
                     audit_log('circulars', 'READ', 'SUCCESS', 'dh_circulars', $circularID, null, [
                         'inbox_id' => $inboxID,
@@ -232,11 +239,14 @@ if (!function_exists('circular_archive_inbox')) {
         $row = db_fetch_one('SELECT circularID, inboxType FROM dh_circular_inboxes WHERE inboxID = ? AND pID = ? LIMIT 1', 'is', $inboxID, $pID);
         $circularID = (int) ($row['circularID'] ?? 0);
         $inboxType = (string) ($row['inboxType'] ?? INBOX_TYPE_NORMAL);
+
         if ($circularID > 0) {
             $circular = circular_get($circularID);
+
             if ($circular) {
                 $documentType = strtoupper((string) ($circular['circularType'] ?? CIRCULAR_TYPE_INTERNAL)) === CIRCULAR_TYPE_EXTERNAL ? 'EXTERNAL' : 'INTERNAL';
                 $documentID = document_get_id($documentType, circular_doc_number($circularID));
+
                 if ($documentID) {
                     document_set_recipient_status($documentID, $pID, $inboxType, 'ARCHIVED');
                 }
@@ -260,11 +270,14 @@ if (!function_exists('circular_unarchive_inbox')) {
         $circularID = (int) ($row['circularID'] ?? 0);
         $inboxType = (string) ($row['inboxType'] ?? INBOX_TYPE_NORMAL);
         $isRead = (int) ($row['isRead'] ?? 0) === 1;
+
         if ($circularID > 0) {
             $circular = circular_get($circularID);
+
             if ($circular) {
                 $documentType = strtoupper((string) ($circular['circularType'] ?? CIRCULAR_TYPE_INTERNAL)) === CIRCULAR_TYPE_EXTERNAL ? 'EXTERNAL' : 'INTERNAL';
                 $documentID = document_get_id($documentType, circular_doc_number($circularID));
+
                 if ($documentID) {
                     document_set_recipient_status($documentID, $pID, $inboxType, $isRead ? 'READ' : 'UNREAD');
                 }
@@ -283,6 +296,7 @@ if (!function_exists('circular_get')) {
             LEFT JOIN faction AS tf ON t.fID = tf.fID
             WHERE c.circularID = ?
             LIMIT 1';
+
         return db_fetch_one($sql, 'i', $circularID);
     }
 }
@@ -300,6 +314,7 @@ if (!function_exists('circular_list_sent')) {
             LEFT JOIN faction AS tf ON t.fID = tf.fID
             WHERE c.createdByPID = ? AND c.deletedAt IS NULL
             ORDER BY c.createdAt DESC, c.circularID DESC';
+
         return db_fetch_all($sql, 's', $pID);
     }
 }
@@ -312,6 +327,7 @@ if (!function_exists('circular_get_read_stats')) {
             INNER JOIN teacher AS t ON i.pID = t.pID
             WHERE i.circularID = ?
             ORDER BY t.fName ASC';
+
         return db_fetch_all($sql, 'i', $circularID);
     }
 }
@@ -320,6 +336,7 @@ if (!function_exists('circular_get_recipient_targets')) {
     function circular_get_recipient_targets(int $circularID): array
     {
         $sql = 'SELECT targetType, fID, roleID, pID, isCc FROM dh_circular_recipients WHERE circularID = ?';
+
         return db_fetch_all($sql, 'i', $circularID);
     }
 }
@@ -332,6 +349,7 @@ if (!function_exists('circular_get_attachments')) {
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
+
         return db_fetch_all($sql, 'sss', CIRCULAR_MODULE_NAME, CIRCULAR_ENTITY_NAME, (string) $circularID);
     }
 }
@@ -349,6 +367,7 @@ if (!function_exists('circular_get_announcements')) {
             WHERE a.isActive = 1 AND c.deletedAt IS NULL
             ORDER BY a.selectedAt DESC
             LIMIT ' . (int) $limit;
+
         return db_fetch_all($sql);
     }
 }

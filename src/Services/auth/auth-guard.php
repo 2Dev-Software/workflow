@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -72,6 +73,7 @@ if ($status_stmt === false) {
 } else {
     mysqli_stmt_execute($status_stmt);
     $status_result = mysqli_stmt_get_result($status_stmt);
+
     if ($status_row = mysqli_fetch_assoc($status_result)) {
         $dh_status = (int) $status_row['dh_status'];
     }
@@ -90,4 +92,3 @@ if (function_exists('audit_log')) {
         'method' => $method,
     ]);
 }
-?>
