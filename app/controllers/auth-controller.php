@@ -91,6 +91,7 @@ if (!function_exists('auth_handle_login')) {
         session_regenerate_id(true);
         $_SESSION['pID'] = $user['pID'];
         $_SESSION['user_name'] = trim(($user['fname'] ?? '') . ' ' . ($user['lname'] ?? ''));
+        user_touch_last_login((string) $user['pID']);
 
         audit_log('auth', 'LOGIN', 'SUCCESS', 'teacher', $user['pID'], null, ['request_id' => app_request_id()]);
 

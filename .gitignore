@@ -17,6 +17,11 @@
 # =========================================
 /public/uploads/*
 !/public/uploads/.gitkeep
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+!/assets/uploads/vehicle-bookings/
+assets/uploads/vehicle-bookings/*
+!/assets/uploads/vehicle-bookings/.gitkeep
 
 # =========================================
 # 4. SYSTEM & IDE FILES (ไฟล์ขยะ)

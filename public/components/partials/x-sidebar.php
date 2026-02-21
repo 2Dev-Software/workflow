@@ -17,15 +17,22 @@ if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
 $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
 
 $sidebar_connection = db_connection();
-$is_admin_user = false;
-$is_registry_user = false;
-$can_manage_external_circular = false;
+$is_admin_user = $role_id === 1;
+$is_registry_user = $role_id === 2;
+$is_vehicle_user = $role_id === 3;
+$is_facility_user = $role_id === 5;
 
 if ($actor_pid !== '') {
-    $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $role_id === 1;
-    $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $role_id === 2;
-    $can_manage_external_circular = $is_admin_user || $is_registry_user;
+    $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;
+    $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $is_registry_user;
+    $is_vehicle_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_VEHICLE) || $is_vehicle_user;
+    $is_facility_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_FACILITY) || $is_facility_user;
 }
+
+$can_manage_external_circular = $is_admin_user || $is_registry_user;
+$can_manage_room_module = $is_admin_user || $is_facility_user;
+$can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
+$can_access_settings = $is_admin_user || $is_registry_user;
 ?>
 <aside class="sidebar close">
     <header class="logo-details">
@@ -38,12 +45,12 @@ if ($actor_pid !== '') {
     <main class="profile-section">
         <?php
         $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
-$profile_picture = '';
+        $profile_picture = '';
 
-if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
-    $profile_picture = $profile_picture_raw;
-}
-?>
+        if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+            $profile_picture = $profile_picture_raw;
+        }
+        ?>
         <div class="profile-image">
             <?php if ($profile_picture !== '') : ?>
                 <img src="<?= htmlspecialchars($profile_picture, ENT_QUOTES, 'UTF-8') ?>" alt="Profile image">
@@ -65,7 +72,7 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
                 <p class="link-name">หน้าหลัก</p>
             </a>
         </li>
-        
+
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
@@ -78,7 +85,6 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
                 <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
                 <li><a href="circular-notice.php">หนังสือเวียน</a></li>
                 <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
-                <li><a href="circular-sent.php">หนังสือเวียนของฉัน</a></li>
             </ul>
         </li>
 
@@ -125,8 +131,12 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
                 <ul class="navigation-links-sub-menu">
                     <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
                     <?php if ($is_registry_user || $is_admin_user) : ?>
-                        <li><a href="circular-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a></li>
-                        <li><a href="circular-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a></li>
+                        <li><a
+                                href="circular-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
+                        </li>
+                        <li><a
+                                href="circular-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a>
+                        </li>
                     <?php endif; ?>
                     <li><a href="outgoing.php">ทะเบียนหนังสือออก</a></li>
                     <li><a href="outgoing-create.php">ออกเลขหนังสือภายนอก</a></li>
@@ -143,7 +153,7 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
             </li>
         <?php endif; ?>
 
-        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 5], true)) : ?>
+        <?php if ($can_manage_room_module) : ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -174,7 +184,7 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
                     <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
             </li>
-        <?php elseif (in_array($role_id, [1, 3], true)) : ?>
+        <?php elseif ($can_manage_vehicle_module) : ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -232,7 +242,7 @@ if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY')
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
-        <?php if (in_array((int) ($teacher['roleID'] ?? 0), [1, 2], true)) : ?>
+        <?php if ($can_access_settings) : ?>
             <li>
                 <a href="setting.php">
                     <i class="fa-solid fa-gear"></i>

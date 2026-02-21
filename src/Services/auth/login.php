@@ -2,6 +2,10 @@
 
 $login_alert = $login_alert ?? null;
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $set_alert = static function (string $type, string $title, string $message = '', array $extra = []) use (&$login_alert): void {
         $login_alert = array_merge([
@@ -13,16 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         ], $extra);
     };
 
-    if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    require_once __DIR__ . '/../../../app/auth/csrf.php';
+    require_once __DIR__ . '/../../../app/services/auth-service.php';
+    require_once __DIR__ . '/../../../app/repositories/user-repository.php';
+    require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+
+    if (!csrf_validate($_POST['csrf_token'] ?? null)) {
         http_response_code(403);
         $set_alert('danger', 'ไม่สามารถยืนยันความปลอดภัย', 'กรุณาลองใหม่อีกครั้ง');
+        audit_log('auth', 'LOGIN', 'FAIL', 'teacher', null, 'CSRF invalid');
 
         return;
     }
-
-    require_once __DIR__ . '/../../../config/connection.php';
-    require_once __DIR__ . '/../../../app/auth/password.php';
-    require_once __DIR__ . '/../../../app/modules/audit/logger.php';
 
     $pID = trim($_POST['pID'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -34,49 +40,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         return;
     }
 
-    $auth_password_column = auth_password_column($connection);
-    $sql = "SELECT pID, roleID FROM teacher WHERE pID = ? AND {$auth_password_column} = ? AND status = 1 LIMIT 1";
-    $stmt = mysqli_prepare($connection, $sql);
+    $ip_address = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    [$allowed, $lock_message] = auth_check_lockout($pID, $ip_address);
 
-    if ($stmt === false) {
-        error_log('Database Error: ' . mysqli_error($connection));
-        http_response_code(500);
-        $set_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเข้าสู่ระบบได้ในขณะนี้');
+    if (!$allowed) {
+        http_response_code(429);
+        $set_alert('warning', 'บัญชีถูกล็อกชั่วคราว', (string) ($lock_message ?? 'กรุณาลองใหม่อีกครั้งในภายหลัง'));
+        audit_log('auth', 'LOGIN', 'DENY', 'teacher', null, 'Locked out', ['pID' => $pID]);
 
         return;
     }
 
-    mysqli_stmt_bind_param($stmt, 'ss', $pID, $password);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $row = $result ? mysqli_fetch_assoc($result) : null;
-    mysqli_stmt_close($stmt);
+    [$valid, $user, $auth_error] = auth_validate_credentials($pID, $password);
 
-    if (!$row) {
+    if (!$valid || !$user) {
+        auth_record_login_failure($pID, $ip_address);
         http_response_code(401);
-        $set_alert('danger', 'เข้าสู่ระบบไม่สำเร็จ', 'กรุณาตรวจสอบเลขบัตรประชาชนหรือรหัสผ่านอีกครั้ง');
+        $set_alert('danger', 'เข้าสู่ระบบไม่สำเร็จ', (string) ($auth_error ?? 'กรุณาตรวจสอบเลขบัตรประชาชนหรือรหัสผ่านอีกครั้ง'));
         audit_log('auth', 'LOGIN', 'FAIL', 'teacher', null, 'Invalid credentials', ['pID' => $pID]);
 
         return;
     }
 
-    $role_id = (int) ($row['roleID'] ?? 0);
-    $dh_status = 1;
-
-    $status_sql = 'SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1';
-    $status_stmt = mysqli_prepare($connection, $status_sql);
-
-    if ($status_stmt === false) {
-        error_log('Database Error: ' . mysqli_error($connection));
-    } else {
-        mysqli_stmt_execute($status_stmt);
-        $status_result = mysqli_stmt_get_result($status_stmt);
-
-        if ($status_row = mysqli_fetch_assoc($status_result)) {
-            $dh_status = (int) $status_row['dh_status'];
-        }
-        mysqli_stmt_close($status_stmt);
-    }
+    $status_row = db_fetch_one('SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1');
+    $dh_status = $status_row ? (int) ($status_row['dh_status'] ?? 1) : 1;
+    $role_id = (int) ($user['roleID'] ?? 0);
 
     if ($dh_status !== 1 && $role_id !== 1) {
         http_response_code(403);
@@ -87,14 +75,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         ];
         $status_alert = $status_titles[$dh_status] ?? ['ระบบไม่พร้อมใช้งาน', 'ขณะนี้ระบบไม่พร้อมใช้งาน'];
         $set_alert('warning', $status_alert[0], $status_alert[1]);
+        audit_log('auth', 'LOGIN', 'DENY', 'teacher', null, 'System closed', ['pID' => $pID, 'dh_status' => $dh_status]);
 
         return;
     }
 
+    auth_clear_login_failure($pID, $ip_address);
     session_regenerate_id(true);
-    $_SESSION['pID'] = $row['pID'];
+    $_SESSION['pID'] = (string) $user['pID'];
+    $_SESSION['user_name'] = trim((string) ($user['fname'] ?? '') . ' ' . (string) ($user['lname'] ?? ''));
+    user_touch_last_login((string) $user['pID']);
 
-    audit_log('auth', 'LOGIN', 'SUCCESS', 'teacher', $row['pID'], null);
+    audit_log('auth', 'LOGIN', 'SUCCESS', 'teacher', (string) $user['pID'], null);
 
     $set_alert(
         'success',
