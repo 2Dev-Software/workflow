@@ -19,7 +19,7 @@ if (!function_exists('orders_send_index')) {
         $order_id = (int) ($_GET['order_id'] ?? 0);
 
         if ($order_id <= 0) {
-            header('Location: orders-manage.php', true, 302);
+            header('Location: orders-create.php', true, 302);
             exit();
         }
 
@@ -28,6 +28,10 @@ if (!function_exists('orders_send_index')) {
             'faction_ids' => [],
             'role_ids' => [],
             'person_ids' => [],
+        ];
+        $selected_summary = [
+            'selected_sources' => 0,
+            'unique_recipients' => 0,
         ];
 
         $connection = db_connection();
@@ -45,7 +49,7 @@ if (!function_exists('orders_send_index')) {
         if (!$tables_ready) {
             $alert = system_not_ready_alert('ยังไม่พบตารางคำสั่ง กรุณารัน migrations/004_create_orders.sql');
         } elseif (!$order || (string) ($order['createdByPID'] ?? '') !== $current_pid || ($order['status'] ?? '') !== ORDER_STATUS_COMPLETE) {
-            header('Location: orders-manage.php', true, 302);
+            header('Location: orders-create.php', true, 302);
             exit();
         }
 
@@ -78,6 +82,8 @@ if (!function_exists('orders_send_index')) {
                         $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
                     }
                     $pids = order_resolve_recipients($values['faction_ids'], $values['role_ids'], $values['person_ids']);
+                    $selected_summary['selected_sources'] = count($values['faction_ids']) + count($values['role_ids']) + count($values['person_ids']);
+                    $selected_summary['unique_recipients'] = count(array_values(array_unique(array_map('strval', $pids))));
                     order_send($order_id, $current_pid, ['pids' => $pids, 'targets' => $targets]);
                     $alert = [
                         'type' => 'success',
@@ -88,6 +94,10 @@ if (!function_exists('orders_send_index')) {
                         'faction_ids' => [],
                         'role_ids' => [],
                         'person_ids' => [],
+                    ];
+                    $selected_summary = [
+                        'selected_sources' => 0,
+                        'unique_recipients' => 0,
                     ];
                 } catch (Throwable $e) {
                     $alert = [
@@ -102,6 +112,38 @@ if (!function_exists('orders_send_index')) {
         $factions = user_list_factions();
         $roles = user_list_roles();
         $teachers = user_list_teachers();
+        $faction_member_map = [];
+        $role_member_map = [];
+
+        foreach ($teachers as $teacher) {
+            $pid = trim((string) ($teacher['pID'] ?? ''));
+            $fid = (int) ($teacher['fID'] ?? 0);
+            $rid = (int) ($teacher['roleID'] ?? 0);
+
+            if ($pid === '') {
+                continue;
+            }
+
+            if ($fid > 0) {
+                if (!isset($faction_member_map[(string) $fid])) {
+                    $faction_member_map[(string) $fid] = [];
+                }
+                $faction_member_map[(string) $fid][] = $pid;
+            }
+
+            if ($rid > 0) {
+                if (!isset($role_member_map[(string) $rid])) {
+                    $role_member_map[(string) $rid] = [];
+                }
+                $role_member_map[(string) $rid][] = $pid;
+            }
+        }
+
+        if ($selected_summary['selected_sources'] === 0 && (!empty($values['faction_ids']) || !empty($values['role_ids']) || !empty($values['person_ids']))) {
+            $selected_summary['selected_sources'] = count($values['faction_ids']) + count($values['role_ids']) + count($values['person_ids']);
+            $resolved = order_resolve_recipients($values['faction_ids'], $values['role_ids'], $values['person_ids']);
+            $selected_summary['unique_recipients'] = count(array_values(array_unique(array_map('strval', $resolved))));
+        }
 
         view_render('orders/send', [
             'alert' => $alert,
@@ -110,6 +152,9 @@ if (!function_exists('orders_send_index')) {
             'factions' => $factions,
             'roles' => $roles,
             'teachers' => $teachers,
+            'faction_member_map' => $faction_member_map,
+            'role_member_map' => $role_member_map,
+            'selected_summary' => $selected_summary,
         ]);
     }
 }

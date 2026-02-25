@@ -205,11 +205,6 @@ if (!function_exists('circular_compose_index')) {
                         $alert = $ok
                             ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => '']
                             : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'มีผู้รับอ่านแล้ว'];
-                    } elseif ($post_action === 'recall_external' && $circular_id > 0) {
-                        $ok = circular_recall_external_before_review($circular_id, $current_pid);
-                        $alert = $ok
-                            ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => 'สามารถแก้ไขและส่งใหม่ได้']
-                            : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'เอกสารถูกพิจารณาแล้วหรือไม่ใช่สิทธิ์ของคุณ'];
                     } elseif ($post_action === 'resend' && $circular_id > 0) {
                         $ok = circular_resend_internal($circular_id, $current_pid);
                         $alert = $ok
@@ -365,10 +360,6 @@ if (!function_exists('circular_compose_index')) {
             'ALL',
             INTERNAL_STATUS_SENT,
             INTERNAL_STATUS_RECALLED,
-            EXTERNAL_STATUS_SUBMITTED,
-            EXTERNAL_STATUS_PENDING_REVIEW,
-            EXTERNAL_STATUS_REVIEWED,
-            EXTERNAL_STATUS_FORWARDED,
         ];
 
         if (!in_array($filter_status, $allowed_statuses, true)) {
@@ -387,7 +378,9 @@ if (!function_exists('circular_compose_index')) {
             $active_tab = 'track';
         }
 
-        $all_items = circular_list_sent($current_pid);
+        $all_items = array_values(array_filter(circular_list_sent($current_pid), static function (array $item): bool {
+            return strtoupper((string) ($item['circularType'] ?? '')) === CIRCULAR_TYPE_INTERNAL;
+        }));
 
         if ($receipt_circular_id > 0) {
             foreach ($all_items as $sent_item) {

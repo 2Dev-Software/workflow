@@ -16,6 +16,8 @@ require_once __DIR__ . '/../rbac/roles.php';
 if (!function_exists('circular_view_index')) {
     function circular_view_index(): void
     {
+        $script_name = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $notice_page = $script_name === 'outgoing-view.php' ? 'outgoing-notice.php' : 'circular-notice.php';
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
         $position_ids = current_user_position_ids();
@@ -33,13 +35,13 @@ if (!function_exists('circular_view_index')) {
         $inbox_id = isset($_GET['inbox_id']) ? (int) $_GET['inbox_id'] : 0;
 
         if ($inbox_id <= 0) {
-            redirect_to('circular-notice.php');
+            redirect_to($notice_page);
         }
 
         $item = circular_get_inbox_item($inbox_id, $current_pid);
 
         if (!$item) {
-            redirect_to('circular-notice.php');
+            redirect_to($notice_page);
         }
 
         if ((int) ($item['isRead'] ?? 0) === 0) {

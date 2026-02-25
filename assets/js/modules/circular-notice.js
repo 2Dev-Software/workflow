@@ -3,6 +3,9 @@
   if (!root) {
     return;
   }
+  var loadingApi = window.App && window.App.loading ? window.App.loading : null;
+  var circularListLoadingTarget =
+    root.querySelector(".table-circular-notice-index") || root;
 
   var filterForm = document.getElementById("circularFilterForm");
   if (filterForm) {
@@ -234,6 +237,13 @@
       return;
     }
 
+    if (loadingApi) {
+      var rowLoadingTarget =
+        (row && row.closest(".table-circular-notice-index")) ||
+        circularListLoadingTarget;
+      loadingApi.startComponent(rowLoadingTarget);
+    }
+
     fetch("public/api/circular-read.php", {
       method: "POST",
       headers: {
@@ -260,7 +270,15 @@
           badge.textContent = "อ่านแล้ว";
         }
       })
-      .catch(function () {});
+      .catch(function () {})
+      .finally(function () {
+        if (loadingApi) {
+          var rowLoadingTarget =
+            (row && row.closest(".table-circular-notice-index")) ||
+            circularListLoadingTarget;
+          loadingApi.stopComponent(rowLoadingTarget);
+        }
+      });
   }
 
   if (modalClose) {

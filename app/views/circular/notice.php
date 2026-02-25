@@ -13,6 +13,9 @@ $filter_view = (string) ($filter_view ?? 'table1');
 $filter_search = (string) ($filter_search ?? '');
 $is_outside_view = (bool) ($is_outside_view ?? false);
 $director_label = (string) ($director_label ?? 'ผอ./รักษาการ');
+$show_type_filter = (bool) ($show_type_filter ?? true);
+$show_book_type_column = (bool) ($show_book_type_column ?? true);
+$detail_workflow_page = $is_outside_view ? 'outgoing-view.php' : 'circular-view.php';
 
 ob_start();
 ?>
@@ -280,22 +283,24 @@ ob_start();
 
 <header class="header-circular-notice-index<?= h($is_outside_view ? ' outside-person' : '') ?>">
     <div class="circular-notice-index-control">
-        <div class="page-selector">
-            <p>แสดงตามประเภทหนังสือ</p>
+        <?php if ($show_type_filter) : ?>
+            <div class="page-selector">
+                <p>แสดงตามประเภทหนังสือ</p>
 
-            <div class="custom-select-wrapper" data-target="filterTypeInput">
-                <div class="custom-select-trigger">
-                    <p class="select-value"><?= h($filter_type === 'internal' ? 'ภายใน' : ($filter_type === 'external' ? 'ภายนอก' : 'ทั้งหมด')) ?></p>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+                <div class="custom-select-wrapper" data-target="filterTypeInput">
+                    <div class="custom-select-trigger">
+                        <p class="select-value"><?= h($filter_type === 'internal' ? 'ภายใน' : ($filter_type === 'external' ? 'ภายนอก' : 'ทั้งหมด')) ?></p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
 
-                <div class="custom-options">
-                    <div class="custom-option<?= h($filter_type === 'external' ? ' selected' : '') ?>" data-value="external">ภายนอก</div>
-                    <div class="custom-option<?= h($filter_type === 'internal' ? ' selected' : '') ?>" data-value="internal">ภายใน</div>
-                    <div class="custom-option<?= h($filter_type === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                    <div class="custom-options">
+                        <div class="custom-option<?= h($filter_type === 'external' ? ' selected' : '') ?>" data-value="external">ภายนอก</div>
+                        <div class="custom-option<?= h($filter_type === 'internal' ? ' selected' : '') ?>" data-value="internal">ภายใน</div>
+                        <div class="custom-option<?= h($filter_type === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
         <div class="page-selector">
             <p>แสดงตามสถานะหนังสือ</p>
 
@@ -360,7 +365,9 @@ ob_start();
                             <th>
                                 <input type="checkbox" class="check-table checkall" id="checkAllCircular">
                             </th>
-                            <th>ประเภทหนังสือ</th>
+                            <?php if ($show_book_type_column) : ?>
+                                <th>ประเภทหนังสือ</th>
+                            <?php endif; ?>
                             <th>หัวเรื่อง</th>
                             <th>ผู้ส่ง</th>
                             <th>วันที่ส่ง</th>
@@ -371,7 +378,7 @@ ob_start();
                     <tbody>
                         <?php if (empty($items)) : ?>
                             <tr>
-                                <td colspan="7" class="enterprise-empty">ไม่มีรายการ</td>
+                                <td colspan="<?= h($show_book_type_column ? '7' : '6') ?>" class="enterprise-empty">ไม่มีรายการ</td>
                             </tr>
                         <?php else : ?>
                             <?php foreach ($items as $item) : ?>
@@ -388,7 +395,9 @@ ob_start();
                                     <td>
                                         <input type="checkbox" class="check-table" name="selected_ids[]" value="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
                                     </td>
-                                    <td><?= h((string) ($item['type_label'] ?? '')) ?></td>
+                                    <?php if ($show_book_type_column) : ?>
+                                        <td><?= h((string) ($item['type_label'] ?? '')) ?></td>
+                                    <?php endif; ?>
                                     <td><?= h((string) ($item['subject'] ?? '')) ?></td>
                                     <td>
                                         <div class="circular-sender-stack">
@@ -417,7 +426,7 @@ ob_start();
                                                 <i class="fa-solid fa-eye"></i>
                                                 <span class="tooltip">ดูรายละเอียด</span>
                                             </button>
-                                            <a class="booking-action-btn secondary" href="circular-view.php?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
+                                            <a class="booking-action-btn secondary" href="<?= h($detail_workflow_page) ?>?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
                                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                                                 <span class="tooltip">ส่งต่อ</span>
                                             </a>
@@ -487,7 +496,7 @@ ob_start();
                                             data-received-time="<?= h((string) ($item['delivered_time'] ?? '-')) ?>">
                                             <p>รายละเอียด</p>
                                         </button>
-                                        <a class="button-open-workflow" href="circular-view.php?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">อ่าน/ดำเนินการ</a>
+                                        <a class="button-open-workflow" href="<?= h($detail_workflow_page) ?>?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">อ่าน/ดำเนินการ</a>
                                     </div>
                                 </td>
                             </tr>

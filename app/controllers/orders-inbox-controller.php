@@ -19,13 +19,20 @@ if (!function_exists('orders_inbox_index')) {
         $search = trim((string) ($_GET['q'] ?? ''));
         $status_filter = strtolower((string) ($_GET['status'] ?? 'all'));
         $allowed_filters = ['all', 'read', 'unread'];
+        $sort = order_normalize_inbox_sort((string) ($_GET['sort'] ?? 'newest'));
+        $per_page_raw = strtolower(trim((string) ($_GET['per_page'] ?? '10')));
+        $allowed_per_page = ['10', '20', '50', 'all'];
 
         if (!in_array($status_filter, $allowed_filters, true)) {
             $status_filter = 'all';
         }
+
+        if (!in_array($per_page_raw, $allowed_per_page, true)) {
+            $per_page_raw = '10';
+        }
         $page = (int) ($_GET['page'] ?? 1);
         $page = $page > 0 ? $page : 1;
-        $per_page = 10;
+        $per_page = $per_page_raw === 'all' ? 'all' : (int) $per_page_raw;
 
         $alert = null;
         $connection = db_connection();
@@ -55,6 +62,17 @@ if (!function_exists('orders_inbox_index')) {
                         'title' => 'จัดเก็บเรียบร้อย',
                         'message' => '',
                     ];
+                } elseif ($action === 'unarchive' && $inbox_id > 0) {
+                    order_unarchive_inbox($inbox_id, $current_pid);
+
+                    if (function_exists('audit_log')) {
+                        audit_log('orders', 'UNARCHIVE', 'SUCCESS', 'dh_order_inboxes', $inbox_id);
+                    }
+                    $alert = [
+                        'type' => 'success',
+                        'title' => 'ยกเลิกจัดเก็บแล้ว',
+                        'message' => '',
+                    ];
                 }
             }
         }
@@ -75,16 +93,24 @@ if (!function_exists('orders_inbox_index')) {
         } else {
             $summary = order_inbox_read_summary($current_pid, $archived, $search);
             $filtered_total = order_count_inbox_filtered($current_pid, $archived, $search, $status_filter);
-            $total_pages = max(1, (int) ceil($filtered_total / $per_page));
+            $per_page_limit = $per_page === 'all' ? max(1, $filtered_total) : (int) $per_page;
+            $total_pages = $per_page === 'all' ? 1 : max(1, (int) ceil($filtered_total / $per_page_limit));
 
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
-            $offset = ($page - 1) * $per_page;
-            $items = order_list_inbox_page_filtered($current_pid, $archived, $search, $status_filter, $per_page, $offset);
+            if ($per_page === 'all') {
+                $page = 1;
+            }
+            $offset = ($page - 1) * $per_page_limit;
+            $items = order_list_inbox_page_filtered($current_pid, $archived, $search, $status_filter, $per_page_limit, $offset, $sort);
         }
 
-        $base_params = ['archived' => $archived ? '1' : '0'];
+        $base_params = [
+            'archived' => $archived ? '1' : '0',
+            'sort' => $sort,
+            'per_page' => $per_page_raw,
+        ];
 
         if ($search !== '') {
             $base_params['q'] = $search;
@@ -107,6 +133,8 @@ if (!function_exists('orders_inbox_index')) {
             'total_pages' => $total_pages,
             'search' => $search,
             'status_filter' => $status_filter,
+            'sort' => $sort,
+            'per_page' => $per_page_raw,
             'summary' => $summary,
             'filtered_total' => $filtered_total,
             'pagination_base_url' => $pagination_base_url,

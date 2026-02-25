@@ -30,6 +30,7 @@ if ($actor_pid !== '') {
 }
 
 $can_manage_external_circular = $is_admin_user || $is_registry_user;
+$can_access_external_circular_menu = $can_manage_external_circular || $is_director_or_acting;
 $can_manage_room_module = $is_admin_user || $is_facility_user;
 $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
 $can_access_settings = $is_admin_user || $is_registry_user;
@@ -97,10 +98,9 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
+                <li><a href="orders-create.php">ออกเลขคำสั่งราชการ</a></li>
                 <li><a href="orders-inbox.php">คำสั่งราชการ (inbox)</a></li>
                 <li><a href="orders-archive.php">คำสั่งที่จัดเก็บ</a></li>
-                <li><a href="orders-create.php">ออกคำสั่งราชการ</a></li>
-                <li><a href="orders-manage.php">คำสั่งของฉัน</a></li>
             </ul>
         </li>
 
@@ -119,7 +119,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </ul>
         </li>
 
-        <?php if ($can_manage_external_circular) : ?>
+        <?php if ($can_access_external_circular_menu) : ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -129,27 +129,17 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
                 <ul class="navigation-links-sub-menu">
-                    <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
-                    <?php if ($is_registry_user || $is_admin_user) : ?>
+                    <?php if ($can_manage_external_circular) : ?>
+                        <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
                         <li><a
-                                href="circular-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
+                                href="outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
                         </li>
-                        <li><a
-                                href="circular-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a>
-                        </li>
+                        <li><a href="outgoing.php">หนังสือเวียนที่จัดเก็บ</a></li>
                     <?php endif; ?>
-                    <li><a href="outgoing.php">ทะเบียนหนังสือออก</a></li>
-                    <li><a href="outgoing-create.php">ออกเลขหนังสือภายนอก</a></li>
+                    <?php if ($is_director_or_acting) : ?>
+                        <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา (ผอ./รักษาการ)</a></li>
+                    <?php endif; ?>
                 </ul>
-            </li>
-        <?php endif; ?>
-
-        <?php if ($is_director_or_acting) : ?>
-            <li>
-                <a href="circular-notice.php?box=director&type=external&read=all&sort=newest&view=table1">
-                    <i class="fa-solid fa-envelope-open-text"></i>
-                    <p class="link-name">พิจารณาหนังสือเวียนภายนอก</p>
-                </a>
             </li>
         <?php endif; ?>
 

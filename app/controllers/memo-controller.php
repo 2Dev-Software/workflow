@@ -94,6 +94,12 @@ if (!function_exists('memo_index')) {
     {
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
+        $active_tab = trim((string) ($_GET['tab'] ?? ''));
+
+        if (!in_array($active_tab, ['compose', 'track'], true)) {
+            $active_tab = 'compose';
+        }
+        $is_track_active = $active_tab === 'track';
 
         $search = trim((string) ($_GET['q'] ?? ''));
         $status_filter = (string) ($_GET['status'] ?? 'all');
@@ -143,11 +149,12 @@ if (!function_exists('memo_index')) {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $values['writeDate'] = trim((string) ($_POST['writeDate'] ?? '')) ?: (string) date('Y-m-d');
-            $values['to_choice'] = trim((string) ($_POST['to_choice'] ?? 'DIRECTOR')) ?: 'DIRECTOR';
-            $values['sender_fid'] = trim((string) ($_POST['sender_fid'] ?? $values['sender_fid']));
-            $values['subject'] = trim((string) ($_POST['subject'] ?? ''));
-            $values['detail'] = trim((string) ($_POST['detail'] ?? ''));
+            $post_action = trim((string) ($_POST['action'] ?? ''));
+
+            if ($post_action !== '') {
+                $active_tab = 'track';
+                $is_track_active = true;
+            }
 
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -157,60 +164,118 @@ if (!function_exists('memo_index')) {
                 ];
             } elseif (!$has_memo_table || !$has_route_table) {
                 $alert = system_not_ready_alert('ยังไม่พบตาราง memo workflow กรุณารัน migrations/011_update_memos_workflow.sql');
-            } elseif ($values['subject'] === '') {
-                $alert = [
-                    'type' => 'danger',
-                    'title' => 'กรุณากรอกหัวข้อ',
-                    'message' => '',
-                ];
-            } else {
-                $toType = null;
-                $toPID = null;
+            } elseif ($post_action !== '') {
+                $memo_id = (int) ($_POST['memo_id'] ?? 0);
 
-                if ($values['to_choice'] === 'DIRECTOR') {
-                    $toType = 'DIRECTOR';
-                } elseif (str_starts_with($values['to_choice'], 'PERSON:')) {
-                    $pid = trim(substr($values['to_choice'], 7));
-
-                    if ($pid !== '' && preg_match('/^\\d{1,13}$/', $pid)) {
-                        $toType = 'PERSON';
-                        $toPID = $pid;
-                    }
-                }
-
-                try {
-                    $flow_mode = trim((string) ($_POST['flow_mode'] ?? 'CHAIN'));
-                    $flow_mode = strtoupper($flow_mode) === 'DIRECT' ? 'DIRECT' : 'CHAIN';
-
-                    $memoID = memo_create_draft([
-                        'dh_year' => system_get_dh_year(),
-                        'writeDate' => $values['writeDate'] !== '' ? $values['writeDate'] : null,
-                        'subject' => $values['subject'],
-                        'detail' => $values['detail'],
-                        'toType' => $toType,
-                        'toPID' => $toPID,
-                        'flowMode' => $flow_mode,
-                        'createdByPID' => $current_pid,
-                    ]);
-
-                    $alert = [
-                        'type' => 'success',
-                        'title' => 'สร้างบันทึกข้อความแล้ว',
-                        'message' => 'เลขที่รายการ #' . $memoID,
-                    ];
-                    $values = [
-                        'writeDate' => (string) date('Y-m-d'),
-                        'to_choice' => 'DIRECTOR',
-                        'sender_fid' => $values['sender_fid'],
-                        'subject' => '',
-                        'detail' => '',
-                    ];
-                } catch (Throwable $e) {
+                if ($memo_id <= 0) {
                     $alert = [
                         'type' => 'danger',
-                        'title' => 'เกิดข้อผิดพลาด',
-                        'message' => $e->getMessage(),
+                        'title' => 'ข้อมูลไม่ครบถ้วน',
+                        'message' => 'ไม่พบรายการบันทึกข้อความ',
                     ];
+                } else {
+                    try {
+                        if ($post_action === 'submit') {
+                            memo_submit($memo_id, $current_pid);
+                            $alert = [
+                                'type' => 'success',
+                                'title' => 'ส่งเสนอแฟ้มเรียบร้อย',
+                                'message' => '',
+                            ];
+                        } elseif ($post_action === 'recall') {
+                            memo_recall($memo_id, $current_pid);
+                            $alert = [
+                                'type' => 'success',
+                                'title' => 'ดึงกลับเพื่อแก้ไขแล้ว',
+                                'message' => '',
+                            ];
+                        } elseif ($post_action === 'cancel') {
+                            memo_cancel($memo_id, $current_pid);
+                            $alert = [
+                                'type' => 'success',
+                                'title' => 'ยกเลิกรายการแล้ว',
+                                'message' => '',
+                            ];
+                        } elseif ($post_action === 'archive') {
+                            memo_set_archived($memo_id, $current_pid, true);
+                            $alert = [
+                                'type' => 'success',
+                                'title' => 'จัดเก็บรายการแล้ว',
+                                'message' => '',
+                            ];
+                        } else {
+                            throw new RuntimeException('ไม่รองรับคำสั่งที่ร้องขอ');
+                        }
+                    } catch (Throwable $e) {
+                        $alert = [
+                            'type' => 'danger',
+                            'title' => 'เกิดข้อผิดพลาด',
+                            'message' => $e->getMessage(),
+                        ];
+                    }
+                }
+            } else {
+                $values['writeDate'] = trim((string) ($_POST['writeDate'] ?? '')) ?: (string) date('Y-m-d');
+                $values['to_choice'] = trim((string) ($_POST['to_choice'] ?? 'DIRECTOR')) ?: 'DIRECTOR';
+                $values['sender_fid'] = trim((string) ($_POST['sender_fid'] ?? $values['sender_fid']));
+                $values['subject'] = trim((string) ($_POST['subject'] ?? ''));
+                $values['detail'] = trim((string) ($_POST['detail'] ?? ''));
+
+                if ($values['subject'] === '') {
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'กรุณากรอกหัวข้อ',
+                        'message' => '',
+                    ];
+                } else {
+                    $toType = null;
+                    $toPID = null;
+
+                    if ($values['to_choice'] === 'DIRECTOR') {
+                        $toType = 'DIRECTOR';
+                    } elseif (str_starts_with($values['to_choice'], 'PERSON:')) {
+                        $pid = trim(substr($values['to_choice'], 7));
+
+                        if ($pid !== '' && preg_match('/^\\d{1,13}$/', $pid)) {
+                            $toType = 'PERSON';
+                            $toPID = $pid;
+                        }
+                    }
+
+                    try {
+                        $flow_mode = trim((string) ($_POST['flow_mode'] ?? 'CHAIN'));
+                        $flow_mode = strtoupper($flow_mode) === 'DIRECT' ? 'DIRECT' : 'CHAIN';
+
+                        $memoID = memo_create_draft([
+                            'dh_year' => system_get_dh_year(),
+                            'writeDate' => $values['writeDate'] !== '' ? $values['writeDate'] : null,
+                            'subject' => $values['subject'],
+                            'detail' => $values['detail'],
+                            'toType' => $toType,
+                            'toPID' => $toPID,
+                            'flowMode' => $flow_mode,
+                            'createdByPID' => $current_pid,
+                        ]);
+
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'สร้างบันทึกข้อความแล้ว',
+                            'message' => 'เลขที่รายการ #' . $memoID,
+                        ];
+                        $values = [
+                            'writeDate' => (string) date('Y-m-d'),
+                            'to_choice' => 'DIRECTOR',
+                            'sender_fid' => $values['sender_fid'],
+                            'subject' => '',
+                            'detail' => '',
+                        ];
+                    } catch (Throwable $e) {
+                        $alert = [
+                            'type' => 'danger',
+                            'title' => 'เกิดข้อผิดพลาด',
+                            'message' => $e->getMessage(),
+                        ];
+                    }
                 }
             }
         }
@@ -235,7 +300,7 @@ if (!function_exists('memo_index')) {
             $memos = memo_list_by_creator_page($current_pid, false, $status_filter, $search, $per_page, $offset);
         }
 
-        $base_params = [];
+        $base_params = ['tab' => 'track'];
 
         if ($search !== '') {
             $base_params['q'] = $search;
@@ -264,6 +329,8 @@ if (!function_exists('memo_index')) {
             'status_filter' => $status_filter,
             'filtered_total' => $filtered_total,
             'pagination_base_url' => $pagination_base_url,
+            'active_tab' => $active_tab,
+            'is_track_active' => $is_track_active,
         ]);
     }
 }

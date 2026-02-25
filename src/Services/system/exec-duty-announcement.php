@@ -1,12 +1,28 @@
 <?php
 
-require_once __DIR__ . '/../../../config/connection.php';
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    require_once __DIR__ . '/../../../config/connection.php';
+}
+
+if (!isset($connection) || !($connection instanceof mysqli)) {
+    $connection = $GLOBALS['connection'] ?? null;
+}
+
 require_once __DIR__ . '/../../../app/modules/system/positions.php';
 
 $exec_duty_announcement = 'วันนี้ยังไม่มีข้อมูลการปฏิบัติราชการ';
 $exec_duty_name = '';
 $exec_duty_position = '';
 $exec_duty_status_label = '';
+
+if (!($connection instanceof mysqli)) {
+    $GLOBALS['exec_duty_announcement'] = $exec_duty_announcement;
+    $GLOBALS['exec_duty_name'] = $exec_duty_name;
+    $GLOBALS['exec_duty_position'] = $exec_duty_position;
+    $GLOBALS['exec_duty_status_label'] = $exec_duty_status_label;
+
+    return;
+}
 
 try {
     $position = system_position_join($connection, 't', 'p');
@@ -62,3 +78,8 @@ try {
 } catch (mysqli_sql_exception $e) {
     error_log('Database Exception: ' . $e->getMessage());
 }
+
+$GLOBALS['exec_duty_announcement'] = $exec_duty_announcement;
+$GLOBALS['exec_duty_name'] = $exec_duty_name;
+$GLOBALS['exec_duty_position'] = $exec_duty_position;
+$GLOBALS['exec_duty_status_label'] = $exec_duty_status_label;

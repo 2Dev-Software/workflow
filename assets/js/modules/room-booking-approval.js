@@ -3,6 +3,10 @@
   if (!root) {
     return;
   }
+  var loadingApi = window.App && window.App.loading ? window.App.loading : null;
+  var listLoadingTarget =
+    root.querySelector(".booking-list-card .table-responsive") ||
+    root.querySelector(".booking-list-card");
 
   var detailModal = document.getElementById("bookingApprovalDetailModal");
   var confirmModal = document.getElementById("approvalConfirmationModal");
@@ -81,6 +85,10 @@
     var historyUrl = url + "?" + new URLSearchParams(formData).toString();
     window.history.pushState({}, "", historyUrl);
 
+    if (loadingApi) {
+      loadingApi.startComponent(listLoadingTarget);
+    }
+
     fetch(fullUrl)
       .then(function (response) {
         return response.text();
@@ -90,6 +98,11 @@
       })
       .catch(function (error) {
         console.error("Error loading data:", error);
+      })
+      .finally(function () {
+        if (loadingApi) {
+          loadingApi.stopComponent(listLoadingTarget);
+        }
       });
   }
 

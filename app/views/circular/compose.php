@@ -68,10 +68,6 @@ $status_map = [
     INTERNAL_STATUS_SENT => ['label' => 'ส่งแล้ว', 'pill' => 'approved'],
     INTERNAL_STATUS_RECALLED => ['label' => 'ดึงกลับ', 'pill' => 'rejected'],
     INTERNAL_STATUS_ARCHIVED => ['label' => 'จัดเก็บ', 'pill' => 'approved'],
-    EXTERNAL_STATUS_SUBMITTED => ['label' => 'รับเข้าแล้ว', 'pill' => 'pending'],
-    EXTERNAL_STATUS_PENDING_REVIEW => ['label' => 'รอพิจารณา', 'pill' => 'pending'],
-    EXTERNAL_STATUS_REVIEWED => ['label' => 'พิจารณาแล้ว', 'pill' => 'approved'],
-    EXTERNAL_STATUS_FORWARDED => ['label' => 'ส่งแล้ว', 'pill' => 'approved'],
 ];
 
 $thai_months = [
@@ -1138,10 +1134,6 @@ if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
     $status_label = 'ส่งแล้ว';
 } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
     $status_label = 'ดึงกลับ';
-} elseif ($filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) {
-    $status_label = 'รอพิจารณา';
-} elseif ($filter_status === strtolower(EXTERNAL_STATUS_REVIEWED)) {
-    $status_label = 'พิจารณาแล้ว';
 }
 echo h($status_label);
 ?>
@@ -1153,16 +1145,12 @@ echo h($status_label);
                         <div class="custom-option" data-value="all">ทั้งหมด</div>
                         <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>">ส่งแล้ว</div>
                         <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>">ดึงกลับ</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) ?>">รอพิจารณา</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(EXTERNAL_STATUS_REVIEWED)) ?>">พิจารณาแล้ว</div>
                     </div>
 
                     <select class="form-input" name="status">
                         <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
                         <option value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_SENT) ? 'selected' : '' ?>>ส่งแล้ว</option>
                         <option value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_RECALLED) ? 'selected' : '' ?>>ดึงกลับ</option>
-                        <option value="<?= h(strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) ?>" <?= $filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW) ? 'selected' : '' ?>>รอพิจารณา</option>
-                        <option value="<?= h(strtolower(EXTERNAL_STATUS_REVIEWED)) ?>" <?= $filter_status === strtolower(EXTERNAL_STATUS_REVIEWED) ? 'selected' : '' ?>>พิจารณาแล้ว</option>
                     </select>
                 </div>
             </div>
@@ -1236,7 +1224,7 @@ echo h($status_label);
 
                         if (in_array($status_key, [INTERNAL_STATUS_RECALLED], true)) {
                             $consider_class = 'considered';
-                        } elseif (in_array($status_key, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED, EXTERNAL_STATUS_REVIEWED, EXTERNAL_STATUS_FORWARDED], true)) {
+                        } elseif (in_array($status_key, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED], true)) {
                             $consider_class = 'success';
                         }
                         $stats_rows = [];
@@ -1279,18 +1267,6 @@ echo h($status_label);
                                         <form method="POST">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="recall">
-                                            <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
-                                            <button type="submit" class="booking-action-btn secondary">
-                                                <i class="fa-solid fa-rotate-left"></i>
-                                                <span class="tooltip">ดึงกลับ</span>
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-
-                                    <?php if ($item_type === 'EXTERNAL' && $status_key === EXTERNAL_STATUS_PENDING_REVIEW && !$has_any_read) : ?>
-                                        <form method="POST">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="recall_external">
                                             <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
                                             <button type="submit" class="booking-action-btn secondary">
                                                 <i class="fa-solid fa-rotate-left"></i>

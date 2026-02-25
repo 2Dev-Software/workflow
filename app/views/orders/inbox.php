@@ -2,12 +2,14 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
 
-$items = $items ?? [];
+$items = (array) ($items ?? []);
 $archived = (bool) ($archived ?? false);
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
 $search = trim((string) ($search ?? ''));
 $status_filter = (string) ($status_filter ?? 'all');
+$sort = (string) ($sort ?? 'newest');
+$per_page = (string) ($per_page ?? '10');
 $summary = (array) ($summary ?? []);
 $summary_total = (int) ($summary['total'] ?? 0);
 $summary_read = (int) ($summary['read'] ?? 0);
@@ -19,6 +21,18 @@ $status_options = [
     'all' => 'ทั้งหมด',
     'unread' => 'ยังไม่อ่าน',
     'read' => 'อ่านแล้ว',
+];
+$sort_options = [
+    'newest' => 'ใหม่ไปเก่า',
+    'oldest' => 'เก่าไปใหม่',
+    'order_no' => 'เลขที่คำสั่ง',
+    'unread_first' => 'ยังไม่อ่านก่อน',
+];
+$per_page_options = [
+    '10' => '10',
+    '20' => '20',
+    '50' => '50',
+    'all' => 'ทั้งหมด',
 ];
 
 $rows = [];
@@ -43,12 +57,22 @@ foreach ($items as $item) {
             ],
         ],
         (string) ($item['senderName'] ?? ''),
+        (string) ($item['deliveredAt'] ?? '-'),
         [
             'component' => [
                 'name' => 'orders-action-group',
                 'params' => [
                     'view_href' => 'orders-view.php?inbox_id=' . (int) ($item['inboxID'] ?? 0),
+                    'archive_action' => 'orders-inbox.php?' . http_build_query([
+                        'archived' => $archived ? '1' : '0',
+                        'q' => $search,
+                        'status' => $status_filter,
+                        'sort' => $sort,
+                        'per_page' => $per_page,
+                        'page' => (string) $page,
+                    ]),
                     'show_archive' => !$archived,
+                    'show_unarchive' => $archived,
                     'inbox_id' => (int) ($item['inboxID'] ?? 0),
                 ],
             ],
@@ -56,17 +80,24 @@ foreach ($items as $item) {
     ];
 }
 
-$summary_title = $archived ? 'คำสั่งที่จัดเก็บ' : 'คำสั่งใหม่';
+$summary_title = $archived ? 'คำสั่งที่จัดเก็บ' : 'กล่องคำสั่ง';
 $subtitle_parts = [$summary_title];
 
 if ($search !== '') {
     $subtitle_parts[] = 'ค้นหา "' . $search . '"';
 }
-
 if ($status_filter !== 'all') {
     $subtitle_parts[] = 'สถานะ: ' . ($status_options[$status_filter] ?? '');
 }
 $subtitle = trim(implode(' · ', array_filter($subtitle_parts)));
+
+$unread_query = http_build_query([
+    'archived' => $archived ? '1' : '0',
+    'status' => 'unread',
+    'q' => $search,
+    'sort' => $sort,
+    'per_page' => $per_page,
+]);
 
 ob_start();
 ?>
@@ -95,20 +126,20 @@ ob_start();
     </div>
 </div>
 
-<section class="booking-card booking-list-card">
+<section class="booking-card booking-list-card orders-filters" data-orders-inbox>
     <div class="booking-card-header">
         <div class="booking-card-title-group">
             <h2 class="booking-card-title">รายการคำสั่งราชการ</h2>
             <p class="booking-card-subtitle"><?= h($subtitle) ?></p>
         </div>
-        <div class="c-badge-group">
-            <?php component_render('badge', [
-                'label' => 'ยังไม่อ่าน ' . $summary_unread,
-                'variant' => 'warning',
-            ]); ?>
-            <?php component_render('badge', [
-                'label' => 'อ่านแล้ว ' . $summary_read,
-                'variant' => 'success',
+        <div class="booking-actions">
+            <?php component_render('button', [
+                'label' => 'ดูเฉพาะยังไม่อ่าน',
+                'variant' => 'secondary',
+                'href' => 'orders-inbox.php?' . $unread_query,
+                'attrs' => [
+                    'data-orders-unread-cta' => '1',
+                ],
             ]); ?>
         </div>
     </div>
@@ -131,10 +162,22 @@ ob_start();
                 'options' => $status_options,
                 'selected' => $status_filter,
             ]); ?>
+            <?php component_render('select', [
+                'name' => 'sort',
+                'label' => 'เรียงตาม',
+                'options' => $sort_options,
+                'selected' => $sort,
+            ]); ?>
+            <?php component_render('select', [
+                'name' => 'per_page',
+                'label' => 'จำนวนต่อหน้า',
+                'options' => $per_page_options,
+                'selected' => $per_page,
+            ]); ?>
             <div class="c-field form-group full">
                 <div class="booking-actions">
                     <?php component_render('button', [
-                        'label' => 'ค้นหา',
+                        'label' => 'กรองข้อมูล',
                         'variant' => 'primary',
                         'type' => 'submit',
                     ]); ?>
@@ -151,21 +194,23 @@ ob_start();
     <?php if (empty($items)) : ?>
         <?php component_render('empty-state', [
             'title' => 'ไม่มีรายการคำสั่ง',
-            'message' => $archived ? 'ยังไม่มีคำสั่งที่จัดเก็บ' : 'ยังไม่มีคำสั่งใหม่ในกล่องเข้า',
+            'message' => $archived ? 'ยังไม่มีคำสั่งที่จัดเก็บ' : 'ยังไม่มีคำสั่งในกล่องเข้า',
         ]); ?>
     <?php else : ?>
         <p class="booking-note">กำลังแสดง <?= h((string) $filtered_total) ?> รายการ</p>
         <?php component_render('table', [
-            'headers' => ['สถานะ', 'เลขที่คำสั่ง', 'เรื่อง', 'ผู้ส่ง', 'จัดการ'],
+            'headers' => ['สถานะ', 'เลขที่คำสั่ง', 'เรื่อง', 'ผู้ส่ง', 'วันที่รับ', 'จัดการ'],
             'rows' => $rows,
             'empty_text' => 'ไม่มีรายการ',
         ]); ?>
-        <?php component_render('pagination', [
-            'page' => $page,
-            'total_pages' => $total_pages,
-            'base_url' => $pagination_base_url,
-            'class' => 'u-mt-2',
-        ]); ?>
+        <?php if ($per_page !== 'all') : ?>
+            <?php component_render('pagination', [
+                'page' => $page,
+                'total_pages' => $total_pages,
+                'base_url' => $pagination_base_url,
+                'class' => 'u-mt-2',
+            ]); ?>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 <?php

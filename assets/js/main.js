@@ -4,55 +4,260 @@
  * Structure: Module Pattern (IIFE)
  */
 /**
- * Preloader safety:
- * - Hide on DOMContentLoaded (not waiting for all images/fonts) to avoid "stuck loading".
- * - Also try again on window load.
- * - Guard for pages that might not include the preloader overlay.
+ * Production loading manager:
+ * - preloader: initial shell only
+ * - per-component loading: for async fetch areas
+ * - close preloader on critical-ready or timeout fallback
  */
 (function () {
+  const PRELOADER_TIMEOUT_MS = 6000;
+  const PAGE_CRITICAL_MAP = Object.freeze({
+    "dashboard.php": [],
+    "profile.php": [],
+    "setting.php": [],
+    "teacher-phone-directory.php": ["teacher-directory"],
+    "circular-compose.php": [],
+    "circular-notice.php": [],
+    "circular-archive.php": [],
+    "circular-view.php": [],
+    "orders-create.php": [],
+    "orders-send.php": [],
+    "orders-inbox.php": [],
+    "orders-view.php": [],
+    "orders-archive.php": [],
+    "memo.php": [],
+    "memo-inbox.php": [],
+    "memo-archive.php": [],
+    "memo-view.php": [],
+    "room-booking.php": [],
+    "room-booking-approval.php": [],
+    "room-management.php": [],
+    "vehicle-reservation.php": [],
+    "vehicle-reservation-approval.php": [],
+    "vehicle-management.php": [],
+    "repairs.php": [],
+    "outgoing.php": [],
+    "outgoing-create.php": [],
+    "outgoing-receive.php": [],
+    "outgoing-notice.php": [],
+    "outgoing-view.php": [],
+    "index.php": [],
+  });
+
+  function resolvePageName(pathname) {
+    const safePath = String(pathname || "").split("?")[0];
+    const segments = safePath.split("/").filter(Boolean);
+    if (segments.length === 0) {
+      return "";
+    }
+    return segments[segments.length - 1].toLowerCase();
+  }
+
+  const currentPageName = resolvePageName(
+    typeof window !== "undefined" ? window.location.pathname : ""
+  );
+
+  const activePageCriticalKeys = new Set(
+    (PAGE_CRITICAL_MAP[currentPageName] || [])
+      .map(function (key) {
+        return String(key || "").trim();
+      })
+      .filter(function (key) {
+        return key !== "";
+      })
+  );
+
   let hidden = false;
+  let shellReady = false;
+  const pendingCritical = {};
 
-  function hidePreloader() {
+  activePageCriticalKeys.forEach(function (key) {
+    pendingCritical[key] = true;
+  });
+
+  function getOverlay() {
+    return document.getElementById("preloader-overlay");
+  }
+
+  function removeOverlay(overlay) {
+    if (overlay && overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay);
+    }
+  }
+
+  function hidePreloader(reason) {
     if (hidden) return;
-    const overlay = document.getElementById("preloader-overlay");
-    if (!overlay) return;
+    const overlay = getOverlay();
+    if (!overlay) {
+      hidden = true;
+      return;
+    }
     hidden = true;
-
+    overlay.setAttribute("data-hide-reason", String(reason || "ready"));
     overlay.classList.add("preloader-hidden");
 
-    const removeOverlay = function () {
-      if (overlay && overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
-      }
-    };
-
-    // Remove after transition; also enforce a hard timeout to prevent it lingering.
-    // Avoid EventListenerOptions for older Safari compatibility.
     const onTransitionEnd = function () {
       overlay.removeEventListener("transitionend", onTransitionEnd);
-      removeOverlay();
+      removeOverlay(overlay);
     };
     overlay.addEventListener("transitionend", onTransitionEnd);
-    window.setTimeout(removeOverlay, 1200);
+    window.setTimeout(function () {
+      removeOverlay(overlay);
+    }, 1200);
   }
+
+  function hasPendingCritical() {
+    return Object.keys(pendingCritical).length > 0;
+  }
+
+  function maybeHidePreloader(reason) {
+    if (!shellReady || hasPendingCritical()) {
+      return;
+    }
+    hidePreloader(reason || "critical-ready");
+  }
+
+  function isPageCriticalKey(key) {
+    const safeKey = String(key || "").trim();
+    if (safeKey === "") {
+      return false;
+    }
+    return activePageCriticalKeys.has(safeKey);
+  }
+
+  function markCriticalPending(key) {
+    const safeKey = String(key || "").trim();
+    if (safeKey === "") return;
+    if (!isPageCriticalKey(safeKey)) return;
+    pendingCritical[safeKey] = true;
+  }
+
+  function markCriticalReady(key) {
+    const safeKey = String(key || "").trim();
+    if (!isPageCriticalKey(safeKey)) {
+      maybeHidePreloader("critical-ready");
+      return;
+    }
+    if (safeKey !== "" && Object.prototype.hasOwnProperty.call(pendingCritical, safeKey)) {
+      delete pendingCritical[safeKey];
+    }
+    maybeHidePreloader("critical-ready");
+  }
+
+  function resolveTarget(target) {
+    if (!target) return null;
+    if (typeof target === "string") {
+      return document.querySelector(target);
+    }
+    if (typeof Element !== "undefined" && target instanceof Element) {
+      return target;
+    }
+    return null;
+  }
+
+  function startComponent(target) {
+    const node = resolveTarget(target);
+    if (!node) return;
+    const currentCount = parseInt(node.getAttribute("data-loading-count") || "0", 10);
+    const nextCount = Number.isNaN(currentCount) ? 1 : currentCount + 1;
+    node.setAttribute("data-loading-count", String(nextCount));
+    node.classList.add("component-loading", "is-loading");
+    node.setAttribute("aria-busy", "true");
+  }
+
+  function stopComponent(target) {
+    const node = resolveTarget(target);
+    if (!node) return;
+    const currentCount = parseInt(node.getAttribute("data-loading-count") || "0", 10);
+    const nextCount = Number.isNaN(currentCount) ? 0 : Math.max(0, currentCount - 1);
+
+    if (nextCount <= 0) {
+      node.removeAttribute("data-loading-count");
+      node.classList.remove("is-loading");
+      node.removeAttribute("aria-busy");
+      return;
+    }
+
+    node.setAttribute("data-loading-count", String(nextCount));
+  }
+
+  function withComponent(target, promiseFactory, options) {
+    const opts = options || {};
+    const criticalKey = String(opts.criticalKey || "").trim();
+    const isCritical = Boolean(opts.critical) && criticalKey !== "";
+
+    if (isCritical) {
+      markCriticalPending(criticalKey);
+    }
+
+    startComponent(target);
+
+    let promise;
+    try {
+      promise = typeof promiseFactory === "function" ? promiseFactory() : promiseFactory;
+    } catch (error) {
+      stopComponent(target);
+      if (isCritical) {
+        markCriticalReady(criticalKey);
+      }
+      throw error;
+    }
+
+    return Promise.resolve(promise).finally(function () {
+      stopComponent(target);
+      if (isCritical) {
+        markCriticalReady(criticalKey);
+      }
+    });
+  }
+
+  function setShellReady() {
+    shellReady = true;
+    window.setTimeout(function () {
+      maybeHidePreloader("shell-ready");
+    }, 120);
+  }
+
+  window.App = window.App || {};
+  window.App.loading = Object.assign({}, window.App.loading || {}, {
+    hidePreloader: hidePreloader,
+    markCriticalPending: markCriticalPending,
+    markCriticalReady: markCriticalReady,
+    startComponent: startComponent,
+    stopComponent: stopComponent,
+    withComponent: withComponent,
+    setShellReady: setShellReady,
+    isPageCriticalKey: isPageCriticalKey,
+    getCurrentPageName: function () {
+      return currentPageName;
+    },
+    getPageCriticalKeys: function () {
+      return Array.from(activePageCriticalKeys);
+    },
+    getCriticalMap: function () {
+      return PAGE_CRITICAL_MAP;
+    },
+  });
 
   const onDomReady = function () {
     document.removeEventListener("DOMContentLoaded", onDomReady);
-    hidePreloader();
+    setShellReady();
   };
   document.addEventListener("DOMContentLoaded", onDomReady);
 
   const onWindowLoad = function () {
     window.removeEventListener("load", onWindowLoad);
-    hidePreloader();
+    maybeHidePreloader("window-load");
   };
   window.addEventListener("load", onWindowLoad);
 
-  // If this script is loaded after DOMContentLoaded for any reason,
-  // still ensure the preloader is hidden.
   if (document.readyState !== "loading") {
-    window.setTimeout(hidePreloader, 0);
+    window.setTimeout(setShellReady, 0);
   }
+
+  window.setTimeout(function () {
+    hidePreloader("timeout");
+  }, PRELOADER_TIMEOUT_MS);
 })();
 
 const calendarFallbackEvents = {};
@@ -600,11 +805,28 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   };
 
+  const loadingApi = window.App && window.App.loading ? window.App.loading : null;
+  const loadingTarget = document.querySelector(".teacher-phone-table-container");
+  const teacherDirectoryCriticalKey = "teacher-directory";
+  const useTeacherDirectoryAsCritical =
+    !!loadingApi &&
+    typeof loadingApi.isPageCriticalKey === "function" &&
+    loadingApi.isPageCriticalKey(teacherDirectoryCriticalKey);
+  let isFirstDirectoryFetch = true;
+
   const fetchDirectory = async () => {
+    const isInitialRun = isFirstDirectoryFetch;
     const params = buildParams();
     const requestUrl = params.toString()
       ? `${endpoint}?${params.toString()}`
       : endpoint;
+
+    if (loadingApi) {
+      loadingApi.startComponent(loadingTarget);
+      if (isInitialRun && useTeacherDirectoryAsCritical) {
+        loadingApi.markCriticalPending(teacherDirectoryCriticalKey);
+      }
+    }
 
     try {
       const response = await fetch(requestUrl, {
@@ -624,6 +846,16 @@ document.addEventListener("DOMContentLoaded", () => {
       updateUrl(buildParams());
     } catch (error) {
       console.error(error);
+    } finally {
+      if (loadingApi) {
+        loadingApi.stopComponent(loadingTarget);
+        if (isInitialRun && useTeacherDirectoryAsCritical) {
+          loadingApi.markCriticalReady(teacherDirectoryCriticalKey);
+        }
+      }
+      if (isInitialRun) {
+        isFirstDirectoryFetch = false;
+      }
     }
   };
 
@@ -1816,5 +2048,121 @@ document.addEventListener("DOMContentLoaded", function () {
 
       document.getElementById("imageModal").classList.add("hidden");
     });
+  });
+});
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const navRoot = document.querySelector(".navigation-links");
+
+  if (!navRoot) {
+    return;
+  }
+
+  const pageAliases = {
+    "orders-manage.php": "orders-create.php",
+    "orders-send.php": "orders-create.php",
+    "orders-view.php": "orders-inbox.php",
+    "memo-view.php": "memo-inbox.php",
+    "circular-view.php": "circular-notice.php",
+    "outgoing-view.php": "outgoing-notice.php",
+  };
+
+  const getPageName = (pathValue) => {
+    const path = String(pathValue || "").toLowerCase();
+    const clean = path.split("?")[0];
+    const parts = clean.split("/").filter(Boolean);
+
+    return parts.length > 0 ? parts[parts.length - 1] : "";
+  };
+
+  const currentUrl = new URL(window.location.href);
+  let currentPage = getPageName(currentUrl.pathname);
+
+  if (Object.prototype.hasOwnProperty.call(pageAliases, currentPage)) {
+    currentPage = pageAliases[currentPage];
+  }
+
+  if (currentPage === "") {
+    return;
+  }
+
+  const findTopLevelItem = (node) => {
+    let li = node.closest("li");
+
+    while (li && li.parentElement && li.parentElement !== navRoot) {
+      li = li.parentElement.closest("li");
+    }
+
+    if (!li || li.parentElement !== navRoot) {
+      return null;
+    }
+
+    return li;
+  };
+
+  const links = Array.from(navRoot.querySelectorAll("a[href]"));
+  let bestScore = -1;
+  let matchedLinks = [];
+
+  links.forEach((link) => {
+    const rawHref = String(link.getAttribute("href") || "").trim();
+
+    if (rawHref === "" || rawHref === "#" || rawHref.startsWith("javascript:")) {
+      return;
+    }
+
+    const linkUrl = new URL(rawHref, window.location.origin);
+    const linkPage = getPageName(linkUrl.pathname);
+
+    if (linkPage !== currentPage) {
+      return;
+    }
+
+    const requiredParams = Array.from(linkUrl.searchParams.entries());
+    const isQueryMatch = requiredParams.every(([key, value]) => currentUrl.searchParams.get(key) === value);
+
+    if (!isQueryMatch) {
+      return;
+    }
+
+    const score = requiredParams.length;
+
+    if (score > bestScore) {
+      bestScore = score;
+      matchedLinks = [link];
+      return;
+    }
+
+    if (score === bestScore) {
+      matchedLinks.push(link);
+    }
+  });
+
+  matchedLinks.forEach((link) => {
+    link.classList.add("is-active");
+    link.setAttribute("aria-current", "page");
+
+    const subItem = link.closest(".navigation-links-sub-menu li");
+
+    if (subItem) {
+      subItem.classList.add("is-active");
+    }
+
+    const topLevelItem = findTopLevelItem(link);
+
+    if (topLevelItem) {
+      topLevelItem.classList.add("is-active");
+
+      if (topLevelItem.classList.contains("navigation-links-has-sub")) {
+        topLevelItem.classList.add("is-open");
+
+        const parentGroupLink = topLevelItem.querySelector(".icon-link > a");
+
+        if (parentGroupLink) {
+          parentGroupLink.classList.add("is-active");
+        }
+      }
+    }
   });
 });
