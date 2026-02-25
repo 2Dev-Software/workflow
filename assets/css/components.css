@@ -1079,6 +1079,24 @@
   flex-wrap: wrap;
 }
 
+.c-select-wrap.is-searchable {
+  display: grid;
+  gap: 8px;
+}
+
+.c-select-search .form-input {
+  height: 40px;
+}
+
+.recipient-picker .is-hidden {
+  display: none !important;
+}
+
+.orders-attachment-hint.is-danger {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .orders-summary.booking-summary {
     grid-template-columns: 1fr;

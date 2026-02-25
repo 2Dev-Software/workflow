@@ -21,9 +21,16 @@
   var pendingDeleteId = "";
   var deleteEndpoint = root.getAttribute("data-delete-endpoint") || "";
   var csrfToken = root.getAttribute("data-csrf") || "";
+  var loadingApi = window.App && window.App.loading ? window.App.loading : null;
   var checkEndpoint =
     root.getAttribute("data-check-endpoint") ||
     "public/api/room-booking-check.php";
+  var checkLoadingTarget =
+    root.querySelector(".booking-form-card") || bookingForm || root;
+  var listLoadingTarget =
+    root.querySelector(".booking-list-card .table-responsive") ||
+    root.querySelector(".booking-list-card") ||
+    root;
 
   function removeActiveAlerts() {
     document.querySelectorAll(".alert-overlay").forEach(function (overlay) {
@@ -126,6 +133,10 @@
       formData.set("room_booking_check", "1");
       formData.delete("room_booking_save");
 
+      if (loadingApi) {
+        loadingApi.startComponent(checkLoadingTarget);
+      }
+
       fetch(checkEndpoint, {
         method: "POST",
         credentials: "same-origin",
@@ -149,6 +160,11 @@
         })
         .catch(function () {
           showBookingAlert("danger", "ระบบขัดข้อง", "กรุณาลองใหม่อีกครั้ง");
+        })
+        .finally(function () {
+          if (loadingApi) {
+            loadingApi.stopComponent(checkLoadingTarget);
+          }
         });
     });
   }
@@ -307,6 +323,10 @@
       deleteConfirmButton.disabled = true;
       deleteConfirmButton.textContent = "กำลังลบ...";
 
+      if (loadingApi) {
+        loadingApi.startComponent(listLoadingTarget);
+      }
+
       fetch(deleteEndpoint, {
         method: "POST",
         headers: {
@@ -385,6 +405,9 @@
           }
         })
         .finally(function () {
+          if (loadingApi) {
+            loadingApi.stopComponent(listLoadingTarget);
+          }
           deleteConfirmButton.disabled = false;
           deleteConfirmButton.textContent = "ลบรายการ";
         });

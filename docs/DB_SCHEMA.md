@@ -5,12 +5,9 @@
 - `position` (existing)
 - `dh_roles` (existing)
 - `dh_user_roles` (existing, many-to-many)
-- `dh_permissions` (new): `permissionID`, `permissionKey` (unique)
-- `dh_role_permissions` (new): `roleID`, `permissionID` (unique pair)
 
 Indexes:
 - `dh_user_roles`: (`pID`,`roleID`), `roleID`
-- `dh_role_permissions`: (`roleID`,`permissionID`)
 
 ## Documents & Workflow
 - `dh_documents` (new)

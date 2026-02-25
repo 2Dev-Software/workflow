@@ -12,8 +12,10 @@ $results = [];
 try {
     $connection = db_connection();
     $results[] = ['DB connection', $connection instanceof mysqli];
+    $results[] = ['Table dh_login_attempts', db_table_exists($connection, 'dh_login_attempts')];
 } catch (Throwable $e) {
     $results[] = ['DB connection', false];
+    $results[] = ['Table dh_login_attempts', false];
 }
 
 $upload_root = rtrim((string) app_env('UPLOAD_ROOT', __DIR__ . '/../storage/uploads'), '/');

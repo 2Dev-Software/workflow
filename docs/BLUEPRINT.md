@@ -41,7 +41,7 @@
 ## D) Core modules ที่สร้างก่อน
 1) DB layer: `/app/db/db.php`
 2) Auth + Session: `/app/services/auth-service.php`, `/app/security/session.php`
-3) RBAC: `/app/rbac/roles.php` + permissions tables
+3) RBAC: `/app/rbac/roles.php` + role assignments (`dh_user_roles`)
 4) CSRF: `/app/security/csrf.php`
 5) Router: `/app/router.php`
 6) View renderer: `/app/views/view.php`

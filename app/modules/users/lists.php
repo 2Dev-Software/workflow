@@ -22,7 +22,7 @@ if (!function_exists('user_list_teachers')) {
     function user_list_teachers(): array
     {
         return db_fetch_all(
-            'SELECT t.pID, t.fName, t.fID, t.dID, t.positionID,
+            'SELECT t.pID, t.fName, t.fID, t.dID, t.positionID, t.roleID,
                     COALESCE(f.fName, "") AS factionName,
                     COALESCE(d.dName, "") AS departmentName
              FROM teacher AS t

@@ -16,7 +16,21 @@ if (!function_exists('user_find_active_by_pid')) {
 
         $connection = db_connection();
         $password_column = auth_password_column($connection);
-        $sql = "SELECT pID, roleID, positionID, {$password_column} AS passwordValue, fname, lname FROM teacher WHERE pID = ? AND status = 1 LIMIT 1";
+        $first_name_column = db_column_exists($connection, 'teacher', 'fName')
+            ? 'fName'
+            : (db_column_exists($connection, 'teacher', 'fname') ? 'fname' : null);
+        $last_name_column = db_column_exists($connection, 'teacher', 'lName')
+            ? 'lName'
+            : (db_column_exists($connection, 'teacher', 'lname') ? 'lname' : null);
+
+        $first_name_expr = $first_name_column !== null ? $first_name_column : 'pID';
+        $last_name_expr = $last_name_column !== null ? $last_name_column : "''";
+
+        $sql = "SELECT pID, roleID, positionID, {$password_column} AS passwordValue,
+                {$first_name_expr} AS fname, {$last_name_expr} AS lname
+                FROM teacher
+                WHERE pID = ? AND status = 1
+                LIMIT 1";
 
         return db_fetch_one($sql, 's', $pid);
     }

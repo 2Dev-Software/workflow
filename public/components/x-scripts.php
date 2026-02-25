@@ -24,3 +24,4 @@ $asset_version = static function (string $relativePath): string {
 <script src="assets/js/modules/room-booking-approval.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/room-booking-approval.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/modules/room-management.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/room-management.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/modules/circular-notice.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/circular-notice.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="assets/js/modules/orders-ui.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/orders-ui.js'), ENT_QUOTES, 'UTF-8') ?>"></script>

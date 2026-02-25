@@ -200,6 +200,66 @@ if (!function_exists('circular_registry_pids')) {
     }
 }
 
+if (!function_exists('circular_add_registry_tracking_inboxes')) {
+    /**
+     * Ensure external circular has tracking inbox rows for all registry users.
+     *
+     * @return array<int, string> Registry PIDs that should track this circular.
+     */
+    function circular_add_registry_tracking_inboxes(int $circularID, string $deliveredByPID): array
+    {
+        $seedPIDs = circular_registry_pids();
+        $actorPID = trim($deliveredByPID);
+
+        if ($actorPID !== '' && ctype_digit($actorPID)) {
+            $seedPIDs[] = $actorPID;
+        }
+
+        $registryPIDs = array_values(array_unique(array_filter(array_map('trim', $seedPIDs), static function (string $pid): bool {
+            return $pid !== '' && ctype_digit($pid);
+        })));
+
+        if (empty($registryPIDs)) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($registryPIDs), '?'));
+        $types = 'is' . str_repeat('s', count($registryPIDs));
+        $params = array_merge([$circularID, INBOX_TYPE_NORMAL], $registryPIDs);
+        $rows = db_fetch_all(
+            'SELECT pID
+             FROM dh_circular_inboxes
+             WHERE circularID = ? AND inboxType = ? AND pID IN (' . $placeholders . ')',
+            $types,
+            ...$params
+        );
+
+        $existing = [];
+
+        foreach ($rows as $row) {
+            $pid = trim((string) ($row['pID'] ?? ''));
+
+            if ($pid !== '') {
+                $existing[$pid] = true;
+            }
+        }
+
+        $missing = [];
+
+        foreach ($registryPIDs as $pid) {
+            if (!isset($existing[$pid])) {
+                $missing[] = $pid;
+            }
+        }
+
+        if (!empty($missing)) {
+            circular_add_inboxes($circularID, $missing, INBOX_TYPE_NORMAL, $deliveredByPID);
+        }
+
+        return $registryPIDs;
+    }
+}
+
 if (!function_exists('circular_find_deputy_by_fid')) {
     function circular_find_deputy_by_fid(?int $fID): ?string
     {
@@ -296,6 +356,7 @@ if (!function_exists('circular_create_external')) {
         $registryNote = $data['registryNote'] ?? null;
         $directorPID = null;
         $acting_pid = null;
+        $registryTrackingPIDs = [];
         db_begin();
 
         try {
@@ -315,13 +376,16 @@ if (!function_exists('circular_create_external')) {
                     $directorPID = (string) (system_get_current_director_pid() ?? '');
                 }
 
-                if ($directorPID) {
-                    $acting_pid = system_get_acting_director_pid();
-                    $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $directorPID)
-                        ? INBOX_TYPE_ACTING_PRINCIPAL
-                        : INBOX_TYPE_SPECIAL_PRINCIPAL;
-                    circular_add_inboxes($circularID, [$directorPID], $director_inbox_type, $registryPID);
+                if ($directorPID === '') {
+                    throw new RuntimeException('ไม่พบผู้พิจารณา (ผอ./รักษาการ)');
                 }
+
+                $acting_pid = system_get_acting_director_pid();
+                $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $directorPID)
+                    ? INBOX_TYPE_ACTING_PRINCIPAL
+                    : INBOX_TYPE_SPECIAL_PRINCIPAL;
+                circular_add_inboxes($circularID, [$directorPID], $director_inbox_type, $registryPID);
+                $registryTrackingPIDs = circular_add_registry_tracking_inboxes($circularID, $registryPID);
                 circular_update_record($circularID, [
                     'status' => EXTERNAL_STATUS_PENDING_REVIEW,
                     'updatedByPID' => $registryPID,
@@ -336,6 +400,10 @@ if (!function_exists('circular_create_external')) {
                     ? INBOX_TYPE_ACTING_PRINCIPAL
                     : INBOX_TYPE_SPECIAL_PRINCIPAL;
                 document_add_recipients($documentID, [$directorPID], $inboxType);
+            }
+
+            if ($documentID && !empty($registryTrackingPIDs)) {
+                document_add_recipients($documentID, $registryTrackingPIDs, INBOX_TYPE_NORMAL);
             }
 
             db_commit();
@@ -607,6 +675,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
         $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $reviewerPID)
             ? INBOX_TYPE_ACTING_PRINCIPAL
             : INBOX_TYPE_SPECIAL_PRINCIPAL;
+        $registryTrackingPIDs = [];
 
         db_begin();
 
@@ -633,6 +702,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
             );
             mysqli_stmt_close($stmt);
             circular_add_inboxes($circularID, [$reviewerPID], $director_inbox_type, $registryPID);
+            $registryTrackingPIDs = circular_add_registry_tracking_inboxes($circularID, $registryPID);
             circular_add_route($circularID, 'SEND', $registryPID, $reviewerPID, !empty($data['extGroupFID']) ? (int) $data['extGroupFID'] : null, 'EDIT_RESEND');
 
             if (!empty($removeFileIDs)) {
@@ -660,6 +730,10 @@ if (!function_exists('circular_edit_and_resend_external')) {
                 );
                 mysqli_stmt_close($stmt);
                 document_add_recipients($documentID, [$reviewerPID], $director_inbox_type);
+            }
+
+            if ($documentID && !empty($registryTrackingPIDs)) {
+                document_add_recipients($documentID, $registryTrackingPIDs, INBOX_TYPE_NORMAL);
             }
 
             db_commit();

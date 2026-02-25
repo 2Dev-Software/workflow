@@ -17,6 +17,9 @@ require_once __DIR__ . '/../modules/audit/logger.php';
 if (!function_exists('circular_notice_index')) {
     function circular_notice_index(): void
     {
+        $script_name = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $is_outgoing_notice_page = $script_name === 'outgoing-notice.php';
+        $is_internal_only_notice_page = !$is_outgoing_notice_page;
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
         $factions = user_list_factions();
@@ -41,13 +44,15 @@ if (!function_exists('circular_notice_index')) {
 
         $allowed_boxes = ['normal'];
 
-        if ($is_registry) {
-            $allowed_boxes[] = 'clerk';
-            $allowed_boxes[] = 'clerk_return';
-        }
+        if (!$is_internal_only_notice_page) {
+            if ($is_registry) {
+                $allowed_boxes[] = 'clerk';
+                $allowed_boxes[] = 'clerk_return';
+            }
 
-        if ($is_director_box) {
-            $allowed_boxes[] = 'director';
+            if ($is_director_box) {
+                $allowed_boxes[] = 'director';
+            }
         }
 
         if (!in_array($box, $allowed_boxes, true)) {
@@ -63,8 +68,8 @@ if (!function_exists('circular_notice_index')) {
         $box_key = array_key_exists($box, $box_map) ? $box : 'normal';
         $inbox_type = $box_map[$box_key];
 
-        $is_outside_view = in_array($box_key, ['director', 'clerk', 'clerk_return'], true);
-        $default_type = $is_outside_view ? 'external' : 'all';
+        $is_outside_view = !$is_internal_only_notice_page && in_array($box_key, ['director', 'clerk', 'clerk_return'], true);
+        $default_type = $is_internal_only_notice_page ? 'internal' : ($is_outside_view ? 'external' : 'all');
 
         $filter_type = (string) ($_GET['type'] ?? $default_type);
         $filter_read = (string) ($_GET['read'] ?? 'all');
@@ -72,13 +77,17 @@ if (!function_exists('circular_notice_index')) {
         $filter_view = (string) ($_GET['view'] ?? 'table1');
         $filter_search = trim((string) ($_GET['q'] ?? ''));
 
-        $allowed_types = ['all', 'internal', 'external'];
+        $allowed_types = $is_internal_only_notice_page ? ['internal'] : ['all', 'internal', 'external'];
         $allowed_reads = ['all', 'read', 'unread'];
         $allowed_sort = ['newest', 'oldest'];
         $allowed_views = ['table1', 'table2'];
 
         if (!in_array($filter_type, $allowed_types, true)) {
             $filter_type = $default_type;
+        }
+
+        if ($is_internal_only_notice_page) {
+            $filter_type = 'internal';
         }
 
         if (!in_array($filter_read, $allowed_reads, true)) {
@@ -531,6 +540,8 @@ if (!function_exists('circular_notice_index')) {
             'director_label' => $director_label,
             'is_registry' => $is_registry,
             'is_director_box' => $is_director_box,
+            'show_type_filter' => !$is_internal_only_notice_page,
+            'show_book_type_column' => !$is_internal_only_notice_page,
         ]);
     }
 }

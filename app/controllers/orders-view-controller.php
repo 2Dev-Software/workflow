@@ -24,6 +24,7 @@ if (!function_exists('orders_view_index')) {
         $alert = null;
         $item = null;
         $attachments = [];
+        $timeline_events = [];
 
         $connection = db_connection();
         $has_inbox_table = db_table_exists($connection, 'dh_order_inboxes');
@@ -40,15 +41,60 @@ if (!function_exists('orders_view_index')) {
 
             if ((int) ($item['isRead'] ?? 0) === 0) {
                 order_mark_read($inbox_id, $current_pid);
+                $item = order_get_inbox_item($inbox_id, $current_pid) ?? $item;
             }
 
-            $attachments = order_get_attachments((int) ($item['orderID'] ?? 0));
+            $order_id = (int) ($item['orderID'] ?? 0);
+            $attachments = order_get_attachments($order_id);
+            $route_events = order_list_routes($order_id);
+            $attachment_events = order_list_attachment_events($order_id);
+
+            $route_label_map = [
+                'CREATE' => 'สร้างคำสั่ง',
+                'SEND' => 'ส่งคำสั่ง',
+                'RECALL' => 'ดึงกลับคำสั่ง',
+                'FORWARD' => 'ส่งต่อ',
+                'ARCHIVE' => 'จัดเก็บ',
+                'CANCEL' => 'ยกเลิก',
+            ];
+
+            foreach ($route_events as $route_event) {
+                $code = (string) ($route_event['action'] ?? '');
+                $actor_name = trim((string) ($route_event['fromName'] ?? ''));
+
+                if ($actor_name === '') {
+                    $actor_name = trim((string) ($route_event['toName'] ?? ''));
+                }
+
+                $timeline_events[] = [
+                    'code' => $code,
+                    'label' => $route_label_map[$code] ?? $code,
+                    'actorName' => $actor_name !== '' ? $actor_name : '-',
+                    'at' => (string) ($route_event['actionAt'] ?? '-'),
+                    'note' => trim((string) ($route_event['note'] ?? '')),
+                ];
+            }
+
+            foreach ($attachment_events as $attachment_event) {
+                $timeline_events[] = [
+                    'code' => 'ATTACH',
+                    'label' => 'แนบไฟล์',
+                    'actorName' => trim((string) ($attachment_event['attachedByName'] ?? '-')),
+                    'at' => (string) ($attachment_event['attachedAt'] ?? '-'),
+                    'note' => 'ไฟล์: ' . (string) ($attachment_event['fileName'] ?? '-'),
+                ];
+            }
+
+            usort($timeline_events, static function (array $a, array $b): int {
+                return strcmp((string) ($a['at'] ?? ''), (string) ($b['at'] ?? ''));
+            });
         }
 
         view_render('orders/view', [
             'alert' => $alert,
             'item' => $item,
             'attachments' => $attachments,
+            'timeline_events' => $timeline_events,
         ]);
     }
 }
