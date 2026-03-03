@@ -137,6 +137,6 @@ $my_booking_display = min($my_booking_limit, $my_booking_total);
 $my_bookings_latest = array_slice($my_bookings_sorted, 0, $my_booking_limit);
 $my_booking_subtitle = $my_booking_total > 0
     ? "แสดงล่าสุด {$my_booking_display} จากทั้งหมด {$my_booking_total} รายการ"
-    : 'ยังไม่มีรายการจองของคุณ';
+    : '';
 
 $room_booking_events = room_booking_build_events($room_bookings, $room_booking_rooms);

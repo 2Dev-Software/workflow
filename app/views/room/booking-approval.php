@@ -251,24 +251,6 @@ ob_start();
     </div>
 </div>
 
-<div id="approvalConfirmationModal" class="alert-overlay hidden">
-    <div class="alert-box">
-        <div class="alert-header">
-            <div class="icon-circle">
-                <i class="fa-solid"></i>
-            </div>
-        </div>
-        <div class="alert-body">
-            <h1 id="approvalConfirmTitle"></h1>
-            <p id="approvalConfirmMessage"></p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-approval-confirm-close>ยกเลิก</button>
-                <button type="button" class="btn-close-alert" id="btnConfirmAction">ยืนยัน</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../layout.php';

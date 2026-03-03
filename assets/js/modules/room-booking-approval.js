@@ -4,20 +4,12 @@
     return;
   }
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
+  var alertsApi = window.AppAlerts || null;
   var listLoadingTarget =
     root.querySelector(".booking-list-card .table-responsive") ||
     root.querySelector(".booking-list-card");
 
   var detailModal = document.getElementById("bookingApprovalDetailModal");
-  var confirmModal = document.getElementById("approvalConfirmationModal");
-  var confirmBox = confirmModal ? confirmModal.querySelector(".alert-box") : null;
-  var confirmIcon = confirmBox ? confirmBox.querySelector(".icon-circle i") : null;
-  var confirmTitle = document.getElementById("approvalConfirmTitle");
-  var confirmMessage = document.getElementById("approvalConfirmMessage");
-  var confirmBtn = document.getElementById("btnConfirmAction");
-  var confirmCloseBtn = confirmModal
-    ? confirmModal.querySelector("[data-approval-confirm-close]")
-    : null;
   var closeButtons = document.querySelectorAll("[data-approval-modal-close]");
 
   var approvalForm = detailModal
@@ -35,8 +27,6 @@
   var approvalActionButtons = detailModal
     ? detailModal.querySelectorAll("[data-approval-submit]")
     : [];
-
-  var pendingAction = "";
 
   function toggleApprovalReasonRequired(isRequired) {
     if (!approvalReasonInput) return;
@@ -63,6 +53,26 @@
       approvalForm.submit();
     }
     return true;
+  }
+
+  function confirmApprovalAction(action) {
+    var isApprove = action === "approve";
+    var title = isApprove ? "ยืนยันการอนุมัติ" : "ยืนยันการไม่อนุมัติ";
+    var message = isApprove
+      ? "คุณต้องการอนุมัติรายการนี้ใช่หรือไม่?"
+      : "คุณต้องการไม่อนุมัติรายการนี้ใช่หรือไม่?";
+    var confirmButtonText = isApprove ? "ยืนยันอนุมัติ" : "ยืนยันไม่อนุมัติ";
+
+    if (alertsApi && typeof alertsApi.confirm === "function") {
+      return alertsApi.confirm(message, {
+        title: title,
+        type: isApprove ? "success" : "danger",
+        confirmButtonText: confirmButtonText,
+        cancelButtonText: "ยกเลิก",
+      });
+    }
+
+    return Promise.resolve(window.confirm(title + "\n" + message));
   }
 
   // --- AJAX Search & Filter ---
@@ -239,57 +249,24 @@
       button.addEventListener("click", function (e) {
         e.preventDefault();
         var action = button.getAttribute("data-approval-submit") || "";
-        pendingAction = action;
+        if (action !== "approve" && action !== "reject") {
+          return;
+        }
         toggleApprovalReasonRequired(action === "reject");
-
-        if (confirmModal && confirmBox && confirmIcon && confirmTitle && confirmMessage && confirmBtn) {
-          confirmBox.classList.remove("success", "danger");
-
-          if (action === "approve") {
-            confirmBox.classList.add("success");
-            confirmIcon.className = "fa-solid fa-check";
-            confirmTitle.textContent = "ยืนยันการอนุมัติ";
-            confirmMessage.textContent = "คุณต้องการอนุมัติรายการนี้ใช่หรือไม่?";
-            confirmBtn.textContent = "ยืนยันอนุมัติ";
-          } else if (action === "reject") {
-            confirmBox.classList.add("danger");
-            confirmIcon.className = "fa-solid fa-xmark";
-            confirmTitle.textContent = "ยืนยันการไม่อนุมัติ";
-            confirmMessage.textContent = "คุณต้องการไม่อนุมัติรายการนี้ใช่หรือไม่?";
-            confirmBtn.textContent = "ยืนยันไม่อนุมัติ";
+        confirmApprovalAction(action).then(function (approved) {
+          if (!approved) {
+            return;
           }
-          confirmModal.classList.remove("hidden");
-        } else {
           if (approvalActionInput) {
             approvalActionInput.value = action;
           }
+          if (action === "approve" && approvalReasonInput) {
+            approvalReasonInput.value = "";
+          }
+          toggleApprovalReasonRequired(action === "reject");
           submitApprovalForm();
-        }
+        });
       });
-    });
-  }
-
-  if (confirmBtn) {
-    confirmBtn.addEventListener("click", function () {
-      if (approvalActionInput) {
-        approvalActionInput.value = pendingAction;
-      }
-      if (pendingAction === "approve" && approvalReasonInput) {
-        approvalReasonInput.value = "";
-      }
-      toggleApprovalReasonRequired(pendingAction === "reject");
-      submitApprovalForm();
-      if (confirmModal) {
-        confirmModal.classList.add("hidden");
-      }
-    });
-  }
-
-  if (confirmCloseBtn) {
-    confirmCloseBtn.addEventListener("click", function () {
-      if (confirmModal) {
-        confirmModal.classList.add("hidden");
-      }
     });
   }
 
@@ -312,11 +289,4 @@
     });
   }
 
-  if (confirmModal) {
-    confirmModal.addEventListener("click", function (event) {
-      if (event.target === confirmModal) {
-        confirmModal.classList.add("hidden");
-      }
-    });
-  }
 })();

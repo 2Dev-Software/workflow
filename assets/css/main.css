@@ -210,6 +210,11 @@ select {
   padding-bottom: 16px;
 }
 
+/* Keep SweetAlert2 above in-page modals (modal-overlay: 10000, alert-overlay: 12000). */
+.swal2-container {
+  z-index: 13000 !important;
+}
+
 /* =========================================
    PRELOADER PAGE
    ========================================= */
