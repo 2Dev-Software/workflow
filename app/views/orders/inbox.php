@@ -10,8 +10,13 @@ $search = trim((string) ($search ?? ''));
 $status_filter = (string) ($status_filter ?? 'all');
 $sort = (string) ($sort ?? 'newest');
 $per_page = (string) ($per_page ?? '10');
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? 0);
 $filtered_total = (int) ($filtered_total ?? 0);
 $pagination_base_url = (string) ($pagination_base_url ?? ('orders-inbox.php?archived=' . ($archived ? '1' : '0')));
+$inbox_modal_payload_map = (array) ($inbox_modal_payload_map ?? []);
 
 $status_options = [
     'all' => 'ทั้งหมด',
@@ -22,17 +27,27 @@ $status_options = [
 $sort_options = [
     'newest' => 'ใหม่ไปเก่า',
     'oldest' => 'เก่าไปใหม่',
-    'order_no' => 'เลขที่คำสั่ง',
-    'unread_first' => 'ยังไม่อ่านก่อน',
 ];
 
 $sort_label = $sort_options[$sort] ?? $sort_options['newest'];
 $status_label = $status_options[$status_filter] ?? $status_options['all'];
+
+if ($selected_dh_year <= 0) {
+    $selected_dh_year = (int) ($dh_year_options[0] ?? 0);
+}
+
+if (!in_array($selected_dh_year, $dh_year_options, true) && $selected_dh_year > 0) {
+    $dh_year_options[] = $selected_dh_year;
+    rsort($dh_year_options, SORT_NUMERIC);
+    $dh_year_options = array_slice(array_values(array_unique($dh_year_options)), 0, 5);
+}
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : '-';
 $bulk_action = $archived ? 'unarchive_selected' : 'archive_selected';
 $page_title = $archived ? 'คำสั่งราชการที่จัดเก็บ' : 'ยินดีต้อนรับ';
 $page_subtitle = $archived ? 'รายการคำสั่งราชการที่จัดเก็บ' : 'คำสั่งราชการ / กล่องคำสั่งราชการ';
 $bulk_action_url = 'orders-inbox.php?' . http_build_query([
     'archived' => $archived ? '1' : '0',
+    'dh_year' => (string) $selected_dh_year,
     'q' => $search,
     'status' => $status_filter,
     'sort' => $sort,
@@ -96,22 +111,26 @@ ob_start();
             <p>แสดงตามปีสารบรรณ</p>
             <div class="custom-select-wrapper">
                 <div class="custom-select-trigger">
-                    <p class="select-value"><?= h($status_label) ?></p>
+                    <p class="select-value"><?= h($dh_year_label) ?></p>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
 
                 <div class="custom-options">
-                    <?php foreach ($status_options as $status_key => $label) : ?>
-                        <div class="custom-option<?= $status_filter === $status_key ? ' selected' : '' ?>" data-value="<?= h($status_key) ?>"><?= h($label) ?></div>
-                    <?php endforeach; ?>
+                    <?php if (empty($dh_year_options)) : ?>
+                        <div class="custom-option selected" data-value="<?= h((string) $selected_dh_year) ?>"><?= h($dh_year_label) ?></div>
+                    <?php else : ?>
+                        <?php foreach ($dh_year_options as $year_option) : ?>
+                            <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
-                <input type="hidden" name="status" id="filterReadInput" value="<?= h($status_filter) ?>" form="circularFilterForm">
+                <input type="hidden" name="dh_year" id="filterYearInput" value="<?= h((string) $selected_dh_year) ?>" form="circularFilterForm">
             </div>
         </div>
 
         <div class="page-selector">
-            <p>แสดงตามสถานะหนังสือ</p>
+            <p>แสดงตามสถานะคำสั่ง</p>
             <div class="custom-select-wrapper">
                 <div class="custom-select-trigger">
                     <p class="select-value"><?= h($status_label) ?></p>
@@ -124,7 +143,7 @@ ob_start();
                     <?php endforeach; ?>
                 </div>
 
-                <input type="hidden" name="status" id="filterReadInput" value="<?= h($status_filter) ?>" form="circularFilterForm">
+                <input type="hidden" name="status" id="filterStatusInput" value="<?= h($status_filter) ?>" form="circularFilterForm">
             </div>
         </div>
 
@@ -168,6 +187,9 @@ ob_start();
         <input type="hidden" name="action" value="<?= h($bulk_action) ?>">
 
         <div class="table-circular-notice-index orders-inbox-table">
+            <script type="application/json" class="js-order-inbox-modal-map">
+                <?= (string) json_encode($inbox_modal_payload_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+            </script>
             <table>
                 <thead>
                     <tr>
@@ -220,7 +242,8 @@ ob_start();
                                 <td>
                                     <button
                                         class="booking-action-btn secondary js-open-order-view-modal"
-                                        type="button">
+                                        type="button"
+                                        data-inbox-id="<?= h((string) $inbox_id) ?>">
                                         <i class="fa-solid fa-eye"></i>
                                         <span class="tooltip">รายละเอียด</span>
                                     </button>
@@ -253,10 +276,10 @@ ob_start();
 <div class="content-circular-notice-index circular-track-modal-host">
     <div class="modal-overlay-circular-notice-index outside-person" id="modalOrderViewOverlay">
         <div class="modal-content">
-            <div class="header-modal">
-                <div class="first-header">
-                    <p>รายชื่อผู้รับเอกสาร</p>
-                </div>
+                <div class="header-modal">
+                    <div class="first-header">
+                        <p>รายละเอียดเกี่ยวกับคำสั่ง</p>
+                    </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="closeModalOrderView"></i>
                 </div>
@@ -307,7 +330,7 @@ ob_start();
 
                 <div class="content-file-sec">
                     <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                    <div class="file-list" id="existingFileListContainer_modal">
+                    <div class="file-list" id="modalOrderSendFileSection">
                         <p class="existing-file-empty">ยังไม่มีไฟล์แนบ</p>
                         <!-- <div class="file-banner">
                             <div class="file-info">
@@ -326,8 +349,6 @@ ob_start();
 
                     </div>
                 </div>
-
-
 
             </div>
 
@@ -711,7 +732,11 @@ ob_start();
             if (viewTrigger) {
                 window.setTimeout(() => {
                     if (viewModal && viewModal.style.display !== 'flex') {
-                        viewModal.style.display = 'flex';
+                        if (typeof window.__openOrdersInboxViewModal === 'function') {
+                            window.__openOrdersInboxViewModal(viewTrigger);
+                        } else {
+                            viewModal.style.display = 'flex';
+                        }
                     }
                 }, 0);
             }
@@ -719,26 +744,94 @@ ob_start();
     });
 
     document.addEventListener('DOMContentLoaded', function() {
+        const viewModal = document.getElementById('modalOrderViewOverlay');
+        const modalOrderNo = document.getElementById('modalOrderSendNo');
+        const modalOrderSubject = document.getElementById('modalOrderSendSubject');
+        const modalOrderEffectiveDate = document.getElementById('modalOrderSendEffectiveDate');
+        const modalOrderDate = document.getElementById('modalOrderSendDate');
+        const modalOrderIssuer = document.getElementById('modalOrderSendIssuer');
+        const modalOrderGroup = document.getElementById('modalOrderSendGroup');
         const modalOrderSendFileSection = document.getElementById('modalOrderSendFileSection');
-        const modalExistingFileList = document.getElementById('modalExistingFileList');
 
         const escapeHtml = (unsafe) => {
             return (unsafe || '').toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         };
 
-        const renderOrderSendFiles = (orderId, files) => {
-            if (!modalOrderSendFileSection) {
+        const parseModalPayloadMap = () => {
+            const mapEl = document.querySelector('.js-order-inbox-modal-map');
+            if (!mapEl) {
+                return {};
+            }
+            try {
+                const parsed = JSON.parse(mapEl.textContent || '{}');
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                return {};
+            }
+        };
+
+        const setValue = (element, value) => {
+            if (!element) {
+                return;
+            }
+            element.value = value;
+        };
+
+        const markRowBadgeAsRead = (trigger) => {
+            if (!(trigger instanceof Element)) {
+                return;
+            }
+            const row = trigger.closest('tr');
+            if (!row) {
+                return;
+            }
+            const badge = row.querySelector('.status-badge');
+            if (!badge) {
+                return;
+            }
+            badge.classList.remove('unread');
+            badge.classList.add('read');
+            badge.textContent = 'อ่านแล้ว';
+        };
+
+        const requestMarkRead = (inboxId) => {
+            const normalizedInboxId = String(inboxId || '').trim();
+            if (normalizedInboxId === '') {
+                return;
+            }
+            const csrfInput = document.querySelector('#bulkActionForm input[name="csrf_token"]');
+            const csrfToken = csrfInput ? String(csrfInput.value || '').trim() : '';
+            if (csrfToken === '') {
                 return;
             }
 
+            const body = new URLSearchParams();
+            body.set('csrf_token', csrfToken);
+            body.set('action', 'mark_read');
+            body.set('inbox_id', normalizedInboxId);
+
+            window.fetch(window.location.pathname + window.location.search, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: body.toString(),
+            }).catch(() => {});
+        };
+
+        const renderOrderFiles = (orderId, files) => {
+            if (!modalOrderSendFileSection) {
+                return;
+            }
             if (!Array.isArray(files) || files.length <= 0) {
-                const emptyHtml = '<div class="file-banner"><div class="file-info"><div class="file-text"><span class="file-name">ไม่มีไฟล์แนบ</span></div></div></div>';
-                modalOrderSendFileSection.innerHTML = emptyHtml;
+                modalOrderSendFileSection.innerHTML = '<p class="existing-file-empty">ยังไม่มีไฟล์แนบ</p>';
                 return;
             }
 
@@ -747,11 +840,9 @@ ob_start();
                 const fileId = encodeURIComponent(String(file?.fileID || ''));
                 const fileName = escapeHtml(String(file?.fileName || '-'));
                 const mimeType = escapeHtml(String(file?.mimeType || 'ไฟล์แนบ'));
+                const isPdf = String(file?.mimeType || '').toLowerCase() === 'application/pdf';
+                const iconHtml = isPdf ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-image"></i>';
                 const viewHref = `public/api/file-download.php?module=orders&entity_id=${safeOrderId}&file_id=${fileId}`;
-                const iconHtml = String(file?.mimeType || '').toLowerCase() === 'application/pdf' ?
-                    '<i class="fa-solid fa-file-pdf"></i>' :
-                    '<i class="fa-solid fa-image"></i>';
-
                 return `<div class="file-banner">
                     <div class="file-info">
                         <div class="file-icon">${iconHtml}</div>
@@ -767,81 +858,46 @@ ob_start();
                     </div>
                 </div>`;
             }).join('');
-
             modalOrderSendFileSection.innerHTML = html;
         };
 
-        const renderExistingOrderFiles = (orderId, rawJson) => {
-            if (!modalExistingFileList) {
+        window.__openOrdersInboxViewModal = (trigger) => {
+            if (!viewModal || !(trigger instanceof Element)) {
+                return;
+            }
+            const inboxId = String(trigger.getAttribute('data-inbox-id') || '').trim();
+            if (inboxId === '') {
+                viewModal.style.display = 'flex';
                 return;
             }
 
-            let files = [];
-            try {
-                const parsed = JSON.parse(String(rawJson || '[]'));
-                files = Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                files = [];
-            }
+            markRowBadgeAsRead(trigger);
+            requestMarkRead(inboxId);
 
-            if (files.length <= 0) {
-                modalExistingFileList.innerHTML = '<p class="existing-file-empty">ยังไม่มีไฟล์แนบ</p>';
+            const payloadMap = parseModalPayloadMap();
+            const payload = payloadMap[inboxId];
+            if (!payload || typeof payload !== 'object') {
+                viewModal.style.display = 'flex';
                 return;
             }
 
-            const safeOrderId = encodeURIComponent(String(orderId || '').trim());
+            const orderNo = String(payload.orderNo || '').trim();
+            const subject = String(payload.subject || '').trim();
+            const effectiveDate = String(payload.effectiveDate || '').trim();
+            const orderDate = String(payload.orderDate || '').trim();
+            const issuerName = String(payload.issuerName || '').trim();
+            const groupName = String(payload.groupName || '').trim();
+            const orderId = String(payload.orderID || '').trim();
+            const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
 
-            const rowsHtml = files.map((file) => {
-                const fileId = encodeURIComponent(String(file.fileID || ''));
-                const fileName = escapeHtml(String(file.fileName || '-'));
-                const mimeType = escapeHtml(String(file.mimeType || 'ไฟล์แนบ'));
-                const viewHref = `public/api/file-download.php?module=orders&entity_id=${safeOrderId}&file_id=${fileId}`;
-                const iconHtml = String(file.mimeType || '').toLowerCase() === 'application/pdf' ?
-                    '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>' :
-                    '<i class="fa-solid fa-file-image" aria-hidden="true"></i>';
-
-                return `<div class="file-item-wrapper" id="existing-file-${fileId}">
-                    <button type="button" class="delete-btn js-delete-existing" data-file-id="${fileId}" title="ลบไฟล์">
-                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                    </button>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon">${iconHtml}</div>
-                            <div class="file-text">
-                                <span class="file-name">${fileName}</span>
-                                <span class="file-type">${mimeType}</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="${viewHref}" target="_blank" rel="noopener" class="action-btn" title="ดูตัวอย่าง">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            modalExistingFileList.innerHTML = rowsHtml;
-
-            const deleteBtns = modalExistingFileList.querySelectorAll('.js-delete-existing');
-            deleteBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const fId = this.getAttribute('data-file-id');
-                    const wrapper = document.getElementById(`existing-file-${fId}`);
-
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'deleted_existing_files[]';
-                    hiddenInput.value = decodeURIComponent(fId);
-                    document.getElementById('modalOrderEditForm').appendChild(hiddenInput);
-
-                    if (wrapper) wrapper.remove();
-
-                    if (modalExistingFileList.querySelectorAll('.file-item-wrapper').length === 0) {
-                        modalExistingFileList.innerHTML = '<p class="existing-file-empty">ยังไม่มีไฟล์แนบ</p>';
-                    }
-                });
-            });
+            setValue(modalOrderNo, orderNo !== '' ? orderNo : '-');
+            setValue(modalOrderSubject, subject !== '' ? subject : '-');
+            setValue(modalOrderEffectiveDate, /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '');
+            setValue(modalOrderDate, /^\d{4}-\d{2}-\d{2}$/.test(orderDate) ? orderDate : '');
+            setValue(modalOrderIssuer, issuerName !== '' ? issuerName : '-');
+            setValue(modalOrderGroup, groupName !== '' ? groupName : '-');
+            renderOrderFiles(orderId, attachments);
+            viewModal.style.display = 'flex';
         };
     });
 </script>

@@ -89,7 +89,7 @@ if (!function_exists('order_normalize_inbox_sort')) {
     function order_normalize_inbox_sort(?string $sort): string
     {
         $sort = strtolower(trim((string) $sort));
-        $allowed = ['newest', 'oldest', 'order_no', 'unread_first'];
+        $allowed = ['newest', 'oldest'];
 
         return in_array($sort, $allowed, true) ? $sort : 'newest';
     }
@@ -176,12 +176,25 @@ if (!function_exists('order_inbox_order_by')) {
 }
 
 if (!function_exists('order_build_inbox_filters')) {
-    function order_build_inbox_filters(string $pID, bool $archived, ?string $search, ?string $read_filter, bool $include_read_filter = true): array
+    function order_build_inbox_filters(
+        string $pID,
+        bool $archived,
+        ?string $search,
+        ?string $read_filter,
+        bool $include_read_filter = true,
+        ?int $dh_year = null
+    ): array
     {
         $archivedFlag = $archived ? 1 : 0;
         $conditions = ['i.pID = ?', 'i.isArchived = ?'];
         $types = 'si';
         $params = [$pID, $archivedFlag];
+
+        if ($dh_year !== null && $dh_year > 0) {
+            $conditions[] = 'o.dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
+        }
 
         [$term, $like] = order_prepare_search($search);
 
@@ -429,9 +442,9 @@ if (!function_exists('order_list_inbox_page')) {
 }
 
 if (!function_exists('order_count_inbox_filtered')) {
-    function order_count_inbox_filtered(string $pID, bool $archived, ?string $search, ?string $read_filter): int
+    function order_count_inbox_filtered(string $pID, bool $archived, ?string $search, ?string $read_filter, ?int $dh_year = null): int
     {
-        $filter = order_build_inbox_filters($pID, $archived, $search, $read_filter, true);
+        $filter = order_build_inbox_filters($pID, $archived, $search, $read_filter, true, $dh_year);
         $sql = 'SELECT COUNT(*) AS total
             FROM dh_order_inboxes AS i
             INNER JOIN dh_orders AS o ON i.orderID = o.orderID
@@ -451,13 +464,14 @@ if (!function_exists('order_list_inbox_page_filtered')) {
         ?string $read_filter,
         int $limit,
         int $offset,
-        string $sort = 'newest'
+        string $sort = 'newest',
+        ?int $dh_year = null
     ): array
     {
         $limit = max(1, $limit);
         $offset = max(0, $offset);
         $order_by = order_inbox_order_by(order_normalize_inbox_sort($sort));
-        $filter = order_build_inbox_filters($pID, $archived, $search, $read_filter, true);
+        $filter = order_build_inbox_filters($pID, $archived, $search, $read_filter, true, $dh_year);
         $sql = 'SELECT i.inboxID, i.isRead, i.readAt, i.isArchived, i.deliveredAt,
                 o.orderID, o.orderNo, o.subject, o.status, o.createdAt,
                 t.fName AS senderName
@@ -475,9 +489,9 @@ if (!function_exists('order_list_inbox_page_filtered')) {
 }
 
 if (!function_exists('order_inbox_read_summary')) {
-    function order_inbox_read_summary(string $pID, bool $archived, ?string $search): array
+    function order_inbox_read_summary(string $pID, bool $archived, ?string $search, ?int $dh_year = null): array
     {
-        $filter = order_build_inbox_filters($pID, $archived, $search, null, false);
+        $filter = order_build_inbox_filters($pID, $archived, $search, null, false, $dh_year);
         $sql = 'SELECT COUNT(*) AS total,
                 SUM(CASE WHEN i.isRead = 1 THEN 1 ELSE 0 END) AS readCount,
                 SUM(CASE WHEN i.isRead = 0 THEN 1 ELSE 0 END) AS unreadCount

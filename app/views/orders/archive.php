@@ -6,15 +6,13 @@ $items = (array) ($items ?? []);
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
 $search = trim((string) ($search ?? ''));
-$type_filter = (string) ($type_filter ?? 'all');
 $status_filter = (string) ($status_filter ?? 'all');
 $sort = (string) ($sort ?? 'newest');
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? 0);
 $pagination_base_url = (string) ($pagination_base_url ?? 'orders-archive.php');
-
-$type_options = [
-    'all' => 'ทั้งหมด',
-    'order' => 'คำสั่งราชการ',
-];
 
 $status_options = [
     'all' => 'ทั้งหมด',
@@ -27,18 +25,18 @@ $sort_options = [
     'oldest' => 'เก่าไปใหม่',
 ];
 
-$type_label = $type_options[$type_filter] ?? $type_options['all'];
 $status_label = $status_options[$status_filter] ?? $status_options['all'];
 $sort_label = $sort_options[$sort] ?? $sort_options['newest'];
+
+if ($selected_dh_year <= 0) {
+    $selected_dh_year = (int) ($dh_year_options[0] ?? 0);
+}
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : '-';
 
 $action_params = [];
 
 if ($search !== '') {
     $action_params['q'] = $search;
-}
-
-if ($type_filter !== 'all') {
-    $action_params['type'] = $type_filter;
 }
 
 if ($status_filter !== 'all') {
@@ -48,6 +46,8 @@ if ($status_filter !== 'all') {
 if ($sort !== 'newest') {
     $action_params['sort'] = $sort;
 }
+
+$action_params['dh_year'] = (string) $selected_dh_year;
 
 if ($page > 1) {
     $action_params['page'] = (string) $page;
@@ -59,6 +59,44 @@ if (!empty($action_params)) {
     $post_action_url .= '?' . http_build_query($action_params);
 }
 
+$thai_months = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
+];
+
+$format_thai_received_datetime = static function (?string $datetime_value) use ($thai_months): array {
+    $text = trim((string) $datetime_value);
+
+    if ($text === '' || $text === '-') {
+        return ['date' => '-', 'time' => ''];
+    }
+
+    $timestamp = strtotime($text);
+
+    if ($timestamp === false) {
+        return ['date' => $text, 'time' => ''];
+    }
+
+    $day = (int) date('j', $timestamp);
+    $month = (int) date('n', $timestamp);
+    $year_be = (int) date('Y', $timestamp) + 543;
+    $month_label = $thai_months[$month] ?? '';
+    $date_label = $day . ' ' . $month_label . ' ' . $year_be;
+    $time_label = date('H:i', $timestamp) . ' น.';
+
+    return ['date' => trim($date_label), 'time' => $time_label];
+};
+
 ob_start();
 ?>
 
@@ -69,27 +107,25 @@ ob_start();
 
 <form id="orderArchiveFilterForm" method="GET" action="orders-archive.php">
     <input type="hidden" name="page" id="orderArchivePageInput" value="1">
-    <input type="hidden" name="type" id="orderArchiveTypeInput" value="<?= h($type_filter) ?>">
-    <input type="hidden" name="status" id="orderArchiveStatusInput" value="<?= h($status_filter) ?>">
-    <input type="hidden" name="sort" id="orderArchiveSortInput" value="<?= h($sort) ?>">
 </form>
 
 <header class="header-circular-notice-keep">
     <div class="circular-notice-keep-control">
         <div class="page-selector">
-            <p>แสดงตามประเภทคำสั่ง</p>
+            <p>แสดงตามปีสารบรรณ</p>
 
-            <div class="custom-select-wrapper" data-target="orderArchiveTypeInput">
+            <div class="custom-select-wrapper" data-target="orderArchiveYearInput">
                 <div class="custom-select-trigger">
-                    <p class="select-value"><?= h($type_label) ?></p>
+                    <p class="select-value"><?= h($dh_year_label) ?></p>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
 
                 <div class="custom-options">
-                    <?php foreach ($type_options as $option_value => $option_label) : ?>
-                        <div class="custom-option<?= $type_filter === $option_value ? ' selected' : '' ?>" data-value="<?= h($option_value) ?>"><?= h($option_label) ?></div>
+                    <?php foreach ($dh_year_options as $year_option) : ?>
+                        <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
                     <?php endforeach; ?>
                 </div>
+                <input type="hidden" name="dh_year" id="orderArchiveYearInput" value="<?= h((string) $selected_dh_year) ?>" form="orderArchiveFilterForm">
             </div>
         </div>
 
@@ -107,6 +143,7 @@ ob_start();
                         <div class="custom-option<?= $status_filter === $option_value ? ' selected' : '' ?>" data-value="<?= h($option_value) ?>"><?= h($option_label) ?></div>
                     <?php endforeach; ?>
                 </div>
+                <input type="hidden" name="status" id="orderArchiveStatusInput" value="<?= h($status_filter) ?>" form="orderArchiveFilterForm">
             </div>
         </div>
 
@@ -124,6 +161,7 @@ ob_start();
                         <div class="custom-option<?= $sort === $option_value ? ' selected' : '' ?>" data-value="<?= h($option_value) ?>"><?= h($option_label) ?></div>
                     <?php endforeach; ?>
                 </div>
+                <input type="hidden" name="sort" id="orderArchiveSortInput" value="<?= h($sort) ?>" form="orderArchiveFilterForm">
             </div>
         </div>
     </div>
@@ -153,15 +191,14 @@ ob_start();
                     <th>สถานะ</th>
                 </tr>
             </thead>
-            <!-- <tbody>
+            <tbody>
                 <?php if (empty($items)) : ?>
                     <tr>
-                        <td colspan="5" class="enterprise-empty">ไม่มีรายการ</td>
+                        <td colspan="4" class="enterprise-empty">ไม่พบรายการคำสั่งราชการที่จัดเก็บ</td>
                     </tr>
                 <?php else : ?>
                     <?php foreach ($items as $item) : ?>
                         <?php
-                        $inbox_id = (int) ($item['inboxID'] ?? 0);
                         $order_id = (int) ($item['orderID'] ?? 0);
                         $order_no = trim((string) ($item['orderNo'] ?? ''));
                         $subject = trim((string) ($item['subject'] ?? ''));
@@ -169,7 +206,6 @@ ob_start();
                         $delivered_at = trim((string) ($item['deliveredAt'] ?? '-'));
                         $received_display = $format_thai_received_datetime($delivered_at);
                         $is_read = (int) ($item['isRead'] ?? 0) === 1;
-                        $view_href = 'orders-view.php?inbox_id=' . $inbox_id;
                         ?>
                         <tr>
                             <td class="orders-inbox-topic-cell">
@@ -189,41 +225,6 @@ ob_start();
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
-            </tbody> -->
-
-            <tbody>
-                <tr>
-
-                    <td class="orders-inbox-topic-cell">
-                        <p class="orders-inbox-subject">Mock คำสั่งราชการ จากผู้ส่ง #2 - 2026-03-02 19:47:21</p>
-                        <p class="orders-inbox-order-no">เลขที่คำสั่ง 3/2568</p>
-                    </td>
-                    <td>นางสาวอมราภรณ์ เพ็ชรสุ่ม</td>
-                    <td class="orders-inbox-date-cell">
-                        <p class="orders-inbox-date">2 มีนาคม 2569</p>
-                        <p class="orders-inbox-time">19:47 น.</p>
-                    </td>
-                    <td>
-                        <span class="status-badge read">อ่านแล้ว</span>
-                    </td>
-
-                </tr>
-                <tr>
-
-                    <td class="orders-inbox-topic-cell">
-                        <p class="orders-inbox-subject">Mock คำสั่งราชการ จากผู้ส่ง #1 - 2026-03-02 19:47:21</p>
-                        <p class="orders-inbox-order-no">เลขที่คำสั่ง 2/2568</p>
-                    </td>
-                    <td>นางสาวพรรณพนัช คงผอม</td>
-                    <td class="orders-inbox-date-cell">
-                        <p class="orders-inbox-date">2 มีนาคม 2569</p>
-                        <p class="orders-inbox-time">19:47 น.</p>
-                    </td>
-                    <td>
-                        <span class="status-badge read">อ่านแล้ว</span>
-                    </td>
-
-                </tr>
             </tbody>
 
         </table>
@@ -411,6 +412,8 @@ ob_start();
             options.forEach((option) => {
                 option.addEventListener('click', () => {
                     const value = option.dataset.value || '';
+                    options.forEach((opt) => opt.classList.remove('selected'));
+                    option.classList.add('selected');
 
                     if (target) {
                         target.value = value;

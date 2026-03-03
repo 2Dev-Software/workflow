@@ -2259,6 +2259,52 @@ ob_start();
             orderSendModalData = {};
         };
 
+        const thaiMonthsFull = [
+            '',
+            'มกราคม',
+            'กุมภาพันธ์',
+            'มีนาคม',
+            'เมษายน',
+            'พฤษภาคม',
+            'มิถุนายน',
+            'กรกฎาคม',
+            'สิงหาคม',
+            'กันยายน',
+            'ตุลาคม',
+            'พฤศจิกายน',
+            'ธันวาคม'
+        ];
+
+        const formatThaiTrackReadAt = (rawValue) => {
+            const value = String(rawValue || '').trim();
+            if (value === '') {
+                return '-';
+            }
+
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::\d{2})?)?$/);
+            if (!match) {
+                return value;
+            }
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const hour = String(match[4] ?? '00');
+            const minute = String(match[5] ?? '00');
+
+            if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day) || month < 1 || month > 12) {
+                return value;
+            }
+
+            const monthLabel = thaiMonthsFull[month] || '';
+            if (monthLabel === '') {
+                return value;
+            }
+
+            const buddhistYear = year + 543;
+            return `${day} ${monthLabel} ${buddhistYear} เวลา ${hour}:${minute} น.`;
+        };
+
         const syncModalGroupSelect = (targetValue = '') => {
             if (!modalOrderGroupFid || !modalOrderGroupWrapper) {
                 return;
@@ -2851,7 +2897,9 @@ ob_start();
                         const rowsHtml = readStats.map((row) => {
                             const name = escapeHtml(row.name || '-');
                             const isRead = Number(row.isRead) === 1;
-                            const readAtValue = isRead && String(row.readAt || '').trim() !== '' ? String(row.readAt) : '-';
+                            const readAtValue = isRead && String(row.readAt || '').trim() !== '' ?
+                                formatThaiTrackReadAt(row.readAt) :
+                                '-';
                             const readAt = escapeHtml(readAtValue);
                             const pill = `<span class="status-pill ${isRead ? 'approved' : 'pending'}">${isRead ? 'อ่านแล้ว' : 'ยังไม่อ่าน'}</span>`;
                             return `<tr><td>${name}</td><td>${pill}</td><td>${readAt}</td></tr>`;
