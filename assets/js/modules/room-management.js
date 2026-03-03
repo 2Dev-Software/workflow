@@ -4,48 +4,12 @@
     return;
   }
 
+  var CONFIRM_APPROVED_ATTR = "data-room-confirm-approved";
+  var alertsApi = window.AppAlerts || null;
   var openButtons = document.querySelectorAll("[data-room-modal-open]");
   var closeButtons = document.querySelectorAll("[data-room-modal-close]");
   var memberModal = document.getElementById("roomMemberModal");
   var editModal = document.getElementById("roomEditModal");
-  var memberConfirmModal = document.getElementById("roomMemberConfirmModal");
-  var memberConfirmMessage = memberConfirmModal
-    ? memberConfirmModal.querySelector("[data-room-member-confirm-message]")
-    : null;
-  var memberConfirmButton = memberConfirmModal
-    ? memberConfirmModal.querySelector('[data-room-member-confirm="true"]')
-    : null;
-  var memberCancelButton = memberConfirmModal
-    ? memberConfirmModal.querySelector('[data-room-member-cancel="true"]')
-    : null;
-  var memberRemoveConfirmModal = document.getElementById(
-    "roomMemberRemoveConfirmModal"
-  );
-  var memberRemoveMessage = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        "[data-room-member-remove-message]"
-      )
-    : null;
-  var memberRemoveConfirmButton = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        '[data-room-member-remove-confirm="true"]'
-      )
-    : null;
-  var memberRemoveCancelButton = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        '[data-room-member-remove-cancel="true"]'
-      )
-    : null;
-  var roomDeleteConfirmModal = document.getElementById("roomDeleteConfirmModal");
-  var roomDeleteMessage = roomDeleteConfirmModal
-    ? roomDeleteConfirmModal.querySelector("[data-room-delete-message]")
-    : null;
-  var roomDeleteConfirmButton = roomDeleteConfirmModal
-    ? roomDeleteConfirmModal.querySelector('[data-room-delete-confirm="true"]')
-    : null;
-  var roomDeleteCancelButton = roomDeleteConfirmModal
-    ? roomDeleteConfirmModal.querySelector('[data-room-delete-cancel="true"]')
-    : null;
   var memberSearchForm = memberModal
     ? memberModal.querySelector("[data-member-search-form]")
     : null;
@@ -74,16 +38,52 @@
   var editNoteInput = editModal
     ? editModal.querySelector("[data-room-edit-note]")
     : null;
-  var pendingMemberForm = null;
-  var pendingRemoveForm = null;
-  var pendingMemberCard = null;
-  var pendingRoomDeleteForm = null;
+  ["roomMemberConfirmModal", "roomMemberRemoveConfirmModal", "roomDeleteConfirmModal"].forEach(function (legacyId) {
+    var legacyModal = document.getElementById(legacyId);
+    if (legacyModal && legacyModal.parentNode) {
+      legacyModal.parentNode.removeChild(legacyModal);
+    }
+  });
+  document.querySelectorAll(".alert-overlay").forEach(function (overlay) {
+    if (
+      overlay.querySelector(
+        "[data-room-member-confirm='true'],[data-room-member-cancel='true'],[data-room-member-remove-confirm='true'],[data-room-member-remove-cancel='true'],[data-room-delete-confirm='true'],[data-room-delete-cancel='true']"
+      )
+    ) {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }
+  });
+
+  function submitApprovedForm(form) {
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+    form.setAttribute(CONFIRM_APPROVED_ATTR, "1");
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+    form.submit();
+  }
+
+  function confirmAction(message, options) {
+    var opts = options || {};
+    if (alertsApi && typeof alertsApi.confirm === "function") {
+      return alertsApi.confirm(message, {
+        title: opts.title || "ยืนยันการทำรายการ",
+        type: opts.type || "warning",
+        confirmButtonText: opts.confirmButtonText || "ยืนยัน",
+        cancelButtonText: opts.cancelButtonText || "ยกเลิก",
+      });
+    }
+    return Promise.resolve(window.confirm((opts.title || "ยืนยันการทำรายการ") + "\n" + message));
+  }
 
   function openMemberConfirm(form) {
-    pendingMemberForm = form;
     var card = form.closest(".room-admin-member-card");
     var row = form.closest("[data-member-row], tr");
-    pendingMemberCard = card || row;
     var nameEl = card ? card.querySelector(".room-admin-member-name") : null;
     if (!nameEl && row) {
       nameEl = row.querySelector("strong");
@@ -92,43 +92,60 @@
       nameEl && nameEl.textContent.trim() !== ""
         ? nameEl.textContent.trim()
         : "บุคลากรคนนี้";
-    if (memberConfirmMessage) {
-      memberConfirmMessage.textContent =
-        "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
-    }
-    if (memberConfirmModal) {
-      memberConfirmModal.classList.remove("hidden");
-    }
+    var message = "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
+
+    confirmAction(message, {
+      title: "ยืนยันการเพิ่มสมาชิก",
+      type: "warning",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
+    }).then(function (approved) {
+      if (!approved) {
+        return;
+      }
+      submitApprovedForm(form);
+    });
   }
 
   function openMemberRemoveConfirm(form) {
-    pendingRemoveForm = form;
     var row = form.closest("tr");
     var nameEl = row ? row.querySelector("strong") : null;
     var name =
       nameEl && nameEl.textContent.trim() !== ""
         ? nameEl.textContent.trim()
         : "บุคลากรคนนี้";
-    if (memberRemoveMessage) {
-      memberRemoveMessage.textContent =
-        "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
-    }
-    if (memberRemoveConfirmModal) {
-      memberRemoveConfirmModal.classList.remove("hidden");
-    }
+    var message = "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลสถานที่/ห้อง";
+
+    confirmAction(message, {
+      title: "ยืนยันการลบสมาชิก",
+      type: "danger",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
+    }).then(function (approved) {
+      if (!approved) {
+        return;
+      }
+      submitApprovedForm(form);
+    });
   }
 
   function openRoomDeleteConfirm(form) {
-    pendingRoomDeleteForm = form;
     var row = form.closest("[data-room-row]");
     var roomName = row ? row.dataset.roomName || "" : "";
     var label = roomName.trim() !== "" ? roomName.trim() : "ห้อง/สถานที่นี้";
-    if (roomDeleteMessage) {
-      roomDeleteMessage.textContent = "โปรดยืนยันการลบ " + label + " ออกจากระบบ";
-    }
-    if (roomDeleteConfirmModal) {
-      roomDeleteConfirmModal.classList.remove("hidden");
-    }
+    var message = "โปรดยืนยันการลบ " + label + " ออกจากระบบ";
+
+    confirmAction(message, {
+      title: "ยืนยันการลบห้อง",
+      type: "danger",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
+    }).then(function (approved) {
+      if (!approved) {
+        return;
+      }
+      submitApprovedForm(form);
+    });
   }
 
   function updateMemberSearch() {
@@ -221,43 +238,21 @@
     });
   });
 
-  if (memberConfirmModal) {
-    memberConfirmModal.addEventListener("click", function (event) {
-      if (event.target === memberConfirmModal) {
-        memberConfirmModal.classList.add("hidden");
-        pendingMemberForm = null;
-        pendingMemberCard = null;
-      }
-    });
-  }
-
-  if (memberRemoveConfirmModal) {
-    memberRemoveConfirmModal.addEventListener("click", function (event) {
-      if (event.target === memberRemoveConfirmModal) {
-        memberRemoveConfirmModal.classList.add("hidden");
-        pendingRemoveForm = null;
-      }
-    });
-  }
-
-  if (roomDeleteConfirmModal) {
-    roomDeleteConfirmModal.addEventListener("click", function (event) {
-      if (event.target === roomDeleteConfirmModal) {
-        roomDeleteConfirmModal.classList.add("hidden");
-        pendingRoomDeleteForm = null;
-      }
-    });
-  }
-
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
+    if (form.getAttribute(CONFIRM_APPROVED_ATTR) === "1") {
+      form.removeAttribute(CONFIRM_APPROVED_ATTR);
+      return;
+    }
     if (form.matches("[data-member-remove-form]")) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       openMemberRemoveConfirm(form);
     }
     if (form.matches("[data-room-delete-form]")) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       openRoomDeleteConfirm(form);
     }
   });
@@ -266,6 +261,7 @@
     var addMemberBtn = event.target.closest("[data-member-add-btn]");
     if (addMemberBtn) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       var form = addMemberBtn.closest("form");
       if (form) {
         openMemberConfirm(form);
@@ -276,63 +272,13 @@
     var deleteButton = event.target.closest("[data-room-delete-btn]");
     if (deleteButton) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       var form = deleteButton.closest("[data-room-delete-form]");
       if (form) {
         openRoomDeleteConfirm(form);
       }
     }
   });
-
-  if (memberConfirmButton) {
-    memberConfirmButton.addEventListener("click", function () {
-      if (!pendingMemberForm) return;
-      pendingMemberForm.submit();
-    });
-  }
-
-  if (memberCancelButton) {
-    memberCancelButton.addEventListener("click", function () {
-      if (memberConfirmModal) {
-        memberConfirmModal.classList.add("hidden");
-      }
-      pendingMemberForm = null;
-      pendingMemberCard = null;
-    });
-  }
-
-  if (memberRemoveConfirmButton) {
-    memberRemoveConfirmButton.addEventListener("click", function () {
-      if (pendingRemoveForm) {
-        pendingRemoveForm.submit();
-      }
-    });
-  }
-
-  if (memberRemoveCancelButton) {
-    memberRemoveCancelButton.addEventListener("click", function () {
-      if (memberRemoveConfirmModal) {
-        memberRemoveConfirmModal.classList.add("hidden");
-      }
-      pendingRemoveForm = null;
-    });
-  }
-
-  if (roomDeleteConfirmButton) {
-    roomDeleteConfirmButton.addEventListener("click", function () {
-      if (pendingRoomDeleteForm) {
-        pendingRoomDeleteForm.submit();
-      }
-    });
-  }
-
-  if (roomDeleteCancelButton) {
-    roomDeleteCancelButton.addEventListener("click", function () {
-      if (roomDeleteConfirmModal) {
-        roomDeleteConfirmModal.classList.add("hidden");
-      }
-      pendingRoomDeleteForm = null;
-    });
-  }
 
   if (memberSearchForm && memberSearchInput) {
     memberSearchForm.addEventListener("submit", function (event) {

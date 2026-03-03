@@ -99,13 +99,6 @@ ob_start();
             </div>
         </div>
 
-        <div class="room-admin-legend">
-            <span class="room-status-pill available">พร้อมใช้งาน</span>
-            <span class="room-status-pill paused">ระงับชั่วคราว</span>
-            <span class="room-status-pill maintenance">กำลังซ่อม</span>
-            <span class="room-status-pill unavailable">ไม่พร้อมใช้งาน</span>
-        </div>
-
         <div class="table-responsive">
             <table class="custom-table booking-table room-admin-table">
                 <thead>
@@ -168,7 +161,7 @@ ob_start();
                                             <input type="hidden" name="room_id" value="<?= h((string) $room_id) ?>">
                                             <button type="button" class="booking-action-btn danger" data-room-delete-btn>
                                                 <i class="fa-solid fa-trash"></i>
-                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                                <span class="tooltip danger">ลบข้อมูลสถานที่</span>
                                             </button>
                                         </form>
                                     </div>
@@ -239,7 +232,7 @@ ob_start();
                                             <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
                                             <button type="submit" class="booking-action-btn danger">
                                                 <i class="fa-solid fa-trash"></i>
-                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                                <span class="tooltip danger">นำออกจากบทบาท</span>
                                             </button>
                                         </form>
                                     </div>
@@ -302,7 +295,13 @@ ob_start();
                 </div>
                 <div class="room-admin-modal-actions">
                     <!-- <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button> -->
-                    <button type="submit" class="btn-confirm">บันทึกห้องใหม่</button>
+                    <button
+                        type="submit"
+                        class="btn-confirm"
+                        data-confirm="ยืนยันการบันทึกห้องใหม่ใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">บันทึกห้องใหม่</button>
                 </div>
             </form>
         </div>
@@ -357,7 +356,13 @@ ob_start();
                 </div>
                 <div class="room-admin-modal-actions">
                     <!-- <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button> -->
-                    <button type="submit" class="btn-confirm">บันทึกการเปลี่ยนแปลง</button>
+                    <button
+                        type="submit"
+                        class="btn-confirm"
+                        data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลห้องใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">บันทึก</button>
                 </div>
             </form>
         </div>
@@ -459,54 +464,6 @@ foreach ($room_candidate_members as $candidate):
                 </table>
             </div>
 
-        </div>
-    </div>
-</div>
-
-<div id="roomMemberConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box warning">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-user-plus"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการเพิ่มสมาชิก</h1>
-            <p data-room-member-confirm-message>โปรดยืนยันการเพิ่มสมาชิกใหม่</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-room-member-cancel="true">ยกเลิก</button>
-                <button type="button" class="btn-close-alert" data-room-member-confirm="true">ยืนยัน</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="roomMemberRemoveConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box danger">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-user-minus"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการลบสมาชิก</h1>
-            <p data-room-member-remove-message>โปรดยืนยันการลบสมาชิกออกจากทีม</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-room-member-remove-cancel="true">ยกเลิก</button>
-                <button type="button" class="btn-close-alert" data-room-member-remove-confirm="true">ยืนยัน</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="roomDeleteConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box danger">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-trash"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการลบห้อง</h1>
-            <p data-room-delete-message>โปรดยืนยันการลบห้องนี้ออกจากระบบ</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-room-delete-cancel="true">ยกเลิก</button>
-                <button type="button" class="btn-close-alert" data-room-delete-confirm="true">ยืนยัน</button>
-            </div>
         </div>
     </div>
 </div>

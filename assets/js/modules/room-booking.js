@@ -6,19 +6,14 @@
 
   var bookingModal = document.getElementById("bookingListModal");
   var detailModal = document.getElementById("bookingDetailModal");
-  var deleteModal = document.getElementById("bookingDeleteModal");
   var openButtons = document.querySelectorAll("[data-booking-modal-open]");
   var closeButtons = document.querySelectorAll("[data-booking-modal-close]");
   var detailButtons = document.querySelectorAll('[data-booking-action="detail"]');
   var deleteButtons = document.querySelectorAll('[data-booking-action="delete"]');
-  var deleteConfirmButton = document.querySelector('[data-booking-delete-confirm="true"]');
-  var deleteCancelButton = document.querySelector('[data-booking-delete-cancel="true"]');
   var bookingForm = document.querySelector(".booking-form");
   var checkButton = bookingForm
     ? bookingForm.querySelector('button[name="room_booking_check"]')
     : null;
-  var pendingDeleteRows = [];
-  var pendingDeleteId = "";
   var deleteEndpoint = root.getAttribute("data-delete-endpoint") || "";
   var csrfToken = root.getAttribute("data-csrf") || "";
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
@@ -226,32 +221,10 @@
     });
   });
 
-  deleteButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      var bookingId = button.getAttribute("data-booking-id") || "";
-      if (!bookingId) return;
-      pendingDeleteId = bookingId;
-      pendingDeleteRows = [];
-      deleteButtons.forEach(function (item) {
-        if (item.getAttribute("data-booking-id") === bookingId) {
-          var row = item.closest("tr");
-          if (row) {
-            pendingDeleteRows.push(row);
-          }
-        }
-      });
-      if (deleteModal) {
-        deleteModal.classList.remove("hidden");
-      }
+  function setDeleteButtonsDisabled(buttons, disabled) {
+    buttons.forEach(function (actionButton) {
+      actionButton.disabled = !!disabled;
     });
-  });
-
-  function closeDeleteModal() {
-    pendingDeleteRows = [];
-    pendingDeleteId = "";
-    if (deleteModal) {
-      deleteModal.classList.add("hidden");
-    }
   }
 
   function updateEmptyState(tbody) {
@@ -272,134 +245,155 @@
     }
   }
 
-  if (deleteConfirmButton) {
-    deleteConfirmButton.addEventListener("click", function () {
-      if (!pendingDeleteId) {
-        closeDeleteModal();
-        return;
-      }
+  function confirmDeleteBooking() {
+    if (alertsApi && typeof alertsApi.confirm === "function") {
+      return alertsApi.confirm("ต้องการลบรายการจองนี้ใช่หรือไม่", {
+        title: "ยืนยันการลบรายการจอง",
+        type: "warning",
+        confirmButtonText: "ลบรายการ",
+        cancelButtonText: "ยกเลิก",
+      });
+    }
+    return Promise.resolve(window.confirm("ต้องการลบรายการจองนี้ใช่หรือไม่"));
+  }
 
-      var payload = {
-        booking_id: pendingDeleteId,
-        csrf_token: csrfToken,
-      };
+  function executeDeleteBooking(bookingId, bookingRows, actionButtons) {
+    var payload = {
+      booking_id: bookingId,
+      csrf_token: csrfToken,
+    };
 
-      if (!deleteEndpoint) {
-        showBookingAlert("danger", "ไม่พบปลายทางบริการ", "กรุณาลองใหม่อีกครั้ง");
-        closeDeleteModal();
-        return;
-      }
+    if (!deleteEndpoint) {
+      showBookingAlert("danger", "ไม่พบปลายทางบริการ", "กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
 
-      deleteConfirmButton.disabled = true;
-      deleteConfirmButton.textContent = "กำลังลบ...";
+    setDeleteButtonsDisabled(actionButtons, true);
 
-      if (loadingApi) {
-        loadingApi.startComponent(listLoadingTarget);
-      }
+    if (loadingApi) {
+      loadingApi.startComponent(listLoadingTarget);
+    }
 
-      fetch(deleteEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify(payload),
+    fetch(deleteEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return {
+            ok: response.ok,
+            data: data || {},
+          };
+        });
       })
-        .then(function (response) {
-          return response.json().then(function (data) {
-            return {
-              ok: response.ok,
-              data: data || {},
-            };
-          });
-        })
-        .then(function (payloadData) {
-          var data = payloadData.data || {};
-          if (!payloadData.ok) {
-            if (data.html) {
-              appendAlertHtml(data.html);
-            } else {
-              showBookingAlert(
-                "danger",
-                "ลบรายการไม่สำเร็จ",
-                data.message || "กรุณาลองใหม่อีกครั้ง"
-              );
-            }
-            closeDeleteModal();
-            return;
-          }
-
-          closeDeleteModal();
-          if (data.reload) {
-            window.location.reload();
-            return;
-          }
-
-          pendingDeleteRows.forEach(function (row) {
-            row.remove();
-          });
-          document
-            .querySelectorAll('tbody[data-empty-message]')
-            .forEach(updateEmptyState);
-
-          if (window.roomBookingEvents) {
-            Object.keys(window.roomBookingEvents).forEach(function (key) {
-              var nextEvents = (window.roomBookingEvents[key] || []).filter(
-                function (eventItem) {
-                  return eventItem.bookingId !== pendingDeleteId;
-                }
-              );
-              if (nextEvents.length > 0) {
-                window.roomBookingEvents[key] = nextEvents;
-              } else {
-                delete window.roomBookingEvents[key];
-              }
-            });
-          }
-
-          if (
-            window.roomBookingCalendar &&
-            typeof window.roomBookingCalendar.updateCalendar === "function"
-          ) {
-            window.roomBookingCalendar.updateCalendar();
-          }
-
+      .then(function (payloadData) {
+        var data = payloadData.data || {};
+        if (!payloadData.ok) {
           if (data.html) {
             appendAlertHtml(data.html);
           } else {
             showBookingAlert(
-              "success",
-              "ลบรายการเรียบร้อยแล้ว",
-              "รายการจองถูกลบออกจากระบบแล้ว"
+              "danger",
+              "ลบรายการไม่สำเร็จ",
+              data.message || "กรุณาลองใหม่อีกครั้ง"
             );
           }
-        })
-        .finally(function () {
-          if (loadingApi) {
-            loadingApi.stopComponent(listLoadingTarget);
-          }
-          deleteConfirmButton.disabled = false;
-          deleteConfirmButton.textContent = "ลบรายการ";
+          return;
+        }
+
+        if (data.reload) {
+          window.location.reload();
+          return;
+        }
+
+        bookingRows.forEach(function (row) {
+          row.remove();
         });
-    });
+        document
+          .querySelectorAll('tbody[data-empty-message]')
+          .forEach(updateEmptyState);
+
+        if (window.roomBookingEvents) {
+          Object.keys(window.roomBookingEvents).forEach(function (key) {
+            var nextEvents = (window.roomBookingEvents[key] || []).filter(
+              function (eventItem) {
+                return eventItem.bookingId !== bookingId;
+              }
+            );
+            if (nextEvents.length > 0) {
+              window.roomBookingEvents[key] = nextEvents;
+            } else {
+              delete window.roomBookingEvents[key];
+            }
+          });
+        }
+
+        if (
+          window.roomBookingCalendar &&
+          typeof window.roomBookingCalendar.updateCalendar === "function"
+        ) {
+          window.roomBookingCalendar.updateCalendar();
+        }
+
+        if (data.html) {
+          appendAlertHtml(data.html);
+        } else {
+          showBookingAlert(
+            "success",
+            "ลบรายการเรียบร้อยแล้ว",
+            "รายการจองถูกลบออกจากระบบแล้ว"
+          );
+        }
+      })
+      .catch(function () {
+        showBookingAlert("danger", "ลบรายการไม่สำเร็จ", "กรุณาลองใหม่อีกครั้ง");
+      })
+      .finally(function () {
+        if (loadingApi) {
+          loadingApi.stopComponent(listLoadingTarget);
+        }
+        setDeleteButtonsDisabled(actionButtons, false);
+      });
   }
 
-  if (deleteCancelButton) {
-    deleteCancelButton.addEventListener("click", closeDeleteModal);
-  }
+  deleteButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var bookingId = button.getAttribute("data-booking-id") || "";
+      if (!bookingId) return;
+
+      var bookingRows = [];
+      var actionButtons = [];
+
+      deleteButtons.forEach(function (item) {
+        if (item.getAttribute("data-booking-id") !== bookingId) {
+          return;
+        }
+
+        actionButtons.push(item);
+
+        var row = item.closest("tr");
+        if (row) {
+          bookingRows.push(row);
+        }
+      });
+
+      confirmDeleteBooking().then(function (approved) {
+        if (!approved) {
+          return;
+        }
+        executeDeleteBooking(bookingId, bookingRows, actionButtons);
+      });
+    });
+  });
 
   if (bookingModal) {
     bookingModal.addEventListener("click", function (event) {
       if (event.target === bookingModal) {
         bookingModal.classList.add("hidden");
-      }
-    });
-  }
-
-  if (deleteModal) {
-    deleteModal.addEventListener("click", function (event) {
-      if (event.target === deleteModal) {
-        closeDeleteModal();
       }
     });
   }

@@ -8,7 +8,7 @@ $room_booking_room_list = (array) ($room_booking_room_list ?? []);
 $room_booking_total = (int) ($room_booking_total ?? 0);
 $room_booking_approved_total = (int) ($room_booking_approved_total ?? 0);
 $room_booking_pending_total = (int) ($room_booking_pending_total ?? 0);
-$my_booking_subtitle = (string) ($my_booking_subtitle ?? 'ยังไม่มีรายการจอง');
+$my_booking_subtitle = (string) ($my_booking_subtitle ?? '');
 $my_bookings_latest = (array) ($my_bookings_latest ?? []);
 $my_bookings_sorted = (array) ($my_bookings_sorted ?? []);
 $room_booking_events = (array) ($room_booking_events ?? []);
@@ -217,7 +217,15 @@ ob_start();
 
                 <div class="booking-actions">
                     <button type="submit" class="btn-outline" name="room_booking_check" value="1">ตรวจสอบเวลาว่าง</button>
-                    <button type="submit" class="btn-confirm" name="room_booking_save" value="1">บันทึกการจอง</button>
+                    <button
+                        type="submit"
+                        class="btn-confirm"
+                        name="room_booking_save"
+                        value="1"
+                        data-confirm="ยืนยันการบันทึกการจองใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">บันทึกการจอง</button>
                 </div>
 
                 <p class="booking-note">* ระบบจะส่งคำขอให้ผู้ดูแลพิจารณาอนุมัติ</p>
@@ -283,7 +291,9 @@ ob_start();
         <div class="booking-card-header">
             <div class="booking-card-title-group">
                 <h2 class="booking-card-title">รายการจองของฉัน</h2>
-                <p class="booking-card-subtitle"><?= h($my_booking_subtitle) ?></p>
+                <?php if ($my_booking_subtitle !== '') : ?>
+                    <p class="booking-card-subtitle"><?= h($my_booking_subtitle) ?></p>
+                <?php endif; ?>
             </div>
             <button class="btn-link" type="button" data-booking-modal-open="bookingListModal">ดูทั้งหมด</button>
         </div>
@@ -568,22 +578,6 @@ ob_start();
         <!-- <div class="booking-detail-actions" style="flex-grow: 1; align-items: flex-end;">
             <button type="button" class="booking-action-btn" data-booking-modal-close="bookingDetailModal">ปิดหน้าต่าง</button>
         </div> -->
-    </div>
-</div>
-
-<div id="bookingDeleteModal" class="alert-overlay hidden">
-    <div class="alert-box danger booking-delete-alert">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-trash-can"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการลบรายการจอง</h1>
-            <p>ต้องการลบรายการจองนี้ใช่หรือไม่</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert" data-booking-delete-confirm="true">ลบรายการ</button>
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-booking-delete-cancel="true">ยกเลิก</button>
-            </div>
-        </div>
     </div>
 </div>
 
