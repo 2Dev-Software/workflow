@@ -116,8 +116,8 @@ if (!function_exists('orders_create_index')) {
         $sent_items = [];
         $status_map = [
             ORDER_STATUS_WAITING_ATTACHMENT => ['label' => 'รอการแนบไฟล์', 'pill' => 'pending'],
-            ORDER_STATUS_COMPLETE => ['label' => 'แนบไฟล์สำเร็จ', 'pill' => 'approved'],
-            ORDER_STATUS_SENT => ['label' => 'ส่งแล้ว', 'pill' => 'approved'],
+            ORDER_STATUS_COMPLETE => ['label' => 'แนบไฟล์สำเร็จ', 'pill' => 'primary'],
+            ORDER_STATUS_SENT => ['label' => 'ส่งต่อคำสั่งสำเร็จ', 'pill' => 'approved'],
         ];
         $edit_modal_attachments_map = [];
         $send_modal_payload_map = [];
