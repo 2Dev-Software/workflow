@@ -197,9 +197,25 @@
         "เรื่อง: " + orderSubject + "\n" +
         "จำนวนผู้รับจริง: " + summary.uniqueRecipients + " คน";
 
-      if (!window.confirm(confirmMessage)) {
-        event.preventDefault();
+      event.preventDefault();
+      var alertsApi = window.AppAlerts || null;
+      if (!alertsApi || typeof alertsApi.confirm !== "function") {
+        form.submit();
+        return;
       }
+
+      alertsApi
+        .confirm(confirmMessage, {
+          title: "ยืนยันการส่งคำสั่ง",
+          confirmButtonText: "ยืนยัน",
+          cancelButtonText: "ยกเลิก",
+        })
+        .then(function (approved) {
+          if (!approved) {
+            return;
+          }
+          form.submit();
+        });
     });
   };
 

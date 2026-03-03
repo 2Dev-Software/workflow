@@ -14,7 +14,7 @@ $edit_href = $repair_id > 0 ? ('repairs.php?edit_id=' . $repair_id) : '#';
         <a class="booking-action-btn secondary" href="<?= h($edit_href) ?>">แก้ไข</a>
     <?php endif; ?>
     <?php if ($can_delete) : ?>
-        <form method="post" action="repairs.php" onsubmit="return confirm('ยืนยันการลบรายการนี้?');">
+        <form method="post" action="repairs.php" data-confirm="ยืนยันการลบรายการนี้?">
             <?php if (function_exists('csrf_field')) : ?>
                 <?= csrf_field() ?>
             <?php endif; ?>

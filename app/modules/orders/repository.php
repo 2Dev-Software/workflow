@@ -707,7 +707,7 @@ if (!function_exists('order_list_drafts_page_filtered')) {
         $offset = max(0, $offset);
         $filter = order_build_owner_filters($pID, $filters, true);
         $order_by = order_owner_order_by((string) ($filter['sort'] ?? 'newest'));
-        $sql = 'SELECT o.orderID, o.orderNo, o.subject, o.status, o.createdAt,
+        $sql = 'SELECT o.orderID, o.orderNo, o.subject, o.detail, o.status, o.createdAt,
                 (SELECT COUNT(*) FROM dh_order_inboxes WHERE orderID = o.orderID) AS recipientCount,
                 (SELECT COUNT(*) FROM dh_order_inboxes WHERE orderID = o.orderID AND isRead = 1) AS readCount
             FROM dh_orders AS o

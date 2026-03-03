@@ -1130,13 +1130,13 @@ ob_start();
                             <?php
                             $status_label = 'ทั้งหมด';
 
-if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
-    $status_label = 'ส่งแล้ว';
-} elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
-    $status_label = 'ดึงกลับ';
-}
-echo h($status_label);
-?>
+                            if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
+                                $status_label = 'ส่งแล้ว';
+                            } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
+                                $status_label = 'ดึงกลับ';
+                            }
+                            echo h($status_label);
+                            ?>
                         </p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
@@ -1329,7 +1329,7 @@ echo h($status_label);
     //     'base_url' => $pagination_url,
     //     'class' => 'u-mt-2',
     // ]);
-?>
+    ?>
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">

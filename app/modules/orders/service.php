@@ -134,6 +134,66 @@ if (!function_exists('order_update_draft')) {
     }
 }
 
+if (!function_exists('order_update_draft_with_attachments')) {
+    function order_update_draft_with_attachments(int $orderID, string $actorPID, array $data, array $files): void
+    {
+        $order = order_get_for_owner($orderID, $actorPID);
+
+        if (!$order) {
+            throw new RuntimeException('ไม่พบคำสั่งหรือไม่มีสิทธิ์แก้ไข');
+        }
+
+        $status = (string) ($order['status'] ?? '');
+
+        if (!in_array($status, [ORDER_STATUS_WAITING_ATTACHMENT, ORDER_STATUS_COMPLETE], true)) {
+            throw new RuntimeException('แก้ไขได้เฉพาะคำสั่งที่ยังไม่ส่ง');
+        }
+
+        $subject = trim((string) ($data['subject'] ?? ''));
+        $detail = trim((string) ($data['detail'] ?? ''));
+
+        if ($subject === '') {
+            throw new RuntimeException('กรุณากรอกหัวข้อ');
+        }
+
+        $new_count = order_count_new_uploads($files);
+        $existing_count = count(order_get_attachments($orderID));
+
+        if ($new_count > 0 && ($existing_count + $new_count) > 5) {
+            throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
+        }
+
+        db_begin();
+
+        try {
+            order_update_record($orderID, [
+                'subject' => $subject,
+                'detail' => $detail !== '' ? $detail : null,
+                'updatedByPID' => $actorPID,
+            ]);
+
+            if ($new_count > 0) {
+                upload_store_files($files, ORDER_MODULE_NAME, ORDER_ENTITY_NAME, (string) $orderID, $actorPID, [
+                    'max_files' => 5,
+                ]);
+                order_update_record($orderID, [
+                    'status' => ORDER_STATUS_COMPLETE,
+                    'updatedByPID' => $actorPID,
+                ]);
+            }
+
+            order_sync_document($orderID);
+            db_commit();
+            audit_log('orders', 'UPDATE', 'SUCCESS', 'dh_orders', $orderID);
+        } catch (Throwable $e) {
+            db_rollback();
+            error_log('Order update with attachments failed: ' . $e->getMessage());
+            audit_log('orders', 'UPDATE', 'FAIL', 'dh_orders', $orderID, $e->getMessage());
+            throw $e;
+        }
+    }
+}
+
 if (!function_exists('order_create_draft')) {
     function order_create_draft(array $data, array $files = []): int
     {

@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="assets/css/base.css?v=0.1.0-beta">
     <link rel="stylesheet" href="assets/css/components.css?v=0.1.0-beta">
     <link rel="stylesheet" href="assets/css/main.css?v=0.1.0-beta">
+    <link rel="stylesheet" href="assets/css/vendor-sweetalert2.min.css?v=0.1.0-beta">
     <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>

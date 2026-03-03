@@ -387,7 +387,7 @@ ob_start();
                     'label' => 'ส่งเสนอ',
                     'variant' => 'primary',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งเสนอ? หลังส่งแล้วจะแก้ไขเนื้อหาไม่ได้จนกว่าจะถูกตีกลับ")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการส่งเสนอ? หลังส่งแล้วจะแก้ไขเนื้อหาไม่ได้จนกว่าจะถูกตีกลับ'],
                 ]); ?>
                     </form>
                 <?php endif; ?>
@@ -400,7 +400,7 @@ ob_start();
                     'label' => 'ดึงกลับเพื่อแก้ไข',
                     'variant' => 'secondary',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการดึงกลับเพื่อแก้ไข?")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการดึงกลับเพื่อแก้ไข?'],
                 ]); ?>
                     </form>
                 <?php endif; ?>
@@ -413,7 +413,7 @@ ob_start();
                     'label' => 'ยกเลิก',
                     'variant' => 'danger',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการยกเลิก?")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการยกเลิก?'],
                 ]); ?>
                     </form>
                 <?php endif; ?>
@@ -458,7 +458,7 @@ ob_start();
                     'label' => $is_chain_head ? 'ส่งต่อรองผู้อำนวยการ' : 'ส่งต่อผู้อำนวยการ',
                     'variant' => 'primary',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการส่งต่อรายการ?")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการส่งต่อรายการ?'],
                 ]); ?>
                     </div>
                 </form>
@@ -481,7 +481,7 @@ ob_start();
                     'label' => 'ตีกลับแก้ไข',
                     'variant' => 'danger',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการตีกลับให้แก้ไข?'],
                 ]); ?>
                     </div>
                 </form>
@@ -504,7 +504,7 @@ ob_start();
                         'label' => 'อนุมัติและปิดงาน',
                         'variant' => 'primary',
                         'type' => 'submit',
-                        'attrs' => ['onclick' => 'return confirm("ยืนยันการอนุมัติรายการนี้?")'],
+                        'attrs' => ['data-confirm' => 'ยืนยันการอนุมัติรายการนี้?'],
                     ]); ?>
                         </div>
                     </form>
@@ -528,7 +528,7 @@ ob_start();
                         'label' => 'ไม่อนุมัติ',
                         'variant' => 'danger',
                         'type' => 'submit',
-                        'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติรายการนี้?")'],
+                        'attrs' => ['data-confirm' => 'ยืนยันการไม่อนุมัติรายการนี้?'],
                     ]); ?>
                         </div>
                     </form>
@@ -552,7 +552,7 @@ ob_start();
                     'label' => 'ตีกลับแก้ไข',
                     'variant' => 'danger',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการตีกลับให้แก้ไข?")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการตีกลับให้แก้ไข?'],
                 ]); ?>
                     </div>
                 </form>
@@ -578,7 +578,7 @@ ob_start();
                         'label' => 'ไม่อนุมัติ',
                         'variant' => 'danger',
                         'type' => 'submit',
-                        'attrs' => ['onclick' => 'return confirm("ยืนยันการไม่อนุมัติ?")'],
+                        'attrs' => ['data-confirm' => 'ยืนยันการไม่อนุมัติ?'],
                     ]); ?>
                         </div>
                     </form>
@@ -633,7 +633,7 @@ ob_start();
                     'label' => 'ลงนาม (อัปโหลดไฟล์)',
                     'variant' => 'primary',
                     'type' => 'submit',
-                    'attrs' => ['onclick' => 'return confirm("ยืนยันการลงนาม? เมื่อบันทึกแล้วจะแก้ไขไม่ได้")'],
+                    'attrs' => ['data-confirm' => 'ยืนยันการลงนาม? เมื่อบันทึกแล้วจะแก้ไขไม่ได้'],
                 ]); ?>
                     </div>
                 </form>

@@ -972,7 +972,15 @@ function confirmImageChange() {
   const profileInput = document.getElementById("profileFileInput");
 
   if (!profileInput || !profileInput.files || !profileInput.files[0]) {
-    alert("กรุณาเลือกรูปภาพก่อน");
+    if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+      window.AppAlerts.fire({
+        type: "warning",
+        title: "แจ้งเตือน",
+        message: "กรุณาเลือกรูปภาพก่อน",
+      });
+    } else {
+      window.alert("กรุณาเลือกรูปภาพก่อน");
+    }
     return;
   }
 
@@ -1015,7 +1023,15 @@ function confirmSignatureChange() {
   const signatureInput = document.getElementById("signatureFileInput");
 
   if (!signatureInput || !signatureInput.files || !signatureInput.files[0]) {
-    alert("กรุณาเลือกไฟล์ลายเซ็นก่อน");
+    if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+      window.AppAlerts.fire({
+        type: "warning",
+        title: "แจ้งเตือน",
+        message: "กรุณาเลือกไฟล์ลายเซ็นก่อน",
+      });
+    } else {
+      window.alert("กรุณาเลือกไฟล์ลายเซ็นก่อน");
+    }
     return;
   }
 
@@ -1954,7 +1970,15 @@ document.addEventListener("DOMContentLoaded", function () {
       var file = files[0];
 
       if (!file.type.startsWith("image/")) {
-        alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+        if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+          window.AppAlerts.fire({
+            type: "warning",
+            title: "แจ้งเตือน",
+            message: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
+          });
+        } else {
+          window.alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+        }
         return;
       }
 

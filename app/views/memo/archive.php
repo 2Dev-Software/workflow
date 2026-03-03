@@ -321,12 +321,13 @@ ob_start();
                                         </div>
 
                                         <div class="custom-options">
-                                            <?php foreach ($factions as $faction) : ?>
+                                            <!-- <?php foreach ($factions as $faction) : ?>
                                                 <?php $fid = (string) ($faction['fID'] ?? ''); ?>
                                                 <div class="custom-option<?= $fid === $selected_sender_fid ? ' selected' : '' ?>" data-value="<?= h($fid) ?>">
                                                     <?= h((string) ($faction['fname'] ?? '')) ?>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            <?php endforeach; ?> -->
+                                            <div class="custom-option">กลุ่ม</div>
                                         </div>
 
                                         <input type="hidden" name="sender_fid" value="<?= h($selected_sender_fid) ?>">

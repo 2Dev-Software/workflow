@@ -33,6 +33,7 @@ if (!function_exists('orders_send_index')) {
             'selected_sources' => 0,
             'unique_recipients' => 0,
         ];
+        $read_stats = [];
 
         $connection = db_connection();
         $has_orders_table = db_table_exists($connection, 'dh_orders');
@@ -48,7 +49,11 @@ if (!function_exists('orders_send_index')) {
 
         if (!$tables_ready) {
             $alert = system_not_ready_alert('ยังไม่พบตารางคำสั่ง กรุณารัน migrations/004_create_orders.sql');
-        } elseif (!$order || (string) ($order['createdByPID'] ?? '') !== $current_pid || ($order['status'] ?? '') !== ORDER_STATUS_COMPLETE) {
+        } elseif (
+            !$order
+            || (string) ($order['createdByPID'] ?? '') !== $current_pid
+            || !in_array((string) ($order['status'] ?? ''), [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true)
+        ) {
             header('Location: orders-create.php', true, 302);
             exit();
         }
@@ -57,6 +62,7 @@ if (!function_exists('orders_send_index')) {
             $values['faction_ids'] = array_values((array) ($_POST['faction_ids'] ?? []));
             $values['role_ids'] = array_values((array) ($_POST['role_ids'] ?? []));
             $values['person_ids'] = array_values((array) ($_POST['person_ids'] ?? []));
+            $action = trim((string) ($_POST['action'] ?? 'send'));
 
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -68,37 +74,48 @@ if (!function_exists('orders_send_index')) {
                 $alert = system_not_ready_alert('ยังไม่พบตารางคำสั่ง กรุณารัน migrations/004_create_orders.sql');
             } else {
                 try {
-                    $targets = [];
+                    if ($action === 'recall') {
+                        order_recall($order_id, $current_pid);
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'ดึงคำสั่งกลับแล้ว',
+                            'message' => 'สามารถแก้ไขและส่งคำสั่งใหม่ได้',
+                        ];
+                    } else {
+                        $targets = [];
 
-                    foreach ($values['faction_ids'] as $fid) {
-                        $targets[] = ['targetType' => 'UNIT', 'fID' => (int) $fid];
+                        foreach ($values['faction_ids'] as $fid) {
+                            $targets[] = ['targetType' => 'UNIT', 'fID' => (int) $fid];
+                        }
+
+                        foreach ($values['role_ids'] as $rid) {
+                            $targets[] = ['targetType' => 'ROLE', 'roleID' => (int) $rid];
+                        }
+
+                        foreach ($values['person_ids'] as $pid) {
+                            $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
+                        }
+                        $pids = order_resolve_recipients($values['faction_ids'], $values['role_ids'], $values['person_ids']);
+                        $selected_summary['selected_sources'] = count($values['faction_ids']) + count($values['role_ids']) + count($values['person_ids']);
+                        $selected_summary['unique_recipients'] = count(array_values(array_unique(array_map('strval', $pids))));
+                        order_send($order_id, $current_pid, ['pids' => $pids, 'targets' => $targets]);
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'ส่งคำสั่งแล้ว',
+                            'message' => '',
+                        ];
+                        $values = [
+                            'faction_ids' => [],
+                            'role_ids' => [],
+                            'person_ids' => [],
+                        ];
+                        $selected_summary = [
+                            'selected_sources' => 0,
+                            'unique_recipients' => 0,
+                        ];
                     }
 
-                    foreach ($values['role_ids'] as $rid) {
-                        $targets[] = ['targetType' => 'ROLE', 'roleID' => (int) $rid];
-                    }
-
-                    foreach ($values['person_ids'] as $pid) {
-                        $targets[] = ['targetType' => 'PERSON', 'pID' => (string) $pid];
-                    }
-                    $pids = order_resolve_recipients($values['faction_ids'], $values['role_ids'], $values['person_ids']);
-                    $selected_summary['selected_sources'] = count($values['faction_ids']) + count($values['role_ids']) + count($values['person_ids']);
-                    $selected_summary['unique_recipients'] = count(array_values(array_unique(array_map('strval', $pids))));
-                    order_send($order_id, $current_pid, ['pids' => $pids, 'targets' => $targets]);
-                    $alert = [
-                        'type' => 'success',
-                        'title' => 'ส่งคำสั่งแล้ว',
-                        'message' => '',
-                    ];
-                    $values = [
-                        'faction_ids' => [],
-                        'role_ids' => [],
-                        'person_ids' => [],
-                    ];
-                    $selected_summary = [
-                        'selected_sources' => 0,
-                        'unique_recipients' => 0,
-                    ];
+                    $order = order_get($order_id);
                 } catch (Throwable $e) {
                     $alert = [
                         'type' => 'danger',
@@ -145,6 +162,10 @@ if (!function_exists('orders_send_index')) {
             $selected_summary['unique_recipients'] = count(array_values(array_unique(array_map('strval', $resolved))));
         }
 
+        if ($tables_ready && $order && (string) ($order['status'] ?? '') === ORDER_STATUS_SENT) {
+            $read_stats = order_get_read_stats($order_id, 'all');
+        }
+
         view_render('orders/send', [
             'alert' => $alert,
             'order' => $order,
@@ -155,6 +176,7 @@ if (!function_exists('orders_send_index')) {
             'faction_member_map' => $faction_member_map,
             'role_member_map' => $role_member_map,
             'selected_summary' => $selected_summary,
+            'read_stats' => $read_stats,
         ]);
     }
 }

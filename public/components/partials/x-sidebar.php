@@ -53,9 +53,9 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         }
         ?>
         <div class="profile-image">
-            <?php if ($profile_picture !== '') : ?>
+            <?php if ($profile_picture !== ''): ?>
                 <img src="<?= htmlspecialchars($profile_picture, ENT_QUOTES, 'UTF-8') ?>" alt="Profile image">
-            <?php else : ?>
+            <?php else: ?>
                 <i class="fa-solid fa-user"></i>
             <?php endif; ?>
         </div>
@@ -92,21 +92,6 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <i class="fa-solid fa-file"></i>
-                    <p class="link-name">คำสั่งราชการ</p>
-                </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="orders-create.php">ออกเลขคำสั่งราชการ</a></li>
-                <li><a href="orders-inbox.php">คำสั่งราชการ (inbox)</a></li>
-                <li><a href="orders-archive.php">คำสั่งที่จัดเก็บ</a></li>
-            </ul>
-        </li>
-
-        <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
                     <i class="fa-solid fa-pen-to-square"></i>
                     <p class="link-name">บันทึกข้อความ</p>
                 </a>
@@ -114,12 +99,27 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </div>
             <ul class="navigation-links-sub-menu">
                 <li><a href="memo.php">บันทึกข้อความ</a></li>
-                <li><a href="memo-inbox.php">Inbox บันทึกข้อความ</a></li>
+                <li><a href="memo-inbox.php">กล่องบันทึกข้อความ</a></li>
                 <li><a href="memo-archive.php">บันทึกข้อความที่จัดเก็บ</a></li>
             </ul>
         </li>
 
-        <?php if ($can_access_external_circular_menu) : ?>
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <i class="fa-solid fa-file"></i>
+                    <p class="link-name">คำสั่งราชการ</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="orders-create.php">ออกเลขคำสั่งราชการ</a></li>
+                <li><a href="orders-inbox.php">กล่องคำสั่งราชการ</a></li>
+                <li><a href="orders-archive.php">คำสั่งราชการที่จัดเก็บ</a></li>
+            </ul>
+        </li>
+
+        <?php if ($can_access_external_circular_menu): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -129,21 +129,22 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
                 <ul class="navigation-links-sub-menu">
-                    <?php if ($can_manage_external_circular) : ?>
+                    <?php if ($can_manage_external_circular): ?>
                         <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
                         <li><a
                                 href="outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
                         </li>
                         <li><a href="outgoing.php">หนังสือเวียนที่จัดเก็บ</a></li>
                     <?php endif; ?>
-                    <?php if ($is_director_or_acting) : ?>
-                        <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา (ผอ./รักษาการ)</a></li>
+                    <?php if ($is_director_or_acting): ?>
+                        <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา
+                                (ผอ./รักษาการ)</a></li>
                     <?php endif; ?>
                 </ul>
             </li>
         <?php endif; ?>
 
-        <?php if ($can_manage_room_module) : ?>
+        <?php if ($can_manage_room_module): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -158,7 +159,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <li><a href="room-management.php">จัดการสถานที่/ห้อง</a></li>
                 </ul>
             </li>
-        <?php else : ?>
+        <?php else: ?>
             <li>
                 <a href="room-booking.php">
                     <i class="fa-solid fa-building"></i>
@@ -167,14 +168,14 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </li>
         <?php endif; ?>
 
-        <?php if ($is_director_or_acting) : ?>
+        <?php if ($is_director_or_acting): ?>
             <li>
                 <a href="vehicle-reservation-approval.php">
                     <i class="fa-solid fa-car"></i>
                     <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
             </li>
-        <?php elseif ($can_manage_vehicle_module) : ?>
+        <?php elseif ($can_manage_vehicle_module): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -189,7 +190,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
                 </ul>
             </li>
-        <?php else : ?>
+        <?php else: ?>
             <li>
                 <a href="vehicle-reservation.php">
                     <i class="fa-solid fa-car"></i>
@@ -232,7 +233,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
-        <?php if ($can_access_settings) : ?>
+        <?php if ($can_access_settings): ?>
             <li>
                 <a href="setting.php">
                     <i class="fa-solid fa-gear"></i>
