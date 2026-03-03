@@ -1943,8 +1943,14 @@ document.addEventListener("DOMContentLoaded", function () {
   var input = document.getElementById("profileFileInput");
   var placeholder = document.getElementById("previewPlaceholder");
   var croppedInput = document.getElementById("croppedImageData");
+  var profileForm = document.getElementById("profileImageForm");
+  var confirmCropBtn = document.getElementById("btnConfirmCrop");
   var cropper;
   var isCropping = false;
+
+  if (!container || !image || !input || !profileForm || !confirmCropBtn) {
+    return;
+  }
 
   container.addEventListener("click", function (e) {
     if (isCropping) {
@@ -1993,10 +1999,13 @@ document.addEventListener("DOMContentLoaded", function () {
         isCropping = true;
         container.classList.add("cropping-mode");
 
-        input.disabled = true;
-
         if (cropper) {
           cropper.destroy();
+        }
+
+        if (typeof Cropper !== "function") {
+          cropper = null;
+          return;
         }
 
         cropper = new Cropper(image, {
@@ -2034,23 +2043,35 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  document
-    .getElementById("btnConfirmCrop")
-    .addEventListener("click", function () {
-      if (cropper) {
-        var canvas = cropper.getCroppedCanvas({
-          width: 500,
-          height: 500,
-          imageSmoothingEnabled: true,
-          imageSmoothingQuality: "high",
+  confirmCropBtn.addEventListener("click", function () {
+    if (!input.files || !input.files[0]) {
+      if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+        window.AppAlerts.fire({
+          type: "warning",
+          title: "แจ้งเตือน",
+          message: "กรุณาเลือกรูปภาพก่อน",
         });
-
-        if (canvas) {
-          croppedInput.value = canvas.toDataURL("image/jpeg", 0.9);
-          document.getElementById("profileImageForm").submit();
-        }
+      } else {
+        window.alert("กรุณาเลือกรูปภาพก่อน");
       }
-    });
+      return;
+    }
+
+    if (cropper) {
+      var canvas = cropper.getCroppedCanvas({
+        width: 500,
+        height: 500,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: "high",
+      });
+
+      if (canvas && croppedInput) {
+        croppedInput.value = canvas.toDataURL("image/jpeg", 0.9);
+      }
+    }
+
+    profileForm.submit();
+  });
 
   var cancelBtns = document.querySelectorAll(
     '[data-action="profile-image-cancel"]',
@@ -2064,7 +2085,6 @@ document.addEventListener("DOMContentLoaded", function () {
       image.src = "";
       image.classList.add("hidden");
       if (placeholder) placeholder.style.display = "block";
-      input.disabled = false;
       input.value = "";
 
       isCropping = false;
