@@ -10,6 +10,8 @@ $asset_version = static function (string $relativePath): string {
 ?>
 
 <script src="assets/js/vendor/jquery-3.7.1.min.js?v=<?= htmlspecialchars($asset_version('assets/js/vendor/jquery-3.7.1.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="assets/js/vendor/sweetalert2.all.min.js?v=<?= htmlspecialchars($asset_version('assets/js/vendor/sweetalert2.all.min.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="assets/js/modules/sweetalert-bridge.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/sweetalert-bridge.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 
 <script src="assets/js/main.js?v=<?= htmlspecialchars($asset_version('assets/js/main.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/app.js?v=<?= htmlspecialchars($asset_version('assets/js/app.js'), ENT_QUOTES, 'UTF-8') ?>"></script>

@@ -22,6 +22,7 @@
   var deleteEndpoint = root.getAttribute("data-delete-endpoint") || "";
   var csrfToken = root.getAttribute("data-csrf") || "";
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
+  var alertsApi = window.AppAlerts || null;
   var checkEndpoint =
     root.getAttribute("data-check-endpoint") ||
     "public/api/room-booking-check.php";
@@ -32,71 +33,40 @@
     root.querySelector(".booking-list-card") ||
     root;
 
-  function removeActiveAlerts() {
-    document.querySelectorAll(".alert-overlay").forEach(function (overlay) {
-      if (overlay.id !== "bookingDeleteModal") {
-        overlay.remove();
-      }
-    });
-  }
-
-  function attachAlertBehaviors(overlay) {
-    if (!overlay) return;
-    overlay.querySelectorAll('[data-alert-close="true"]').forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        overlay.remove();
-      });
-    });
-
-    var redirectUrl = overlay.getAttribute("data-alert-redirect") || "";
-    var delayValue = parseInt(overlay.getAttribute("data-alert-delay"), 10);
-    if (redirectUrl) {
-      var delay = Number.isNaN(delayValue) ? 0 : delayValue;
-      window.setTimeout(function () {
-        window.location.href = redirectUrl;
-      }, delay);
-    }
-  }
-
   function appendAlertHtml(html) {
     if (!html) return;
     var temp = document.createElement("div");
     temp.innerHTML = html;
-    var overlay = temp.querySelector(".alert-overlay");
-    if (!overlay) return;
-    removeActiveAlerts();
-    document.body.appendChild(overlay);
-    attachAlertBehaviors(overlay);
-  }
+    var payloadNode = temp.querySelector("[data-app-alert]");
 
-  function buildAlertHtml(type, title, message) {
-    var iconMap = {
-      success: "fa-check",
-      warning: "fa-triangle-exclamation",
-      danger: "fa-xmark",
-    };
-    var alertType = iconMap[type] ? type : "danger";
-    var icon = iconMap[alertType] || "fa-xmark";
-    return (
-      '<div class="alert-overlay" data-alert-redirect="" data-alert-delay="0">' +
-      '<div class="alert-box ' +
-      alertType +
-      '">' +
-      '<div class="alert-header"><div class="icon-circle"><i class="fa-solid ' +
-      icon +
-      '"></i></div></div>' +
-      '<div class="alert-body">' +
-      "<h1>" +
-      title +
-      "</h1>" +
-      (message ? "<p>" + message + "</p>" : "") +
-      '<button type="button" class="btn-close-alert" data-alert-close="true">ยืนยัน</button>' +
-      "</div></div></div>"
-    );
+    if (payloadNode) {
+      if (alertsApi && typeof alertsApi.consumePayloadElement === "function") {
+        alertsApi.consumePayloadElement(payloadNode);
+        return;
+      }
+      var payloadRaw = payloadNode.getAttribute("data-app-alert") || "";
+      try {
+        var payload = JSON.parse(payloadRaw);
+        if (payload) {
+          window.alert((payload.title || "") + (payload.message ? "\n" + payload.message : ""));
+        }
+      } catch (error) {
+        window.alert("ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง");
+      }
+      return;
+    }
   }
 
   function showBookingAlert(type, title, message) {
-    appendAlertHtml(buildAlertHtml(type, title, message));
+    if (alertsApi && typeof alertsApi.fire === "function") {
+      alertsApi.fire({
+        type: type,
+        title: title,
+        message: message || "",
+      });
+      return;
+    }
+    window.alert((title || "แจ้งเตือน") + (message ? "\n" + message : ""));
   }
 
   var detailFields = detailModal

@@ -1073,7 +1073,15 @@ ob_start();
                         const hasVehicle = assignVehicleSelect && assignVehicleSelect.value !== '';
                         const hasDriver = assignDriverSelect && assignDriverSelect.value !== '';
                         if (!hasVehicle || !hasDriver) {
-                            alert('กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก');
+                            if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
+                                window.AppAlerts.fire({
+                                    type: 'warning',
+                                    title: 'แจ้งเตือน',
+                                    message: 'กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก',
+                                });
+                            } else {
+                                window.alert('กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก');
+                            }
                             return;
                         }
                     }

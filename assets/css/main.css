@@ -8704,8 +8704,8 @@ select {
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-topic-sec:nth-child(3) {
-    border-bottom: 1px solid var(--color-secondary);
-    padding: 0 0 25px;
+    /* border-bottom: 1px solid var(--color-secondary);
+    padding: 0 0 25px; */
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-topic-sec p:first-child {
@@ -8774,7 +8774,7 @@ select {
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-file-sec .file-text {
     display: flex;
     flex-direction: column;
-    width: 75%;
+    width: 90%;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-file-sec .file-name {
@@ -8832,6 +8832,12 @@ select {
     font-size: var(--font-size-body-1);
     font-family: "THSarabunNew";
     color: var(--color-neutral-lightest);
+    cursor: pointer;
+    transition: 0.4s;
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .footer-modal button:hover {
+    background-color: var(--color-primary-deep);
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .modal-content {
@@ -9040,7 +9046,7 @@ select {
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group.receive .search-input-wrapper .search-input {
     width: 100%;
-    height: 30px;
+    height: 40px;
     border-radius: 8px;
     background-color: var(--color-neutral-lightest);
     border: 0.5px solid var(--color-secondary);
@@ -9052,7 +9058,7 @@ select {
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group.receive .search-input-wrapper .search-input::placeholder {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-body-1);
     color: var(--color-secondary);
   }
 
@@ -9073,7 +9079,7 @@ select {
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group.receive .search-input-wrapper.active i {
-    transform: translateX(-40px) rotate(180deg);
+    transform: translateX(-20px) rotate(180deg);
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .dropdown-content {
@@ -9173,8 +9179,9 @@ select {
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .sent-notice-selected button {
-    width: 140px;
-    height: 30px;
+    width: auto;
+    height: 40px;
+    padding: 0 20px;
     border-radius: 8px;
     border: none;
     background-color: var(--color-secondary);
@@ -9183,6 +9190,11 @@ select {
     cursor: pointer;
     transition: 0.4s;
   }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index .sent-notice-selected button:hover {
+    background-color: var(--color-primary-deep);
+  }
+
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .sent-notice-selected button p {
     margin: 0;
@@ -9684,7 +9696,7 @@ select {
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal p {
-    margin: 0 0 10px;
+    /* margin: 0 0 10px; */
     font-size: var(--font-size-body-1);
   }
 
@@ -9693,17 +9705,17 @@ select {
     flex-direction: row;
     align-items: center;
     gap: 20px;
-    margin: 0 0 20px;
+    margin: 0 0 40px;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-topic-sec:nth-child(2) {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 30px 60px;
-    padding: 0 0 30px;
+    gap: 20px;
+    /* padding: 0 0 30px; */
     margin: 0 0 30px;
-    border-bottom: 1px solid var(--color-secondary);
+    /* border-bottom: 1px solid var(--color-secondary); */
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-topic-sec .more-details {
@@ -9816,7 +9828,7 @@ select {
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 80%;
+    width: 100%;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-file-sec .file-icon {
@@ -9845,6 +9857,7 @@ select {
     text-overflow: ellipsis;
     width: 95%;
     border-bottom: 1px solid var(--color-neutral-lightest);
+    max-width: none;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-file-sec .file-type {
@@ -13774,7 +13787,8 @@ select {
     margin: 0;
   }
 
-  .content-order .form-group input {
+  .content-order .form-group input,
+  .content-order .form-group select {
     width: 100%;
     height: 50px;
     border: none;
@@ -13793,11 +13807,15 @@ select {
 
   .content-order .form-group input:hover,
   .content-order .form-group input:active,
-  .content-order .form-group input:focus {
+  .content-order .form-group input:focus,
+  .content-order .form-group select:hover,
+  .content-order .form-group select:active,
+  .content-order .form-group select:focus {
     outline: none;
   }
 
-  .content-order .form-group input:disabled {
+  .content-order .form-group input:disabled,
+  .content-order .form-group select:disabled {
     width: 100%;
     min-height: 50px;
     font-weight: 600;
@@ -13805,6 +13823,15 @@ select {
     color: var(--color-neutral-dark);
     background-color: rgba(var(--rgb-neutral-medium), 0.25);
     border: none;
+  }
+
+  /* Match disabled look with "ผู้ส่ง" field in circular compose */
+  .content-order .form-group input.order-no-display[disabled] {
+    background-color: #eef3ff;
+    color: var(--color-primary-dark);
+    font-weight: 600;
+    cursor: not-allowed;
+    border: 1px solid var(--color-secondary);
   }
 
   .content-order .form-group.button .input-group {
@@ -13816,7 +13843,7 @@ select {
 
   .content-order .form-group.button .input-group .submit {
     width: auto;
-    height: 40px;
+    height: 50px;
     padding: 0 20px;
     border-radius: 8px;
     border: none;
@@ -13933,6 +13960,842 @@ select {
     font-weight: bold;
     background-color: rgba(var(--rgb-primary-dark), 0.1);
   }
+
+  .circular-my-subject {
+    min-width: 260px;
+    max-width: 380px;
+    font-weight: 700;
+    color: var(--color-secondary);
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .circular-my-meta {
+    color: var(--color-neutral-dark);
+    font-size: var(--font-size-desc-2);
+    margin-top: 2px;
+  }
+
+  .table-responsive.order-create .custom-table tbody tr td:nth-child(2),
+  .table-responsive.order-create .custom-table tbody tr td:nth-child(3),
+  .table-responsive.order-create .custom-table tbody tr td:nth-child(4) {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .table-responsive.order-create .custom-table tbody tr td:nth-child(4) .circular-my-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .order-mine-list-header {
+    margin-top: 40px;
+  }
+
+  .modal-overlay-orders {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    z-index: 1111;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(var(--rgb-neutral-dark), 0.2);
+    animation: fadeIn 0.3s;
+  }
+
+  .modal-overlay-orders .content-order.create {
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .modal-overlay-orders .modal-content .footer-modal {
+    width: 100%;
+    min-height: 80px;
+    padding: 0 40px;
+    background-color: var(--color-neutral-lightest);
+    box-shadow: 0 0 12px rgba(var(--rgb-neutral-dark), 0.25);
+    display: flex;
+    justify-content: end;
+    align-items: center;
+  }
+
+  .modal-overlay-orders .modal-content .footer-modal button {
+    width: 150px;
+    height: 50px;
+    background-color: var(--color-secondary);
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: var(--font-size-body-1);
+    font-family: "THSarabunNew";
+    color: var(--color-neutral-lightest);
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .modal-overlay-orders .modal-content .footer-modal button:hover {
+    background-color: var(--color-primary-deep);
+  }
+
+
+  .modal-overlay-orders .modal-content {
+    width: 95%;
+    height: 95%;
+    padding: 0;
+  }
+
+
+  .modal-overlay-orders .modal-content .header-modal {
+    width: 100%;
+    height: 80px;
+    background-color: var(--color-secondary);
+    font-size: var(--font-size-body-1);
+    color: var(--color-neutral-lightest);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+  }
+
+
+  .modal-overlay-orders .modal-content .header-modal i {
+    cursor: pointer;
+  }
+
+  /* - */
+
+  .modal-overlay-orders .modal-content .content-modal {
+    width: 100%;
+    height: auto;
+    overflow-y: scroll;
+    scrollbar-width: none;
+    -ms-scrollbar-style: none;
+    padding: 20px 40px;
+    font-size: var(--font-size-body-2);
+    color: var(--color-secondary);
+    flex-grow: 1;
+  }
+
+
+  .modal-overlay-orders .modal-content .content-modal p {
+    margin: 0;
+  }
+
+  .modal-overlay-orders .content-modal {
+    padding: 0;
+  }
+
+  .modal-overlay-orders .content-modal .content-memo {
+    box-shadow: none;
+    margin: 0;
+    padding: 40px;
+  }
+
+  .modal-overlay-orders .content-modal .content-outgoing {
+    box-shadow: none;
+  }
+
+  .modal-overlay-orders .content-modal .content-outgoing .type-urgent {
+    margin: 0 0 40px;
+  }
+
+  .modal-overlay-orders .content-modal .form-group-row input:disabled {
+    width: 100%;
+    min-height: 50px;
+    font-weight: 600;
+    cursor: not-allowed;
+    color: var(--color-neutral-dark);
+    background-color: rgba(var(--rgb-neutral-medium), 0.25);
+    border: none;
+  }
+
+  .modal-overlay-orders .content-modal .form-group-row textarea:disabled {
+    width: 100%;
+    font-weight: 600;
+    cursor: not-allowed;
+    color: var(--color-neutral-dark);
+    background-color: rgba(var(--rgb-neutral-medium), 0.25);
+    border: none;
+  }
+
+  .modal-overlay-orders .content-modal .form-group-row input:disabled:hover,
+  .modal-overlay-orders .content-modal .form-group-row input:disabled:active,
+  .modal-overlay-orders .content-modal .form-group-row input:disabled:focus,
+  .modal-overlay-orders .content-modal .form-group-row textarea:disabled {
+    box-shadow: none;
+  }
+
+  .attachment-empty {
+    margin: 0;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px dashed rgba(var(--rgb-secondary), 0.2);
+    background-color: rgba(var(--rgb-secondary), 0.04);
+    font-size: var(--font-size-body-2);
+    color: var(--color-neutral-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    text-align: center;
+  }
+
+  .viewer {
+    margin: 10px;
+    font-weight: bold;
+    color: var(--color-danger);
+  }
+
+  .circular-track-modal-host {
+        width: 0;
+        height: 0;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec {
+        align-items: flex-start;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .more-details {
+        flex: 1;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input {
+        width: 100%;
+        height: 50px;
+        border: none;
+        border-radius: 8px;
+        border: 1px solid var(--color-secondary);
+        background-color: var(--color-neutral-lightest);
+        padding: 10px 20px;
+        font-size: var(--font-size-body-1);
+        color: var(--color-secondary);
+        transition: 0.4s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input::placeholder {
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input:hover,
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input:active,
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input:focus {
+        outline: none;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input:disabled {
+        width: 100%;
+        min-height: 50px;
+        font-weight: 600;
+        cursor: not-allowed;
+        color: var(--color-neutral-dark);
+        background-color: rgba(var(--rgb-neutral-medium), 0.25);
+        border: none;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec input.order-no-display[disabled] {
+        background-color: #eef3ff;
+        color: var(--color-primary-dark);
+        font-weight: 600;
+        cursor: not-allowed;
+        border: 1px solid var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal>.content-topic-sec:first-of-type {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 20px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-trigger {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 50px;
+        padding: 0 20px;
+        border-radius: 6px;
+        background-color: var(--color-neutral-lightest);
+        color: var(--color-secondary);
+        border: 1px solid var(--color-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-trigger .select-value {
+        margin: 0;
+        font-size: var(--font-size-body-1);
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-wrapper i {
+        font-size: var(--font-size-body-1);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: transform 0.4s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-wrapper.open i {
+        transform: rotate(180deg);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-options {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        top: 80%;
+        left: 0;
+        right: 0;
+        background: var(--color-neutral-lightest);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
+        z-index: 111;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-25px);
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-select-wrapper.open .custom-options {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(10px);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-option {
+        padding: 12px 20px;
+        margin: 0;
+        font-size: var(--font-size-body-1);
+        color: var(--color-secondary);
+        cursor: pointer;
+        transition: background 0.3s;
+        width: 100%;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-option:hover {
+        background-color: rgba(var(--rgb-primary-dark), 0.1);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-topic-sec .custom-option.selected {
+        font-weight: bold;
+        background-color: rgba(var(--rgb-primary-dark), 0.1);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec {
+        margin: 20px 0 0;
+        border-bottom: none !important;
+        padding-bottom: 0;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .existing-file-section {
+        margin: 0 0 12px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec label {
+        display: block;
+        margin: 0 0 10px;
+        font-size: var(--font-size-body-1);
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .existing-file-empty {
+        margin: 0;
+        font-size: var(--font-size-body-2);
+        color: var(--color-neutral-dark);
+    }
+
+    .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .existing-file-empty {
+      background-color: rgba(var(--rgb-secondary), 0.04);
+        font-size: var(--font-size-body-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        text-align: center;
+        color: var(--color-neutral-medium) !important;
+        margin: 0px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px dashed rgba(var(--rgb-secondary), 0.2);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 0 0 20px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout input {
+        display: none;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box {
+        width: 50%;
+        height: 440px;
+        border-radius: 8px;
+        background-color: var(--color-neutral-lightest);
+        border: 2px dashed var(--color-secondary);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box:hover,
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box:active,
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box:focus,
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box.active {
+        background-color: rgba(var(--rgb-neutral-dark), 0.04);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box i {
+        font-size: var(--font-size-h1);
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .upload-layout .upload-box p {
+        font-size: var(--font-size-body-1);
+        font-weight: bold;
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-hint {
+        font-size: var(--font-size-h1);
+        color: var(--color-danger);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .form-group.row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+        margin: 0 0 50px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .form-group.row button {
+        width: 140px;
+        height: 40px;
+        border-radius: 8px;
+        border: none;
+        background-color: var(--color-secondary);
+        font-size: var(--font-size-body-1);
+        color: var(--color-neutral-lightest);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .form-group.row button:hover {
+        background-color: var(--color-primary-deep);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .form-group.row button p {
+        margin: 0;
+        color: var(--color-neutral-lightest);
+        font-size: var(--font-size-body-2);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .form-group.row .file-hint {
+        font-size: var(--font-size-body-1);
+        font-weight: bold;
+        color: var(--color-danger);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-list {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0 0 20px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-item-wrapper {
+        display: flex;
+        align-items: center;
+        width: 425px;
+        gap: 15px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .delete-btn {
+        background: none;
+        border: none;
+        color: var(--color-danger);
+        font-size: var(--font-size-h4);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .delete-btn:hover {
+        transform: scale(1.2);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-banner {
+        flex: 1;
+        width: 100%;
+        background-color: var(--color-secondary);
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: var(--color-neutral-lightest);
+        box-shadow: 0 2px 6px rgba(var(--rgb-neutral-dark), 0.05);
+        min-width: 0;
+        max-width: none;
+        height: auto;
+        gap: 0;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-icon {
+        font-size: var(--font-size-h1);
+        color: var(--color-secondary);
+        background-color: var(--color-neutral-lightest);
+        width: 60px;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 6px;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-text {
+        display: flex;
+        flex-direction: column;
+        line-height: normal;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-name {
+        font-size: var(--font-size-body-2);
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+        width: 90%;
+        border-bottom: 3px solid var(--color-neutral-lightest);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-type {
+        font-size: var(--font-size-body-2);
+        opacity: 0.9;
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        background-color: var(--color-neutral-lightest);
+        font-size: var(--font-size-body-2);
+    }
+
+    .circular-track-modal-host #modalOrderEditOverlay .content-modal .content-file-sec .file-actions a {
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-modal {
+        max-height: 72vh;
+        overflow: auto;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-topic-sec {
+        align-items: flex-start;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-topic-sec .more-details {
+        flex: 1;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-topic-sec input {
+        width: 100%;
+        height: 50px;
+        border-radius: 8px;
+        border: 1px solid var(--color-secondary);
+        background-color: var(--color-neutral-lightest);
+        padding: 10px 20px;
+        color: var(--color-secondary);
+        font-size: var(--font-size-body-1);
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-topic-sec input:disabled {
+        background-color: #eef3ff;
+        color: var(--color-primary-dark);
+        font-weight: 600;
+        cursor: not-allowed;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec {
+        margin: 18px 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 10px;
+        background-color: var(--color-secondary);
+        color: var(--color-neutral-lightest);
+        padding: 10px 12px;
+        width: 40%;
+        min-width: none;
+        max-width: none
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        background-color: rgba(var(--rgb-neutral-lightest), 0.92);
+        color: var(--color-secondary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: var(--font-size-h2);
+        flex-shrink: 0;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-name {
+        font-size: var(--font-size-body-1);
+        font-weight: bold;
+        border-bottom: 2px solid rgba(var(--rgb-neutral-lightest), 0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-type {
+        font-size: var(--font-size-body-2);
+        opacity: 0.95;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-actions {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        background-color: var(--color-neutral-lightest);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .content-file-sec .file-actions a {
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-modal-shell .orders-send-summary {
+        margin: 16px 0;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-modal-shell .booking-actions {
+        justify-content: flex-end;
+        margin-top: 18px;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-track-table td:nth-child(2),
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-track-table td:nth-child(3),
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-track-table th:nth-child(2),
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-track-table th:nth-child(3) {
+        text-align: center;
+    }
+
+    .circular-track-modal-host #modalOrderSendOverlay .orders-send-track-empty {
+        text-align: center;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-modal {
+        max-height: 72vh;
+        overflow: auto;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-topic-sec {
+        align-items: flex-start;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-topic-sec .more-details {
+        flex: 1;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-topic-sec input {
+        width: 100%;
+        height: 50px;
+        border-radius: 8px;
+        border: 1px solid var(--color-secondary);
+        background-color: var(--color-neutral-lightest);
+        padding: 10px 20px;
+        color: var(--color-secondary);
+        font-size: var(--font-size-body-1);
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-topic-sec input:disabled {
+        background-color: #eef3ff;
+        color: var(--color-primary-dark);
+        font-weight: 600;
+        cursor: not-allowed;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec {
+        margin: 18px 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 10px;
+        background-color: var(--color-secondary);
+        color: var(--color-neutral-lightest);
+        padding: 16px 12px;
+        width: 40%;
+        min-width: none;
+        max-width: none
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        background-color: rgba(var(--rgb-neutral-lightest), 0.92);
+        color: var(--color-secondary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: var(--font-size-h2);
+        flex-shrink: 0;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-name {
+        font-size: var(--font-size-body-1);
+        font-weight: bold;
+        border-bottom: 2px solid rgba(var(--rgb-neutral-lightest), 0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-type {
+        font-size: var(--font-size-body-2);
+        opacity: 0.95;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-actions {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        background-color: var(--color-neutral-lightest);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .content-file-sec .file-actions a {
+        color: var(--color-secondary);
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-modal-shell .orders-send-summary {
+        margin: 16px 0;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-modal-shell .booking-actions {
+        justify-content: flex-end;
+        margin-top: 18px;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-track-table td:nth-child(2),
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-track-table td:nth-child(3),
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-track-table th:nth-child(2),
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-track-table th:nth-child(3) {
+        text-align: center;
+    }
+
+    .circular-track-modal-host #modalOrderViewOverlay .orders-send-track-empty {
+        text-align: center;
+    }
 
   /* ----- END ORDER-CREATE ----- */
 
@@ -20495,6 +21358,44 @@ select {
 
   .button-circular-notice-index .button-keep:hover {
     background-color: var(--color-primary-deep);
+  }
+
+  .content-circular-notice-index .circular-track-modal-host {
+    width: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    display: block;
+    overflow: visible;
+  }
+
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .modal-content {
+    width: 95%;
+    height: 90%;
+  }
+
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec {
+    /* margin: 30px 0 0; */
+    padding-top: 30px;
+    /* border-top: 1px solid var(--color-secondary); */
+  }
+
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec .custom-table {
+    /* margin-top: 10px; */
+  }
+
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec th,
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec td {
+    text-align: left;
+    vertical-align: middle;
+    font-size: var(--font-size-body-2)
+  }
+
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec td:nth-child(2),
+  .content-circular-notice-index .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec th:nth-child(2) {
+    text-align: center;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index {
@@ -33558,4 +34459,65 @@ select {
 
 .memo-mine-table th:nth-child(1) {
   text-align: start;
+}
+
+.orders-inbox-table table thead th:nth-child(2) {
+  min-width: 460px;
+}
+
+.orders-inbox-table table thead th:nth-child(3) {
+  min-width: 240px;
+}
+
+.orders-inbox-table table thead th:nth-child(4) {
+  min-width: 150px;
+  text-align: left;
+}
+
+.orders-inbox-table table thead th:nth-child(5) {
+  min-width: 120px;
+  text-align: center;
+}
+
+.orders-inbox-table table thead th:nth-child(6) {
+  min-width: 120px;
+  text-align: center;
+}
+
+.orders-inbox-table table tbody td:nth-child(5),
+.orders-inbox-table table tbody td:nth-child(6) {
+  text-align: center;
+}
+
+.orders-inbox-topic-cell {
+  line-height: 1.35;
+}
+
+.orders-inbox-topic-cell .orders-inbox-subject {
+  margin: 0;
+  color: var(--color-secondary);
+  font-weight: 700;
+}
+
+.orders-inbox-topic-cell .orders-inbox-order-no {
+  margin: 4px 0 0;
+  color: rgba(var(--rgb-secondary), 0.82);
+  font-size: var(--font-size-body-2);
+}
+
+.orders-inbox-date-cell {
+  text-align: left;
+  line-height: 1.35;
+}
+
+.orders-inbox-date-cell .orders-inbox-date {
+  margin: 0;
+  color: var(--color-secondary);
+  font-weight: 600;
+}
+
+.orders-inbox-date-cell .orders-inbox-time {
+  margin: 4px 0 0;
+  color: rgba(var(--rgb-secondary), 0.82);
+  font-size: var(--font-size-body-2);
 }

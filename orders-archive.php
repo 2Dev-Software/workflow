@@ -1,5 +1,4 @@
 <?php
 
-$_GET['archived'] = '1';
-require_once __DIR__ . '/app/controllers/orders-inbox-controller.php';
-orders_inbox_index();
+require_once __DIR__ . '/app/controllers/orders-archive-controller.php';
+orders_archive_index();

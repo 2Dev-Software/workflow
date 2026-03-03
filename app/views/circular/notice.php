@@ -2817,11 +2817,27 @@ ob_start();
                     const key = `${file.name}-${file.size}`;
                     if (existing.has(key)) return;
                     if (!allowedTypes.includes(file.type)) {
-                        alert("รองรับเฉพาะไฟล์ PDF, JPG และ PNG");
+                        if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+                            window.AppAlerts.fire({
+                                type: "warning",
+                                title: "แจ้งเตือน",
+                                message: "รองรับเฉพาะไฟล์ PDF, JPG และ PNG",
+                            });
+                        } else {
+                            window.alert("รองรับเฉพาะไฟล์ PDF, JPG และ PNG");
+                        }
                         return;
                     }
                     if (selectedFiles.length >= maxFiles) {
-                        alert(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`);
+                        if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
+                            window.AppAlerts.fire({
+                                type: "warning",
+                                title: "แจ้งเตือน",
+                                message: `แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`,
+                            });
+                        } else {
+                            window.alert(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`);
+                        }
                         return;
                     }
                     selectedFiles.push(file);

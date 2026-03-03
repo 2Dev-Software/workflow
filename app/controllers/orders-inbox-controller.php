@@ -50,6 +50,9 @@ if (!function_exists('orders_inbox_index')) {
             } else {
                 $action = $_POST['action'] ?? '';
                 $inbox_id = (int) ($_POST['inbox_id'] ?? 0);
+                $selected_ids = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['selected_ids'] ?? [])), static function (int $id): bool {
+                    return $id > 0;
+                })));
 
                 if ($action === 'archive' && $inbox_id > 0) {
                     order_archive_inbox($inbox_id, $current_pid);
@@ -73,6 +76,46 @@ if (!function_exists('orders_inbox_index')) {
                         'title' => 'ยกเลิกจัดเก็บแล้ว',
                         'message' => '',
                     ];
+                } elseif ($action === 'archive_selected') {
+                    if (empty($selected_ids)) {
+                        $alert = [
+                            'type' => 'danger',
+                            'title' => 'กรุณาเลือกรายการ',
+                            'message' => '',
+                        ];
+                    } else {
+                        foreach ($selected_ids as $selected_id) {
+                            order_archive_inbox($selected_id, $current_pid);
+                            if (function_exists('audit_log')) {
+                                audit_log('orders', 'ARCHIVE', 'SUCCESS', 'dh_order_inboxes', $selected_id);
+                            }
+                        }
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'จัดเก็บเรียบร้อย',
+                            'message' => 'จำนวน ' . count($selected_ids) . ' รายการ',
+                        ];
+                    }
+                } elseif ($action === 'unarchive_selected') {
+                    if (empty($selected_ids)) {
+                        $alert = [
+                            'type' => 'danger',
+                            'title' => 'กรุณาเลือกรายการ',
+                            'message' => '',
+                        ];
+                    } else {
+                        foreach ($selected_ids as $selected_id) {
+                            order_unarchive_inbox($selected_id, $current_pid);
+                            if (function_exists('audit_log')) {
+                                audit_log('orders', 'UNARCHIVE', 'SUCCESS', 'dh_order_inboxes', $selected_id);
+                            }
+                        }
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'ยกเลิกจัดเก็บแล้ว',
+                            'message' => 'จำนวน ' . count($selected_ids) . ' รายการ',
+                        ];
+                    }
                 }
             }
         }
