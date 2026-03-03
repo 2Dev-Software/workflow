@@ -161,6 +161,14 @@ if (!function_exists('orders_create_index')) {
         $send_picker_factions = [];
         $send_picker_roles = user_list_roles();
         $send_picker_teachers = user_list_teachers();
+        if ($current_pid !== '') {
+            $send_picker_teachers = array_values(array_filter(
+                $send_picker_teachers,
+                static function (array $teacher) use ($current_pid): bool {
+                    return trim((string) ($teacher['pID'] ?? '')) !== $current_pid;
+                }
+            ));
+        }
         $send_picker_faction_member_map = [];
         $send_picker_role_member_map = [];
 
