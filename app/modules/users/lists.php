@@ -21,15 +21,29 @@ if (!function_exists('user_list_roles')) {
 if (!function_exists('user_list_teachers')) {
     function user_list_teachers(): array
     {
+        $connection = db_connection();
+        $position_name_select = "'' AS positionName";
+        $position_join = '';
+
+        if (db_table_exists($connection, 'dh_positions')) {
+            $position_name_select = 'COALESCE(dp.positionName, "") AS positionName';
+            $position_join = ' LEFT JOIN dh_positions AS dp ON dp.positionID = t.positionID';
+        } elseif (db_table_exists($connection, 'position')) {
+            $position_name_select = 'COALESCE(op.oName, "") AS positionName';
+            $position_join = ' LEFT JOIN position AS op ON op.oID = t.positionID';
+        }
+
         return db_fetch_all(
-            'SELECT t.pID, t.fName, t.fID, t.dID, t.positionID, t.roleID,
-                    COALESCE(f.fName, "") AS factionName,
-                    COALESCE(d.dName, "") AS departmentName
+            "SELECT t.pID, t.fName, t.fID, t.dID, t.positionID, t.roleID,
+                    COALESCE(f.fName, '') AS factionName,
+                    COALESCE(d.dName, '') AS departmentName,
+                    {$position_name_select}
              FROM teacher AS t
              LEFT JOIN faction AS f ON f.fID = t.fID
              LEFT JOIN department AS d ON d.dID = t.dID
+             {$position_join}
              WHERE t.status = 1
-             ORDER BY t.fID ASC, t.fName ASC'
+             ORDER BY t.fID ASC, t.fName ASC"
         );
     }
 }
