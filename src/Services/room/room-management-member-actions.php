@@ -42,7 +42,26 @@ if (!empty($_POST['ajax'])) {
     $is_ajax = true;
 }
 
-$redirect_url = 'room-management.php';
+$redirect_query_q = trim((string) ($_GET['q'] ?? ''));
+$redirect_query_status = strtolower(trim((string) ($_GET['status'] ?? 'all')));
+$redirect_query_room = trim((string) ($_GET['room'] ?? 'all'));
+$allowed_redirect_statuses = ['all', 'available', 'paused', 'maintenance', 'unavailable'];
+
+if (!in_array($redirect_query_status, $allowed_redirect_statuses, true)) {
+    $redirect_query_status = 'all';
+}
+
+if ($redirect_query_room === '' || strtolower($redirect_query_room) === 'all') {
+    $redirect_query_room = 'all';
+} elseif (!ctype_digit($redirect_query_room) || (int) $redirect_query_room <= 0) {
+    $redirect_query_room = 'all';
+}
+
+$redirect_url = 'room-management.php?' . http_build_query([
+    'q' => $redirect_query_q,
+    'status' => $redirect_query_status,
+    'room' => $redirect_query_room,
+]);
 
 $set_room_management_alert = static function (string $type, string $title, string $message = '') use ($redirect_url): void {
     $_SESSION['room_management_alert'] = [

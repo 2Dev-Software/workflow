@@ -19,9 +19,6 @@ $vehicle_approval_total = (int) ($vehicle_approval_total ?? 0);
 $vehicle_approval_total_pages = (int) ($vehicle_approval_total_pages ?? 0);
 $vehicle_approval_page = (int) ($vehicle_approval_page ?? 1);
 $vehicle_approval_per_page = $vehicle_approval_per_page ?? 10;
-$vehicle_approval_per_page_display = $vehicle_approval_per_page === 'all'
-    ? 'ทั้งหมด'
-    : (string) $vehicle_approval_per_page;
 $vehicle_approval_status_labels = (array) ($vehicle_approval_status_labels ?? []);
 $format_thai_date_range = $format_thai_date_range ?? null;
 $format_thai_datetime = $format_thai_datetime ?? null;
@@ -152,7 +149,6 @@ ob_start();
                             </div>
 
                         </div>
-                        <input type="hidden" name="page" value="<?= htmlspecialchars((string) $vehicle_approval_page, ENT_QUOTES, 'UTF-8') ?>">
                     </form>
                 </section>
 
@@ -160,32 +156,6 @@ ob_start();
                     <div class="booking-card-header">
                         <div class="booking-card-title-group">
                             <h2 class="booking-card-title">รายการคำขอจองรถ</h2>
-                        </div>
-                        <div class="approval-table-controls">
-                            <div class="page-selector">
-                                <p>จำนวนต่อ 1 หน้า</p>
-
-                                <div class="custom-select-wrapper">
-                                    <div class="custom-select-trigger">
-                                        <p class="select-value"><?= htmlspecialchars($vehicle_approval_per_page_display, ENT_QUOTES, 'UTF-8') ?></p>
-                                        <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
-                                    </div>
-
-                                    <div class="custom-options">
-                                        <div class="custom-option<?= (string) $vehicle_approval_per_page === '10' ? ' selected' : '' ?>" data-value="10">10</div>
-                                        <div class="custom-option<?= (string) $vehicle_approval_per_page === '20' ? ' selected' : '' ?>" data-value="20">20</div>
-                                        <div class="custom-option<?= (string) $vehicle_approval_per_page === '50' ? ' selected' : '' ?>" data-value="50">50</div>
-                                        <div class="custom-option<?= (string) $vehicle_approval_per_page === 'all' ? ' selected' : '' ?>" data-value="all">ทั้งหมด</div>
-                                    </div>
-
-                                    <select class="form-input" id="vehicleApprovalPerPageSelect" name="per_page" form="vehicleApprovalFilterForm">
-                                        <option value="10" <?= (string) $vehicle_approval_per_page === '10' ? 'selected' : '' ?>>10</option>
-                                        <option value="20" <?= (string) $vehicle_approval_per_page === '20' ? 'selected' : '' ?>>20</option>
-                                        <option value="50" <?= (string) $vehicle_approval_per_page === '50' ? 'selected' : '' ?>>50</option>
-                                        <option value="all" <?= (string) $vehicle_approval_per_page === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
-                                    </select>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -208,14 +178,6 @@ ob_start();
                         </table>
                     </div>
 
-                    <div class="teacher-phone-footer-control" data-vehicle-approval-footer>
-                        <div class="count-text" data-vehicle-approval-count>
-                            <p>จำนวน <?= htmlspecialchars((string) number_format($vehicle_approval_total), ENT_QUOTES, 'UTF-8') ?> รายการ</p>
-                        </div>
-                        <div class="teacher-phone-pagination" data-vehicle-approval-pagination>
-                            <?php require __DIR__ . '/../../../public/components/partials/vehicle-reservation-approval-pagination.php'; ?>
-                        </div>
-                    </div>
                 </section>
             </div>
 
@@ -474,38 +436,12 @@ ob_start();
         </div>
     </div>
 
-    <div id="vehicleApprovalConfirmationModal" class="alert-overlay hidden">
-        <div class="alert-box warning">
-            <div class="alert-header">
-                <div class="icon-circle">
-                    <i class="fa-solid fa-check" aria-hidden="true"></i>
-                </div>
-            </div>
-	                <div class="alert-body">
-	                <h1 id="vehicleApprovalConfirmTitle"></h1>
-	                <p id="vehicleApprovalConfirmMessage"></p>
-	                <div class="alert-actions">
-	                    <button type="button" class="btn-close-alert btn-cancel-alert"
-	                        data-vehicle-approval-confirm-close>ยกเลิก</button>
-	                    <button type="button" class="btn-close-alert" id="vehicleApprovalConfirmBtn">ตกลง</button>
-	                </div>
-	            </div>
-	        </div>
-	    </div>
-
-    
 <script>
         window.vehicleBookingFileEndpoint = 'public/api/vehicle-booking-file.php';
 
         document.addEventListener('DOMContentLoaded', function() {
             const detailModal = document.getElementById('vehicleApprovalDetailModal');
-            const confirmModal = document.getElementById('vehicleApprovalConfirmationModal');
-            const confirmBox = confirmModal ? confirmModal.querySelector('.alert-box') : null;
-            const confirmIcon = confirmBox ? confirmBox.querySelector('.icon-circle i') : null;
-            const confirmTitle = document.getElementById('vehicleApprovalConfirmTitle');
-            const confirmMessage = document.getElementById('vehicleApprovalConfirmMessage');
-            const confirmBtn = document.getElementById('vehicleApprovalConfirmBtn');
-            const confirmCloseBtn = confirmModal ? confirmModal.querySelector('[data-vehicle-approval-confirm-close]') : null;
+            const alertsApi = window.AppAlerts || null;
             const closeButtons = document.querySelectorAll('[data-vehicle-approval-close]');
 
             const approvalForm = detailModal ? detailModal.querySelector('[data-vehicle-approval-form]') : null;
@@ -532,7 +468,6 @@ ob_start();
             const canAssign = document.body?.dataset.vehicleApprovalCanAssign === '1';
             const canFinalize = document.body?.dataset.vehicleApprovalCanFinalize === '1';
 
-            let pendingAction = '';
             let currentStatus = '';
             let canAssignStage = false;
             let canEditAssignedStage = false;
@@ -560,7 +495,6 @@ ob_start();
             const filterSelects = filterForm ? filterForm.querySelectorAll('select, input[type="date"]') : [];
             const pageInput = filterForm ? filterForm.querySelector('input[name="page"]') : null;
             const paginationContainer = document.querySelector('[data-vehicle-approval-pagination]');
-            const countContainer = document.querySelector('[data-vehicle-approval-count]');
             let searchTimeout;
 
             function fetchResults() {
@@ -593,19 +527,6 @@ ob_start();
 
                         if (pageInput && payload.page) {
                             pageInput.value = String(payload.page);
-                        }
-
-                        if (countContainer) {
-                            const total = Number(payload.total || 0);
-                            const p = countContainer.querySelector('p');
-                            const totalLabel = isFinite(total)
-                                ? String(Math.trunc(total)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                                : '0';
-                            if (p) {
-                                p.textContent = `จำนวน ${totalLabel} รายการ`;
-                            } else {
-                                countContainer.innerHTML = `<p>จำนวน ${totalLabel} รายการ</p>`;
-                            }
                         }
                     })
                     .catch(error => console.error('Error loading data:', error));
@@ -956,77 +877,63 @@ ob_start();
                 }
             }
 
-	            function openConfirm(action) {
-	                if (!confirmModal) return;
-	                pendingAction = action;
-	                const isAssignAction = action === 'approve' && canAssignStage;
-	                const isEditAssignAction = action === 'approve' && canEditAssignedStage;
-	                const isFinalApprove = action === 'approve' && canFinalizeStage;
-	                const isFinalReject = action === 'reject' && canFinalizeStage;
-	                const isFinalDecision = isFinalApprove || isFinalReject;
-	                const isDecisionOverride = canFinalizeStage && (currentStatus === 'APPROVED' || currentStatus === 'REJECTED');
-	                const alertType = action === 'reject' ? 'danger' : (isFinalApprove ? 'success' : 'warning');
+            function openConfirm(action) {
+                const isAssignAction = action === 'approve' && canAssignStage;
+                const isEditAssignAction = action === 'approve' && canEditAssignedStage;
+                const isFinalApprove = action === 'approve' && canFinalizeStage;
+                const isFinalReject = action === 'reject' && canFinalizeStage;
+                const isFinalDecision = isFinalApprove || isFinalReject;
+                const isDecisionOverride = canFinalizeStage && (currentStatus === 'APPROVED' || currentStatus === 'REJECTED');
+                const alertType = action === 'reject' ? 'danger' : (isFinalApprove ? 'success' : 'warning');
 
-	                if (confirmTitle) {
-	                    if (isAssignAction) {
-	                        confirmTitle.textContent = 'ยืนยันการมอบหมายรถ';
-	                    } else if (isEditAssignAction) {
-	                        confirmTitle.textContent = 'ยืนยันการแก้ไขการมอบหมาย';
-	                    } else if (isDecisionOverride) {
-	                        if (action === 'approve') {
-	                            confirmTitle.textContent = currentStatus === 'REJECTED'
-	                                ? 'ยืนยันการเปลี่ยนผลเป็นอนุมัติ'
-	                                : 'ยืนยันการบันทึกผล';
-	                        } else {
-	                            confirmTitle.textContent = currentStatus === 'APPROVED'
-	                                ? 'ยืนยันการเปลี่ยนผลเป็นไม่อนุมัติ'
-	                                : 'ยืนยันการบันทึกผล';
-	                        }
-	                    } else if (isFinalApprove) {
-	                        confirmTitle.textContent = 'ยืนยันการอนุมัติ';
-	                    } else {
-	                        confirmTitle.textContent = 'ยืนยันการไม่อนุมัติ';
-	                    }
-	                }
-	                if (confirmMessage) {
-	                    const hideMessage = isFinalDecision || isDecisionOverride;
-	                    confirmMessage.classList.toggle('hidden', hideMessage);
-	                    if (hideMessage) {
-	                        confirmMessage.textContent = '';
-	                    } else if (isAssignAction) {
-	                        confirmMessage.textContent = 'ต้องการมอบหมายรถและส่งต่อให้ผู้บริหารพิจารณาใช่หรือไม่';
-	                    } else if (isEditAssignAction) {
-	                        confirmMessage.textContent = 'ต้องการบันทึกการแก้ไขยานพาหนะและผู้ขับรถใช่หรือไม่';
-	                    } else {
-	                        confirmMessage.textContent = '';
-	                    }
-	                }
-	                if (confirmIcon) {
-	                    confirmIcon.className = alertType === 'danger'
-	                        ? 'fa-solid fa-xmark'
-                        : 'fa-solid fa-check';
+                let title = 'ยืนยันการอนุมัติ';
+                if (isAssignAction) {
+                    title = 'ยืนยันการมอบหมายรถ';
+                } else if (isEditAssignAction) {
+                    title = 'ยืนยันการแก้ไขการมอบหมาย';
+                } else if (isDecisionOverride) {
+                    if (action === 'approve') {
+                        title = currentStatus === 'REJECTED'
+                            ? 'ยืนยันการเปลี่ยนผลเป็นอนุมัติ'
+                            : 'ยืนยันการบันทึกผล';
+                    } else {
+                        title = currentStatus === 'APPROVED'
+                            ? 'ยืนยันการเปลี่ยนผลเป็นไม่อนุมัติ'
+                            : 'ยืนยันการบันทึกผล';
+                    }
+                } else if (isFinalApprove) {
+                    title = 'ยืนยันการอนุมัติ';
+                } else if (isFinalReject) {
+                    title = 'ยืนยันการไม่อนุมัติ';
                 }
-                if (confirmBox) {
-                    confirmBox.classList.remove('success', 'danger', 'warning');
-                    confirmBox.classList.add(alertType);
-	                }
-	                if (confirmBtn) {
-	                    if (isFinalDecision || isDecisionOverride) {
-	                        confirmBtn.textContent = 'ตกลง';
-	                    } else if (isAssignAction) {
-	                        confirmBtn.textContent = 'ยืนยันส่งต่อ';
-	                    } else if (isEditAssignAction) {
-	                        confirmBtn.textContent = 'ยืนยันบันทึก';
-	                    } else {
-	                        confirmBtn.textContent = 'ตกลง';
-	                    }
-	                }
-	                confirmModal.classList.remove('hidden');
-	            }
 
-            function closeConfirm() {
-                if (!confirmModal) return;
-                confirmModal.classList.add('hidden');
+                let message = '';
+                if (!(isFinalDecision || isDecisionOverride)) {
+                    if (isAssignAction) {
+                        message = 'ต้องการมอบหมายรถและส่งต่อให้ผู้บริหารพิจารณาใช่หรือไม่';
+                    } else if (isEditAssignAction) {
+                        message = 'ต้องการบันทึกการแก้ไขยานพาหนะและผู้ขับรถใช่หรือไม่';
+                    }
+                }
+
+                let confirmButtonText = 'ตกลง';
+                if (isAssignAction) {
+                    confirmButtonText = 'ยืนยันส่งต่อ';
+                } else if (isEditAssignAction) {
+                    confirmButtonText = 'ยืนยันบันทึก';
+                }
+
+                if (alertsApi && typeof alertsApi.confirm === 'function') {
+                    return alertsApi.confirm(message, {
+                        title: title,
+                        type: alertType,
+                        confirmButtonText: confirmButtonText,
+                        cancelButtonText: 'ยกเลิก',
+                    });
+                }
+
+                const fallbackMessage = message !== '' ? (title + '\n' + message) : title;
+                return Promise.resolve(window.confirm(fallbackMessage));
             }
 
             document.addEventListener('click', function(event) {
@@ -1087,30 +994,14 @@ ob_start();
                     }
 
                     approvalActionInput.value = action;
-                    openConfirm(action);
+                    openConfirm(action).then(function(approved) {
+                        if (!approved) {
+                            return;
+                        }
+                        submitApprovalForm();
+                    });
                 });
             });
-
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function() {
-                    closeConfirm();
-                    submitApprovalForm();
-                });
-            }
-
-            if (confirmCloseBtn) {
-                confirmCloseBtn.addEventListener('click', function() {
-                    closeConfirm();
-                });
-            }
-
-            if (confirmModal) {
-                confirmModal.addEventListener('click', function(event) {
-                    if (event.target === confirmModal) {
-                        closeConfirm();
-                    }
-                });
-            }
 
             if (assignDriverSelect && assignDriverTelInput) {
                 assignDriverSelect.addEventListener('change', function() {

@@ -44,6 +44,7 @@ ob_start();
             value="<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="requesterPID"
             value="<?= htmlspecialchars($requester_pid, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="vehicle_reservation_save" value="1">
         <input type="hidden" name="companionCount" id="companionCount" value="0">
         <div class="vehicle-row">
             <div class="vehicle-input-content">
@@ -206,7 +207,13 @@ ob_start();
         </div>
 
         <div class="submit-section">
-            <button type="submit" class="btn-submit" name="vehicle_reservation_save" value="1">บันทึกจองยานพาหนะ</button>
+            <button
+                type="submit"
+                class="btn-submit"
+                data-confirm="ยืนยันการบันทึกการจองยานพาหนะใช่หรือไม่?"
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">บันทึกจองยานพาหนะ</button>
         </div>
     </form>
 
@@ -306,7 +313,7 @@ ob_start();
                                         <i class="fa-solid fa-eye"></i>
                                         <span class="tooltip"><?= $status_key === 'PENDING' ? 'ดู/แก้ไข' : 'ดูรายละเอียด' ?></span>
                                     </button>
-                                    <?php if (!in_array($status_key, ['PENDING', 'ASSIGNED'], true)) : ?>
+                                    <?php if ($status_key === 'APPROVED') : ?>
                                         <a href="public/api/vehicle-booking-pdf.php?booking_id=<?= urlencode((string) ($booking['bookingID'] ?? '')) ?>&v=<?= urlencode((string) ($vehicle_pdf_mtime ?: time())) ?>"
                                             class="booking-action-btn secondary" target="_blank" rel="noopener">
                                             <i class="fa-solid fa-file-pdf"></i>

@@ -126,13 +126,6 @@ ob_start();
             </div>
         </div>
 
-        <div class="room-admin-legend">
-            <?php foreach ($status_options as $status_option) : ?>
-                <?php $status_class = $status_classes[$status_option] ?? 'available'; ?>
-                <span class="room-status-pill <?= h($status_class) ?>"><?= h($status_option) ?></span>
-            <?php endforeach; ?>
-        </div>
-
         <div class="table-responsive">
             <table class="custom-table booking-table room-admin-table vehicle-admin-table">
                 <thead>
@@ -228,7 +221,7 @@ ob_start();
                                             <input type="hidden" name="vehicle_id" value="<?= h((string) $vehicle_id) ?>">
                                             <button type="button" class="booking-action-btn danger" data-vehicle-delete-btn>
                                                 <i class="fa-solid fa-trash"></i>
-                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                                <span class="tooltip danger">ลบข้อมูลยานพาหนะ</span>
                                             </button>
                                         </form>
                                     </div>
@@ -299,7 +292,7 @@ ob_start();
                                             <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
                                             <button type="submit" class="booking-action-btn danger">
                                                 <i class="fa-solid fa-trash"></i>
-                                                <span class="tooltip danger">ลบข้อมูลการจอง</span>
+                                                <span class="tooltip danger">นำออกจากบทบาท</span>
                                             </button>
                                         </form>
                                     </div>
@@ -393,8 +386,13 @@ ob_start();
                     </select> -->
                 </div>
                 <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-vehicle-modal-close="vehicleAddModal">ยกเลิก</button>
-                    <button type="submit" class="btn-confirm">บันทึกข้อมูล</button>
+                    <button
+                        type="submit"
+                        class="btn-confirm"
+                        data-confirm="ยืนยันการบันทึกข้อมูลยานพาหนะใหม่ใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">บันทึก</button>
                 </div>
             </form>
         </div>
@@ -458,26 +456,15 @@ ob_start();
                     </select>
                 </div>
                 <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-vehicle-modal-close="vehicleEditModal">ยกเลิก</button>
-                    <button type="submit" class="btn-confirm">บันทึกการเปลี่ยนแปลง</button>
+                    <button
+                        type="submit"
+                        class="btn-confirm"
+                        data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลยานพาหนะใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">บันทึก</button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-<div id="vehicleDeleteConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box danger room-member-confirm-alert">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-trash-can"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการลบยานพาหนะ</h1>
-            <p data-vehicle-delete-message>โปรดยืนยันการลบยานพาหนะออกจากระบบ</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert" data-vehicle-delete-confirm="true">ยืนยันลบ</button>
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-vehicle-delete-cancel="true">ยกเลิก</button>
-            </div>
         </div>
     </div>
 </div>
@@ -573,38 +560,6 @@ foreach ($vehicle_candidate_members as $candidate) :
                 </table>
             </div>
 
-        </div>
-    </div>
-</div>
-
-<div id="vehicleMemberConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box warning">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-user-plus"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการเพิ่มสมาชิก</h1>
-            <p data-vehicle-member-confirm-message>โปรดยืนยันการเพิ่มสมาชิกใหม่</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-vehicle-member-cancel="true">ยกเลิก</button>
-                <button type="button" class="btn-close-alert" data-vehicle-member-confirm="true">ยืนยัน</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="vehicleMemberRemoveConfirmModal" class="alert-overlay hidden">
-    <div class="alert-box danger">
-        <div class="alert-header">
-            <div class="icon-circle"><i class="fa-solid fa-user-minus"></i></div>
-        </div>
-        <div class="alert-body">
-            <h1>ยืนยันการลบสมาชิก</h1>
-            <p data-vehicle-member-remove-message>โปรดยืนยันการลบสมาชิกออกจากทีม</p>
-            <div class="alert-actions">
-                <button type="button" class="btn-close-alert btn-cancel-alert" data-vehicle-member-remove-cancel="true">ยกเลิก</button>
-                <button type="button" class="btn-close-alert" data-vehicle-member-remove-confirm="true">ยืนยัน</button>
-            </div>
         </div>
     </div>
 </div>

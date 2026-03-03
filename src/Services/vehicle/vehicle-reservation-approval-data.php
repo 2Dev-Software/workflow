@@ -61,20 +61,8 @@ $vehicle_approval_status = trim((string) ($_GET['status'] ?? 'all'));
 $vehicle_approval_vehicle = trim((string) ($_GET['vehicle'] ?? 'all'));
 $vehicle_approval_date_from = trim((string) ($_GET['date_from'] ?? ''));
 $vehicle_approval_date_to = trim((string) ($_GET['date_to'] ?? ''));
-$vehicle_approval_page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$vehicle_approval_per_page_param = (string) ($_GET['per_page'] ?? '10');
-$vehicle_approval_per_page = 10;
-
-if ($vehicle_approval_per_page_param === 'all') {
-    $vehicle_approval_per_page = 'all';
-} else {
-    $vehicle_approval_per_page = (int) $vehicle_approval_per_page_param;
-}
-$vehicle_approval_allowed_per_page = [10, 20, 50, 'all'];
-
-if (!in_array($vehicle_approval_per_page, $vehicle_approval_allowed_per_page, true)) {
-    $vehicle_approval_per_page = 10;
-}
+$vehicle_approval_page = 1;
+$vehicle_approval_per_page = 'all';
 
 $pending_statuses = ['PENDING', 'ASSIGNED'];
 

@@ -4,6 +4,8 @@
     return;
   }
 
+  var CONFIRM_APPROVED_ATTR = "data-vehicle-confirm-approved";
+  var alertsApi = window.AppAlerts || null;
   var openButtons = document.querySelectorAll("[data-vehicle-modal-open]");
   var closeButtons = document.querySelectorAll("[data-vehicle-modal-close]");
   var editButtons = document.querySelectorAll("[data-vehicle-edit]");
@@ -26,50 +28,24 @@
     ? memberModal.querySelector("[data-member-count]")
     : null;
 
-  var memberConfirmModal = document.getElementById("vehicleMemberConfirmModal");
-  var memberConfirmMessage = memberConfirmModal
-    ? memberConfirmModal.querySelector("[data-vehicle-member-confirm-message]")
-    : null;
-  var memberConfirmButton = memberConfirmModal
-    ? memberConfirmModal.querySelector('[data-vehicle-member-confirm="true"]')
-    : null;
-  var memberCancelButton = memberConfirmModal
-    ? memberConfirmModal.querySelector('[data-vehicle-member-cancel="true"]')
-    : null;
-
-  var memberRemoveConfirmModal = document.getElementById(
-    "vehicleMemberRemoveConfirmModal"
-  );
-  var memberRemoveMessage = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        "[data-vehicle-member-remove-message]"
-      )
-    : null;
-  var memberRemoveConfirmButton = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        '[data-vehicle-member-remove-confirm="true"]'
-      )
-    : null;
-  var memberRemoveCancelButton = memberRemoveConfirmModal
-    ? memberRemoveConfirmModal.querySelector(
-        '[data-vehicle-member-remove-cancel="true"]'
-      )
-    : null;
-
   var editModal = document.getElementById("vehicleEditModal");
-  var deleteModal = document.getElementById("vehicleDeleteConfirmModal");
-  var deleteMessage = deleteModal
-    ? deleteModal.querySelector("[data-vehicle-delete-message]")
-    : null;
-  var deleteConfirm = deleteModal
-    ? deleteModal.querySelector("[data-vehicle-delete-confirm]")
-    : null;
-  var deleteCancel = deleteModal
-    ? deleteModal.querySelector("[data-vehicle-delete-cancel]")
-    : null;
-  var pendingDeleteForm = null;
-  var pendingMemberForm = null;
-  var pendingRemoveForm = null;
+  ["vehicleMemberConfirmModal", "vehicleMemberRemoveConfirmModal"].forEach(function (legacyId) {
+    var legacyModal = document.getElementById(legacyId);
+    if (legacyModal && legacyModal.parentNode) {
+      legacyModal.parentNode.removeChild(legacyModal);
+    }
+  });
+  document.querySelectorAll(".alert-overlay").forEach(function (overlay) {
+    if (
+      overlay.querySelector(
+        "[data-vehicle-member-confirm='true'],[data-vehicle-member-cancel='true'],[data-vehicle-member-remove-confirm='true'],[data-vehicle-member-remove-cancel='true']"
+      )
+    ) {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }
+  });
 
   function openModal(modalId) {
     if (!modalId) {
@@ -89,6 +65,31 @@
     if (modal) {
       modal.classList.add("hidden");
     }
+  }
+
+  function confirmAction(message, options) {
+    var opts = options || {};
+    if (alertsApi && typeof alertsApi.confirm === "function") {
+      return alertsApi.confirm(message, {
+        title: opts.title || "ยืนยันการทำรายการ",
+        type: opts.type || "warning",
+        confirmButtonText: opts.confirmButtonText || "ยืนยัน",
+        cancelButtonText: opts.cancelButtonText || "ยกเลิก",
+      });
+    }
+    return Promise.resolve(window.confirm((opts.title || "ยืนยันการทำรายการ") + "\n" + message));
+  }
+
+  function submitApprovedForm(form) {
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+    form.setAttribute(CONFIRM_APPROVED_ATTR, "1");
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+    form.submit();
   }
 
   function updateMemberSearch() {
@@ -116,39 +117,47 @@
   }
 
   function openMemberConfirm(form) {
-    pendingMemberForm = form;
     var row = form.closest("[data-member-row], tr");
     var nameEl = row ? row.querySelector("strong") : null;
     var name =
       nameEl && nameEl.textContent.trim() !== ""
         ? nameEl.textContent.trim()
         : "บุคลากรคนนี้";
+    var message = "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลยานพาหนะ";
 
-    if (memberConfirmMessage) {
-      memberConfirmMessage.textContent =
-        "โปรดยืนยันการเพิ่ม " + name + " เป็นสมาชิกทีมผู้ดูแลยานพาหนะ";
-    }
-    if (memberConfirmModal) {
-      memberConfirmModal.classList.remove("hidden");
-    }
+    confirmAction(message, {
+      title: "ยืนยันการเพิ่มสมาชิก",
+      type: "warning",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
+    }).then(function (approved) {
+      if (!approved) {
+        return;
+      }
+      submitApprovedForm(form);
+    });
   }
 
   function openMemberRemoveConfirm(form) {
-    pendingRemoveForm = form;
     var row = form.closest("tr");
     var nameEl = row ? row.querySelector("strong") : null;
     var name =
       nameEl && nameEl.textContent.trim() !== ""
         ? nameEl.textContent.trim()
         : "บุคลากรคนนี้";
+    var message = "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลยานพาหนะ";
 
-    if (memberRemoveMessage) {
-      memberRemoveMessage.textContent =
-        "โปรดยืนยันการลบ " + name + " ออกจากสมาชิกทีมผู้ดูแลยานพาหนะ";
-    }
-    if (memberRemoveConfirmModal) {
-      memberRemoveConfirmModal.classList.remove("hidden");
-    }
+    confirmAction(message, {
+      title: "ยืนยันการลบสมาชิก",
+      type: "danger",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก",
+    }).then(function (approved) {
+      if (!approved) {
+        return;
+      }
+      submitApprovedForm(form);
+    });
   }
 
   openButtons.forEach(function (button) {
@@ -181,8 +190,13 @@
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
+    if (form.getAttribute(CONFIRM_APPROVED_ATTR) === "1") {
+      form.removeAttribute(CONFIRM_APPROVED_ATTR);
+      return;
+    }
     if (form.matches("[data-member-remove-form]")) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       openMemberRemoveConfirm(form);
     }
   });
@@ -196,58 +210,6 @@
       openMemberConfirm(form);
     }
   });
-
-  if (memberConfirmButton) {
-    memberConfirmButton.addEventListener("click", function () {
-      if (pendingMemberForm) {
-        pendingMemberForm.submit();
-      }
-    });
-  }
-
-  if (memberCancelButton) {
-    memberCancelButton.addEventListener("click", function () {
-      if (memberConfirmModal) {
-        memberConfirmModal.classList.add("hidden");
-      }
-      pendingMemberForm = null;
-    });
-  }
-
-  if (memberRemoveConfirmButton) {
-    memberRemoveConfirmButton.addEventListener("click", function () {
-      if (pendingRemoveForm) {
-        pendingRemoveForm.submit();
-      }
-    });
-  }
-
-  if (memberRemoveCancelButton) {
-    memberRemoveCancelButton.addEventListener("click", function () {
-      if (memberRemoveConfirmModal) {
-        memberRemoveConfirmModal.classList.add("hidden");
-      }
-      pendingRemoveForm = null;
-    });
-  }
-
-  if (memberConfirmModal) {
-    memberConfirmModal.addEventListener("click", function (event) {
-      if (event.target === memberConfirmModal) {
-        memberConfirmModal.classList.add("hidden");
-        pendingMemberForm = null;
-      }
-    });
-  }
-
-  if (memberRemoveConfirmModal) {
-    memberRemoveConfirmModal.addEventListener("click", function (event) {
-      if (event.target === memberRemoveConfirmModal) {
-        memberRemoveConfirmModal.classList.add("hidden");
-        pendingRemoveForm = null;
-      }
-    });
-  }
 
   editButtons.forEach(function (button) {
     button.addEventListener("click", function () {
@@ -306,43 +268,30 @@
     button.addEventListener("click", function (event) {
       event.preventDefault();
       var form = button.closest("[data-vehicle-delete-form]");
-      if (!form || !deleteModal) {
+      if (!form) {
         return;
       }
-      pendingDeleteForm = form;
       var row = button.closest("[data-vehicle-row]");
       var plate = row ? row.getAttribute("data-vehicle-plate") : "";
       var label = plate && plate.trim() !== "" ? plate.trim() : "ยานพาหนะนี้";
-      if (deleteMessage) {
-        deleteMessage.textContent = "โปรดยืนยันการลบ " + label + " ออกจากระบบ";
-      }
-      openModal("vehicleDeleteConfirmModal");
+
+      confirmAction("โปรดยืนยันการลบ " + label + " ออกจากระบบ", {
+        title: "ยืนยันการลบยานพาหนะ",
+        type: "danger",
+        confirmButtonText: "ยืนยันลบ",
+        cancelButtonText: "ยกเลิก",
+      }).then(function (approved) {
+        if (!approved) {
+          return;
+        }
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+          return;
+        }
+        form.submit();
+      });
     });
   });
-
-  if (deleteConfirm) {
-    deleteConfirm.addEventListener("click", function () {
-      if (pendingDeleteForm) {
-        pendingDeleteForm.submit();
-      }
-    });
-  }
-
-  if (deleteCancel) {
-    deleteCancel.addEventListener("click", function () {
-      closeModal("vehicleDeleteConfirmModal");
-      pendingDeleteForm = null;
-    });
-  }
-
-  if (deleteModal) {
-    deleteModal.addEventListener("click", function (event) {
-      if (event.target === deleteModal) {
-        closeModal("vehicleDeleteConfirmModal");
-        pendingDeleteForm = null;
-      }
-    });
-  }
 
   var searchInput = root.querySelector("[data-vehicle-search-input]");
   var statusFilter = root.querySelector("[data-vehicle-status-filter]");

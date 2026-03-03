@@ -32,7 +32,10 @@ ob_start();
 <div class="content-area setting-page">
     <div id="settingSystem" class="tab-content<?= $active_tab === 'settingSystem' ? ' active' : '' ?>">
         <div class="setting-year-container">
-            <form class="setting-year-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>">
+            <form
+                class="setting-year-form"
+                method="POST"
+                action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="dh_year" id="dhYearInput" value="<?= h((string) $dh_year) ?>">
                 <input type="hidden" name="dh_year_save" value="1">
@@ -54,7 +57,10 @@ ob_start();
                 </div>
 
                 <div class="button-container">
-                    <button type="submit" class="btn-save" data-submit="true">บันทึก</button>
+                    <button
+                        type="submit"
+                        class="btn-save"
+                        data-submit="true">บันทึก</button>
                 </div>
             </form>
         </div>

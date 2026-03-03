@@ -291,15 +291,64 @@ if (!function_exists('order_add_recipients')) {
     function order_add_recipients(int $orderID, array $targets): void
     {
         foreach ($targets as $target) {
+            $target_type = strtoupper(trim((string) ($target['targetType'] ?? '')));
+
+            if (!in_array($target_type, ['UNIT', 'ROLE', 'PERSON'], true)) {
+                continue;
+            }
+
+            $fID = isset($target['fID']) ? (int) $target['fID'] : null;
+            $roleID = isset($target['roleID']) ? (int) $target['roleID'] : null;
+            $pID_raw = trim((string) ($target['pID'] ?? ''));
+            $pID = $pID_raw !== '' ? $pID_raw : null;
+            $is_cc = ((int) ($target['isCc'] ?? 0) === 1) ? 1 : 0;
+
+            if ($target_type === 'UNIT') {
+                if ($fID === null || $fID <= 0) {
+                    continue;
+                }
+                $roleID = null;
+                $pID = null;
+            } elseif ($target_type === 'ROLE') {
+                if ($roleID === null || $roleID <= 0) {
+                    continue;
+                }
+                $fID = null;
+                $pID = null;
+            } elseif ($target_type === 'PERSON') {
+                if ($pID === null || $pID === '') {
+                    continue;
+                }
+                $fID = null;
+                $roleID = null;
+            }
+
             $stmt = db_query(
-                'INSERT INTO dh_order_recipients (orderID, targetType, fID, roleID, pID, isCc) VALUES (?, ?, ?, ?, ?, ?)',
-                'isiisi',
+                'INSERT INTO dh_order_recipients (orderID, targetType, fID, roleID, pID, isCc)
+                 SELECT ?, ?, ?, ?, ?, ?
+                 WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dh_order_recipients
+                    WHERE orderID = ?
+                      AND targetType = ?
+                      AND (fID <=> ?)
+                      AND (roleID <=> ?)
+                      AND (pID <=> ?)
+                      AND isCc = ?
+                 )',
+                'isiisiisiisi',
                 $orderID,
-                (string) $target['targetType'],
-                $target['fID'] ?? null,
-                $target['roleID'] ?? null,
-                $target['pID'] ?? null,
-                $target['isCc'] ?? 0
+                $target_type,
+                $fID,
+                $roleID,
+                $pID,
+                $is_cc,
+                $orderID,
+                $target_type,
+                $fID,
+                $roleID,
+                $pID,
+                $is_cc
             );
             mysqli_stmt_close($stmt);
         }

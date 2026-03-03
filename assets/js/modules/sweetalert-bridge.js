@@ -3,8 +3,18 @@
 
   var CONFIRM_APPROVED_ATTR = "data-confirm-approved";
 
+  function getSwalInstance() {
+    if (window.Swal && typeof window.Swal.fire === "function") {
+      return window.Swal;
+    }
+    if (window.Sweetalert2 && typeof window.Sweetalert2.fire === "function") {
+      return window.Sweetalert2;
+    }
+    return null;
+  }
+
   function hasSwal() {
-    return typeof window.Swal === "object" && typeof window.Swal.fire === "function";
+    return getSwalInstance() !== null;
   }
 
   function normalizeType(type) {
@@ -17,13 +27,14 @@
 
   function fire(options) {
     var opts = options || {};
+    var swal = getSwalInstance();
     var icon = normalizeType(opts.type || opts.icon || "info");
     var title = String(opts.title || "");
     var text = String(opts.message || opts.text || "");
     var showConfirmButton = opts.showConfirmButton !== false;
     var confirmButtonText = String(opts.confirmButtonText || "ตกลง");
 
-    if (!hasSwal()) {
+    if (!swal) {
       if (title && text) {
         window.console && console.warn && console.warn(title + ": " + text);
       } else if (title) {
@@ -34,7 +45,7 @@
       return Promise.resolve({ isConfirmed: true, isDismissed: false });
     }
 
-    return window.Swal.fire({
+    return swal.fire({
       icon: icon,
       title: title || undefined,
       text: text || undefined,
@@ -52,10 +63,21 @@
 
   function confirm(message, options) {
     var opts = options || {};
+    var text = String(message || "");
+    var title = String(opts.title || "ยืนยันการทำรายการ");
+
+    if (!hasSwal()) {
+      var fallbackMessage = title;
+      if (text !== "") {
+        fallbackMessage += "\n" + text;
+      }
+      return Promise.resolve(window.confirm(fallbackMessage));
+    }
+
     return fire({
       type: opts.type || "warning",
-      title: opts.title || "ยืนยันการทำรายการ",
-      message: String(message || ""),
+      title: title,
+      message: text,
       showConfirmButton: true,
       confirmButtonText: opts.confirmButtonText || "ยืนยัน",
       showCancelButton: true,
@@ -235,6 +257,16 @@
           }
 
           form.setAttribute(CONFIRM_APPROVED_ATTR, "1");
+
+          if (typeof form.requestSubmit === "function") {
+            if (submitter) {
+              form.requestSubmit(submitter);
+            } else {
+              form.requestSubmit();
+            }
+            return;
+          }
+
           form.submit();
         });
       },
