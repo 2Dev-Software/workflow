@@ -34150,6 +34150,16 @@ select {
   text-align: left;
 }
 
+/* Vehicle management: department line in staff table should use primary text color */
+.room-admin-page[data-vehicle-management] .room-admin-member-subtext {
+  color: rgba(var(--rgb-secondary), 1);
+}
+
+/* Room management: department line in staff table should use primary text color */
+.room-admin-page[data-room-management] .room-admin-member-subtext {
+  color: rgba(var(--rgb-secondary), 1);
+}
+
 /* Room booking: combined "ช่วงเวลาที่ใช้" column + compact attendee count */
 .booking-page[data-room-booking] .booking-table thead th:nth-child(2),
 .booking-page[data-room-booking] .booking-table thead th:nth-child(3),

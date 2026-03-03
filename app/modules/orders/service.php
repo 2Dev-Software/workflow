@@ -59,6 +59,69 @@ if (!function_exists('order_resolve_recipients')) {
     }
 }
 
+if (!function_exists('order_normalize_send_targets')) {
+    function order_normalize_send_targets(array $targets): array
+    {
+        $normalized = [];
+        $seen = [];
+
+        foreach ($targets as $target) {
+            $target_type = strtoupper(trim((string) ($target['targetType'] ?? '')));
+            $fID = null;
+            $roleID = null;
+            $pID = null;
+
+            if ($target_type === 'UNIT') {
+                $fID_value = (int) ($target['fID'] ?? 0);
+
+                if ($fID_value <= 0) {
+                    continue;
+                }
+                $fID = $fID_value;
+            } elseif ($target_type === 'ROLE') {
+                $roleID_value = (int) ($target['roleID'] ?? 0);
+
+                if ($roleID_value <= 0) {
+                    continue;
+                }
+                $roleID = $roleID_value;
+            } elseif ($target_type === 'PERSON') {
+                $pid_value = trim((string) ($target['pID'] ?? ''));
+
+                if ($pid_value === '') {
+                    continue;
+                }
+                $pID = $pid_value;
+            } else {
+                continue;
+            }
+
+            $is_cc = ((int) ($target['isCc'] ?? 0) === 1) ? 1 : 0;
+            $signature = implode('|', [
+                $target_type,
+                (string) ($fID ?? 0),
+                (string) ($roleID ?? 0),
+                (string) ($pID ?? ''),
+                (string) $is_cc,
+            ]);
+
+            if (isset($seen[$signature])) {
+                continue;
+            }
+            $seen[$signature] = true;
+            $normalized[] = [
+                'targetType' => $target_type,
+                'fID' => $fID,
+                'roleID' => $roleID,
+                'pID' => $pID,
+                'isCc' => $is_cc,
+            ];
+        }
+
+        return $normalized;
+    }
+}
+
 if (!function_exists('order_generate_number')) {
     function order_generate_number(int $year): array
     {
@@ -296,10 +359,23 @@ if (!function_exists('order_send')) {
         db_begin();
 
         try {
-            if (!empty($recipients['targets'])) {
-                order_add_recipients($orderID, $recipients['targets']);
+            $targets = order_normalize_send_targets((array) ($recipients['targets'] ?? []));
+
+            if (!empty($targets)) {
+                order_add_recipients($orderID, $targets);
             }
-            $recipientPIDs = array_filter(array_unique(array_diff($recipients['pids'], [$senderPID])));
+            $raw_pids = array_values(array_filter(array_map(
+                static function ($pid): string {
+                    return trim((string) $pid);
+                },
+                (array) ($recipients['pids'] ?? [])
+            )));
+            $recipientPIDs = array_values(array_unique(array_filter(
+                $raw_pids,
+                static function (string $pid) use ($senderPID): bool {
+                    return $pid !== '' && $pid !== $senderPID;
+                }
+            )));
 
             if (empty($recipientPIDs)) {
                 throw new RuntimeException('กรุณาเลือกผู้รับอย่างน้อย 1 คน');

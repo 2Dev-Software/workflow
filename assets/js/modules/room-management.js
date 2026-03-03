@@ -291,45 +291,64 @@
 
   updateMemberSearch();
 
+  var roomFilterForm = document.querySelector("[data-room-filter-form]");
   var roomSearchInput = document.querySelector("[data-room-search-input]");
   var roomStatusFilter = document.querySelector("[data-room-status-filter]");
-  var roomRows = Array.from(document.querySelectorAll("[data-room-row]"));
-  var roomEmpty = document.querySelector("[data-room-empty]");
+  var roomFilterRoomInput = document.querySelector("[data-room-filter-room]");
+  var roomFilterTimer = null;
 
-  function applyRoomFilters() {
-    if (!roomRows.length) return;
-    var query = roomSearchInput ? roomSearchInput.value.trim().toLowerCase() : "";
-    var status = roomStatusFilter ? roomStatusFilter.value : "all";
-    var visibleCount = 0;
-
-    roomRows.forEach(function (row) {
-      var haystack = (row.dataset.roomSearch || "").toLowerCase();
-      var rowStatus = row.dataset.roomStatus || "";
-      var matchQuery = query === "" || haystack.includes(query);
-      var matchStatus = status === "all" || rowStatus === status;
-      var isVisible = matchQuery && matchStatus;
-      row.style.display = isVisible ? "" : "none";
-      if (isVisible) visibleCount += 1;
-    });
-
-    if (roomEmpty) {
-      roomEmpty.classList.toggle("hidden", visibleCount !== 0);
+  function submitRoomFilter() {
+    if (!(roomFilterForm instanceof HTMLFormElement)) {
+      return;
     }
+
+    if (roomFilterRoomInput && String(roomFilterRoomInput.value || "").trim() === "") {
+      roomFilterRoomInput.value = "all";
+    }
+
+    if (typeof roomFilterForm.requestSubmit === "function") {
+      roomFilterForm.requestSubmit();
+      return;
+    }
+
+    roomFilterForm.submit();
   }
 
   if (roomSearchInput) {
-    roomSearchInput.addEventListener("input", applyRoomFilters);
-    roomSearchInput.addEventListener("keydown", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        applyRoomFilters();
+    roomSearchInput.addEventListener("input", function () {
+      if (roomFilterTimer !== null) {
+        window.clearTimeout(roomFilterTimer);
       }
+
+      roomFilterTimer = window.setTimeout(function () {
+        submitRoomFilter();
+      }, 250);
+    });
+
+    roomSearchInput.addEventListener("search", function () {
+      if (roomFilterTimer !== null) {
+        window.clearTimeout(roomFilterTimer);
+      }
+      submitRoomFilter();
+    });
+
+    roomSearchInput.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (roomFilterTimer !== null) {
+        window.clearTimeout(roomFilterTimer);
+      }
+      submitRoomFilter();
     });
   }
 
   if (roomStatusFilter) {
-    roomStatusFilter.addEventListener("change", applyRoomFilters);
+    roomStatusFilter.addEventListener("change", function () {
+      submitRoomFilter();
+    });
   }
-
-  applyRoomFilters();
 })();

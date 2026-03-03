@@ -11,6 +11,19 @@ $room_staff_count = (int) ($room_staff_count ?? count($room_staff_members));
 $room_candidate_count = (int) ($room_candidate_count ?? count($room_candidate_members));
 $room_management_alert = $room_management_alert ?? null;
 $room_management_open_modal = (string) ($room_management_open_modal ?? '');
+$room_filter_query = trim((string) ($room_filter_query ?? ''));
+$room_filter_status = strtolower(trim((string) ($room_filter_status ?? 'all')));
+$room_filter_room = trim((string) ($room_filter_room ?? 'all'));
+
+$allowed_filter_statuses = ['all', 'available', 'paused', 'maintenance', 'unavailable'];
+
+if (!in_array($room_filter_status, $allowed_filter_statuses, true)) {
+    $room_filter_status = 'all';
+}
+
+if ($room_filter_room === '') {
+    $room_filter_room = 'all';
+}
 
 $alert = $room_management_alert;
 
@@ -52,6 +65,21 @@ $format_thai_datetime = static function (string $datetime) use ($thai_months): s
     return trim($day . ' ' . $month_label . ' ' . $year . ' เวลา ' . $date_obj->format('H:i'));
 };
 
+$room_status_filter_labels = [
+    'all' => 'ทุกสถานะ',
+    'available' => 'พร้อมใช้งาน',
+    'paused' => 'ระงับชั่วคราว',
+    'maintenance' => 'กำลังซ่อม',
+    'unavailable' => 'ไม่พร้อมใช้งาน',
+];
+$room_status_filter_label = $room_status_filter_labels[$room_filter_status] ?? $room_status_filter_labels['all'];
+$room_management_filter_params = [
+    'q' => $room_filter_query,
+    'status' => $room_filter_status,
+    'room' => $room_filter_room,
+];
+$room_management_post_action = 'room-management.php?' . http_build_query($room_management_filter_params);
+
 ob_start();
 ?>
 <div class="content-header">
@@ -65,38 +93,39 @@ ob_start();
             <div class="booking-card-title-group">
                 <h2 class="booking-card-title">รายการสถานที่/ห้อง</h2>
             </div>
-            <div class="room-admin-actions" data-room-filter>
+            <form class="room-admin-actions" method="get" action="room-management.php" data-room-filter data-room-filter-form>
                 <div class="room-admin-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input class="form-input" type="search" placeholder="ค้นหาชื่อห้องหรือสถานที่" autocomplete="off"
+                    <input class="form-input" type="search" name="q" value="<?= h($room_filter_query) ?>" placeholder="ค้นหาชื่อห้องหรือสถานที่" autocomplete="off"
                         data-room-search-input>
                 </div>
                 <div class="room-admin-filter">
                     <div class="custom-select-wrapper">
                         <div class="custom-select-trigger">
-                            <p class="select-value">ทุกสถานะ</p>
+                            <p class="select-value"><?= h($room_status_filter_label) ?></p>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
 
                         <div class="custom-options">
-                            <div class="custom-option" data-value="all">ทุกสถานะ</div>
-                            <div class="custom-option" data-value="available">พร้อมใช้งาน</div>
-                            <div class="custom-option" data-value="paused">ระงับชั่วคราว</div>
-                            <div class="custom-option" data-value="maintenance">กำลังซ่อม</div>
-                            <div class="custom-option" data-value="unavailable">ไม่พร้อมใช้งาน</div>
+                            <div class="custom-option<?= $room_filter_status === 'all' ? ' selected' : '' ?>" data-value="all">ทุกสถานะ</div>
+                            <div class="custom-option<?= $room_filter_status === 'available' ? ' selected' : '' ?>" data-value="available">พร้อมใช้งาน</div>
+                            <div class="custom-option<?= $room_filter_status === 'paused' ? ' selected' : '' ?>" data-value="paused">ระงับชั่วคราว</div>
+                            <div class="custom-option<?= $room_filter_status === 'maintenance' ? ' selected' : '' ?>" data-value="maintenance">กำลังซ่อม</div>
+                            <div class="custom-option<?= $room_filter_status === 'unavailable' ? ' selected' : '' ?>" data-value="unavailable">ไม่พร้อมใช้งาน</div>
                         </div>
 
-                        <select class="form-input" name="room_status_filter" data-room-status-filter>
-                            <option value="all" selected>ทุกสถานะ</option>
-                            <option value="available">พร้อมใช้งาน</option>
-                            <option value="paused">ระงับชั่วคราว</option>
-                            <option value="maintenance">กำลังซ่อม</option>
-                            <option value="unavailable">ไม่พร้อมใช้งาน</option>
+                        <select class="form-input" name="status" data-room-status-filter>
+                            <option value="all" <?= $room_filter_status === 'all' ? 'selected' : '' ?>>ทุกสถานะ</option>
+                            <option value="available" <?= $room_filter_status === 'available' ? 'selected' : '' ?>>พร้อมใช้งาน</option>
+                            <option value="paused" <?= $room_filter_status === 'paused' ? 'selected' : '' ?>>ระงับชั่วคราว</option>
+                            <option value="maintenance" <?= $room_filter_status === 'maintenance' ? 'selected' : '' ?>>กำลังซ่อม</option>
+                            <option value="unavailable" <?= $room_filter_status === 'unavailable' ? 'selected' : '' ?>>ไม่พร้อมใช้งาน</option>
                         </select>
                     </div>
                 </div>
+                <input type="hidden" name="room" value="<?= h($room_filter_room) ?>" data-room-filter-room>
                 <button type="button" class="btn-confirm" data-room-modal-open="roomAddModal">เพิ่มห้องใหม่</button>
-            </div>
+            </form>
         </div>
 
         <div class="table-responsive">
@@ -154,7 +183,7 @@ ob_start();
                                             <i class="fa-solid fa-pen-to-square"></i>
                                             <span class="tooltip">แก้ไขข้อมูล</span>
                                         </button>
-                                        <form method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>"
+                                        <form method="POST" action="<?= h($room_management_post_action) ?>"
                                             data-room-delete-form>
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="room_action" value="delete">
@@ -226,7 +255,7 @@ ob_start();
                                 <td>
                                     <div class="booking-action-group">
                                         <form class="booking-action-form" data-member-remove-form method="POST"
-                                            action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
+                                            action="<?= h($room_management_post_action) ?>">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="member_action" value="remove">
                                             <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
@@ -258,7 +287,7 @@ ob_start();
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
+            <form class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="room_action" value="add">
                 <div class="form-group full">
@@ -320,7 +349,7 @@ ob_start();
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
+            <form class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="room_action" value="edit">
                 <input type="hidden" name="room_id" data-room-edit-id>
@@ -442,7 +471,7 @@ foreach ($room_candidate_members as $candidate):
                                 <td>
                                     <div class="booking-action-group">
                                         <form class="booking-action-form" method="POST"
-                                            action="<?= h($_SERVER['PHP_SELF'] ?? 'room-management.php') ?>">
+                                            action="<?= h($room_management_post_action) ?>">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="member_action" value="add">
                                             <input type="hidden" name="member_pid" value="<?= h($candidate_pid) ?>">

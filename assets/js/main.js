@@ -1221,7 +1221,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const triggerText = wrapper.querySelector(".select-text");
     const optionsContainer = wrapper.querySelector(".options-container");
 
+    if (!selectBox || !optionsContainer) {
+      return;
+    }
+
     selectBox.addEventListener("click", function (e) {
+      if (e.target.closest(".custom-setting-options")) {
+        return;
+      }
+
       document
         .querySelectorAll(".custom-setting-select.open")
         .forEach((opened) => {
@@ -1232,9 +1240,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     optionsContainer.addEventListener("click", function (e) {
-      if (e.target.classList.contains("custom-option")) {
-        e.stopPropagation();
+      e.stopPropagation();
 
+      if (e.target.classList.contains("custom-option")) {
         const siblings = optionsContainer.querySelectorAll(".custom-option");
         siblings.forEach((opt) => opt.classList.remove("selected"));
 

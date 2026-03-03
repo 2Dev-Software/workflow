@@ -84,7 +84,7 @@ $booking_row = null;
 
 try {
     $booking_row = db_fetch_one(
-        'SELECT bookingID, requesterPID FROM dh_vehicle_bookings WHERE bookingID = ? AND deletedAt IS NULL LIMIT 1',
+        'SELECT bookingID, requesterPID, status FROM dh_vehicle_bookings WHERE bookingID = ? AND deletedAt IS NULL LIMIT 1',
         'i',
         $booking_id
     );
@@ -131,6 +131,17 @@ if (!$authorized) {
 if (!$authorized) {
     if (function_exists('audit_log')) {
         audit_log('vehicle', 'PDF_VIEW', 'DENY', 'dh_vehicle_bookings', $booking_id, 'not_authorized', [], 'GET', 403);
+    }
+    $__pdf_abort(403);
+}
+
+$booking_status = strtoupper(trim((string) ($booking_row['status'] ?? '')));
+
+if ($booking_status !== 'APPROVED') {
+    if (function_exists('audit_log')) {
+        audit_log('vehicle', 'PDF_VIEW', 'DENY', 'dh_vehicle_bookings', $booking_id, 'status_not_approved', [
+            'status' => $booking_status !== '' ? $booking_status : null,
+        ], 'GET', 403);
     }
     $__pdf_abort(403);
 }
