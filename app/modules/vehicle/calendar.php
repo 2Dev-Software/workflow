@@ -22,7 +22,7 @@ if (!function_exists('vehicle_booking_events')) {
         foreach ($rows as $row) {
             $status = strtoupper((string) ($row['status'] ?? ''));
 
-            if (!in_array($status, ['ASSIGNED', 'APPROVED', 'COMPLETED'], true)) {
+            if ($status !== 'APPROVED') {
                 continue;
             }
 
