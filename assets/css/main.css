@@ -11296,6 +11296,7 @@ select {
     color: var(--color-neutral-dark);
     background-color: rgba(var(--rgb-neutral-medium), 0.25);
     border: none;
+    resize: none;
 
   }
 
