@@ -5,6 +5,9 @@ require_once __DIR__ . '/../../auth/csrf.php';
 $values = $values ?? ['writeDate' => '', 'subject' => '', 'detail' => ''];
 $current_user = (array) ($current_user ?? []);
 $factions = (array) ($factions ?? []);
+$teachers = (array) ($teachers ?? []);
+$memo_director_label = 'ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน';
+$current_pid = trim((string) ($current_user['pID'] ?? ''));
 
 $selected_sender_fid = trim((string) ($values['sender_fid'] ?? ''));
 
@@ -15,6 +18,218 @@ if ($selected_sender_fid === '' && !empty($factions)) {
 $signature_src = trim((string) ($current_user['signature'] ?? ''));
 $current_name = trim((string) ($current_user['fName'] ?? ''));
 $current_position = trim((string) ($current_user['position_name'] ?? ''));
+$selected_factions = array_map('strval', (array) ($values['faction_ids'] ?? []));
+$selected_people = array_map('strval', (array) ($values['person_ids'] ?? []));
+$selected_primary_pid = (string) ($selected_people[0] ?? '');
+$memos = (array) ($memos ?? []);
+$search = trim((string) ($search ?? ''));
+$status_filter_raw = trim((string) ($status_filter ?? 'all'));
+$status_filter = strtolower($status_filter_raw) === 'all' ? 'all' : strtoupper($status_filter_raw);
+$sort = strtolower(trim((string) ($sort ?? 'newest')));
+
+if ($status_filter === '') {
+    $status_filter = 'all';
+}
+
+if (!in_array($sort, ['newest', 'oldest'], true)) {
+    $sort = 'newest';
+}
+
+$truncate_subject = static function (string $value, int $limit = 70): string {
+    $value = trim($value);
+
+    if ($value === '') {
+        return '-';
+    }
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($value, 'UTF-8') <= $limit) {
+            return $value;
+        }
+
+        return mb_substr($value, 0, $limit, 'UTF-8') . '...';
+    }
+
+    if (strlen($value) <= $limit) {
+        return $value;
+    }
+
+    return substr($value, 0, $limit) . '...';
+};
+
+$teachers = array_values(array_filter($teachers, static function (array $teacher) use ($current_pid): bool {
+    $pid = trim((string) ($teacher['pID'] ?? ''));
+
+    if ($pid === '' || $pid === $current_pid) {
+        return false;
+    }
+
+    return ctype_digit($pid);
+}));
+
+$is_selected = static function (string $value, array $selected): bool {
+    return in_array($value, $selected, true);
+};
+
+$faction_members = [];
+$department_groups = [];
+$executive_members = [];
+$subject_head_members = [];
+
+foreach ($teachers as $teacher) {
+    $fid = (int) ($teacher['fID'] ?? 0);
+    $did = (int) ($teacher['dID'] ?? 0);
+    $position_id = (int) ($teacher['positionID'] ?? 0);
+    $pid = trim((string) ($teacher['pID'] ?? ''));
+    $name = trim((string) ($teacher['fName'] ?? ''));
+    $department_name = trim((string) ($teacher['departmentName'] ?? ''));
+
+    if ($pid === '' || $name === '') {
+        continue;
+    }
+
+    if ($fid > 0) {
+        if (!isset($faction_members[$fid])) {
+            $faction_members[$fid] = [];
+        }
+        $faction_members[$fid][] = [
+            'pID' => $pid,
+            'name' => $name,
+        ];
+    }
+
+    if (in_array($position_id, [1, 2, 3, 4], true)) {
+        $executive_members[$pid] = [
+            'pID' => $pid,
+            'name' => $name,
+        ];
+    }
+
+    if ($position_id === 5) {
+        $subject_head_members[$pid] = [
+            'pID' => $pid,
+            'name' => $name,
+        ];
+    }
+
+    $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
+
+    if (
+        $did > 0 &&
+        $department_name !== '' &&
+        strpos((string) $normalized_department_name, 'ผู้บริหาร') === false &&
+        strpos((string) $normalized_department_name, 'ฝ่ายบริหาร') === false
+    ) {
+        if (!isset($department_groups[$did])) {
+            $department_groups[$did] = [
+                'dID' => $did,
+                'name' => $department_name,
+                'members' => [],
+            ];
+        }
+        $department_groups[$did]['members'][] = [
+            'pID' => $pid,
+            'name' => $name,
+        ];
+    }
+}
+
+if (!empty($department_groups)) {
+    uasort($department_groups, static function (array $a, array $b): int {
+        return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+    });
+}
+
+$executive_members = array_values($executive_members);
+$subject_head_members = array_values($subject_head_members);
+
+usort($executive_members, static function (array $a, array $b): int {
+    return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+});
+usort($subject_head_members, static function (array $a, array $b): int {
+    return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+});
+
+$special_groups = [];
+
+if (!empty($executive_members)) {
+    $special_groups[] = [
+        'key' => 'special-executive',
+        'name' => 'คณะผู้บริหารสถานศึกษา',
+        'members' => $executive_members,
+    ];
+}
+
+if (!empty($subject_head_members)) {
+    $special_groups[] = [
+        'key' => 'special-subject-head',
+        'name' => 'หัวหน้ากลุ่มสาระ',
+        'members' => $subject_head_members,
+    ];
+}
+
+$status_map = [
+    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'pending'],
+    'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'pending'],
+    'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'processing'],
+    'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'rejected'],
+    'APPROVED_UNSIGNED' => ['label' => 'อนุมัติ (รอแนบไฟล์)', 'variant' => 'pending'],
+    'SIGNED' => ['label' => 'ลงนามแล้ว', 'variant' => 'approved'],
+    'REJECTED' => ['label' => 'ไม่อนุมัติ', 'variant' => 'rejected'],
+    'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'rejected'],
+];
+
+$status_options = [
+    'all' => 'ทั้งหมด',
+    'DRAFT' => 'รอการเสนอแฟ้ม',
+    'SUBMITTED' => 'รอพิจารณา',
+    'IN_REVIEW' => 'กำลังพิจารณา',
+    'RETURNED' => 'ตีกลับแก้ไข',
+    'APPROVED_UNSIGNED' => 'อนุมัติ (รอแนบไฟล์)',
+    'SIGNED' => 'ลงนามแล้ว',
+    'REJECTED' => 'ไม่อนุมัติ',
+    'CANCELLED' => 'ยกเลิก',
+];
+
+$thai_months = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
+];
+
+$format_thai_datetime = static function (?string $date_value) use ($thai_months): array {
+    $date_value = trim((string) $date_value);
+
+    if ($date_value === '' || $date_value === '0000-00-00 00:00:00') {
+        return ['-', '-'];
+    }
+
+    try {
+        $date = new DateTime($date_value);
+    } catch (Throwable $exception) {
+        return [$date_value, '-'];
+    }
+
+    $day = (int) $date->format('j');
+    $month = (int) $date->format('n');
+    $year = (int) $date->format('Y') + 543;
+    $hour = $date->format('H');
+    $minute = $date->format('i');
+
+    return [
+        trim($day . ' ' . ($thai_months[$month] ?? '') . ' ' . $year),
+        trim($hour . ':' . $minute . ' น.'),
+    ];
+};
 
 ob_start();
 ?>
@@ -50,6 +265,18 @@ ob_start();
         flex-direction: row;
         margin: 0 0 40px;
     }
+
+    .content-my-memo .memo-mine-table tbody td:first-child p {
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .content-my-memo .memo-mine-table th.memo-date-col,
+    .content-my-memo .memo-mine-table td.memo-date-col {
+        text-align: left;
+    }
 </style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
@@ -71,7 +298,9 @@ ob_start();
         <div></div>
     </div>
 
-    <form method="POST" id="circularComposeForm">
+    <form
+        method="POST"
+        id="circularComposeForm">
         <?= csrf_field() ?>
         <input type="hidden" name="flow_mode" value="CHAIN">
         <input type="hidden" name="to_choice" value="DIRECTOR">
@@ -120,12 +349,12 @@ ob_start();
 
             <div class="form-group-row memo-to-row">
                 <p><strong>เรียน</strong></p>
-                <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
+                <p><?= h($memo_director_label) ?></p>
             </div>
 
             <div class="content-editor">
                 <p><strong>รายละเอียด:</strong></p>
-                <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                <textarea name="detail" id="memo_editor_compose"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
             </div>
 
             <div class="form-group-row signature">
@@ -135,7 +364,12 @@ ob_start();
             </div>
 
             <div class="form-group-row submit">
-                <button type="submit">บันทึกเอกสาร</button>
+                <button
+                    type="submit"
+                    data-confirm="ยืนยันการบันทึกเอกสารนี้ใช่หรือไม่"
+                    data-confirm-title="ยืนยันการบันทึก"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">บันทึกเอกสาร</button>
             </div>
         </div>
     </form>
@@ -149,68 +383,48 @@ ob_start();
         </div>
     </div>
 
-    <form method="GET" class="circular-my-filter-grid">
-        <input type="hidden" name="tab" value="track">
+    <form method="GET" action="memo.php" class="circular-my-filter-grid" id="memoTrackFilterForm">
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value=""
-                    placeholder="ค้นหาชื่อผู้จอง/ห้อง/หัวข้อ" autocomplete="off">
+                <input class="form-input" type="search" name="q" value="<?= h($search) ?>"
+                    placeholder="ค้นหาเลขที่หรือเรื่อง" autocomplete="off">
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
                     <div class="custom-select-trigger">
-                        <p class="select-value">
-                            <?php
-                            $status_label = 'ทั้งหมด';
-
-                            if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
-                                $status_label = 'ส่งแล้ว';
-                            } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
-                                $status_label = 'ดึงกลับ';
-                            } elseif ($filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) {
-                                $status_label = 'รอพิจารณา';
-                            } elseif ($filter_status === strtolower(EXTERNAL_STATUS_REVIEWED)) {
-                                $status_label = 'พิจารณาแล้ว';
-                            }
-                            echo h($status_label);
-                            ?>
-                        </p>
+                        <p class="select-value"><?= h($status_options[$status_filter] ?? 'ทั้งหมด') ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option" data-value="all">ทั้งหมด</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>">ส่งแล้ว</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>">ดึงกลับ</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) ?>">รอพิจารณา</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(EXTERNAL_STATUS_REVIEWED)) ?>">พิจารณาแล้ว</div>
+                        <?php foreach ($status_options as $option_value => $option_label) : ?>
+                            <div class="custom-option<?= $status_filter === $option_value ? ' selected' : '' ?>" data-value="<?= h($option_value) ?>"><?= h($option_label) ?></div>
+                        <?php endforeach; ?>
                     </div>
 
                     <select class="form-input" name="status">
-                        <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
-                        <option value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_SENT) ? 'selected' : '' ?>>ส่งแล้ว</option>
-                        <option value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_RECALLED) ? 'selected' : '' ?>>ดึงกลับ</option>
-                        <option value="<?= h(strtolower(EXTERNAL_STATUS_PENDING_REVIEW)) ?>" <?= $filter_status === strtolower(EXTERNAL_STATUS_PENDING_REVIEW) ? 'selected' : '' ?>>รอพิจารณา</option>
-                        <option value="<?= h(strtolower(EXTERNAL_STATUS_REVIEWED)) ?>" <?= $filter_status === strtolower(EXTERNAL_STATUS_REVIEWED) ? 'selected' : '' ?>>พิจารณาแล้ว</option>
+                        <?php foreach ($status_options as $option_value => $option_label) : ?>
+                            <option value="<?= h($option_value) ?>" <?= $status_filter === $option_value ? 'selected' : '' ?>><?= h($option_label) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
                     <div class="custom-select-trigger">
-                        <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
+                        <p class="select-value"><?= h($sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option" data-value="newest">ใหม่ไปเก่า</div>
-                        <div class="custom-option" data-value="oldest">เก่าไปใหม่</div>
+                        <div class="custom-option<?= $sort === 'newest' ? ' selected' : '' ?>" data-value="newest">ใหม่ไปเก่า</div>
+                        <div class="custom-option<?= $sort === 'oldest' ? ' selected' : '' ?>" data-value="oldest">เก่าไปใหม่</div>
                     </div>
 
                     <select class="form-input" name="sort">
-                        <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
-                        <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
+                        <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
+                        <option value="oldest" <?= $sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
                     </select>
                 </div>
             </div>
@@ -229,49 +443,105 @@ ob_start();
                 <tr>
                     <th>เรื่อง</th>
                     <th>สถานะ</th>
-                    <th>วัันที่ส่ง</th>
+                    <th class="memo-date-col">วันที่ส่ง</th>
+                    <th class="memo-date-col">อัปเดตล่าสุด</th>
                     <th>จัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <p>loremmmmmmm</p>
-                    </td>
-                    <td>
-                        <span class="status-pill approved">
-                            อนุมัติการจองสำเร็จ </span>
-                    </td>
-                    <td>
-                        9 กุมภาพันธ์ 2569<br>
-                        <span class="detail-subtext">22:31</span>
-                    </td>
-                    <td>
-                        <button type="button" class="booking-action-btn secondary js-open-view-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
+                <?php if (empty($memos)) : ?>
+                    <tr data-memo-empty-row="1">
+                        <td colspan="5" class="booking-empty">ไม่พบรายการบันทึกข้อความของฉัน</td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ($memos as $memo) : ?>
+                        <?php
+                        $memo_id = (int) ($memo['memoID'] ?? 0);
+                        $subject = trim((string) ($memo['subject'] ?? ''));
+                        $detail = trim((string) ($memo['detail'] ?? ''));
+                        $status = strtoupper(trim((string) ($memo['status'] ?? '')));
+                        $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'pending'];
+                        $submitted_at = trim((string) ($memo['submittedAt'] ?? ''));
+                        $updated_at = trim((string) ($memo['updatedAt'] ?? ''));
+                        $created_at = trim((string) ($memo['createdAt'] ?? ''));
+                        [$date_line, $time_line] = $format_thai_datetime($submitted_at !== '' ? $submitted_at : $created_at);
+                        [$updated_date_line, $updated_time_line] = $format_thai_datetime($updated_at !== '' ? $updated_at : $created_at);
 
-                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            <span class="tooltip">ดูรายละเอียด</span>
-                        </button>
+                        if ($updated_date_line === '-' || $updated_date_line === '') {
+                            $updated_date_line = $date_line;
+                        }
 
-                        <button type="button" class="booking-action-btn secondary js-open-edit-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
+                        if ($updated_time_line === '-' || $updated_time_line === '') {
+                            $updated_time_line = $time_line;
+                        }
+                        $sent_sort_raw = $submitted_at !== '' ? $submitted_at : $created_at;
+                        $sent_sort_ts = strtotime($sent_sort_raw);
 
-                            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                            <span class="tooltip">ดู/แก้ไข</span>
-                        </button>
+                        if ($sent_sort_ts === false) {
+                            $sent_sort_ts = 0;
+                        }
+                        $memo_no = trim((string) ($memo['memoNo'] ?? ''));
+                        $book_no_display = $memo_no !== '' ? $memo_no : ('#' . $memo_id);
+                        $to_label = $memo_director_label;
+                        ?>
+                        <tr
+                            data-memo-track-row="1"
+                            data-memo-id="<?= h((string) $memo_id) ?>"
+                            data-memo-status="<?= h($status) ?>"
+                            data-memo-subject="<?= h($subject) ?>"
+                            data-memo-no="<?= h($memo_no) ?>"
+                            data-memo-sent-ts="<?= h((string) $sent_sort_ts) ?>">
+                            <td>
+                                <p><?= h($truncate_subject($subject)) ?></p>
+                            </td>
+                            <td>
+                                <span class="status-pill <?= h((string) ($status_meta['variant'] ?? 'pending')) ?>">
+                                    <?= h((string) ($status_meta['label'] ?? '-')) ?>
+                                </span>
+                            </td>
+                            <td class="memo-date-col">
+                                <?= h($date_line) ?><br>
+                                <span class="detail-subtext"><?= h($time_line) ?></span>
+                            </td>
+                            <td class="memo-date-col">
+                                <?= h($updated_date_line) ?><br>
+                                <span class="detail-subtext"><?= h($updated_time_line) ?></span>
+                            </td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="booking-action-btn secondary js-open-view-modal"
+                                    data-type="INTERNAL"
+                                    data-circular-id="<?= h((string) $memo_id) ?>"
+                                    data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                    data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                    data-bookno="<?= h($book_no_display) ?>"
+                                    data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
+                                    data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
+                                    data-to="<?= h($to_label) ?>"
+                                    data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                    data-consider="considering"
+                                    data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
+                                    data-read-stats="[]"
+                                    data-files="[]">
+                                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    <span class="tooltip">ดูรายละเอียด</span>
+                                </button>
 
-                        <a href="public/api/vehicle-booking-pdf.php?booking_id=4&amp;v=1771388613" class="booking-action-btn secondary" target="_blank" rel="noopener">
-                            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-                            <span class="tooltip">ดาวน์โหลดไฟล์</span>
-                        </a>
-
-                        <button type="button" class="booking-action-btn secondary js-open-suggest-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
-
-                            <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-                            <span class="tooltip">เสนอแฟ้ม</span>
-                        </button>
-
-                    </td>
-                </tr>
+                                <button
+                                    type="button"
+                                    class="booking-action-btn secondary js-open-suggest-modal"
+                                    data-memo-id="<?= h((string) $memo_id) ?>"
+                                    data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                    data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                    data-memo-to="<?= h($to_label) ?>">
+                                    <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                                    <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -302,112 +572,10 @@ ob_start();
 
 </div>
 
-<div class="modal-overlay-memo details" id="modalEditOverlay" style="display: none;">
-    <div class="modal-content">
-        <div class="header-modal">
-            <p id="modalTypeLabel">รายละเอียด</p>
-            <i class="fa-solid fa-xmark" id="closeModalEdit" aria-hidden="true"></i>
-        </div>
-
-        <div class="content-modal">
-
-            <div class="content-memo" style="box-shadow: none;">
-                <div class="memo-header">
-                    <img src="assets/img/garuda-logo.png" alt="">
-                    <p>บันทึกข้อความ</p>
-                    <div></div>
-                </div>
-
-                <form method="POST" id="circularComposeForm">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="flow_mode" value="CHAIN">
-                    <input type="hidden" name="to_choice" value="DIRECTOR">
-
-                    <div class="memo-detail">
-                        <div class="form-group-row">
-                            <p><strong>ส่วนราชการ</strong></p>
-
-                            <div class="custom-select-wrapper">
-                                <div class="custom-select-trigger">
-                                    <p class="select-value">
-                                        <?php
-                                        $selected_faction_name = '';
-
-                                        foreach ($factions as $faction) {
-                                            if ((string) ($faction['fID'] ?? '') === $selected_sender_fid) {
-                                                $selected_faction_name = (string) ($faction['fname'] ?? '');
-                                                break;
-                                            }
-                                        }
-                                        echo h($selected_faction_name !== '' ? $selected_faction_name : 'เลือกส่วนราชการ');
-                                        ?>
-                                    </p>
-                                    <i class="fa-solid fa-chevron-down"></i>
-                                </div>
-
-                                <div class="custom-options">
-                                    <?php foreach ($factions as $faction) : ?>
-                                        <?php $fid = (string) ($faction['fID'] ?? ''); ?>
-                                        <div class="custom-option<?= $fid === $selected_sender_fid ? ' selected' : '' ?>" data-value="<?= h($fid) ?>">
-                                            <?= h((string) ($faction['fname'] ?? '')) ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-
-                                <input type="hidden" name="sender_fid" value="<?= h($selected_sender_fid) ?>">
-                            </div>
-
-                            <p><strong>โรงเรียนดีบุกพังงาวิทยายน</strong></p>
-                        </div>
-
-                        <div class="form-group-row memo-subject-row">
-                            <p><strong>เรื่อง</strong></p>
-                            <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" required>
-                        </div>
-
-                        <div class="form-group-row memo-to-row">
-                            <p><strong>เรียน</strong></p>
-                            <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
-                        </div>
-
-                        <div class="content-editor">
-                            <p><strong>รายละเอียด:</strong></p>
-                            <br>
-                            <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
-                        </div>
-
-                        <div class="form-group-row signature">
-                            <img src="<?= h($signature_src) ?>" alt="">
-                            <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
-                            <p><?= h($current_position !== '' ? $current_position : '-') ?></p>
-                        </div>
-
-                        <!-- <div class="form-group-row submit">
-                            <button type="submit">บันทึกเอกสาร</button>
-                        </div> -->
-                    </div>
-                </form>
-            </div>
-
-        </div>
-
-        <div class="footer-modal">
-            <form method="POST" id="modalArchiveForm">
-                <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac"> <input type="hidden" name="inbox_id" id="modalInboxId" value="10">
-                <input type="hidden" name="action" value="archive">
-                <button type="submit">
-                    <p>เสนอแฟ้ม</p>
-                </button>
-            </form>
-        </div>
-
-    </div>
-</div>
-
 <div class="modal-overlay-memo suggest" id="modalSuggOverlay" style="display: none;">
     <div class="modal-content">
         <div class="header-modal">
-            <p id="modalTypeLabel">รายละเอียด</p>
+            <p>เสนอแฟ้มบันทึกข้อความ</p>
             <i class="fa-solid fa-xmark" id="closeModalSugg" aria-hidden="true"></i>
         </div>
 
@@ -420,10 +588,12 @@ ob_start();
                     <div></div>
                 </div>
 
-                <form method="POST" id="circularComposeForm">
+                <form method="POST" id="memoSuggestForm">
                     <?= csrf_field() ?>
                     <input type="hidden" name="flow_mode" value="CHAIN">
-                    <input type="hidden" name="to_choice" value="DIRECTOR">
+                    <input type="hidden" name="to_choice" id="memoSuggestToChoice" value="DIRECTOR">
+                    <input type="hidden" name="memo_id" id="memoSuggestMemoId" value="">
+                    <input type="hidden" name="action" value="submit">
 
                     <div class="memo-detail">
                         <div class="form-group-row">
@@ -464,18 +634,18 @@ ob_start();
 
                         <div class="form-group-row memo-subject-row">
                             <p><strong>เรื่อง</strong></p>
-                            <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" required>
+                            <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" data-memo-suggest-subject required>
                         </div>
 
                         <div class="form-group-row memo-to-row">
                             <p><strong>เรียน</strong></p>
-                            <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
+                            <p data-memo-suggest-to><?= h($memo_director_label) ?></p>
                         </div>
 
                         <div class="content-editor">
                             <p><strong>รายละเอียด:</strong></p>
                             <br>
-                            <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                            <textarea name="detail" id="memo_editor_suggest" data-memo-suggest-detail><?= h((string) ($values['detail'] ?? '')) ?></textarea>
                         </div>
 
 
@@ -508,9 +678,7 @@ ob_start();
 
             <div class="dropdown-content" id="dropdownContent">
                 <div class="dropdown-header">
-                    <label class="select-all-box">
-                        <input type="checkbox" id="selectAll">เลือกทั้งหมด
-                    </label>
+                    <span class="select-all-box">เลือกผู้รับได้ 1 คน</span>
                 </div>
 
                 <div class="dropdown-list">
@@ -528,7 +696,7 @@ ob_start();
                                         continue;
                                     }
                                     $fid_value = (string) $fid;
-                                    $faction_name = trim((string) ($faction['fName'] ?? ''));
+                                    $faction_name = trim((string) ($faction['fname'] ?? ''));
 
                                     if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) {
                                         continue;
@@ -563,15 +731,10 @@ ob_start();
                                     ?>
                                     <div class="item item-group<?= $expanded_by_default ? '' : ' is-collapsed' ?>" data-faction-id="<?= h($fid_value) ?>">
                                         <div class="group-header">
-                                            <label class="item-main">
-                                                <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction"
-                                                    data-group-key="faction-<?= h($fid_value) ?>"
-                                                    data-group-label="<?= h($faction_name) ?>"
-                                                    data-members="<?= h($member_payload_json) ?>"
-                                                    name="faction_ids[]" value="<?= h($fid_value) ?>" <?= h($is_selected($fid_value, $selected_factions) ? 'checked' : '') ?>>
+                                            <div class="item-main">
                                                 <span class="item-title"><?= h($faction_name) ?></span>
                                                 <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
-                                            </label>
+                                            </div>
                                             <button type="button" class="group-toggle" aria-expanded="<?= $expanded_by_default ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
                                                 <i class="fa-solid fa-chevron-down"></i>
                                             </button>
@@ -594,11 +757,11 @@ ob_start();
                                                     ?>
                                                     <li>
                                                         <label class="item member-item">
-                                                            <input type="checkbox" class="member-checkbox"
+                                                            <input type="radio" class="member-checkbox"
                                                                 data-member-group-key="faction-<?= h($fid_value) ?>"
                                                                 data-member-name="<?= h($member_name) ?>"
                                                                 data-group-label="<?= h($faction_name) ?>"
-                                                                name="person_ids[]" value="<?= h($member_pid) ?>" <?= h($is_selected($member_pid, $selected_people) ? 'checked' : '') ?>>
+                                                                name="memo_to_pid" value="<?= h($member_pid) ?>" <?= h($member_pid === $selected_primary_pid ? 'checked' : '') ?>>
                                                             <span class="member-name"><?= h($member_name) ?></span>
                                                         </label>
                                                     </li>
@@ -661,15 +824,10 @@ ob_start();
                                     ?>
                                     <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
                                         <div class="group-header">
-                                            <label class="item-main">
-                                                <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department"
-                                                    data-group-key="<?= h($group_key) ?>"
-                                                    data-group-label="<?= h($department_name) ?>"
-                                                    data-members="<?= h($member_payload_json) ?>"
-                                                    value="<?= h($group_key) ?>">
+                                            <div class="item-main">
                                                 <span class="item-title"><?= h($department_name) ?></span>
                                                 <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
-                                            </label>
+                                            </div>
                                             <button type="button" class="group-toggle" aria-expanded="<?= $has_selected_member ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
                                                 <i class="fa-solid fa-chevron-down"></i>
                                             </button>
@@ -679,11 +837,11 @@ ob_start();
                                             <?php foreach ($member_payload as $member) : ?>
                                                 <li>
                                                     <label class="item member-item">
-                                                        <input type="checkbox" class="member-checkbox"
+                                                        <input type="radio" class="member-checkbox"
                                                             data-member-group-key="<?= h($group_key) ?>"
                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                             data-group-label="<?= h($department_name) ?>"
-                                                            name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
+                                                            name="memo_to_pid" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h(((string) ($member['pID'] ?? '')) === $selected_primary_pid ? 'checked' : '') ?>>
                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                     </label>
                                                 </li>
@@ -745,15 +903,10 @@ ob_start();
                                     ?>
                                     <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
                                         <div class="group-header">
-                                            <label class="item-main">
-                                                <input type="checkbox" class="item-checkbox group-item-checkbox" data-group="special"
-                                                    data-group-key="<?= h($group_key) ?>"
-                                                    data-group-label="<?= h($group_name) ?>"
-                                                    data-members="<?= h($member_payload_json) ?>"
-                                                    value="<?= h($group_key) ?>">
+                                            <div class="item-main">
                                                 <span class="item-title"><?= h($group_name) ?></span>
                                                 <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
-                                            </label>
+                                            </div>
                                             <button type="button" class="group-toggle" aria-expanded="<?= $has_selected_member ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
                                                 <i class="fa-solid fa-chevron-down"></i>
                                             </button>
@@ -763,11 +916,11 @@ ob_start();
                                             <?php foreach ($member_payload as $member) : ?>
                                                 <li>
                                                     <label class="item member-item">
-                                                        <input type="checkbox" class="member-checkbox"
+                                                        <input type="radio" class="member-checkbox"
                                                             data-member-group-key="<?= h($group_key) ?>"
                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                             data-group-label="<?= h($group_name) ?>"
-                                                            name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
+                                                            name="memo_to_pid" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h(((string) ($member['pID'] ?? '')) === $selected_primary_pid ? 'checked' : '') ?>>
                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                     </label>
                                                 </li>
@@ -805,13 +958,9 @@ ob_start();
         </div>
 
         <div class="footer-modal">
-            <form method="POST" id="modalArchiveForm">
-                <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac"> <input type="hidden" name="inbox_id" id="modalInboxId" value="10">
-                <input type="hidden" name="action" value="archive">
-                <button type="submit">
-                    <p>เสนอแฟ้ม</p>
-                </button>
-            </form>
+            <button type="submit" form="memoSuggestForm">
+                <p>เสนอแฟ้ม</p>
+            </button>
         </div>
 
     </div>
@@ -845,42 +994,44 @@ ob_start();
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
 <script>
-    tinymce.init({
-        selector: '#memo_editor',
-        height: 500,
-        menubar: false,
-        language: 'th_TH',
-        plugins: 'searchreplace autolink directionality visualblocks visualchars image link media codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap emoticons',
-        toolbar: 'undo redo | fontfamily | fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons',
-        font_family_formats: 'TH Sarabun New=Sarabun, sans-serif;',
-        font_size_formats: '8pt 9pt 10pt 12pt 14pt 16pt 18pt 20pt 22pt 24pt 26pt 36pt 48pt 72pt',
-        content_style: `
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
-        body {
-            font-family: 'Sarabun', sans-serif;
-            font-size: 16pt;
-            line-height: 1.5;
-            color: #000;
-            background-color: #fff;
-            padding: 0 20px;
-            margin: 0 auto;
-        }
-        p {
-            margin-bottom: 0px;
-        }
-    `,
-        nonbreaking_force_tab: true,
-        promotion: false,
-        branding: false
-    });
+    if (window.tinymce && typeof window.tinymce.init === 'function') {
+        tinymce.init({
+            selector: '#memo_editor_compose, #memo_editor_suggest',
+            height: 500,
+            menubar: false,
+            language: 'th_TH',
+            plugins: 'searchreplace autolink directionality visualblocks visualchars image link media codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap emoticons',
+            toolbar: 'undo redo | fontfamily | fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons',
+            font_family_formats: 'TH Sarabun New=Sarabun, sans-serif;',
+            font_size_formats: '8pt 9pt 10pt 12pt 14pt 16pt 18pt 20pt 22pt 24pt 26pt 36pt 48pt 72pt',
+            content_style: `
+            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+            body {
+                font-family: 'Sarabun', sans-serif;
+                font-size: 16pt;
+                line-height: 1.5;
+                color: #000;
+                background-color: #fff;
+                padding: 0 20px;
+                margin: 0 auto;
+            }
+            p {
+                margin-bottom: 0px;
+            }
+        `,
+            nonbreaking_force_tab: true,
+            promotion: false,
+            branding: false
+        });
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         return;
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('circularComposeForm');
-        const trackFilterForm = document.querySelector('#circularTrack form.circular-my-filter-grid');
+        const form = document.getElementById('memoSuggestForm') || document.getElementById('circularComposeForm');
+        const trackFilterForm = document.getElementById('memoTrackFilterForm');
         const trackSearchInput = trackFilterForm ? trackFilterForm.querySelector('input[name="q"]') : null;
         const trackStatusSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="status"]') : null;
         const trackSortSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="sort"]') : null;
@@ -897,19 +1048,146 @@ ob_start();
         const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
         let selectedFiles = [];
         let trackSearchTimer = null;
+        const trackTableBody = document.querySelector('#memoMine .memo-mine-table tbody');
+        const trackDataRows = trackTableBody ? Array.from(trackTableBody.querySelectorAll('tr[data-memo-track-row="1"]')) : [];
+        let trackEmptyRow = trackTableBody ? trackTableBody.querySelector('tr[data-memo-empty-row="1"]') : null;
+
+        const normalizeTrackFilterText = (value) => String(value || '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const ensureTrackEmptyRow = () => {
+            if (!trackTableBody) {
+                return null;
+            }
+
+            if (trackEmptyRow && trackEmptyRow.parentNode) {
+                return trackEmptyRow;
+            }
+            trackEmptyRow = document.createElement('tr');
+            trackEmptyRow.setAttribute('data-memo-empty-row', '1');
+            trackEmptyRow.innerHTML = '<td colspan="5" class="booking-empty">ไม่พบรายการบันทึกข้อความของฉัน</td>';
+            return trackEmptyRow;
+        };
+
+        const updateTrackFilterUrl = () => {
+            if (!trackFilterForm) {
+                return;
+            }
+
+            const formData = new FormData(trackFilterForm);
+            const qValue = String(formData.get('q') || '').trim();
+            const statusValue = String(formData.get('status') || 'all').trim() || 'all';
+            const sortValue = String(formData.get('sort') || 'newest').trim() || 'newest';
+            const params = new URLSearchParams();
+            if (qValue !== '') {
+                params.set('q', qValue);
+            }
+            if (statusValue !== 'all') {
+                params.set('status', statusValue);
+            }
+            if (sortValue !== 'newest') {
+                params.set('sort', sortValue);
+            }
+
+            const query = params.toString();
+            const nextUrl = query !== '' ? `${window.location.pathname}?${query}` : window.location.pathname;
+            window.history.replaceState({}, '', nextUrl);
+        };
+
+        const applyTrackFiltersClientSide = () => {
+            if (!trackFilterForm) {
+                return;
+            }
+
+            const qValue = normalizeTrackFilterText(trackSearchInput ? trackSearchInput.value : '');
+            const statusValue = String(trackStatusSelect ? trackStatusSelect.value : 'all').trim() || 'all';
+            const sortValue = String(trackSortSelect ? trackSortSelect.value : 'newest').trim() || 'newest';
+
+            if (!trackTableBody || trackDataRows.length === 0) {
+                updateTrackFilterUrl();
+                return;
+            }
+
+            const filteredRows = trackDataRows.filter((row) => {
+                const rowStatus = String(row.getAttribute('data-memo-status') || '').toUpperCase();
+                const rowSubject = normalizeTrackFilterText(row.getAttribute('data-memo-subject') || '');
+                const rowMemoNo = normalizeTrackFilterText(row.getAttribute('data-memo-no') || '');
+                const matchesStatus = statusValue === 'all' || rowStatus === statusValue.toUpperCase();
+                const matchesSearch = qValue === '' || rowSubject.includes(qValue) || rowMemoNo.includes(qValue);
+                return matchesStatus && matchesSearch;
+            });
+
+            filteredRows.sort((leftRow, rightRow) => {
+                const leftTs = Number(leftRow.getAttribute('data-memo-sent-ts') || '0');
+                const rightTs = Number(rightRow.getAttribute('data-memo-sent-ts') || '0');
+
+                if (leftTs === rightTs) {
+                    const leftId = Number(leftRow.getAttribute('data-memo-id') || '0');
+                    const rightId = Number(rightRow.getAttribute('data-memo-id') || '0');
+                    return sortValue === 'oldest' ? leftId - rightId : rightId - leftId;
+                }
+
+                return sortValue === 'oldest' ? leftTs - rightTs : rightTs - leftTs;
+            });
+
+            trackDataRows.forEach((row) => {
+                row.remove();
+            });
+
+            if (trackEmptyRow && trackEmptyRow.parentNode) {
+                trackEmptyRow.parentNode.removeChild(trackEmptyRow);
+            }
+
+            if (filteredRows.length === 0) {
+                const emptyRow = ensureTrackEmptyRow();
+                if (emptyRow) {
+                    trackTableBody.appendChild(emptyRow);
+                }
+                updateTrackFilterUrl();
+                return;
+            }
+
+            filteredRows.forEach((row) => {
+                trackTableBody.appendChild(row);
+            });
+            updateTrackFilterUrl();
+        };
 
         if (trackSearchInput && trackFilterForm) {
+            trackFilterForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                if (trackSearchTimer) {
+                    clearTimeout(trackSearchTimer);
+                }
+                applyTrackFiltersClientSide();
+            });
             trackSearchInput.addEventListener('input', () => {
                 if (trackSearchTimer) {
                     clearTimeout(trackSearchTimer);
                 }
                 trackSearchTimer = window.setTimeout(() => {
-                    trackFilterForm.submit();
+                    applyTrackFiltersClientSide();
                 }, 300);
             });
+            trackSearchInput.addEventListener('search', () => applyTrackFiltersClientSide());
+            trackSearchInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+                event.preventDefault();
+
+                if (trackSearchTimer) {
+                    clearTimeout(trackSearchTimer);
+                }
+                applyTrackFiltersClientSide();
+            });
         }
-        trackStatusSelect?.addEventListener('change', () => trackFilterForm?.submit());
-        trackSortSelect?.addEventListener('change', () => trackFilterForm?.submit());
+        trackStatusSelect?.addEventListener('change', () => applyTrackFiltersClientSide());
+        trackSortSelect?.addEventListener('change', () => applyTrackFiltersClientSide());
+        applyTrackFiltersClientSide();
 
         const renderFiles = () => {
             if (!fileList) return;
@@ -1064,10 +1342,18 @@ ob_start();
         const syncMemberByPid = (pid, checked, source) => {
             const normalizedPid = String(pid || '').trim();
             if (normalizedPid === '') return;
+            const isSingleRadio = Boolean(source && source.type === 'radio');
             memberChecks.forEach((memberCheck) => {
                 if (memberCheck === source) return;
                 if (String(memberCheck.value || '') !== normalizedPid) return;
                 if (memberCheck.disabled) return;
+
+                // For single-recipient radio mode, keep the clicked row active only.
+                if (isSingleRadio) {
+                    memberCheck.checked = false;
+                    return;
+                }
+
                 memberCheck.checked = checked;
             });
         };
@@ -1581,16 +1867,31 @@ ob_start();
 
 
     const viewModal = document.getElementById('modalViewOverlay');
-    const editModal = document.getElementById('modalEditOverlay');
     const suggModal = document.getElementById('modalSuggOverlay');
 
     const closeViewBtn = document.getElementById('closeModalView');
-    const closeEditBtn = document.getElementById('closeModalEdit');
     const closeSuggBtn = document.getElementById('closeModalSugg');
 
     const openViewBtns = document.querySelectorAll('.js-open-view-modal');
-    const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
     const openSuggBtns = document.querySelectorAll('.js-open-suggest-modal');
+    const suggestSubjectInput = suggModal ? suggModal.querySelector('[data-memo-suggest-subject]') : null;
+    const suggestDetailInput = suggModal ? suggModal.querySelector('[data-memo-suggest-detail]') : null;
+    const suggestToText = suggModal ? suggModal.querySelector('[data-memo-suggest-to]') : null;
+    const suggestToChoiceInput = suggModal ? suggModal.querySelector('#memoSuggestToChoice') : null;
+    const suggestMemoIdInput = suggModal ? suggModal.querySelector('#memoSuggestMemoId') : null;
+    const suggestRecipientRadios = suggModal ? Array.from(suggModal.querySelectorAll('.member-checkbox')) : [];
+    const memoDirectorLabel = <?= json_encode($memo_director_label, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const syncSuggestRecipientSelection = () => {
+        const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
+        const selectedPid = selectedRadio ? String(selectedRadio.value || '').trim() : '';
+
+        if (suggestToChoiceInput) {
+            suggestToChoiceInput.value = selectedPid !== '' ? `PERSON:${selectedPid}` : 'DIRECTOR';
+        }
+        if (suggestToText) {
+            suggestToText.textContent = memoDirectorLabel;
+        }
+    };
 
     openViewBtns.forEach((btn) => {
         btn.addEventListener('click', (event) => {
@@ -1600,40 +1901,63 @@ ob_start();
         });
     });
 
-    openEditBtns.forEach((btn) => {
+    openSuggBtns.forEach((btn) => {
         btn.addEventListener('click', (event) => {
             event.preventDefault();
 
-            if (editModal) editModal.style.display = 'flex';
+            const memoId = String(btn.getAttribute('data-memo-id') || '').trim();
+            const memoSubject = String(btn.getAttribute('data-memo-subject') || '').trim();
+            const memoDetail = String(btn.getAttribute('data-memo-detail') || '').trim();
+            const detailValue = memoDetail !== '' ? memoDetail : '-';
+
+            if (suggestMemoIdInput) {
+                suggestMemoIdInput.value = memoId;
+            }
+
+            if (suggestSubjectInput) {
+                suggestSubjectInput.value = memoSubject !== '' ? memoSubject : '-';
+            }
+
+            if (suggestDetailInput) {
+                suggestDetailInput.value = detailValue;
+            }
+
+            if (suggestToText) {
+                suggestToText.textContent = memoDirectorLabel;
+            }
+            if (suggestToChoiceInput) {
+                suggestToChoiceInput.value = 'DIRECTOR';
+            }
+
+            if (window.tinymce) {
+                const suggestEditor = tinymce.get('memo_editor_suggest');
+                if (suggestEditor) {
+                    suggestEditor.setContent(detailValue);
+                }
+            }
+            syncSuggestRecipientSelection();
+
+            if (suggModal) suggModal.style.display = 'flex';
         });
     });
 
-    openSuggBtns.forEach((btn) => {
-        btn.addEventListener('click', (even) => {
-            event.preventDefault();
-
-            if (suggModal) suggModal.style.display = 'flex';
-        })
-    })
+    suggestRecipientRadios.forEach((radio) => {
+        radio.addEventListener('change', () => {
+            syncSuggestRecipientSelection();
+        });
+    });
 
     closeViewBtn?.addEventListener('click', () => {
         if (viewModal) viewModal.style.display = 'none';
     });
 
-    closeEditBtn?.addEventListener('click', () => {
-        if (editModal) editModal.style.display = 'none';
-    });
-
     closeSuggBtn?.addEventListener('click', () => {
         if (suggModal) suggModal.style.display = 'none';
-    })
+    });
 
     window.addEventListener('click', (event) => {
         if (event.target === viewModal) {
             viewModal.style.display = 'none';
-        }
-        if (event.target === editModal) {
-            editModal.style.display = 'none';
         }
         if (event.target === suggModal) {
             suggModal.style.display = 'none';

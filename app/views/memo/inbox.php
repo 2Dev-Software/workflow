@@ -23,7 +23,7 @@ $status_map = [
     'SIGNED' => ['label' => 'ลงนามแล้ว', 'variant' => 'success'],
     'REJECTED' => ['label' => 'ไม่อนุมัติ', 'variant' => 'danger'],
     'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'neutral'],
-    'DRAFT' => ['label' => 'ร่าง', 'variant' => 'neutral'],
+    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'neutral'],
 ];
 
 $status_options = [
@@ -299,8 +299,8 @@ foreach ($factions as $faction) {
 ob_start();
 ?>
 <div class="content-header">
-    <h1>Inbox บันทึกข้อความ</h1>
-    <p>รายการรอพิจารณา/ลงนาม และประวัติการพิจารณา</p>
+    <h1>ยินดีต้อนรับ</h1>
+    <p>บันทึกข้อความ / กล่องบันทึกข้อความ</p>
 </div>
 
 <!-- <div class="content-memo" id="memoBook"> -->
