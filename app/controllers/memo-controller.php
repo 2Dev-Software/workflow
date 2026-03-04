@@ -191,6 +191,58 @@ if (!function_exists('memo_index')) {
                 } else {
                     try {
                         if ($post_action === 'submit') {
+                            $submit_subject = trim((string) ($_POST['subject'] ?? ''));
+                            $submit_detail = trim((string) ($_POST['detail'] ?? ''));
+                            $submit_to_pid_raw = $_POST['memo_to_pid'] ?? '';
+                            $submit_to_pid = is_string($submit_to_pid_raw) ? trim($submit_to_pid_raw) : '';
+                            $uploaded_files = isset($_FILES['attachments']) && is_array($_FILES['attachments']) ? $_FILES['attachments'] : [];
+                            $allowed_submit_to_pids = array_fill_keys(
+                                array_map(
+                                    static fn(array $teacher): string => (string) ($teacher['pID'] ?? ''),
+                                    $teachers
+                                ),
+                                true
+                            );
+
+                            if ($submit_to_pid === '' || !preg_match('/^\\d{1,13}$/', $submit_to_pid)) {
+                                throw new RuntimeException('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
+                            }
+                            if (!isset($allowed_submit_to_pids[$submit_to_pid])) {
+                                throw new RuntimeException('ผู้รับเอกสารไม่ถูกต้อง');
+                            }
+
+                            $uploaded_count = 0;
+                            $upload_errors = $uploaded_files['error'] ?? [];
+
+                            if (is_array($upload_errors)) {
+                                foreach ($upload_errors as $upload_error) {
+                                    if ((int) $upload_error === UPLOAD_ERR_OK) {
+                                        $uploaded_count++;
+                                    }
+                                }
+                            } elseif ($upload_errors !== null && (int) $upload_errors === UPLOAD_ERR_OK) {
+                                $uploaded_count = 1;
+                            }
+
+                            $existing_attachment_count = count(memo_get_attachments($memo_id));
+
+                            if (($existing_attachment_count + $uploaded_count) < 1) {
+                                throw new RuntimeException('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
+                            }
+
+                            memo_update_draft(
+                                $memo_id,
+                                $current_pid,
+                                [
+                                    'subject' => $submit_subject,
+                                    'detail' => $submit_detail,
+                                    'toType' => 'PERSON',
+                                    'toPID' => $submit_to_pid,
+                                    'flowMode' => 'DIRECT',
+                                ],
+                                $uploaded_files
+                            );
+
                             memo_submit($memo_id, $current_pid);
                             $alert = [
                                 'type' => 'success',
