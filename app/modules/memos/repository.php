@@ -187,12 +187,13 @@ if (!function_exists('memo_count_by_creator')) {
 }
 
 if (!function_exists('memo_list_by_creator_page')) {
-    function memo_list_by_creator_page(string $pID, bool $archived, ?string $status, ?string $search, int $limit, int $offset): array
+    function memo_list_by_creator_page(string $pID, bool $archived, ?string $status, ?string $search, int $limit, int $offset, ?string $sort = null): array
     {
         $archivedFlag = $archived ? 1 : 0;
         $limit = max(1, $limit);
         $offset = max(0, $offset);
         $status = trim((string) $status);
+        $sort = strtolower(trim((string) $sort));
 
         $where = 'm.createdByPID = ? AND m.deletedAt IS NULL AND m.isArchived = ?';
         $types = 'si';
@@ -213,12 +214,18 @@ if (!function_exists('memo_list_by_creator_page')) {
             $params[] = $like;
         }
 
-        $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.status, m.toType, m.toPID, m.firstReadAt, m.submittedAt, m.createdAt,
+        $order_by = 'm.createdAt DESC, m.memoID DESC';
+
+        if ($sort === 'oldest') {
+            $order_by = 'm.createdAt ASC, m.memoID ASC';
+        }
+
+        $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.status, m.toType, m.toPID, m.firstReadAt, m.submittedAt, m.updatedAt, m.createdAt,
                 t.fName AS approverName
             FROM dh_memos AS m
             LEFT JOIN teacher AS t ON m.toPID = t.pID
             WHERE ' . $where . '
-            ORDER BY m.createdAt DESC, m.memoID DESC
+            ORDER BY ' . $order_by . '
             LIMIT ? OFFSET ?';
 
         return db_fetch_all($sql, $types . 'ii', ...array_merge($params, [$limit, $offset]));

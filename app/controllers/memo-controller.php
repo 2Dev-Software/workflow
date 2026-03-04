@@ -8,6 +8,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../modules/memos/service.php';
 require_once __DIR__ . '/../modules/memos/repository.php';
+require_once __DIR__ . '/../modules/users/lists.php';
 require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../modules/audit/logger.php';
@@ -103,6 +104,11 @@ if (!function_exists('memo_index')) {
 
         $search = trim((string) ($_GET['q'] ?? ''));
         $status_filter = (string) ($_GET['status'] ?? 'all');
+        $sort = strtolower(trim((string) ($_GET['sort'] ?? 'newest')));
+
+        if (!in_array($sort, ['newest', 'oldest'], true)) {
+            $sort = 'newest';
+        }
         $allowed_status = [
             'all',
             MEMO_STATUS_DRAFT,
@@ -143,6 +149,15 @@ if (!function_exists('memo_index')) {
 
         $approver_options = memo_build_approver_options($connection);
         $factions = memo_list_sender_factions($connection);
+        $teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid): bool {
+            $pid = trim((string) ($teacher['pID'] ?? ''));
+
+            if ($pid === '' || $pid === $current_pid) {
+                return false;
+            }
+
+            return ctype_digit($pid);
+        }));
 
         if ($values['sender_fid'] === '' && !empty($factions)) {
             $values['sender_fid'] = (string) ($factions[0]['fID'] ?? '');
@@ -297,7 +312,7 @@ if (!function_exists('memo_index')) {
                 $page = $total_pages;
             }
             $offset = ($page - 1) * $per_page;
-            $memos = memo_list_by_creator_page($current_pid, false, $status_filter, $search, $per_page, $offset);
+            $memos = memo_list_by_creator_page($current_pid, false, $status_filter, $search, $per_page, $offset, $sort);
         }
 
         $base_params = ['tab' => 'track'];
@@ -308,6 +323,10 @@ if (!function_exists('memo_index')) {
 
         if ($status_filter !== 'all') {
             $base_params['status'] = $status_filter;
+        }
+
+        if ($sort !== 'newest') {
+            $base_params['sort'] = $sort;
         }
         $pagination_base_url = 'memo.php';
 
@@ -321,12 +340,14 @@ if (!function_exists('memo_index')) {
             'memos' => $memos,
             'approver_options' => $approver_options,
             'factions' => $factions,
+            'teachers' => $teachers,
             'current_user' => $current_user,
             'dh_year' => system_get_dh_year(),
             'page' => $page,
             'total_pages' => $total_pages,
             'search' => $search,
             'status_filter' => $status_filter,
+            'sort' => $sort,
             'filtered_total' => $filtered_total,
             'pagination_base_url' => $pagination_base_url,
             'active_tab' => $active_tab,

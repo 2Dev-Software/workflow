@@ -18,7 +18,7 @@ $is_approver = (bool) ($access['is_approver'] ?? false);
 $is_admin = (bool) ($access['is_admin'] ?? false);
 
 $status_map = [
-    'DRAFT' => ['label' => 'ร่าง', 'variant' => 'neutral'],
+    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'neutral'],
     'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'warning'],
     'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'warning'],
     'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'danger'],

@@ -16,7 +16,7 @@ $memo_page_archive = 'memo-archive.php';
 $memo_page_view = 'memo-view.php';
 
 $status_map = [
-    'DRAFT' => ['label' => 'ร่าง', 'variant' => 'neutral'],
+    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'neutral'],
     'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'warning'],
     'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'warning'],
     'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'danger'],
@@ -28,7 +28,7 @@ $status_map = [
 
 $status_options = [
     'all' => 'ทั้งหมด',
-    'DRAFT' => 'ร่าง',
+    'DRAFT' => 'รอการเสนอแฟ้ม',
     'SUBMITTED' => 'รอพิจารณา',
     'IN_REVIEW' => 'กำลังพิจารณา',
     'RETURNED' => 'ตีกลับแก้ไข',
@@ -128,8 +128,8 @@ ob_start();
 ?>
 
 <div class="content-header">
-    <h1>ที่จัดเก็บบันทึกข้อความ</h1>
-    <p>แฟ้มจัดเก็บ (Archived)</p>
+    <h1>ยินดีต้อนรับ</h1>
+    <p>บันทึกข้อความ / บันทึกข้อความที่จัดเก็บ</p>
 </div>
 
 <form id="circularFilterForm" method="GET">
