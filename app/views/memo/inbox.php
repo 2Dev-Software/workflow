@@ -319,7 +319,7 @@ ob_start();
 <header class="header-circular-notice-index<?= h($is_outside_view ? ' outside-person' : '') ?>">
     <div class="circular-notice-index-control">
         <div class="page-selector">
-            <p>แสดงตามประเภทหนังสือ</p>
+            <p>แสดงตามปีสารบรรณ</p>
 
             <div class="custom-select-wrapper" data-target="filterTypeInput">
                 <div class="custom-select-trigger">
@@ -335,7 +335,7 @@ ob_start();
             </div>
         </div>
         <div class="page-selector">
-            <p>แสดงตามสถานะหนังสือ</p>
+            <p>แสดงตามสถานะ</p>
 
             <div class="custom-select-wrapper" data-target="filterReadInput">
                 <div class="custom-select-trigger">
