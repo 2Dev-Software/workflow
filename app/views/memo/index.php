@@ -508,38 +508,38 @@ ob_start();
                                 <span class="detail-subtext"><?= h($updated_time_line) ?></span>
                             </td>
                             <td>
-                                <button
-                                    type="button"
-                                    class="booking-action-btn secondary js-open-view-modal"
-                                    data-type="INTERNAL"
-                                    data-circular-id="<?= h((string) $memo_id) ?>"
-                                    data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
-                                    data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
-                                    data-bookno="<?= h($book_no_display) ?>"
-                                    data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
-                                    data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
-                                    data-to="<?= h($to_label) ?>"
-                                    data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
-                                    data-consider="considering"
-                                    data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
-                                    data-read-stats="[]"
-                                    data-files="[]">
-                                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                    <span class="tooltip">ดูรายละเอียด</span>
-                                </button>
+                                <?php if ($status === 'CANCELLED' || $status === 'SUBMITTED') : ?>
+                                    <button
+                                        type="button"
+                                        class="booking-action-btn secondary js-open-view-modal"
+                                        data-type="INTERNAL"
+                                        data-circular-id="<?= h((string) $memo_id) ?>"
+                                        data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                        data-bookno="<?= h($book_no_display) ?>"
+                                        data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
+                                        data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
+                                        data-to="<?= h($to_label) ?>"
+                                        data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                        data-consider="considering"
+                                        data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
+                                        data-read-stats="[]"
+                                        data-files="[]">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </button>
+                                <?php elseif ($status === 'DRAFT') : ?>
+                                    <button
+                                        type="button"
+                                        class="booking-action-btn secondary js-open-suggest-modal"
+                                        data-memo-id="<?= h((string) $memo_id) ?>"
+                                        data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                        data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-memo-to="<?= h($to_label) ?>">
+                                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                                        <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    class="booking-action-btn secondary js-open-suggest-modal"
-                                    data-memo-id="<?= h((string) $memo_id) ?>"
-                                    data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
-                                    data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
-                                    data-memo-to="<?= h($to_label) ?>">
-                                    <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-                                    <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
-                                </button>
-
-                                <?php if ($status === 'DRAFT') : ?>
                                     <form method="POST" class="enterprise-inline-form">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="cancel">
@@ -555,6 +555,37 @@ ob_start();
                                             <span class="tooltip danger">ลบข้อมูล</span>
                                         </button>
                                     </form>
+                                <?php else : ?>
+                                    <button
+                                        type="button"
+                                        class="booking-action-btn secondary js-open-view-modal"
+                                        data-type="INTERNAL"
+                                        data-circular-id="<?= h((string) $memo_id) ?>"
+                                        data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                        data-bookno="<?= h($book_no_display) ?>"
+                                        data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
+                                        data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
+                                        data-to="<?= h($to_label) ?>"
+                                        data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                        data-consider="considering"
+                                        data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
+                                        data-read-stats="[]"
+                                        data-files="[]">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="booking-action-btn secondary js-open-suggest-modal"
+                                        data-memo-id="<?= h((string) $memo_id) ?>"
+                                        data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                        data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-memo-to="<?= h($to_label) ?>">
+                                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                                        <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
+                                    </button>
                                 <?php endif; ?>
                             </td>
                         </tr>
