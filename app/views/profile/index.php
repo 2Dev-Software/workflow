@@ -157,7 +157,15 @@ ob_start();
                 <label class="form-label">ยืนยันรหัสผ่าน</label>
                 <input type="password" class="form-input" name="confirm_password" autocomplete="new-password" required>
             </div>
-            <button type="submit" class="btn-confirm" name="change_password" value="1">ยืนยัน</button>
+            <button
+                type="submit"
+                class="btn-confirm"
+                name="change_password"
+                value="1"
+                data-confirm="ยืนยันการเปลี่ยนรหัสผ่านใช่หรือไม่?"
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">ยืนยัน</button>
         </form>
     </div>
 </div>

@@ -397,6 +397,11 @@ if (!function_exists('room_booking_build_events')) {
                 $end_date = clone $start_date;
             }
 
+            // Normalize to date-only boundaries to avoid missing same-day events
+            // when DateTime::createFromFormat('Y-m-d', ...) inherits current time.
+            $start_date->setTime(0, 0, 0);
+            $end_date->setTime(0, 0, 0);
+
             $room_id = (string) ($booking['roomID'] ?? '');
             $room_name = $room_map[$room_id] ?? ((string) ($booking['roomName'] ?? $room_id));
             $time_range = room_booking_normalize_time((string) ($booking['startTime'] ?? ''))
@@ -419,7 +424,6 @@ if (!function_exists('room_booking_build_events')) {
             ];
 
             $cursor = clone $start_date;
-            $end_date->setTime(0, 0, 0);
 
             while ($cursor <= $end_date) {
                 $key = $cursor->format('Y-n-j');
