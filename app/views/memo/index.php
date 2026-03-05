@@ -291,7 +291,7 @@ ob_start();
     </div>
 </div>
 
-<div class="content-memo tab-content active" id="memoBook">
+<div class="content-memo tab-content <?= $is_track_active ? '' : 'active' ?>" id="memoBook">
     <div class="memo-header">
         <img src="assets/img/garuda-logo.png" alt="">
         <p>บันทึกข้อความ</p>
@@ -375,7 +375,7 @@ ob_start();
     </form>
 </div>
 
-<div class="content-my-memo enterprise-card tab-content" id="memoMine">
+<div class="content-my-memo enterprise-card tab-content <?= $is_track_active ? 'active' : '' ?>" id="memoMine">
 
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
@@ -483,6 +483,7 @@ ob_start();
                         $memo_no = trim((string) ($memo['memoNo'] ?? ''));
                         $book_no_display = $memo_no !== '' ? $memo_no : ('#' . $memo_id);
                         $to_label = $memo_director_label;
+                        $attachment_count = $memo_id > 0 ? count(memo_get_attachments($memo_id)) : 0;
                         ?>
                         <tr
                             data-memo-track-row="1"
@@ -535,6 +536,7 @@ ob_start();
                                         data-memo-id="<?= h((string) $memo_id) ?>"
                                         data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
                                         data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-memo-attachments="<?= h((string) $attachment_count) ?>"
                                         data-memo-to="<?= h($to_label) ?>">
                                         <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
                                         <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
@@ -582,6 +584,7 @@ ob_start();
                                         data-memo-id="<?= h((string) $memo_id) ?>"
                                         data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
                                         data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-memo-attachments="<?= h((string) $attachment_count) ?>"
                                         data-memo-to="<?= h($to_label) ?>">
                                         <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
                                         <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
@@ -695,11 +698,9 @@ ob_start();
                                 <!-- <p class="form-error hidden" id="attachmentError">แนบได้สูงสุด 5 ไฟล์</p> -->
                             </div>
 
-                            <!-- <div class="file-list" id="attachmentList" aria-live="polite"> -->
-                                <!-- <p class="attachment-empty">ยังไม่มีไฟล์แนบ</p> -->
-                            <div class="file-list" id="attachmentList" aria-live="polite"><div class="file-item-wrapper"><button type="button" class="delete-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button><div class="file-banner"><div class="file-info"><div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div><div class="file-text"><span class="file-name">Screenshot_20260221_224247.png</span><span class="file-type">image/png</span></div></div><div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div></div></div><div class="file-item-wrapper"><button type="button" class="delete-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button><div class="file-banner"><div class="file-info"><div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div><div class="file-text"><span class="file-name">Screenshot_20260221_224249.png</span><span class="file-type">image/png</span></div></div><div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div></div></div><div class="file-item-wrapper"><button type="button" class="delete-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button><div class="file-banner"><div class="file-info"><div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div><div class="file-text"><span class="file-name">Screenshot_20260221_224255.png</span><span class="file-type">image/png</span></div></div><div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div></div></div><div class="file-item-wrapper"><button type="button" class="delete-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button><div class="file-banner"><div class="file-info"><div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div><div class="file-text"><span class="file-name">Screenshot_20260221_224301.png</span><span class="file-type">image/png</span></div></div><div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div></div></div><div class="file-item-wrapper"><button type="button" class="delete-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button><div class="file-banner"><div class="file-info"><div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div><div class="file-text"><span class="file-name">Screenshot_20260222_194414.png</span><span class="file-type">image/png</span></div></div><div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div></div></div></div>
-
-                            <!-- </div> -->
+                            <div class="file-list" id="attachmentListView" aria-live="polite">
+                                <p class="attachment-empty">ยังไม่มีไฟล์แนบ</p>
+                            </div>
                         </div>
 
                         <div class="form-group-row signature">
@@ -806,7 +807,7 @@ ob_start();
                     <div></div>
                 </div>
 
-                <form method="POST" id="memoSuggestForm">
+                <form method="POST" id="memoSuggestForm" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="flow_mode" value="CHAIN">
                     <input type="hidden" name="to_choice" id="memoSuggestToChoice" value="DIRECTOR">
@@ -2097,8 +2098,39 @@ ob_start();
     const suggestToText = suggModal ? suggModal.querySelector('[data-memo-suggest-to]') : null;
     const suggestToChoiceInput = suggModal ? suggModal.querySelector('#memoSuggestToChoice') : null;
     const suggestMemoIdInput = suggModal ? suggModal.querySelector('#memoSuggestMemoId') : null;
+    const suggestForm = document.getElementById('memoSuggestForm');
+    const suggestAttachmentInput = suggestForm ? suggestForm.querySelector('input[name="attachments[]"]') : null;
     const suggestRecipientRadios = suggModal ? Array.from(suggModal.querySelectorAll('.member-checkbox')) : [];
     const memoDirectorLabel = <?= json_encode($memo_director_label, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const showSuggestValidationAlert = (message) => {
+        const safeMessage = String(message || '').trim();
+
+        if (safeMessage === '') {
+            return;
+        }
+
+        if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
+            window.AppAlerts.fire({
+                type: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                message: safeMessage,
+                confirmButtonText: 'ตกลง',
+            });
+            return;
+        }
+
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: safeMessage,
+                confirmButtonText: 'ตกลง',
+            });
+            return;
+        }
+
+        alert(safeMessage);
+    };
     const syncSuggestRecipientSelection = () => {
         const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
         const selectedPid = selectedRadio ? String(selectedRadio.value || '').trim() : '';
@@ -2126,6 +2158,7 @@ ob_start();
             const memoId = String(btn.getAttribute('data-memo-id') || '').trim();
             const memoSubject = String(btn.getAttribute('data-memo-subject') || '').trim();
             const memoDetail = String(btn.getAttribute('data-memo-detail') || '').trim();
+            const memoAttachmentCount = Number(btn.getAttribute('data-memo-attachments') || '0');
             const detailValue = memoDetail !== '' ? memoDetail : '-';
 
             if (suggestMemoIdInput) {
@@ -2146,6 +2179,10 @@ ob_start();
             if (suggestToChoiceInput) {
                 suggestToChoiceInput.value = 'DIRECTOR';
             }
+            if (suggestForm) {
+                const normalizedAttachmentCount = Number.isFinite(memoAttachmentCount) && memoAttachmentCount > 0 ? memoAttachmentCount : 0;
+                suggestForm.dataset.existingAttachmentCount = String(normalizedAttachmentCount);
+            }
 
             if (window.tinymce) {
                 const suggestEditor = tinymce.get('memo_editor_suggest');
@@ -2163,6 +2200,25 @@ ob_start();
         radio.addEventListener('change', () => {
             syncSuggestRecipientSelection();
         });
+    });
+
+    suggestForm?.addEventListener('submit', (event) => {
+        const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
+
+        if (!selectedRadio) {
+            event.preventDefault();
+            showSuggestValidationAlert('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
+            return;
+        }
+
+        const uploadedCount = suggestAttachmentInput && suggestAttachmentInput.files ? suggestAttachmentInput.files.length : 0;
+        const existingAttachmentCount = Number(suggestForm.dataset.existingAttachmentCount || '0');
+        const normalizedExistingAttachmentCount = Number.isFinite(existingAttachmentCount) && existingAttachmentCount > 0 ? existingAttachmentCount : 0;
+
+        if ((normalizedExistingAttachmentCount + uploadedCount) < 1) {
+            event.preventDefault();
+            showSuggestValidationAlert('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
+        }
     });
 
     closeViewBtn?.addEventListener('click', () => {

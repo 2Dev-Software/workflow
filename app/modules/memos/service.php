@@ -396,14 +396,32 @@ if (!function_exists('memo_update_draft')) {
                 throw new RuntimeException('กรุณากรอกหัวข้อ');
             }
 
-            memo_update_record($memoID, [
+            $update_payload = [
                 'writeDate' => $data['writeDate'] ?? null,
                 'subject' => $subject,
                 'detail' => $data['detail'] ?? null,
                 'toType' => $data['toType'] ?? null,
                 'toPID' => $data['toPID'] ?? null,
                 'updatedByPID' => $actorPID,
-            ]);
+            ];
+
+            $flow_mode = strtoupper(trim((string) ($data['flowMode'] ?? '')));
+
+            if ($flow_mode !== '') {
+                if (!in_array($flow_mode, ['CHAIN', 'DIRECT'], true)) {
+                    throw new RuntimeException('รูปแบบการส่งเอกสารไม่ถูกต้อง');
+                }
+                $update_payload['flowMode'] = $flow_mode;
+                $update_payload['flowStage'] = 'OWNER';
+
+                if ($flow_mode === 'DIRECT') {
+                    $update_payload['headPID'] = null;
+                    $update_payload['deputyPID'] = null;
+                    $update_payload['directorPID'] = null;
+                }
+            }
+
+            memo_update_record($memoID, $update_payload);
             memo_add_route($memoID, 'UPDATE', $status, $status, $actorPID, null);
 
             if (!empty($files)) {

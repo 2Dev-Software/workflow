@@ -90,6 +90,24 @@ if (!function_exists('memo_list_sender_factions')) {
     }
 }
 
+if (!function_exists('memo_has_meaningful_content')) {
+    function memo_has_meaningful_content(?string $value): bool
+    {
+        $raw = (string) ($value ?? '');
+
+        if ($raw === '') {
+            return false;
+        }
+
+        $decoded = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $stripped = strip_tags($decoded);
+        $normalized = str_replace(["\u{00A0}", "\xc2\xa0"], ' ', $stripped);
+        $compact = preg_replace('/\s+/u', '', $normalized);
+
+        return trim((string) $compact) !== '';
+    }
+}
+
 if (!function_exists('memo_index')) {
     function memo_index(): void
     {
@@ -191,6 +209,61 @@ if (!function_exists('memo_index')) {
                 } else {
                     try {
                         if ($post_action === 'submit') {
+                            $submit_subject = trim((string) ($_POST['subject'] ?? ''));
+                            $submit_detail = trim((string) ($_POST['detail'] ?? ''));
+                            $submit_to_pid_raw = $_POST['memo_to_pid'] ?? '';
+                            $submit_to_pid = is_string($submit_to_pid_raw) ? trim($submit_to_pid_raw) : '';
+                            $uploaded_files = isset($_FILES['attachments']) && is_array($_FILES['attachments']) ? $_FILES['attachments'] : [];
+                            $allowed_submit_to_pids = array_fill_keys(
+                                array_map(
+                                    static fn(array $teacher): string => (string) ($teacher['pID'] ?? ''),
+                                    $teachers
+                                ),
+                                true
+                            );
+
+                            if ($submit_to_pid === '' || !preg_match('/^\\d{1,13}$/', $submit_to_pid)) {
+                                throw new RuntimeException('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
+                            }
+                            if (!isset($allowed_submit_to_pids[$submit_to_pid])) {
+                                throw new RuntimeException('ผู้รับเอกสารไม่ถูกต้อง');
+                            }
+                            if (!memo_has_meaningful_content($submit_detail)) {
+                                throw new RuntimeException('กรุณากรอกรายละเอียด');
+                            }
+
+                            $uploaded_count = 0;
+                            $upload_errors = $uploaded_files['error'] ?? [];
+
+                            if (is_array($upload_errors)) {
+                                foreach ($upload_errors as $upload_error) {
+                                    if ((int) $upload_error === UPLOAD_ERR_OK) {
+                                        $uploaded_count++;
+                                    }
+                                }
+                            } elseif ($upload_errors !== null && (int) $upload_errors === UPLOAD_ERR_OK) {
+                                $uploaded_count = 1;
+                            }
+
+                            $existing_attachment_count = count(memo_get_attachments($memo_id));
+
+                            if (($existing_attachment_count + $uploaded_count) < 1) {
+                                throw new RuntimeException('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
+                            }
+
+                            memo_update_draft(
+                                $memo_id,
+                                $current_pid,
+                                [
+                                    'subject' => $submit_subject,
+                                    'detail' => $submit_detail,
+                                    'toType' => 'PERSON',
+                                    'toPID' => $submit_to_pid,
+                                    'flowMode' => 'DIRECT',
+                                ],
+                                $uploaded_files
+                            );
+
                             memo_submit($memo_id, $current_pid);
                             $alert = [
                                 'type' => 'success',
@@ -240,6 +313,12 @@ if (!function_exists('memo_index')) {
                     $alert = [
                         'type' => 'danger',
                         'title' => 'กรุณากรอกหัวข้อ',
+                        'message' => '',
+                    ];
+                } elseif (!memo_has_meaningful_content($values['detail'])) {
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'กรุณากรอกรายละเอียด',
                         'message' => '',
                     ];
                 } else {
