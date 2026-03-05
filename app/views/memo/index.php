@@ -291,7 +291,7 @@ ob_start();
     </div>
 </div>
 
-<div class="content-memo tab-content active" id="memoBook">
+<div class="content-memo tab-content <?= $is_track_active ? '' : 'active' ?>" id="memoBook">
     <div class="memo-header">
         <img src="assets/img/garuda-logo.png" alt="">
         <p>บันทึกข้อความ</p>
@@ -375,7 +375,7 @@ ob_start();
     </form>
 </div>
 
-<div class="content-my-memo enterprise-card tab-content" id="memoMine">
+<div class="content-my-memo enterprise-card tab-content <?= $is_track_active ? 'active' : '' ?>" id="memoMine">
 
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">

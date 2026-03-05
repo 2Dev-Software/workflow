@@ -90,6 +90,24 @@ if (!function_exists('memo_list_sender_factions')) {
     }
 }
 
+if (!function_exists('memo_has_meaningful_content')) {
+    function memo_has_meaningful_content(?string $value): bool
+    {
+        $raw = (string) ($value ?? '');
+
+        if ($raw === '') {
+            return false;
+        }
+
+        $decoded = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $stripped = strip_tags($decoded);
+        $normalized = str_replace(["\u{00A0}", "\xc2\xa0"], ' ', $stripped);
+        $compact = preg_replace('/\s+/u', '', $normalized);
+
+        return trim((string) $compact) !== '';
+    }
+}
+
 if (!function_exists('memo_index')) {
     function memo_index(): void
     {
@@ -210,6 +228,9 @@ if (!function_exists('memo_index')) {
                             if (!isset($allowed_submit_to_pids[$submit_to_pid])) {
                                 throw new RuntimeException('ผู้รับเอกสารไม่ถูกต้อง');
                             }
+                            if (!memo_has_meaningful_content($submit_detail)) {
+                                throw new RuntimeException('กรุณากรอกรายละเอียด');
+                            }
 
                             $uploaded_count = 0;
                             $upload_errors = $uploaded_files['error'] ?? [];
@@ -292,6 +313,12 @@ if (!function_exists('memo_index')) {
                     $alert = [
                         'type' => 'danger',
                         'title' => 'กรุณากรอกหัวข้อ',
+                        'message' => '',
+                    ];
+                } elseif (!memo_has_meaningful_content($values['detail'])) {
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'กรุณากรอกรายละเอียด',
                         'message' => '',
                     ];
                 } else {
