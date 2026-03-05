@@ -2404,7 +2404,8 @@ ob_start();
         const normalizedFiles = Array.isArray(files) ? files : [];
 
         if (memoEntityId === '' || normalizedFiles.length === 0) {
-            setMemoViewVisible(memoViewFileRow, false);
+            setMemoViewVisible(memoViewFileRow, true);
+            memoViewFileList.innerHTML = '<p class="attachment-empty">ยังไม่มีไฟล์แนบ</p>';
             return;
         }
 
@@ -2480,7 +2481,8 @@ ob_start();
         });
 
         if (!memoViewFileList.children.length) {
-            setMemoViewVisible(memoViewFileRow, false);
+            setMemoViewVisible(memoViewFileRow, true);
+            memoViewFileList.innerHTML = '<p class="attachment-empty">ยังไม่มีไฟล์แนบ</p>';
         }
     };
 
@@ -2528,9 +2530,9 @@ ob_start();
             }
 
             setMemoViewVisible(memoViewSenderRow, senderText !== '');
-            setMemoViewVisible(memoViewSubjectRow, subjectText !== '');
+            setMemoViewVisible(memoViewSubjectRow, true);
             setMemoViewVisible(memoViewToRow, (toText !== '' || memoDirectorLabel !== ''));
-            setMemoViewVisible(memoViewDetailWrap, detailText !== '');
+            setMemoViewVisible(memoViewDetailWrap, true);
 
             memoViewOptionalBlocks.forEach((block) => {
                 block.classList.add('u-hidden');
