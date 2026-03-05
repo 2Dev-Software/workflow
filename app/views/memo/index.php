@@ -15,6 +15,29 @@ if ($selected_sender_fid === '' && !empty($factions)) {
     $selected_sender_fid = (string) ($factions[0]['fID'] ?? '');
 }
 
+$current_sender_faction_name = '';
+$current_sender_fid = trim((string) ($current_user['fID'] ?? ''));
+
+foreach ($factions as $faction) {
+    $fid = trim((string) ($faction['fID'] ?? ''));
+
+    if ($fid !== '' && $fid === $current_sender_fid) {
+        $current_sender_faction_name = trim((string) ($faction['fname'] ?? ''));
+        break;
+    }
+}
+
+if ($current_sender_faction_name === '') {
+    foreach ($factions as $faction) {
+        $fid = trim((string) ($faction['fID'] ?? ''));
+
+        if ($fid !== '' && $fid === $selected_sender_fid) {
+            $current_sender_faction_name = trim((string) ($faction['fname'] ?? ''));
+            break;
+        }
+    }
+}
+
 $signature_src = trim((string) ($current_user['signature'] ?? ''));
 $current_name = trim((string) ($current_user['fName'] ?? ''));
 $current_position = trim((string) ($current_user['position_name'] ?? ''));
@@ -459,6 +482,8 @@ ob_start();
                         $memo_id = (int) ($memo['memoID'] ?? 0);
                         $subject = trim((string) ($memo['subject'] ?? ''));
                         $detail = trim((string) ($memo['detail'] ?? ''));
+                        $detail_for_attr = $detail !== '' ? $detail : '-';
+                        $detail_b64 = base64_encode($detail_for_attr);
                         $status = strtoupper(trim((string) ($memo['status'] ?? '')));
                         $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'pending'];
                         $submitted_at = trim((string) ($memo['submittedAt'] ?? ''));
@@ -484,6 +509,12 @@ ob_start();
                         $book_no_display = $memo_no !== '' ? $memo_no : ('#' . $memo_id);
                         $to_label = $memo_director_label;
                         $attachment_count = $memo_id > 0 ? count(memo_get_attachments($memo_id)) : 0;
+                        $memo_files = $memo_id > 0 ? memo_get_attachments($memo_id) : [];
+                        $memo_files_json = json_encode($memo_files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                        if ($memo_files_json === false) {
+                            $memo_files_json = '[]';
+                        }
                         ?>
                         <tr
                             data-memo-track-row="1"
@@ -515,17 +546,19 @@ ob_start();
                                         class="booking-action-btn secondary js-open-view-modal"
                                         data-type="INTERNAL"
                                         data-circular-id="<?= h((string) $memo_id) ?>"
-                                        data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-detail="<?= h($detail_for_attr) ?>"
+                                        data-detail-b64="<?= h($detail_b64) ?>"
                                         data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
                                         data-bookno="<?= h($book_no_display) ?>"
                                         data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
                                         data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
+                                        data-sender="<?= h($current_sender_faction_name !== '' ? $current_sender_faction_name : '-') ?>"
                                         data-to="<?= h($to_label) ?>"
                                         data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
                                         data-consider="considering"
                                         data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
                                         data-read-stats="[]"
-                                        data-files="[]">
+                                        data-files="<?= h($memo_files_json) ?>">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
@@ -563,17 +596,19 @@ ob_start();
                                         class="booking-action-btn secondary js-open-view-modal"
                                         data-type="INTERNAL"
                                         data-circular-id="<?= h((string) $memo_id) ?>"
-                                        data-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-detail="<?= h($detail_for_attr) ?>"
+                                        data-detail-b64="<?= h($detail_b64) ?>"
                                         data-subject="<?= h($subject !== '' ? $subject : '-') ?>"
                                         data-bookno="<?= h($book_no_display) ?>"
                                         data-issued="<?= h((string) ($memo['writeDate'] ?? '-')) ?>"
                                         data-from="<?= h($current_name !== '' ? $current_name : '-') ?>"
+                                        data-sender="<?= h($current_sender_faction_name !== '' ? $current_sender_faction_name : '-') ?>"
                                         data-to="<?= h($to_label) ?>"
                                         data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
                                         data-consider="considering"
                                         data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
                                         data-read-stats="[]"
-                                        data-files="[]">
+                                        data-files="<?= h($memo_files_json) ?>">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
@@ -614,15 +649,15 @@ ob_start();
                     <div></div>
                 </div>
 
-                <form method="POST" id="circularComposeForm">
+                <form method="POST" id="memoViewForm">
                     <?= csrf_field() ?>
                     <input type="hidden" name="flow_mode" value="CHAIN">
                     <input type="hidden" name="to_choice" value="DIRECTOR">
 
                     <div class="memo-detail">
-                        <div class="form-group-row">
+                        <div class="form-group-row" id="memoViewSenderRow">
                             <p><strong>ส่วนราชการ</strong></p>
-                            <input type="text" name="" id="" placeholder="กลุ่มบริหารงานทั่วไป" disabled>
+                            <input type="text" id="memoViewSenderFaction" value="" disabled>
                             <!-- <div class="custom-select-wrapper"> -->
                             <!-- <div class="custom-select-trigger">
                                     <p class="select-value">
@@ -669,24 +704,24 @@ ob_start();
                             <p><strong>โรงเรียนดีบุกพังงาวิทยายน</strong></p>
                         </div>
 
-                        <div class="form-group-row memo-subject-row">
+                        <div class="form-group-row memo-subject-row" id="memoViewSubjectRow">
                             <p><strong>เรื่อง</strong></p>
-                            <input type="text" name="subject" placeholder="<?= h((string) ($values['subject'] ?? '')) ?>" disabled style="width: 100%">
+                            <input type="text" id="memoViewSubject" value="" disabled style="width: 100%">
                         </div>
 
-                        <div class="form-group-row memo-to-row">
+                        <div class="form-group-row memo-to-row" id="memoViewToRow">
                             <p><strong>เรียน</strong></p>
-                            <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
+                            <p id="memoViewToLabel"><?= h($memo_director_label) ?></p>
                         </div>
 
-                        <div class="content-editor">
+                        <div class="content-editor" id="memoViewDetailWrap">
                             <p><strong>รายละเอียด:</strong></p>
                             <br>
-                            <textarea name="detail" id="" disabled rows="7"><?= h(value: (string) ($values['detail'] ?? '')) ?></textarea>
+                            <textarea id="memo_editor_view" disabled rows="7"></textarea>
                         </div>
 
 
-                        <div class="memo-file-row file-sec">
+                        <div class="memo-file-row file-sec" id="memoViewFileRow">
                             <div class="memo-input-content">
                                 <label>ไฟล์เอกสาร <strong>(เอกสารได้สูงสุด 5 ไฟล์)</strong></label>
                                 <!-- <div>
@@ -704,23 +739,22 @@ ob_start();
                         </div>
 
                         <div class="form-group-row signature">
-                            <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
-                            <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
-                            <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
-                            <!-- <p><?= h($current_position !== '' ? $current_position : '-') ?></p> -->
-                            <p>(นางสาวทิพยรัตน์ บุญมณี)</p>
-                            <p>เจ้าหน้าที่</p>
+                            <?php if ($signature_src !== '') : ?>
+                                <img src="<?= h($signature_src) ?>" alt="">
+                            <?php endif; ?>
+                            <p id="memoViewSignerName">(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
+                            <p id="memoViewSignerPosition"><?= h($current_position !== '' ? $current_position : '-') ?></p>
                         </div>
 
 
-                        <div class="form-group-row secondary">
+                        <div class="form-group-row secondary u-hidden" data-memo-optional="1">
                             <p><strong>ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้</strong></p>
                             <div class="content-editor" style="width:100%">
                                 <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature secondary">
+                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1">
                             <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
                             <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
                             <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
@@ -729,19 +763,19 @@ ob_start();
                             <p>ตำแหน่ง หัวหน้ากลุ่มสาระการเรีบนรู้ภาษาไทย</p>
                         </div>
 
-                        <div class="form-group-row comment">
+                        <div class="form-group-row comment u-hidden" data-memo-optional="1">
                             <p><strong>ความคิดเห็น</strong></p>
                             <input type="text" name="" id="" disabled>
                         </div>
 
-                        <div class="form-group-row primary">
+                        <div class="form-group-row primary u-hidden" data-memo-optional="1">
                             <p><strong>ความคิดเห็นเพิ่มเติม</strong></p>
                             <div class="content-editor" style="width:100%">
                                 <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature primary">
+                        <div class="form-group-row signature primary u-hidden" data-memo-optional="1">
                             <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
                             <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
                             <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
@@ -751,19 +785,19 @@ ob_start();
                         </div>
 
 
-                        <div class="form-group-row comment secondary">
+                        <div class="form-group-row comment secondary u-hidden" data-memo-optional="1">
                             <p><strong>ผู้บริหารดำเนินการต่อ</strong></p>
                             <input type="text" name="" id="" disabled>
                         </div>
 
-                        <div class="form-group-row secondary">
+                        <div class="form-group-row secondary u-hidden" data-memo-optional="1">
                             <p><strong>ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน</strong></p>
                             <div class="content-editor" style="width:100%">
                                 <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature secondary">
+                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1">
                             <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
                             <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
                             <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
@@ -1241,6 +1275,36 @@ ob_start();
             nonbreaking_force_tab: true,
             promotion: false,
             branding: false
+        });
+
+        tinymce.init({
+            selector: '#memo_editor_view',
+            height: 500,
+            menubar: false,
+            language: 'th_TH',
+            plugins: 'searchreplace autolink directionality visualblocks visualchars image link media codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap emoticons',
+            toolbar: 'undo redo | fontfamily | fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons',
+            font_family_formats: 'TH Sarabun New=Sarabun, sans-serif;',
+            font_size_formats: '8pt 9pt 10pt 12pt 14pt 16pt 18pt 20pt 22pt 24pt 26pt 36pt 48pt 72pt',
+            content_style: `
+            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+            body {
+                font-family: 'Sarabun', sans-serif;
+                font-size: 16pt;
+                line-height: 1.5;
+                color: #000;
+                background-color: #fff;
+                padding: 0 20px;
+                margin: 0 auto;
+            }
+            p {
+                margin-bottom: 0px;
+            }
+        `,
+            nonbreaking_force_tab: true,
+            promotion: false,
+            branding: false,
+            readonly: true
         });
     }
 
@@ -2093,6 +2157,17 @@ ob_start();
 
     const openViewBtns = document.querySelectorAll('.js-open-view-modal');
     const openSuggBtns = document.querySelectorAll('.js-open-suggest-modal');
+    const memoViewSenderRow = viewModal ? viewModal.querySelector('#memoViewSenderRow') : null;
+    const memoViewSenderInput = viewModal ? viewModal.querySelector('#memoViewSenderFaction') : null;
+    const memoViewSubjectRow = viewModal ? viewModal.querySelector('#memoViewSubjectRow') : null;
+    const memoViewSubjectInput = viewModal ? viewModal.querySelector('#memoViewSubject') : null;
+    const memoViewToRow = viewModal ? viewModal.querySelector('#memoViewToRow') : null;
+    const memoViewToLabel = viewModal ? viewModal.querySelector('#memoViewToLabel') : null;
+    const memoViewDetailWrap = viewModal ? viewModal.querySelector('#memoViewDetailWrap') : null;
+    const memoViewDetailInput = viewModal ? viewModal.querySelector('#memo_editor_view') : null;
+    const memoViewFileRow = viewModal ? viewModal.querySelector('#memoViewFileRow') : null;
+    const memoViewFileList = viewModal ? viewModal.querySelector('#attachmentListView') : null;
+    const memoViewOptionalBlocks = viewModal ? Array.from(viewModal.querySelectorAll('[data-memo-optional="1"]')) : [];
     const suggestSubjectInput = suggModal ? suggModal.querySelector('[data-memo-suggest-subject]') : null;
     const suggestDetailInput = suggModal ? suggModal.querySelector('[data-memo-suggest-detail]') : null;
     const suggestToText = suggModal ? suggModal.querySelector('[data-memo-suggest-to]') : null;
@@ -2143,11 +2218,336 @@ ob_start();
         }
     };
 
+    const normalizeMemoText = (value) => {
+        const raw = String(value || '').trim();
+
+        if (raw === '' || raw === '-') {
+            return '';
+        }
+
+        const parser = document.createElement('div');
+        parser.innerHTML = raw;
+        const text = String(parser.textContent || parser.innerText || '')
+            .replace(/\u00A0/g, ' ')
+            .trim();
+
+        return text !== '' ? text : raw;
+    };
+
+    const normalizeMemoDetailText = (value) => {
+        const raw = String(value || '').trim();
+
+        if (raw === '' || raw === '-') {
+            return '';
+        }
+
+        const normalizePlainText = (input) => String(input || '')
+            .replace(/\u00A0/g, ' ')
+            .replace(/\r\n?/g, '\n')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n[ \t]+/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .split('\n')
+            .map((line) => line.replace(/[ \t]+$/g, ''))
+            .join('\n')
+            .trim();
+
+        if (!/<[^>]+>/.test(raw)) {
+            const decoder = document.createElement('textarea');
+            decoder.innerHTML = raw;
+            return normalizePlainText(decoder.value);
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${raw}</div>`, 'text/html');
+        const root = doc.body.firstElementChild || doc.body;
+        const blockTags = new Set(['p', 'div', 'section', 'article', 'header', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+        const getTextFromChildren = (node, renderNode) => Array.from(node.childNodes)
+            .map((childNode) => renderNode(childNode))
+            .join('');
+
+        const renderNode = (node) => {
+            if (!node) {
+                return '';
+            }
+
+            if (node.nodeType === Node.TEXT_NODE) {
+                return String(node.textContent || '');
+            }
+
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return '';
+            }
+
+            const tag = String(node.tagName || '').toLowerCase();
+
+            if (tag === 'br') {
+                return '\n';
+            }
+
+            if (tag === 'table') {
+                const rows = Array.from(node.querySelectorAll('tr'))
+                    .map((row) => {
+                        const cells = Array.from(row.querySelectorAll('th,td'))
+                            .map((cell) => normalizePlainText(getTextFromChildren(cell, renderNode)).replace(/\n+/g, ' '))
+                            .filter((cellText) => cellText !== '');
+                        return cells.join(' | ');
+                    })
+                    .filter((line) => line !== '');
+
+                return rows.length > 0 ? `${rows.join('\n')}\n\n` : '';
+            }
+
+            if (tag === 'ol' || tag === 'ul') {
+                const listItems = Array.from(node.children)
+                    .filter((child) => String(child.tagName || '').toLowerCase() === 'li');
+
+                if (listItems.length === 0) {
+                    const fallback = normalizePlainText(getTextFromChildren(node, renderNode));
+                    return fallback !== '' ? `${fallback}\n\n` : '';
+                }
+
+                const renderedItems = listItems
+                    .map((listItem, index) => {
+                        const itemText = normalizePlainText(getTextFromChildren(listItem, renderNode));
+
+                        if (itemText === '') {
+                            return '';
+                        }
+
+                        const itemLines = itemText
+                            .split('\n')
+                            .map((line) => line.trim())
+                            .filter((line) => line !== '');
+
+                        if (itemLines.length === 0) {
+                            return '';
+                        }
+
+                        const prefix = tag === 'ol' ? `${index + 1}. ` : '• ';
+                        const firstLine = `${prefix}${itemLines[0]}`;
+                        const nestedLines = itemLines.slice(1).map((line) => `   ${line}`);
+
+                        return [firstLine, ...nestedLines].join('\n');
+                    })
+                    .filter((line) => line !== '');
+
+                return renderedItems.length > 0 ? `${renderedItems.join('\n')}\n\n` : '';
+            }
+
+            if (tag === 'li') {
+                const liText = normalizePlainText(getTextFromChildren(node, renderNode));
+                return liText !== '' ? `${liText}\n` : '';
+            }
+
+            const content = getTextFromChildren(node, renderNode);
+
+            if (blockTags.has(tag)) {
+                const blockText = normalizePlainText(content);
+                return blockText !== '' ? `${blockText}\n\n` : '';
+            }
+
+            return content;
+        };
+
+        const rendered = normalizePlainText(getTextFromChildren(root, renderNode));
+        return rendered;
+    };
+
+    const decodeBase64Utf8 = (base64Value) => {
+        const payload = String(base64Value || '').trim();
+
+        if (payload === '') {
+            return '';
+        }
+
+        try {
+            const binary = window.atob(payload);
+            const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+            return new TextDecoder('utf-8').decode(bytes);
+        } catch (error) {
+            try {
+                return decodeURIComponent(escape(window.atob(payload)));
+            } catch (_fallbackError) {
+                return '';
+            }
+        }
+    };
+
+    const autoResizeTextarea = (textarea) => {
+        if (!textarea) {
+            return;
+        }
+
+        textarea.style.minHeight = '0px';
+        textarea.style.height = 'auto';
+        const nextHeight = Math.max(textarea.scrollHeight, 120);
+        textarea.style.height = `${nextHeight}px`;
+        textarea.style.overflowY = 'hidden';
+    };
+
+    const setMemoViewVisible = (element, visible) => {
+        if (!element) {
+            return;
+        }
+        element.classList.toggle('u-hidden', !visible);
+    };
+
+    const renderMemoViewFiles = (files, memoId) => {
+        if (!memoViewFileRow || !memoViewFileList) {
+            return;
+        }
+
+        memoViewFileList.innerHTML = '';
+        const memoEntityId = String(memoId || '').trim();
+        const normalizedFiles = Array.isArray(files) ? files : [];
+
+        if (memoEntityId === '' || normalizedFiles.length === 0) {
+            setMemoViewVisible(memoViewFileRow, false);
+            return;
+        }
+
+        setMemoViewVisible(memoViewFileRow, true);
+        normalizedFiles.forEach((file) => {
+            const fileId = String(file?.fileID || '').trim();
+            const fileName = String(file?.fileName || '').trim();
+            const mimeType = String(file?.mimeType || '').trim();
+
+            if (fileId === '' || fileName === '') {
+                return;
+            }
+
+            const fileBanner = document.createElement('div');
+            fileBanner.className = 'file-banner';
+
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-info';
+
+            const fileIcon = document.createElement('div');
+            fileIcon.className = 'file-icon';
+
+            const icon = document.createElement('i');
+            const mimeLower = mimeType.toLowerCase();
+            if (mimeLower.includes('pdf')) {
+                icon.className = 'fa-solid fa-file-pdf';
+            } else if (mimeLower.includes('image')) {
+                icon.className = 'fa-solid fa-file-image';
+            } else {
+                icon.className = 'fa-solid fa-file';
+            }
+            fileIcon.appendChild(icon);
+
+            const fileText = document.createElement('div');
+            fileText.className = 'file-text';
+            const fileNameEl = document.createElement('span');
+            fileNameEl.className = 'file-name';
+            fileNameEl.textContent = fileName;
+            const fileTypeEl = document.createElement('span');
+            fileTypeEl.className = 'file-type';
+            fileTypeEl.textContent = mimeType !== '' ? mimeType : '-';
+            fileText.appendChild(fileNameEl);
+            fileText.appendChild(fileTypeEl);
+
+            fileInfo.appendChild(fileIcon);
+            fileInfo.appendChild(fileText);
+
+            const viewAction = document.createElement('div');
+            viewAction.className = 'file-actions';
+            const viewLink = document.createElement('a');
+            viewLink.href = 'public/api/file-download.php?module=memos&entity_id=' +
+                encodeURIComponent(memoEntityId) +
+                '&file_id=' + encodeURIComponent(fileId);
+            viewLink.target = '_blank';
+            viewLink.rel = 'noopener';
+            viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+            viewAction.appendChild(viewLink);
+
+            const downloadAction = document.createElement('div');
+            downloadAction.className = 'file-actions';
+            const downloadLink = document.createElement('a');
+            downloadLink.href = 'public/api/file-download.php?module=memos&entity_id=' +
+                encodeURIComponent(memoEntityId) +
+                '&file_id=' + encodeURIComponent(fileId) +
+                '&download=1';
+            downloadLink.innerHTML = '<i class="fa-solid fa-download"></i>';
+            downloadAction.appendChild(downloadLink);
+
+            fileBanner.appendChild(fileInfo);
+            fileBanner.appendChild(viewAction);
+            fileBanner.appendChild(downloadAction);
+            memoViewFileList.appendChild(fileBanner);
+        });
+
+        if (!memoViewFileList.children.length) {
+            setMemoViewVisible(memoViewFileRow, false);
+        }
+    };
+
     openViewBtns.forEach((btn) => {
         btn.addEventListener('click', (event) => {
             event.preventDefault();
+            const memoId = String(btn.getAttribute('data-circular-id') || '').trim();
+            const senderText = normalizeMemoText(btn.getAttribute('data-sender'));
+            const subjectText = normalizeMemoText(btn.getAttribute('data-subject'));
+            const toText = normalizeMemoText(btn.getAttribute('data-to'));
+            const detailRawFromBase64 = decodeBase64Utf8(btn.getAttribute('data-detail-b64'));
+            const detailRaw = detailRawFromBase64 !== '' ? detailRawFromBase64 : String(btn.getAttribute('data-detail') || '');
+            const detailHtml = String(detailRaw || '').trim();
+            const detailText = normalizeMemoDetailText(detailRaw);
+            let files = [];
 
-            if (viewModal) viewModal.style.display = 'flex';
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                files = [];
+            }
+
+            if (memoViewSenderInput) {
+                memoViewSenderInput.value = senderText;
+            }
+            if (memoViewSubjectInput) {
+                memoViewSubjectInput.value = subjectText;
+            }
+            if (memoViewToLabel) {
+                memoViewToLabel.textContent = toText !== '' ? toText : memoDirectorLabel;
+            }
+            if (memoViewDetailInput) {
+                memoViewDetailInput.value = detailText;
+            }
+
+            if (window.tinymce && typeof window.tinymce.get === 'function') {
+                const viewEditor = tinymce.get('memo_editor_view');
+                if (viewEditor) {
+                    const normalizedHtml = detailHtml !== '' && detailHtml !== '-' ?
+                        detailHtml :
+                        (detailText !== '' ? detailText.replace(/\n/g, '<br>') : '');
+                    viewEditor.setContent(normalizedHtml);
+                    viewEditor.mode.set('readonly');
+                }
+            }
+
+            setMemoViewVisible(memoViewSenderRow, senderText !== '');
+            setMemoViewVisible(memoViewSubjectRow, subjectText !== '');
+            setMemoViewVisible(memoViewToRow, (toText !== '' || memoDirectorLabel !== ''));
+            setMemoViewVisible(memoViewDetailWrap, detailText !== '');
+
+            memoViewOptionalBlocks.forEach((block) => {
+                block.classList.add('u-hidden');
+            });
+            renderMemoViewFiles(files, memoId);
+
+            if (viewModal) {
+                viewModal.style.display = 'flex';
+
+                // Recalculate after modal becomes visible; hidden elements report wrong scrollHeight.
+                window.requestAnimationFrame(() => {
+                    if (window.tinymce && typeof window.tinymce.get === 'function' && tinymce.get('memo_editor_view')) {
+                        return;
+                    }
+                    autoResizeTextarea(memoViewDetailInput);
+                });
+            }
         });
     });
 
