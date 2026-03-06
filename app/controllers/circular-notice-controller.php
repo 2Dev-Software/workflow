@@ -26,15 +26,37 @@ if (!function_exists('circular_notice_index')) {
 
         $connection = db_connection();
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
+        $is_admin = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
 
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
         }
+        if (!$is_admin && (int) ($current_user['roleID'] ?? 0) === 1) {
+            $is_admin = true;
+        }
+        $can_manage_external = $is_registry || $is_admin;
 
         $director_pid = system_get_current_director_pid();
         $is_director_box = $director_pid !== null && $director_pid === $current_pid;
 
-        $box = (string) ($_GET['box'] ?? 'normal');
+        $default_box = 'normal';
+
+        if ($is_outgoing_notice_page) {
+            if (!$can_manage_external && !$is_director_box) {
+                http_response_code(403);
+                require __DIR__ . '/../views/errors/403.php';
+
+                return;
+            }
+
+            if ($can_manage_external) {
+                $default_box = 'clerk';
+            } elseif ($is_director_box) {
+                $default_box = 'director';
+            }
+        }
+
+        $box = (string) ($_GET['box'] ?? $default_box);
         $archived = isset($_GET['archived']) && $_GET['archived'] === '1';
 
         $acting_pid = system_get_acting_director_pid();
@@ -42,10 +64,10 @@ if (!function_exists('circular_notice_index')) {
             ? INBOX_TYPE_ACTING_PRINCIPAL
             : INBOX_TYPE_SPECIAL_PRINCIPAL;
 
-        $allowed_boxes = ['normal'];
+        $allowed_boxes = $is_internal_only_notice_page ? ['normal'] : [];
 
         if (!$is_internal_only_notice_page) {
-            if ($is_registry) {
+            if ($can_manage_external) {
                 $allowed_boxes[] = 'clerk';
                 $allowed_boxes[] = 'clerk_return';
             }
@@ -56,7 +78,7 @@ if (!function_exists('circular_notice_index')) {
         }
 
         if (!in_array($box, $allowed_boxes, true)) {
-            $box = 'normal';
+            $box = $default_box;
         }
 
         $box_map = [
@@ -69,7 +91,7 @@ if (!function_exists('circular_notice_index')) {
         $inbox_type = $box_map[$box_key];
 
         $is_outside_view = !$is_internal_only_notice_page && in_array($box_key, ['director', 'clerk', 'clerk_return'], true);
-        $default_type = $is_internal_only_notice_page ? 'internal' : ($is_outside_view ? 'external' : 'all');
+        $default_type = $is_internal_only_notice_page ? 'internal' : 'external';
 
         $filter_type = (string) ($_GET['type'] ?? $default_type);
         $filter_read = (string) ($_GET['read'] ?? 'all');
@@ -77,7 +99,7 @@ if (!function_exists('circular_notice_index')) {
         $filter_view = (string) ($_GET['view'] ?? 'table1');
         $filter_search = trim((string) ($_GET['q'] ?? ''));
 
-        $allowed_types = $is_internal_only_notice_page ? ['internal'] : ['all', 'internal', 'external'];
+        $allowed_types = $is_internal_only_notice_page ? ['internal'] : ['external'];
         $allowed_reads = ['all', 'read', 'unread'];
         $allowed_sort = ['newest', 'oldest'];
         $allowed_views = ['table1', 'table2'];
@@ -539,9 +561,14 @@ if (!function_exists('circular_notice_index')) {
             'is_outside_view' => $is_outside_view,
             'director_label' => $director_label,
             'is_registry' => $is_registry,
+            'can_manage_external' => $can_manage_external,
             'is_director_box' => $is_director_box,
-            'show_type_filter' => !$is_internal_only_notice_page,
-            'show_book_type_column' => !$is_internal_only_notice_page,
+            'show_type_filter' => false,
+            'show_book_type_column' => false,
+            'page_section_label' => $is_outgoing_notice_page ? 'หนังสือเวียนภายนอก' : 'หนังสือเวียน',
+            'page_box_label' => $is_outgoing_notice_page
+                ? ($box_key === 'director' ? 'กล่องรอพิจารณา' : ($box_key === 'clerk_return' ? 'กล่องพิจารณาแล้ว' : 'กล่องกำลังเสนอ'))
+                : ($archived ? 'หนังสือเวียนที่จัดเก็บ' : 'กล่องข้อความ'),
         ]);
     }
 }

@@ -4,10 +4,13 @@
     return;
   }
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
-  var alertsApi = window.AppAlerts || null;
   var listLoadingTarget =
     root.querySelector(".booking-list-card .table-responsive") ||
     root.querySelector(".booking-list-card");
+
+  function getAlertsApi() {
+    return window.AppAlerts || null;
+  }
 
   var detailModal = document.getElementById("bookingApprovalDetailModal");
   var closeButtons = document.querySelectorAll("[data-approval-modal-close]");
@@ -62,6 +65,7 @@
       ? "คุณต้องการอนุมัติรายการนี้ใช่หรือไม่?"
       : "คุณต้องการไม่อนุมัติรายการนี้ใช่หรือไม่?";
     var confirmButtonText = isApprove ? "ยืนยันอนุมัติ" : "ยืนยันไม่อนุมัติ";
+    var alertsApi = getAlertsApi();
 
     if (alertsApi && typeof alertsApi.confirm === "function") {
       return alertsApi.confirm(message, {
@@ -72,7 +76,8 @@
       });
     }
 
-    return Promise.resolve(window.confirm(title + "\n" + message));
+    console.warn("Room booking approval confirm dialog unavailable");
+    return Promise.resolve(false);
   }
 
   // --- AJAX Search & Filter ---

@@ -8,6 +8,7 @@ $factions = (array) ($factions ?? []);
 $roles = (array) ($roles ?? []);
 $teachers = (array) ($teachers ?? []);
 $is_registry = (bool) ($is_registry ?? false);
+$can_manage_external = (bool) ($can_manage_external ?? $is_registry);
 $is_deputy = (bool) ($is_deputy ?? false);
 $is_director = (bool) ($is_director ?? false);
 $position_ids = (array) ($position_ids ?? []);
@@ -51,7 +52,7 @@ ob_start();
 ?>
 <div class="content-header">
     <h1><?= h((string) ($item['subject'] ?? '')) ?></h1>
-    <p>หนังสือเวียน</p>
+    <p><?= h($item_type === CIRCULAR_TYPE_EXTERNAL ? 'หนังสือเวียนภายนอก' : 'หนังสือเวียน') ?></p>
 </div>
 
 <section class="enterprise-card">
@@ -149,7 +150,7 @@ ob_start();
             <button type="submit" class="btn">จัดเก็บ</button>
         </form>
 
-        <?php if ($is_registry && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && (string) ($item['createdByPID'] ?? '') === $current_pid) : ?>
+        <?php if ($can_manage_external && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && (string) ($item['createdByPID'] ?? '') === $current_pid) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="recall_external">
@@ -178,7 +179,7 @@ ob_start();
             </form>
         <?php endif; ?>
 
-        <?php if ($is_registry && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_REVIEWED && $item_inbox_type === INBOX_TYPE_SARABAN_RETURN) : ?>
+        <?php if ($can_manage_external && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_REVIEWED && $item_inbox_type === INBOX_TYPE_SARABAN_RETURN) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="clerk_forward">

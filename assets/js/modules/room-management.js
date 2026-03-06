@@ -5,7 +5,6 @@
   }
 
   var CONFIRM_APPROVED_ATTR = "data-room-confirm-approved";
-  var alertsApi = window.AppAlerts || null;
   var openButtons = document.querySelectorAll("[data-room-modal-open]");
   var closeButtons = document.querySelectorAll("[data-room-modal-close]");
   var memberModal = document.getElementById("roomMemberModal");
@@ -68,8 +67,13 @@
     form.submit();
   }
 
+  function getAlertsApi() {
+    return window.AppAlerts || null;
+  }
+
   function confirmAction(message, options) {
     var opts = options || {};
+    var alertsApi = getAlertsApi();
     if (alertsApi && typeof alertsApi.confirm === "function") {
       return alertsApi.confirm(message, {
         title: opts.title || "ยืนยันการทำรายการ",
@@ -78,7 +82,8 @@
         cancelButtonText: opts.cancelButtonText || "ยกเลิก",
       });
     }
-    return Promise.resolve(window.confirm((opts.title || "ยืนยันการทำรายการ") + "\n" + message));
+    console.warn("Room management confirm dialog unavailable");
+    return Promise.resolve(false);
   }
 
   function openMemberConfirm(form) {

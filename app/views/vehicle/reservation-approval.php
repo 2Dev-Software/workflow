@@ -441,7 +441,6 @@ ob_start();
 
         document.addEventListener('DOMContentLoaded', function() {
             const detailModal = document.getElementById('vehicleApprovalDetailModal');
-            const alertsApi = window.AppAlerts || null;
             const closeButtons = document.querySelectorAll('[data-vehicle-approval-close]');
 
             const approvalForm = detailModal ? detailModal.querySelector('[data-vehicle-approval-form]') : null;
@@ -474,6 +473,22 @@ ob_start();
             let canFinalizeStage = false;
             let canApproveStage = false;
             let canRejectStage = false;
+
+            const getAlertsApi = () => window.AppAlerts || null;
+
+            const showVehicleApprovalAlert = (message, type = 'warning', title = 'แจ้งเตือน') => {
+                const alertsApi = getAlertsApi();
+                if (!alertsApi || typeof alertsApi.fire !== 'function') {
+                    console.warn('Vehicle approval alert unavailable:', title, message);
+                    return;
+                }
+
+                alertsApi.fire({
+                    type,
+                    title,
+                    message,
+                });
+            };
 
             function submitApprovalForm() {
                 if (!approvalForm) return false;
@@ -923,6 +938,7 @@ ob_start();
                     confirmButtonText = 'ยืนยันบันทึก';
                 }
 
+                const alertsApi = getAlertsApi();
                 if (alertsApi && typeof alertsApi.confirm === 'function') {
                     return alertsApi.confirm(message, {
                         title: title,
@@ -932,8 +948,8 @@ ob_start();
                     });
                 }
 
-                const fallbackMessage = message !== '' ? (title + '\n' + message) : title;
-                return Promise.resolve(window.confirm(fallbackMessage));
+                console.warn('Vehicle approval confirm dialog unavailable:', title, message);
+                return Promise.resolve(false);
             }
 
             document.addEventListener('click', function(event) {
@@ -980,15 +996,7 @@ ob_start();
                         const hasVehicle = assignVehicleSelect && assignVehicleSelect.value !== '';
                         const hasDriver = assignDriverSelect && assignDriverSelect.value !== '';
                         if (!hasVehicle || !hasDriver) {
-                            if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
-                                window.AppAlerts.fire({
-                                    type: 'warning',
-                                    title: 'แจ้งเตือน',
-                                    message: 'กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก',
-                                });
-                            } else {
-                                window.alert('กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก');
-                            }
+                            showVehicleApprovalAlert('กรุณาเลือกยานพาหนะและผู้ขับรถก่อนบันทึก');
                             return;
                         }
                     }

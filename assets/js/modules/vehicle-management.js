@@ -5,7 +5,6 @@
   }
 
   var CONFIRM_APPROVED_ATTR = "data-vehicle-confirm-approved";
-  var alertsApi = window.AppAlerts || null;
   var openButtons = document.querySelectorAll("[data-vehicle-modal-open]");
   var closeButtons = document.querySelectorAll("[data-vehicle-modal-close]");
   var editButtons = document.querySelectorAll("[data-vehicle-edit]");
@@ -67,8 +66,13 @@
     }
   }
 
+  function getAlertsApi() {
+    return window.AppAlerts || null;
+  }
+
   function confirmAction(message, options) {
     var opts = options || {};
+    var alertsApi = getAlertsApi();
     if (alertsApi && typeof alertsApi.confirm === "function") {
       return alertsApi.confirm(message, {
         title: opts.title || "ยืนยันการทำรายการ",
@@ -77,7 +81,8 @@
         cancelButtonText: opts.cancelButtonText || "ยกเลิก",
       });
     }
-    return Promise.resolve(window.confirm((opts.title || "ยืนยันการทำรายการ") + "\n" + message));
+    console.warn("Vehicle management confirm dialog unavailable");
+    return Promise.resolve(false);
   }
 
   function submitApprovedForm(form) {
