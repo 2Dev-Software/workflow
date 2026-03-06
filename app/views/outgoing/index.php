@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
 
 $items = (array) ($items ?? []);
-$is_registry = (bool) ($is_registry ?? false);
+$can_manage = (bool) ($can_manage ?? ($is_registry ?? false));
 $search = trim((string) ($search ?? ''));
 $status_filter = strtoupper(trim((string) ($status_filter ?? 'ALL')));
 $summary_counts = (array) ($summary_counts ?? []);
@@ -215,8 +215,8 @@ ob_start();
                                 <td class="room-admin-actions-cell">
                                     <?php component_render('outgoing-attach-form', [
                                         'outgoing_id' => $outgoing_id,
-                                        'enabled' => $is_waiting && $is_registry,
-                                        'locked' => !$is_registry,
+                                        'enabled' => $is_waiting && $can_manage,
+                                        'locked' => !$can_manage,
                                     ]); ?>
                                 </td>
                             </tr>

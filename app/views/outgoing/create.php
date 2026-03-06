@@ -56,6 +56,12 @@ ob_start();
                         'label' => 'ออกเลขหนังสือ',
                         'variant' => 'primary',
                         'type' => 'submit',
+                        'attrs' => [
+                            'data-confirm' => 'ยืนยันการออกเลขหนังสือภายนอกใช่หรือไม่?',
+                            'data-confirm-title' => 'ยืนยันการบันทึก',
+                            'data-confirm-ok' => 'ยืนยัน',
+                            'data-confirm-cancel' => 'ยกเลิก',
+                        ],
                     ]); ?>
                     <?php component_render('button', [
                         'label' => 'กลับรายการ',

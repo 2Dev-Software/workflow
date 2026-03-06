@@ -98,6 +98,13 @@ if (!function_exists('outgoing_generate_number')) {
 if (!function_exists('outgoing_create_draft')) {
     function outgoing_create_draft(array $data, array $files = []): int
     {
+        $normalized_files = array_values(array_filter(
+            upload_normalize_files($files),
+            static function (array $file): bool {
+                return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            }
+        ));
+
         db_begin();
 
         try {
@@ -106,7 +113,7 @@ if (!function_exists('outgoing_create_draft')) {
             $data['outgoingSeq'] = $seq;
             $outgoingID = outgoing_create_record($data);
 
-            if (!empty($files)) {
+            if (!empty($normalized_files)) {
                 upload_store_files($files, OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID, (string) $data['createdByPID'], [
                     'max_files' => 5,
                 ]);
