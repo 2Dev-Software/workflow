@@ -17,7 +17,6 @@
   var deleteEndpoint = root.getAttribute("data-delete-endpoint") || "";
   var csrfToken = root.getAttribute("data-csrf") || "";
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
-  var alertsApi = window.AppAlerts || null;
   var checkEndpoint =
     root.getAttribute("data-check-endpoint") ||
     "public/api/room-booking-check.php";
@@ -28,6 +27,10 @@
     root.querySelector(".booking-list-card") ||
     root;
 
+  function getAlertsApi() {
+    return window.AppAlerts || null;
+  }
+
   function appendAlertHtml(html) {
     if (!html) return;
     var temp = document.createElement("div");
@@ -35,24 +38,30 @@
     var payloadNode = temp.querySelector("[data-app-alert]");
 
     if (payloadNode) {
-      if (alertsApi && typeof alertsApi.consumePayloadElement === "function") {
-        alertsApi.consumePayloadElement(payloadNode);
+      var consumeApi = getAlertsApi();
+      if (consumeApi && typeof consumeApi.consumePayloadElement === "function") {
+        consumeApi.consumePayloadElement(payloadNode);
         return;
       }
       var payloadRaw = payloadNode.getAttribute("data-app-alert") || "";
       try {
         var payload = JSON.parse(payloadRaw);
         if (payload) {
-          window.alert((payload.title || "") + (payload.message ? "\n" + payload.message : ""));
+          showBookingAlert(
+            payload.type || "info",
+            payload.title || "แจ้งเตือน",
+            payload.message || ""
+          );
         }
       } catch (error) {
-        window.alert("ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง");
+        showBookingAlert("danger", "ระบบขัดข้อง", "กรุณาลองใหม่อีกครั้ง");
       }
       return;
     }
   }
 
   function showBookingAlert(type, title, message) {
+    var alertsApi = getAlertsApi();
     if (alertsApi && typeof alertsApi.fire === "function") {
       alertsApi.fire({
         type: type,
@@ -61,7 +70,7 @@
       });
       return;
     }
-    window.alert((title || "แจ้งเตือน") + (message ? "\n" + message : ""));
+    console.warn((title || "แจ้งเตือน") + (message ? "\n" + message : ""));
   }
 
   var detailFields = detailModal
@@ -246,6 +255,7 @@
   }
 
   function confirmDeleteBooking() {
+    var alertsApi = getAlertsApi();
     if (alertsApi && typeof alertsApi.confirm === "function") {
       return alertsApi.confirm("ต้องการลบรายการจองนี้ใช่หรือไม่", {
         title: "ยืนยันการลบรายการจอง",
@@ -254,7 +264,8 @@
         cancelButtonText: "ยกเลิก",
       });
     }
-    return Promise.resolve(window.confirm("ต้องการลบรายการจองนี้ใช่หรือไม่"));
+    console.warn("Room booking confirm dialog unavailable");
+    return Promise.resolve(false);
   }
 
   function executeDeleteBooking(bookingId, bookingRows, actionButtons) {

@@ -24,10 +24,15 @@ if (!function_exists('circular_view_index')) {
         $connection = db_connection();
         $deputy_position_ids = system_position_deputy_ids($connection);
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
+        $is_admin = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
 
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
         }
+        if (!$is_admin && (int) ($current_user['roleID'] ?? 0) === 1) {
+            $is_admin = true;
+        }
+        $can_manage_external = $is_registry || $is_admin;
         $is_deputy = !empty(array_intersect($position_ids, $deputy_position_ids));
         $director_pid = system_get_current_director_pid();
         $is_director = $director_pid !== null && $director_pid === $current_pid;
@@ -69,7 +74,7 @@ if (!function_exists('circular_view_index')) {
                         $alert = ['type' => 'success', 'title' => 'จัดเก็บเรียบร้อย', 'message' => ''];
                     }
 
-                    if ($action === 'recall_external' && $is_registry) {
+                    if ($action === 'recall_external' && $can_manage_external) {
                         if (
                             $item_type !== CIRCULAR_TYPE_EXTERNAL
                             || $item_status !== EXTERNAL_STATUS_PENDING_REVIEW
@@ -134,7 +139,7 @@ if (!function_exists('circular_view_index')) {
                         $alert = ['type' => 'success', 'title' => 'ส่งกลับสารบรรณแล้ว', 'message' => ''];
                     }
 
-                    if ($action === 'clerk_forward' && $is_registry) {
+                    if ($action === 'clerk_forward' && $can_manage_external) {
                         if (
                             $item_type !== CIRCULAR_TYPE_EXTERNAL
                             || $item_status !== EXTERNAL_STATUS_REVIEWED
@@ -178,6 +183,9 @@ if (!function_exists('circular_view_index')) {
                     }
 
                     if ($action === 'announce' && $item_type === CIRCULAR_TYPE_INTERNAL) {
+                        if (!$is_deputy) {
+                            throw new RuntimeException('ไม่มีสิทธิ์ตั้งเป็นข่าวประชาสัมพันธ์');
+                        }
                         circular_set_announcement((int) $item['circularID'], $current_pid);
                         $alert = ['type' => 'success', 'title' => 'ตั้งเป็นข่าวประชาสัมพันธ์แล้ว', 'message' => ''];
                     }
@@ -207,6 +215,7 @@ if (!function_exists('circular_view_index')) {
             'roles' => $roles,
             'teachers' => $teachers,
             'is_registry' => $is_registry,
+            'can_manage_external' => $can_manage_external,
             'is_deputy' => $is_deputy,
             'is_director' => $is_director,
             'position_ids' => $position_ids,

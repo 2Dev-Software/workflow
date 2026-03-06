@@ -371,6 +371,20 @@ ob_start();
 
         const getSearchInput = () => document.getElementById('search-input');
 
+        const showOrdersInboxAlert = (message) => {
+            const alertsApi = window.AppAlerts && typeof window.AppAlerts.fire === 'function' ? window.AppAlerts : null;
+            if (!alertsApi) {
+                console.warn('Orders inbox alert unavailable:', message);
+                return;
+            }
+
+            alertsApi.fire({
+                type: 'warning',
+                title: 'แจ้งเตือน',
+                message,
+            });
+        };
+
         const buildRequestUrl = () => {
             if (!filterForm) {
                 return '';
@@ -434,15 +448,7 @@ ob_start();
                     return;
                 }
                 event.preventDefault();
-                if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
-                    window.AppAlerts.fire({
-                        type: 'warning',
-                        title: 'แจ้งเตือน',
-                        message: 'กรุณาเลือกรายการก่อนดำเนินการ',
-                    });
-                } else {
-                    window.alert('กรุณาเลือกรายการก่อนดำเนินการ');
-                }
+                showOrdersInboxAlert('กรุณาเลือกรายการก่อนดำเนินการ');
             });
 
             syncBulkCheckState();

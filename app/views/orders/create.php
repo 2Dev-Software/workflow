@@ -2113,6 +2113,20 @@ ob_start();
                 fileInput.files = dt.files;
             };
 
+            const showOrderCreateFileAlert = (message) => {
+                const alertsApi = window.AppAlerts && typeof window.AppAlerts.fire === 'function' ? window.AppAlerts : null;
+                if (!alertsApi) {
+                    console.warn('Orders create alert unavailable:', message);
+                    return;
+                }
+
+                alertsApi.fire({
+                    type: 'warning',
+                    title: 'แจ้งเตือน',
+                    message,
+                });
+            };
+
             const resetFiles = () => {
                 selectedFiles = [];
                 syncFiles();
@@ -2144,15 +2158,7 @@ ob_start();
                 });
 
                 if (showLimitAlert) {
-                    if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
-                        window.AppAlerts.fire({
-                            type: 'warning',
-                            title: 'แจ้งเตือน',
-                            message: `คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`,
-                        });
-                    } else {
-                        window.alert(`คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`);
-                    }
+                    showOrderCreateFileAlert(`คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`);
                 }
 
                 syncFiles();

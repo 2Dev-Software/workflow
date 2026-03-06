@@ -134,7 +134,11 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                         <li><a
                                 href="outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
                         </li>
-                        <li><a href="outgoing.php">หนังสือเวียนที่จัดเก็บ</a></li>
+                        <li><a
+                                href="outgoing-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a>
+                        </li>
+                        <li><a href="outgoing.php">ทะเบียนหนังสือออก</a></li>
+                        <li><a href="outgoing-create.php">ออกเลขหนังสือภายนอก</a></li>
                     <?php endif; ?>
                     <?php if ($is_director_or_acting): ?>
                         <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา

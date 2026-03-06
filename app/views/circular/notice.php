@@ -15,6 +15,8 @@ $is_outside_view = (bool) ($is_outside_view ?? false);
 $director_label = (string) ($director_label ?? 'ผอ./รักษาการ');
 $show_type_filter = (bool) ($show_type_filter ?? true);
 $show_book_type_column = (bool) ($show_book_type_column ?? true);
+$page_section_label = (string) ($page_section_label ?? 'หนังสือเวียน');
+$page_box_label = (string) ($page_box_label ?? ($archived ? 'หนังสือเวียนที่จัดเก็บ' : 'กล่องข้อความ'));
 $detail_workflow_page = $is_outside_view ? 'outgoing-view.php' : 'circular-view.php';
 
 ob_start();
@@ -266,7 +268,7 @@ ob_start();
 </style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
-    <p>หนังสือเวียน / <?= h($archived ? 'หนังสือเวียนที่จัดเก็บ' : 'กล่องข้อความ') ?></p>
+    <p><?= h($page_section_label) ?> / <?= h($page_box_label) ?></p>
 </div>
 
 <form id="circularFilterForm" method="GET">
@@ -2809,6 +2811,20 @@ ob_start();
                 fileInput.files = dt.files;
             };
 
+            const showCircularFileAlert = (message) => {
+                const alertsApi = window.AppAlerts && typeof window.AppAlerts.fire === "function" ? window.AppAlerts : null;
+                if (!alertsApi) {
+                    console.warn("Circular notice alert unavailable:", message);
+                    return;
+                }
+
+                alertsApi.fire({
+                    type: "warning",
+                    title: "แจ้งเตือน",
+                    message: message,
+                });
+            };
+
             const addFiles = (files) => {
                 if (!files) return;
                 const existing = new Set(selectedFiles.map((file) => `${file.name}-${file.size}`));
@@ -2817,27 +2833,11 @@ ob_start();
                     const key = `${file.name}-${file.size}`;
                     if (existing.has(key)) return;
                     if (!allowedTypes.includes(file.type)) {
-                        if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
-                            window.AppAlerts.fire({
-                                type: "warning",
-                                title: "แจ้งเตือน",
-                                message: "รองรับเฉพาะไฟล์ PDF, JPG และ PNG",
-                            });
-                        } else {
-                            window.alert("รองรับเฉพาะไฟล์ PDF, JPG และ PNG");
-                        }
+                        showCircularFileAlert("รองรับเฉพาะไฟล์ PDF, JPG และ PNG");
                         return;
                     }
                     if (selectedFiles.length >= maxFiles) {
-                        if (window.AppAlerts && typeof window.AppAlerts.fire === "function") {
-                            window.AppAlerts.fire({
-                                type: "warning",
-                                title: "แจ้งเตือน",
-                                message: `แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`,
-                            });
-                        } else {
-                            window.alert(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`);
-                        }
+                        showCircularFileAlert(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`);
                         return;
                     }
                     selectedFiles.push(file);
