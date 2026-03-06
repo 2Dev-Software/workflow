@@ -6,6 +6,7 @@ require_once __DIR__ . '/../views/view.php';
 require_once __DIR__ . '/../../src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../modules/memos/repository.php';
+require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../db/db.php';
 
 if (!function_exists('memo_inbox_index')) {
