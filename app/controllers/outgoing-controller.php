@@ -18,6 +18,17 @@ if (!function_exists('outgoing_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
         $connection = db_connection();
         $can_manage = outgoing_user_can_manage($connection, $current_pid, $current_user);
+        $search = trim((string) ($_GET['q'] ?? ''));
+        $status_filter = strtoupper(trim((string) ($_GET['status'] ?? 'all')));
+        $allowed_status_filters = [
+            'ALL',
+            OUTGOING_STATUS_WAITING_ATTACHMENT,
+            OUTGOING_STATUS_COMPLETE,
+        ];
+
+        if (!in_array($status_filter, $allowed_status_filters, true)) {
+            $status_filter = 'ALL';
+        }
 
         if (!$can_manage) {
             http_response_code(403);
@@ -58,12 +69,31 @@ if (!function_exists('outgoing_index')) {
             }
         }
 
-        $outgoing_items = outgoing_list();
+        $outgoing_items = outgoing_list([
+            'q' => $search,
+            'status' => $status_filter,
+        ]);
+        $summary_counts = outgoing_count_by_status();
+        $attachments_map = [];
+
+        foreach ($outgoing_items as $item) {
+            $outgoing_id = (int) ($item['outgoingID'] ?? 0);
+
+            if ($outgoing_id <= 0) {
+                continue;
+            }
+
+            $attachments_map[(string) $outgoing_id] = outgoing_get_attachments($outgoing_id);
+        }
 
         view_render('outgoing/index', [
             'alert' => $alert,
             'items' => $outgoing_items,
             'is_registry' => $can_manage,
+            'search' => $search,
+            'status_filter' => $status_filter,
+            'summary_counts' => $summary_counts,
+            'attachments_map' => $attachments_map,
         ]);
     }
 }

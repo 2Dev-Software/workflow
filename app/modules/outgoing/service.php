@@ -134,8 +134,33 @@ if (!function_exists('outgoing_create_draft')) {
 if (!function_exists('outgoing_attach_files')) {
     function outgoing_attach_files(int $outgoingID, string $actorPID, array $files): void
     {
-        if (empty($files)) {
-            return;
+        $outgoing = outgoing_get($outgoingID);
+
+        if (!$outgoing) {
+            throw new RuntimeException('ไม่พบรายการหนังสือออก');
+        }
+
+        $status = (string) ($outgoing['status'] ?? '');
+
+        if ($status !== OUTGOING_STATUS_WAITING_ATTACHMENT) {
+            throw new RuntimeException('รายการนี้ไม่อยู่ในสถานะรอแนบไฟล์');
+        }
+
+        $normalized_files = array_values(array_filter(
+            upload_normalize_files($files),
+            static function (array $file): bool {
+                return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            }
+        ));
+
+        if (empty($normalized_files)) {
+            throw new RuntimeException('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์');
+        }
+
+        $existing_count = count(outgoing_get_attachments($outgoingID));
+
+        if (($existing_count + count($normalized_files)) > 5) {
+            throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
         }
 
         db_begin();

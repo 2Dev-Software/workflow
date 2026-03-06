@@ -12,8 +12,14 @@ $extra_class = (string) ($params['class'] ?? '');
         <?php endif; ?>
         <input type="hidden" name="action" value="attach">
         <input type="hidden" name="outgoing_id" value="<?= h((string) $outgoing_id) ?>">
-        <input type="file" name="attachments[]" class="form-input" multiple accept="application/pdf,image/png,image/jpeg">
-        <button type="submit" class="c-button c-button--sm btn-outline">แนบไฟล์</button>
+        <input type="file" name="attachments[]" class="form-input" multiple required accept="application/pdf,image/png,image/jpeg">
+        <button
+            type="submit"
+            class="c-button c-button--sm btn-outline"
+            data-confirm="ยืนยันการแนบไฟล์ให้รายการนี้ใช่หรือไม่?"
+            data-confirm-title="ยืนยันการแนบไฟล์"
+            data-confirm-ok="ยืนยัน"
+            data-confirm-cancel="ยกเลิก">แนบไฟล์ย้อนหลัง</button>
     </form>
 <?php elseif ($locked) : ?>
     <span class="status-pill pending">เฉพาะสารบรรณ</span>

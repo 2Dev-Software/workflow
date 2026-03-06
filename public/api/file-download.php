@@ -108,30 +108,18 @@ if ($module === 'circulars') {
         }
     }
 } elseif ($module === 'outgoing') {
-    $role_ids = rbac_resolve_role_ids($connection, ROLE_REGISTRY);
+    $authorized = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN)
+        || rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
 
-    if (empty($role_ids)) {
-        $role_ids = [2];
-    }
+    if (!$authorized) {
+        $check = mysqli_prepare($connection, 'SELECT 1 FROM teacher WHERE pID = ? AND roleID IN (1, 2) LIMIT 1');
 
-    if (!empty($role_ids)) {
-        $placeholders = implode(', ', array_fill(0, count($role_ids), '?'));
-        $types = str_repeat('i', count($role_ids));
-        $sql = 'SELECT 1 FROM teacher WHERE pID = ? AND roleID IN (' . $placeholders . ') LIMIT 1';
-        $stmt = mysqli_prepare($connection, $sql);
-
-        if ($stmt) {
-            $params = array_merge([$stmt, 's' . $types, $current_pid], $role_ids);
-            $refs = [];
-
-            foreach ($params as $i => $val) {
-                $refs[$i] = &$params[$i];
-            }
-            call_user_func_array('mysqli_stmt_bind_param', $refs);
-            mysqli_stmt_execute($stmt);
-            $res = mysqli_stmt_get_result($stmt);
+        if ($check) {
+            mysqli_stmt_bind_param($check, 's', $current_pid);
+            mysqli_stmt_execute($check);
+            $res = mysqli_stmt_get_result($check);
             $authorized = $res && mysqli_fetch_assoc($res);
-            mysqli_stmt_close($stmt);
+            mysqli_stmt_close($check);
         }
     }
 } elseif ($module === 'memos') {
