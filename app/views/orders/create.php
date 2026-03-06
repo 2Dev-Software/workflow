@@ -1423,10 +1423,10 @@ ob_start();
 
                 <div class="orders-send-modal-shell orders-send-card">
                     <div id="modalOrderSendFormSection">
-                        <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
+                        <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendMainForm">
                             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                             <input type="hidden" name="order_action" value="send">
-                            <input type="hidden" name="send_order_id" id="modalOrderSendOrderId" value="">
+                            <input type="hidden" name="send_order_id" id="modalOrderSendMainOrderId" value="">
 
                             <div class="form-group receive" data-order-send-recipients>
                                 <label>ส่งถึง :</label>
@@ -1745,13 +1745,9 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
-
-                    <button type="submit" form="modalOrderSendForm">
-                        <p>ส่งคำส่งต่อ</p>
-                    </button>
-
-                </form>
+                <button type="submit" form="modalOrderSendMainForm" id="modalOrderSendSubmitBtn">
+                    <p>ส่งคำส่งต่อ</p>
+                </button>
 
             </div>
         </div>
@@ -1770,52 +1766,52 @@ ob_start();
                 </div>
             </div>
             <div class="content-modal">
-                <div class="content-topic-sec">
-                    <div class="more-details">
-                        <p><strong>คำสั่งที่</strong></p>
-                        <input type="text" id="modalOrderSendNo" class="order-no-display" value="-" disabled>
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>คำสั่งที่</strong></p>
+                        <input type="text" id="modalOrderViewNo" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="modalOrderSendSubject" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOrderViewSubject" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ทั้งนี้ตั้งแต่วันที่</strong></p>
-                        <input type="date" id="modalOrderSendEffectiveDate" class="order-no-display" value="" disabled>
+                        <input type="date" id="modalOrderViewEffectiveDate" class="order-no-display" value="" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>สั่ง ณ วันที่</strong></p>
-                        <input type="date" id="modalOrderSendDate" class="order-no-display" value="" disabled>
+                        <input type="date" id="modalOrderViewDate" class="order-no-display" value="" disabled>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
-                        <input type="text" id="modalOrderSendIssuer" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOrderViewIssuer" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>กลุ่ม</strong></p>
-                        <input type="text" id="modalOrderSendGroup" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOrderViewGroup" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
                 <div class="orders-send-modal-shell orders-send-card">
-                    <div id="modalOrderSendFormSection">
-                        <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
+                    <div id="modalOrderViewFormSection">
+                        <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderViewForm">
                             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                             <input type="hidden" name="order_action" value="send">
-                            <input type="hidden" name="send_order_id" id="modalOrderSendOrderId" value="">
+                            <input type="hidden" name="send_order_id" id="modalOrderViewOrderId" value="">
                         </form>
                     </div>
                 </div>
 
                 <div class="content-file-sec">
                     <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                    <div class="file-section" id="modalOrderSendFileSection"></div>
+                    <div class="file-section" id="modalOrderViewFileSection"></div>
                 </div>
 
                 <div class="content-table-sec">
@@ -1827,10 +1823,9 @@ ob_start();
                                     <th style="width: 20%">สถานะ</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="modalOrderViewTrackBody">
                                 <tr>
-                                    <td>Lorem ipsum dolor sit amet consectetur.</td>
-                                    <td> <span class="status-pill approved">รับเอกสารแล้ว</span></td>
+                                    <td colspan="2" class="orders-send-track-empty">ไม่พบข้อมูลผู้รับ</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1840,13 +1835,9 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
-
-                    <button type="submit" form="modalOrderEditForm">
-                        <p>ส่งคำส่งต่อ</p>
-                    </button>
-
-                </form>
+                <button type="button" id="modalOrderViewCloseBtn">
+                    <p>ปิดหน้าต่าง</p>
+                </button>
 
             </div>
         </div>
@@ -2153,7 +2144,15 @@ ob_start();
                 });
 
                 if (showLimitAlert) {
-                    alert(`คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`);
+                    if (window.AppAlerts && typeof window.AppAlerts.fire === 'function') {
+                        window.AppAlerts.fire({
+                            type: 'warning',
+                            title: 'แจ้งเตือน',
+                            message: `คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`,
+                        });
+                    } else {
+                        window.alert(`คุณสามารถแนบไฟล์ได้สูงสุดรวมกัน ${maxFiles} ไฟล์เท่านั้น`);
+                    }
                 }
 
                 syncFiles();
@@ -2230,11 +2229,10 @@ ob_start();
         const modalOrderSendFileSection = document.getElementById('modalOrderSendFileSection');
         const modalOrderSendFormSection = document.getElementById('modalOrderSendFormSection');
         const modalOrderTrackSection = document.getElementById('modalOrderTrackSection');
-        const modalOrderSendForm = document.getElementById('modalOrderSendForm');
-        const modalOrderSendOrderId = document.getElementById('modalOrderSendOrderId');
-        const modalOrderTrackTotal = document.getElementById('modalOrderTrackTotal');
-        const modalOrderTrackRead = document.getElementById('modalOrderTrackRead');
+        const modalOrderSendForm = document.getElementById('modalOrderSendMainForm');
+        const modalOrderSendOrderId = document.getElementById('modalOrderSendMainOrderId');
         const modalOrderTrackBody = document.getElementById('modalOrderTrackBody');
+        const modalOrderSendSubmitBtn = document.getElementById('modalOrderSendSubmitBtn');
         const modalOrderSendBtnShowRecipients = document.getElementById('modalOrderSendBtnShowRecipients');
         const modalOrderSendRecipientModal = document.getElementById('modalOrderSendRecipientModal');
         const modalOrderSendRecipientClose = document.getElementById('modalOrderSendRecipientClose');
@@ -2594,7 +2592,7 @@ ob_start();
         };
 
         const renderOrderSendFiles = (orderId, files) => {
-            const fileSections = document.querySelectorAll('#modalOrderSendFileSection');
+            const fileSections = modalOrderSendFileSection ? [modalOrderSendFileSection] : [];
 
             if (fileSections.length === 0) {
                 return;
@@ -2818,7 +2816,51 @@ ob_start();
             modalOrderSendRecipientModal?.classList.remove('active');
         };
 
-        const openOrderSendModal = (orderIdRaw) => {
+        const resetOrderSendSelections = () => {
+            if (!modalOrderSendForm) {
+                return;
+            }
+
+            modalOrderSendForm.querySelectorAll('input[name="faction_ids[]"], input[name="role_ids[]"], input[name="person_ids[]"]').forEach((input) => {
+                if (!(input instanceof HTMLInputElement) || input.disabled) {
+                    return;
+                }
+                input.checked = false;
+                input.indeterminate = false;
+            });
+
+            const searchInput = document.getElementById('orderSendMainInput');
+            const selectAll = document.getElementById('orderSendSelectAll');
+
+            if (searchInput instanceof HTMLInputElement) {
+                searchInput.value = '';
+            }
+
+            if (selectAll instanceof HTMLInputElement) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+
+            modalOrderSendForm.querySelectorAll('.dropdown-list .item-group, .dropdown-list .category-group, .dropdown-list .category-items > label.item.member-item[data-search], .dropdown-list .member-sublist li').forEach((node) => {
+                if (node instanceof HTMLElement) {
+                    node.style.display = '';
+                }
+            });
+
+            modalOrderSendForm.querySelectorAll('.dropdown-list .item-group').forEach((groupNode) => {
+                if (groupNode instanceof HTMLElement) {
+                    groupNode.classList.add('is-collapsed');
+                }
+                const toggleBtn = groupNode.querySelector('.group-toggle');
+                if (toggleBtn instanceof HTMLElement) {
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            modalOrderSendRecipientModal?.classList.remove('active');
+        };
+
+        const openOrderSendModal = (orderIdRaw, options = {}) => {
             if (!orderSendModal) {
                 return;
             }
@@ -2833,6 +2875,11 @@ ob_start();
             const payload = orderSendModalData[orderId];
             if (!payload || typeof payload !== 'object') {
                 return;
+            }
+
+            const preserveSelections = options && options.preserveSelections === true;
+            if (!preserveSelections) {
+                resetOrderSendSelections();
             }
 
             const orderNo = String(payload.orderNo || '').trim();
@@ -2882,14 +2929,11 @@ ob_start();
             if (modalOrderTrackSection) {
                 modalOrderTrackSection.style.display = isSent ? '' : 'none';
             }
+            if (modalOrderSendSubmitBtn) {
+                modalOrderSendSubmitBtn.style.display = isSent ? 'none' : '';
+            }
 
             if (isSent) {
-                if (modalOrderTrackTotal) {
-                    modalOrderTrackTotal.textContent = String(readTotal);
-                }
-                if (modalOrderTrackRead) {
-                    modalOrderTrackRead.textContent = String(readDone);
-                }
                 if (modalOrderTrackBody) {
                     if (readStats.length <= 0) {
                         modalOrderTrackBody.innerHTML = '<tr><td colspan="3" class="orders-send-track-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
@@ -3018,7 +3062,9 @@ ob_start();
         });
 
         if (initialSendModalOrderId > 0) {
-            openOrderSendModal(String(initialSendModalOrderId));
+            openOrderSendModal(String(initialSendModalOrderId), {
+                preserveSelections: true,
+            });
         }
 
         const trackFilterForm = document.querySelector('#orderMine form.circular-my-filter-grid');
@@ -3131,10 +3177,12 @@ ob_start();
 
         const editModal = document.getElementById('modalOrderEditOverlay');
         const sendModal = document.getElementById('modalOrderSendOverlay');
-        const viewModal = document.getElementById('modalOrderViewOverlay')
+        const viewModal = document.getElementById('modalOrderViewOverlay');
         const closeEdit = document.getElementById('closeModalOrderEdit');
         const closeSend = document.getElementById('closeModalOrderSend');
-        const closeView = document.getElementById('closeModalOrderView')
+        const closeView = document.getElementById('closeModalOrderView');
+        const closeViewAction = document.getElementById('modalOrderViewCloseBtn');
+        const sendSubmitButton = document.getElementById('modalOrderSendSubmitBtn');
 
         const setValue = (id, value) => {
             const el = document.getElementById(id);
@@ -3170,7 +3218,22 @@ ob_start();
             const orderId = String(trigger.getAttribute('data-order-id') || '').trim();
             const payload = parseSendPayload(orderId);
             if (payload && typeof payload === 'object') {
-                setValue('modalOrderSendOrderId', orderId);
+                document.querySelectorAll('#modalOrderSendMainForm input[name="faction_ids[]"], #modalOrderSendMainForm input[name="role_ids[]"], #modalOrderSendMainForm input[name="person_ids[]"]').forEach((input) => {
+                    if (input instanceof HTMLInputElement && !input.disabled) {
+                        input.checked = false;
+                        input.indeterminate = false;
+                    }
+                });
+                const searchInput = document.getElementById('orderSendMainInput');
+                const selectAll = document.getElementById('orderSendSelectAll');
+                if (searchInput instanceof HTMLInputElement) {
+                    searchInput.value = '';
+                }
+                if (selectAll instanceof HTMLInputElement) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+                setValue('modalOrderSendMainOrderId', orderId);
                 setValue('modalOrderSendNo', String(payload.orderNo || '').trim() || '-');
                 setValue('modalOrderSendSubject', String(payload.subject || '').trim() || '-');
                 setValue('modalOrderSendEffectiveDate', String(payload.effectiveDate || '').trim());
@@ -3186,6 +3249,7 @@ ob_start();
                 if (title) title.textContent = isSent ? 'ติดตามการส่งคำสั่งราชการ' : 'ส่งคำสั่งราชการต่อ';
                 if (formSection) formSection.style.display = isSent ? 'none' : '';
                 if (trackSection) trackSection.style.display = isSent ? '' : 'none';
+                if (sendSubmitButton) sendSubmitButton.style.display = isSent ? 'none' : '';
             }
             sendModal.style.display = 'flex';
         };
@@ -3197,6 +3261,9 @@ ob_start();
             if (sendModal) sendModal.style.display = 'none';
         });
         closeView?.addEventListener('click', () => {
+            if (viewModal) viewModal.style.display = 'none';
+        });
+        closeViewAction?.addEventListener('click', () => {
             if (viewModal) viewModal.style.display = 'none';
         });
 

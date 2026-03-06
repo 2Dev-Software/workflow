@@ -294,10 +294,13 @@ if (!function_exists('memo_list_by_reviewer_page')) {
             $params[] = $like;
         }
 
-        $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.status, m.createdAt, m.firstReadAt, m.submittedAt,
-                c.fName AS creatorName
+        $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.reviewNote, m.status,
+                m.createdAt, m.firstReadAt, m.submittedAt, m.reviewedAt, m.toType, m.toPID,
+                c.fName AS creatorName,
+                a.fName AS approverName
             FROM dh_memos AS m
             LEFT JOIN teacher AS c ON m.createdByPID = c.pID
+            LEFT JOIN teacher AS a ON m.toPID = a.pID
             WHERE ' . $where . '
             ORDER BY m.submittedAt DESC, m.memoID DESC
             LIMIT ? OFFSET ?';
