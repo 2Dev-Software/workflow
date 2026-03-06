@@ -8,7 +8,6 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../modules/outgoing/service.php';
 require_once __DIR__ . '/../db/db.php';
-require_once __DIR__ . '/outgoing-shared-controller.php';
 
 if (!function_exists('outgoing_create_index')) {
     function outgoing_create_index(): void
