@@ -70,14 +70,93 @@ if (!function_exists('outgoing_get')) {
 }
 
 if (!function_exists('outgoing_list')) {
-    function outgoing_list(): array
+    function outgoing_list(array $filters = []): array
     {
-        $sql = 'SELECT outgoingID, outgoingNo, subject, status, createdAt
-            FROM dh_outgoing_letters
-            WHERE deletedAt IS NULL
-            ORDER BY createdAt DESC, outgoingID DESC';
+        $search = trim((string) ($filters['q'] ?? ''));
+        $status = strtoupper(trim((string) ($filters['status'] ?? 'all')));
+        $params = [OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME];
+        $types = 'ss';
 
-        return db_fetch_all($sql);
+        $sql = 'SELECT
+                o.outgoingID,
+                o.dh_year,
+                o.outgoingNo,
+                o.outgoingSeq,
+                o.subject,
+                o.status,
+                o.createdAt,
+                o.updatedAt,
+                t.fName AS creatorName,
+                COUNT(f.fileID) AS attachmentCount
+            FROM dh_outgoing_letters AS o
+            LEFT JOIN teacher AS t ON o.createdByPID = t.pID
+            LEFT JOIN dh_file_refs AS r
+                ON r.moduleName = ?
+                AND r.entityName = ?
+                AND r.entityID = CAST(o.outgoingID AS CHAR)
+            LEFT JOIN dh_files AS f
+                ON r.fileID = f.fileID
+                AND f.deletedAt IS NULL
+            WHERE o.deletedAt IS NULL';
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $sql .= ' AND (o.outgoingNo LIKE ? OR o.subject LIKE ?)';
+            $types .= 'ss';
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ($status !== '' && $status !== 'ALL') {
+            $sql .= ' AND o.status = ?';
+            $types .= 's';
+            $params[] = $status;
+        }
+
+        $sql .= ' GROUP BY
+                o.outgoingID,
+                o.dh_year,
+                o.outgoingNo,
+                o.outgoingSeq,
+                o.subject,
+                o.status,
+                o.createdAt,
+                o.updatedAt,
+                t.fName
+            ORDER BY o.createdAt DESC, o.outgoingID DESC';
+
+        return db_fetch_all($sql, $types, ...$params);
+    }
+}
+
+if (!function_exists('outgoing_count_by_status')) {
+    function outgoing_count_by_status(): array
+    {
+        $counts = [
+            'all' => 0,
+            OUTGOING_STATUS_WAITING_ATTACHMENT => 0,
+            OUTGOING_STATUS_COMPLETE => 0,
+        ];
+
+        $rows = db_fetch_all(
+            'SELECT status, COUNT(*) AS total
+             FROM dh_outgoing_letters
+             WHERE deletedAt IS NULL
+             GROUP BY status'
+        );
+
+        foreach ($rows as $row) {
+            $status = (string) ($row['status'] ?? '');
+            $total = (int) ($row['total'] ?? 0);
+
+            $counts['all'] += $total;
+
+            if (isset($counts[$status])) {
+                $counts[$status] = $total;
+            }
+        }
+
+        return $counts;
     }
 }
 
