@@ -74,22 +74,15 @@ if (!function_exists('outgoing_index')) {
             'status' => $status_filter,
         ]);
         $summary_counts = outgoing_count_by_status();
-        $attachments_map = [];
-
-        foreach ($outgoing_items as $item) {
-            $outgoing_id = (int) ($item['outgoingID'] ?? 0);
-
-            if ($outgoing_id <= 0) {
-                continue;
-            }
-
-            $attachments_map[(string) $outgoing_id] = outgoing_get_attachments($outgoing_id);
-        }
+        $outgoing_ids = array_map(static function (array $item): int {
+            return (int) ($item['outgoingID'] ?? 0);
+        }, $outgoing_items);
+        $attachments_map = outgoing_list_attachments_map($outgoing_ids);
 
         view_render('outgoing/index', [
             'alert' => $alert,
             'items' => $outgoing_items,
-            'is_registry' => $can_manage,
+            'can_manage' => $can_manage,
             'search' => $search,
             'status_filter' => $status_filter,
             'summary_counts' => $summary_counts,
