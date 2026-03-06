@@ -60,8 +60,14 @@ $status_variant = 'pending';
 if ($current_status === EXTERNAL_STATUS_SUBMITTED) {
     $status_label = 'กำลังเสนอ';
     $status_variant = 'primary';
-} elseif ($current_status === EXTERNAL_STATUS_APPROVED) {
+} elseif ($current_status === EXTERNAL_STATUS_PENDING_REVIEW) {
+    $status_label = 'รอพิจารณา';
+    $status_variant = 'pending';
+} elseif ($current_status === EXTERNAL_STATUS_REVIEWED) {
     $status_label = 'พิจารณาแล้ว';
+    $status_variant = 'approved';
+} elseif ($current_status === EXTERNAL_STATUS_FORWARDED) {
+    $status_label = 'ส่งแล้ว';
     $status_variant = 'approved';
 }
 
