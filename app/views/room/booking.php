@@ -361,6 +361,10 @@ ob_start();
                             $status_class = $status_labels[$status_value]['class'] ?? $status_labels[0]['class'];
                             $detail_text = trim((string) ($booking_item['bookingDetail'] ?? ''));
                             $detail_text = $detail_text !== '' ? $detail_text : 'ไม่มีรายละเอียดเพิ่มเติม';
+                            $equipment_text = trim((string) ($booking_item['equipmentDetail'] ?? ''));
+                            $equipment_text = $equipment_text !== '' ? $equipment_text : 'ไม่มีอุปกรณ์เพิ่มเติม';
+                            $requester_name = trim((string) ($booking_item['requesterName'] ?? ''));
+                            $requester_name = $requester_name !== '' ? $requester_name : '-';
                             // Requester view: show only status (do not display rejection reason).
                             $status_reason_label = '-';
                             $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
@@ -405,7 +409,9 @@ ob_start();
                                             data-booking-time="<?= h($time_range) ?>"
                                             data-booking-topic="<?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?>"
                                             data-booking-detail="<?= h($detail_text) ?>"
+                                            data-booking-equipment="<?= h($equipment_text) ?>"
                                             data-booking-attendees="<?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?>"
+                                            data-booking-requester="<?= h($requester_name) ?>"
                                             data-booking-status="<?= h((string) $status_value) ?>"
                                             data-booking-status-label="<?= h($status_label) ?>"
                                             data-booking-status-class="<?= h($status_class) ?>"
@@ -472,6 +478,10 @@ ob_start();
                                 $status_class = $status_labels[$status_value]['class'] ?? $status_labels[0]['class'];
                                 $detail_text = trim((string) ($booking_item['bookingDetail'] ?? ''));
                                 $detail_text = $detail_text !== '' ? $detail_text : 'ไม่มีรายละเอียดเพิ่มเติม';
+                                $equipment_text = trim((string) ($booking_item['equipmentDetail'] ?? ''));
+                                $equipment_text = $equipment_text !== '' ? $equipment_text : 'ไม่มีอุปกรณ์เพิ่มเติม';
+                                $requester_name = trim((string) ($booking_item['requesterName'] ?? ''));
+                                $requester_name = $requester_name !== '' ? $requester_name : '-';
                                 // Requester view: show only status (do not display rejection reason).
                                 $status_reason_label = '-';
                                 $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
@@ -516,7 +526,9 @@ ob_start();
                                                 data-booking-time="<?= h($time_range) ?>"
                                                 data-booking-topic="<?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?>"
                                                 data-booking-detail="<?= h($detail_text) ?>"
+                                                data-booking-equipment="<?= h($equipment_text) ?>"
                                                 data-booking-attendees="<?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?>"
+                                                data-booking-requester="<?= h($requester_name) ?>"
                                                 data-booking-status="<?= h((string) $status_value) ?>"
                                                 data-booking-status-label="<?= h($status_label) ?>"
                                                 data-booking-status-class="<?= h($status_class) ?>"
@@ -565,40 +577,65 @@ ob_start();
             <div class="booking-detail-row">
                 <div class="booking-detail-content">
                     <label>ห้อง/สถานที่</label>
-                    <input type="text" placeholder="-" disabled>
+                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
                 </div>
                 <div class="booking-detail-content">
                     <label>วันที่ใช้</label>
-                    <input type="text" placeholder="-" disabled>
+                    <input type="text" data-booking-detail="date" placeholder="-" disabled>
                 </div>
             </div>
 
             <div class="booking-detail-row">
                 <div class="booking-detail-content">
                     <label>เวลา</label>
-                    <input type="text" placeholder="-" disabled>
+                    <input type="text" data-booking-detail="time" placeholder="-" disabled>
                 </div>
                 <div class="booking-detail-content">
                     <label>จำนวนผู้เข้าร่วม</label>
-                    <input type="text" placeholder="-" disabled>
+                    <input type="text" data-booking-detail="attendees" placeholder="-" disabled>
                 </div>
                 <div class="booking-detail-content">
-                    <label>สร้างรายการ</label>
-                    <input type="text" placeholder="-" disabled>
+                    <label>ผู้จองสถานที่ / ห้อง</label>
+                    <input type="text" data-booking-detail="requester" placeholder="-" disabled>
                 </div>
             </div>
 
             <div class="booking-detail-row">
                 <div class="booking-detail-content">
                     <label>หัวข้อการจอง</label>
-                    <input type="text" placeholder="-" disabled>
+                    <input type="text" data-booking-detail="topic" placeholder="-" disabled>
                 </div>
             </div>
 
             <div class="booking-detail-row">
                 <div class="booking-detail-content">
                     <label>รายละเอียด/วัตถุประสงค์</label>
-                    <input type="text" placeholder="-" disabled>
+                    <textarea class="form-input booking-textarea" data-booking-detail="detail" rows="4" placeholder="-" disabled></textarea>
+                </div>
+            </div>
+
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>อุปกรณ์ที่ต้องการ</label>
+                    <textarea class="form-input booking-textarea" data-booking-detail="equipment" rows="3" placeholder="-" disabled></textarea>
+                </div>
+            </div>
+
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>สร้างรายการเมื่อ</label>
+                    <input type="text" data-booking-detail="created" placeholder="-" disabled>
+                </div>
+            </div>
+
+            <div class="booking-detail-row hidden" data-booking-detail="approval-item">
+                <div class="booking-detail-content">
+                    <label data-booking-detail="approval-label">ผู้อนุมัติ</label>
+                    <input type="text" data-booking-detail="approval-name" placeholder="-" disabled>
+                </div>
+                <div class="booking-detail-content">
+                    <label>วันที่ดำเนินการ</label>
+                    <input type="text" data-booking-detail="approval-at" placeholder="-" disabled>
                 </div>
             </div>
 
