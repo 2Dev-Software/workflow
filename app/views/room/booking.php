@@ -14,6 +14,7 @@ $my_bookings_sorted = (array) ($my_bookings_sorted ?? []);
 $room_booking_events = (array) ($room_booking_events ?? []);
 $booking_alert = $booking_alert ?? null;
 $alert = $booking_alert;
+$room_booking_selected_room_id = trim((string) ($_POST['roomID'] ?? ''));
 
 $currentThaiYear = (int) date('Y') + 543;
 
@@ -150,41 +151,46 @@ ob_start();
                 <div class="booking-form-grid">
                     <div class="form-group full">
                         <label class="form-label" for="bookingRoom">ห้อง/สถานที่</label>
-                        <!-- <select class="form-input" id="bookingRoom" name="roomID" required>
-                            <option value="" disabled selected>เลือกห้องหรือสถานที่</option>
-                            <?php foreach ($room_booking_room_list as $room) : ?>
-                                <?php
-                                $room_id = (string) ($room['roomID'] ?? '');
-                                $room_label = (string) ($room['roomName'] ?? $room_id);
-                                $room_status = (string) ($room['roomStatus'] ?? '');
-                                $room_note = trim((string) ($room['roomNote'] ?? ''));
-                                $room_status_label = $room_status !== '' ? $room_status : 'ไม่ระบุสถานะ';
-                                $room_available = room_booking_is_room_available($room_status);
-                                $room_option_label = $room_available
-                                    ? $room_label
-                                    : $room_label . ' (' . $room_status_label . ')';
-                                $room_option_title = $room_note !== '' ? $room_note : $room_status_label;
-                                ?>
-                                <option value="<?= h($room_id) ?>" <?= $room_available ? '' : 'disabled' ?>
-                                    data-room-status="<?= h($room_status_label) ?>" title="<?= h($room_option_title) ?>">
-                                    <?= h($room_option_label) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select> -->
                         <div class="page-selector">
-                            <!-- <p>แสดงตามสถานะหนังสือ</p> -->
-
-                            <div class="custom-select-wrapper" data-target="filterReadInput">
+                            <div class="custom-select-wrapper">
                                 <div class="custom-select-trigger">
                                     <p class="select-value">เลือกห้องหรือสถานที่</p>
                                     <i class="fa-solid fa-chevron-down"></i>
                                 </div>
 
                                 <div class="custom-options">
-                                    <div class="custom-option">เลือกห้องหรือสถานที่</div>
-                                    <div class="custom-option">หอประชุม</div>
-                                    <div class="custom-option">ทั้งหมด</div>
+                                    <div class="custom-option" data-value="">เลือกห้องหรือสถานที่</div>
+                                    <?php foreach ($room_booking_room_list as $room_item): ?>
+                                        <?php
+                                        $room_id = trim((string) ($room_item['roomID'] ?? ''));
+
+                                        if ($room_id === '') {
+                                            continue;
+                                        }
+                                        $room_name = trim((string) ($room_item['roomName'] ?? ''));
+                                        $room_name = $room_name !== '' ? $room_name : $room_id;
+                                        ?>
+                                        <div class="custom-option" data-value="<?= h($room_id) ?>"><?= h($room_name) ?></div>
+                                    <?php endforeach; ?>
                                 </div>
+
+                                <select class="form-input" id="bookingRoom" name="roomID" required>
+                                    <option value="" <?= $room_booking_selected_room_id === '' ? 'selected' : '' ?> disabled>เลือกห้องหรือสถานที่</option>
+                                    <?php foreach ($room_booking_room_list as $room_item): ?>
+                                        <?php
+                                        $room_id = trim((string) ($room_item['roomID'] ?? ''));
+
+                                        if ($room_id === '') {
+                                            continue;
+                                        }
+                                        $room_name = trim((string) ($room_item['roomName'] ?? ''));
+                                        $room_name = $room_name !== '' ? $room_name : $room_id;
+                                        ?>
+                                        <option value="<?= h($room_id) ?>" <?= $room_booking_selected_room_id === $room_id ? 'selected' : '' ?>>
+                                            <?= h($room_name) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
 
