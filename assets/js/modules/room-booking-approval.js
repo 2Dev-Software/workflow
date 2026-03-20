@@ -233,12 +233,12 @@
       }
     }
 
+    if (detailFields.approvalItem) {
+      detailFields.approvalItem.classList.toggle("hidden", statusValue === 0);
+    }
+
     if (detailFields.approvalLabel && detailFields.approvalName && detailFields.approvalAt) {
-      if (statusValue === 0) {
-        detailFields.approvalLabel.textContent = "ผู้อนุมัติ";
-        detailFields.approvalName.textContent = "รอการอนุมัติ";
-        detailFields.approvalAt.textContent = "-";
-      } else {
+      if (statusValue !== 0) {
         detailFields.approvalLabel.textContent =
           statusValue === 2 ? "ผู้ไม่อนุมัติ" : "ผู้อนุมัติ";
         detailFields.approvalName.textContent = approvalName || "-";
