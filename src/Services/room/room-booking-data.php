@@ -104,10 +104,11 @@ if ($stmt === false) {
 }
 
 $room_booking_total = count($room_bookings);
-$room_booking_approved_total = count(array_filter(
+$room_booking_approved_bookings = array_values(array_filter(
     $room_bookings,
     static fn (array $item): bool => (int) ($item['status'] ?? 0) === 1
 ));
+$room_booking_approved_total = count($room_booking_approved_bookings);
 $room_booking_pending_total = count(array_filter(
     $room_bookings,
     static fn (array $item): bool => (int) ($item['status'] ?? 0) === 0
@@ -139,4 +140,4 @@ $my_booking_subtitle = $my_booking_total > 0
     ? "แสดงล่าสุด {$my_booking_display} จากทั้งหมด {$my_booking_total} รายการ"
     : '';
 
-$room_booking_events = room_booking_build_events($room_bookings, $room_booking_rooms);
+$room_booking_events = room_booking_build_events($room_booking_approved_bookings, $room_booking_rooms);
