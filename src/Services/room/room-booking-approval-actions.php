@@ -38,6 +38,7 @@ $set_room_booking_approval_alert = static function (string $type, string $title,
 
 $raw_action = trim((string) ($_POST['approval_action'] ?? ''));
 $raw_booking_id = (int) ($_POST['room_booking_id'] ?? 0);
+$approval_note = trim((string) ($_POST['approvalNote'] ?? ''));
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
 
@@ -47,6 +48,8 @@ if (!($connection instanceof mysqli)) {
     }
     $set_room_booking_approval_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
 }
+
+$room_booking_columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
 
 if (
     empty($_POST['csrf_token']) ||
@@ -91,6 +94,15 @@ if ($approver_pid === '') {
     exit();
 }
 
+if ($approval_note === '') {
+    if (function_exists('audit_log')) {
+        audit_log('room', 'APPROVAL', 'FAIL', 'dh_room_bookings', $booking_id > 0 ? $booking_id : null, 'approval_note_required', [
+            'action' => $action,
+        ]);
+    }
+    $set_room_booking_approval_alert('warning', 'ข้อมูลไม่ครบถ้วน', 'กรุณากรอกรายละเอียดเพิ่มเติมก่อนบันทึกผลการพิจารณา');
+}
+
 $current_status = null;
 
 try {
@@ -128,20 +140,27 @@ $status_param = room_booking_status_to_db($connection, $next_status);
 $approved_at = date('Y-m-d H:i:s');
 
 $update_sql = 'UPDATE dh_room_bookings
-    SET status = ?, approvedByPID = ?, approvedAt = ?, updatedAt = CURRENT_TIMESTAMP
+    SET status = ?, approvedByPID = ?, approvedAt = ?';
+$bind_values = [
+    $status_param['value'],
+    $approver_pid,
+    $approved_at,
+];
+$types = $status_param['type'] . 'ss';
+
+if (room_booking_has_column($room_booking_columns, 'approvalNote')) {
+    $update_sql .= ', approvalNote = ?';
+    $bind_values[] = $approval_note;
+    $types .= 's';
+}
+
+$update_sql .= ', updatedAt = CURRENT_TIMESTAMP
     WHERE roomBookingID = ? AND deletedAt IS NULL';
 
 try {
     $update_stmt = mysqli_prepare($connection, $update_sql);
-
-    $bind_values = [
-        $status_param['value'],
-        $approver_pid,
-        $approved_at,
-        $booking_id,
-    ];
-
-    $types = $status_param['type'] . 'ssi';
+    $bind_values[] = $booking_id;
+    $types .= 'i';
 
     $bind_params = [];
     $bind_params[] = $update_stmt;

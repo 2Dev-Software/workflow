@@ -24,21 +24,21 @@
   var approvalActionInput = approvalForm
     ? approvalForm.querySelector('[name="approval_action"]')
     : null;
-  var approvalReasonInput = approvalForm
-    ? approvalForm.querySelector('[name="statusReason"]')
+  var approvalNoteInput = approvalForm
+    ? approvalForm.querySelector('[name="approvalNote"]')
     : null;
   var approvalActionButtons = detailModal
     ? detailModal.querySelectorAll("[data-approval-submit]")
     : [];
 
-  function toggleApprovalReasonRequired(isRequired) {
-    if (!approvalReasonInput) return;
+  function toggleApprovalNoteRequired(isRequired) {
+    if (!approvalNoteInput) return;
     if (isRequired) {
-      approvalReasonInput.setAttribute("required", "required");
-      approvalReasonInput.setAttribute("aria-required", "true");
+      approvalNoteInput.setAttribute("required", "required");
+      approvalNoteInput.setAttribute("aria-required", "true");
     } else {
-      approvalReasonInput.removeAttribute("required");
-      approvalReasonInput.removeAttribute("aria-required");
+      approvalNoteInput.removeAttribute("required");
+      approvalNoteInput.removeAttribute("aria-required");
     }
   }
 
@@ -152,8 +152,6 @@
         topic: detailModal.querySelector('[data-approval-detail="topic"]'),
         detail: detailModal.querySelector('[data-approval-detail="detail"]'),
         equipment: detailModal.querySelector('[data-approval-detail="equipment"]'),
-        reasonRow: detailModal.querySelector('[data-approval-detail="reason-row"]'),
-        reason: detailModal.querySelector('[data-approval-detail="reason"]'),
         approvalItem: detailModal.querySelector('[data-approval-detail="approval-item"]'),
         approvalLabel: detailModal.querySelector('[data-approval-detail="approval-label"]'),
         approvalName: detailModal.querySelector('[data-approval-detail="approval-name"]'),
@@ -172,7 +170,7 @@
     var statusClass = button.dataset.approvalStatusClass || "pending";
     var statusLabel = button.dataset.approvalStatusLabel || "-";
     var statusValue = parseInt(button.dataset.approvalStatus || "0", 10);
-    var reason = button.dataset.approvalReason || "-";
+    var approvalNote = button.dataset.approvalNote || "-";
     var approvalName = button.dataset.approvalName || "-";
     var approvalAt = button.dataset.approvalAt || "-";
 
@@ -182,11 +180,11 @@
     if (approvalActionInput) {
       approvalActionInput.value = "";
     }
-    toggleApprovalReasonRequired(false);
-    if (approvalReasonInput) {
-      approvalReasonInput.value =
-        statusValue === 2 && reason !== "-" && reason !== "ไม่ระบุเหตุผล"
-          ? reason
+    toggleApprovalNoteRequired(false);
+    if (approvalNoteInput) {
+      approvalNoteInput.value =
+        approvalNote !== "-" && approvalNote !== "ไม่ระบุรายละเอียด"
+          ? approvalNote
           : "";
     }
 
@@ -225,14 +223,6 @@
       detailFields.status.className = "status-pill " + statusClass;
     }
 
-    if (detailFields.reasonRow && detailFields.reason) {
-      var showReason = statusValue === 2;
-      detailFields.reasonRow.classList.toggle("hidden", !showReason);
-      if (showReason) {
-        detailFields.reason.textContent = reason;
-      }
-    }
-
     if (detailFields.approvalItem) {
       detailFields.approvalItem.classList.toggle("hidden", statusValue === 0);
     }
@@ -257,7 +247,7 @@
         if (action !== "approve" && action !== "reject") {
           return;
         }
-        toggleApprovalReasonRequired(action === "reject");
+        toggleApprovalNoteRequired(true);
         confirmApprovalAction(action).then(function (approved) {
           if (!approved) {
             return;
@@ -265,10 +255,7 @@
           if (approvalActionInput) {
             approvalActionInput.value = action;
           }
-          if (action === "approve" && approvalReasonInput) {
-            approvalReasonInput.value = "";
-          }
-          toggleApprovalReasonRequired(action === "reject");
+          toggleApprovalNoteRequired(true);
           submitApprovalForm();
         });
       });
@@ -281,6 +268,7 @@
       if (!targetId) return;
       var targetModal = document.getElementById(targetId);
       if (targetModal) {
+        toggleApprovalNoteRequired(false);
         targetModal.classList.add("hidden");
       }
     });
@@ -289,6 +277,7 @@
   if (detailModal) {
     detailModal.addEventListener("click", function (event) {
       if (event.target === detailModal) {
+        toggleApprovalNoteRequired(false);
         detailModal.classList.add("hidden");
       }
     });
