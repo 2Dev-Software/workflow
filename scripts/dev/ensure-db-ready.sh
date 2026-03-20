@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 ENV_FILE="${ENV_FILE:-.env}"
-DB_DUMP_FILE="${DB_DUMP_FILE:-deebuk_platformdb.real.11022026.sql}"
+DB_DUMP_FILE="${DB_DUMP_FILE:-docker/mysql/initdb/001_deebuk_platform.sql}"
 MIN_TABLES="${MIN_TABLES:-}"
 FORCE_IMPORT="${FORCE_IMPORT:-0}"
 STATUS_ONLY="${STATUS_ONLY:-0}"

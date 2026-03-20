@@ -59,18 +59,18 @@ Optional overrides:
 
 ```bash
 make dev HOST=0.0.0.0 PORT=8000
-make db-import DB_DUMP_FILE=deebuk_platformdb.real.11022026.sql MIN_TABLES=33
+make db-import DB_DUMP_FILE=docker/mysql/initdb/001_deebuk_platform.sql MIN_TABLES=33
 ```
 
 `MIN_TABLES` is optional. If not provided, the script auto-detects expected table count from the dump file.
 
 ## Dump File
 
-Default production data dump file:
+Default base data dump file:
 
-`deebuk_platformdb.real.11022026.sql`
+`docker/mysql/initdb/001_deebuk_platform.sql`
 
-This dump is used by `scripts/dev/ensure-db-ready.sh`.
+This dump is exported from the current local MariaDB on the source machine and is used by `scripts/dev/ensure-db-ready.sh`.
 
 ## Project Structure (short)
 
