@@ -335,7 +335,6 @@ ob_start();
                     <p class="booking-card-subtitle"><?= h($my_booking_subtitle) ?></p>
                 <?php endif; ?>
             </div>
-            <button class="btn-link" type="button" data-booking-modal-open="bookingListModal">ดูทั้งหมด</button>
         </div>
 
         <div class="table-responsive">
@@ -351,10 +350,12 @@ ob_start();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($my_bookings_latest)) : ?>
-
+                    <?php if (empty($my_bookings_sorted)) : ?>
+                        <tr>
+                            <td colspan="6" class="booking-empty">ยังไม่มีรายการจอง</td>
+                        </tr>
                     <?php else : ?>
-                        <?php foreach ($my_bookings_latest as $booking_item) : ?>
+                        <?php foreach ($my_bookings_sorted as $booking_item) : ?>
                             <?php
                             $status_value = (int) ($booking_item['status'] ?? 0);
                             $status_label = $status_labels[$status_value]['label'] ?? $status_labels[0]['label'];
@@ -440,124 +441,6 @@ ob_start();
             </table>
         </div>
     </section>
-</div>
-
-<div id="bookingListModal" class="modal-overlay hidden">
-    <div class="modal-content booking-modal">
-        <header class="modal-header">
-            <div class="modal-title" style="color: var(--color-secondary); font-size: var(--font-size-title); font-weight: bold;">
-                <span>รายการจองของฉันทั้งหมด</span>
-            </div>
-            <div class="close-modal-btn" data-booking-modal-close="bookingListModal" style="color: var(--color-secondary); font-size: var(--font-size-title); font-weight: bold;">
-                <i class="fa-solid fa-xmark"></i>
-            </div>
-        </header>
-        <div class="modal-body booking-modal-body">
-            <div class="table-responsive">
-                <table class="custom-table booking-table">
-                    <thead>
-                        <tr>
-                            <th>ห้อง</th>
-                            <th>ช่วงเวลาที่ใช้</th>
-                            <th>รายการ</th>
-                            <th>จำนวน</th>
-                            <th>สถานะ</th>
-                            <th>จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody data-empty-message="ยังไม่มีรายการจอง">
-                        <?php if (empty($my_bookings_sorted)) : ?>
-                            <tr>
-                                <td colspan="6" class="booking-empty">ยังไม่มีรายการจอง</td>
-                            </tr>
-                        <?php else : ?>
-                            <?php foreach ($my_bookings_sorted as $booking_item) : ?>
-                                <?php
-                                $status_value = (int) ($booking_item['status'] ?? 0);
-                                $status_label = $status_labels[$status_value]['label'] ?? $status_labels[0]['label'];
-                                $status_class = $status_labels[$status_value]['class'] ?? $status_labels[0]['class'];
-                                $detail_text = trim((string) ($booking_item['bookingDetail'] ?? ''));
-                                $detail_text = $detail_text !== '' ? $detail_text : 'ไม่มีรายละเอียดเพิ่มเติม';
-                                $equipment_text = trim((string) ($booking_item['equipmentDetail'] ?? ''));
-                                $equipment_text = $equipment_text !== '' ? $equipment_text : 'ไม่มีอุปกรณ์เพิ่มเติม';
-                                $requester_name = trim((string) ($booking_item['requesterName'] ?? ''));
-                                $requester_name = $requester_name !== '' ? $requester_name : '-';
-                                // Requester view: show only status (do not display rejection reason).
-                                $status_reason_label = '-';
-                                $approver_name = trim((string) ($booking_item['approvedByName'] ?? ''));
-
-                                if ($approver_name === '' && !empty($booking_item['approvedByPID'])) {
-                                    $approver_name = 'เจ้าหน้าที่ระบบ';
-                                }
-                                $approval_label = $status_value === 2 ? 'ผู้ไม่อนุมัติ' : 'ผู้อนุมัติ';
-                                $approval_name = $status_value === 0 ? 'รอการอนุมัติ' : ($approver_name !== '' ? $approver_name : 'เจ้าหน้าที่ระบบ');
-                                $approval_time = $format_thai_datetime((string) ($booking_item['approvedAt'] ?? ''));
-
-                                if ($approval_time === '-' || $approval_time === '') {
-                                    $approval_at_label = '-';
-                                } else {
-                                    $approval_at_label = ($status_value === 2 ? 'ไม่อนุมัติเมื่อ ' : 'อนุมัติเมื่อ ') . $approval_time;
-                                }
-                                $date_range = $format_thai_date_range(
-                                    (string) ($booking_item['startDate'] ?? ''),
-                                    (string) ($booking_item['endDate'] ?? '')
-                                );
-                                $time_range = trim((string) ($booking_item['startTime'] ?? '') . '-' . (string) ($booking_item['endTime'] ?? ''));
-                                $created_label = $format_thai_datetime((string) ($booking_item['createdAt'] ?? ''));
-                                $updated_label = $format_thai_datetime((string) ($booking_item['updatedAt'] ?? ''));
-                                ?>
-                                <tr>
-                                    <td><?= h($booking_item['roomName'] ?? '-') ?></td>
-                                    <td>
-                                        <?= h($date_range) ?><br>
-                                        <span class="detail-subtext"><?= h($time_range !== '' ? $time_range : '-') ?></span>
-                                    </td>
-                                    <td><?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?></td>
-                                    <td><?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?></td>
-                                    <td>
-                                        <span class="status-pill <?= h($status_class) ?>"><?= h($status_label) ?></span>
-                                    </td>
-                                    <td class="booking-action-cell">
-                                        <div class="booking-action-group">
-                                            <button type="button" class="booking-action-btn secondary" data-booking-action="detail"
-                                                data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>"
-                                                data-booking-room="<?= h($booking_item['roomName'] ?? '-') ?>"
-                                                data-booking-date="<?= h($date_range) ?>"
-                                                data-booking-time="<?= h($time_range) ?>"
-                                                data-booking-topic="<?= h($booking_item['bookingTopic'] ?? 'ประชุม/อบรม') ?>"
-                                                data-booking-detail="<?= h($detail_text) ?>"
-                                                data-booking-equipment="<?= h($equipment_text) ?>"
-                                                data-booking-attendees="<?= h((string) ($booking_item['attendeeCount'] ?? '-')) ?>"
-                                                data-booking-requester="<?= h($requester_name) ?>"
-                                                data-booking-status="<?= h((string) $status_value) ?>"
-                                                data-booking-status-label="<?= h($status_label) ?>"
-                                                data-booking-status-class="<?= h($status_class) ?>"
-                                                data-booking-status-reason="<?= h($status_reason_label) ?>"
-                                                data-booking-approval-label="<?= h($approval_label) ?>"
-                                                data-booking-approval-name="<?= h($approval_name) ?>"
-                                                data-booking-approval-at="<?= h($approval_at_label) ?>"
-                                                data-booking-created="<?= h($created_label) ?>"
-                                                data-booking-updated="<?= h($updated_label) ?>">
-                                                <i class="fa-solid fa-eye"></i>
-                                                <span class="tooltip">ดูรายละเอียด</span>
-                                            </button>
-                                            <?php if ($status_value === 0): ?>
-                                                <button type="button" class="booking-action-btn danger" data-booking-action="delete"
-                                                    data-booking-id="<?= h((string) ($booking_item['roomBookingID'] ?? '')) ?>">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                    <span class="tooltip danger">ลบข้อมูลการจอง</span>
-                                                </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div id="bookingDetailModal" class="modal-overlay hidden">

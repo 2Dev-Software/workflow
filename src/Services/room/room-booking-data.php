@@ -123,21 +123,41 @@ $my_bookings = $room_booking_pid === ''
     ));
 
 $sort_bookings_latest = static function (array $left, array $right): int {
+    $status_rank = static function (array $item): int {
+        $status = (int) ($item['status'] ?? 99);
+
+        return match ($status) {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            default => 99,
+        };
+    };
+
+    $left_rank = $status_rank($left);
+    $right_rank = $status_rank($right);
+
+    if ($left_rank !== $right_rank) {
+        return $left_rank <=> $right_rank;
+    }
+
     $left_time = strtotime((string) ($left['createdAt'] ?? '')) ?: 0;
     $right_time = strtotime((string) ($right['createdAt'] ?? '')) ?: 0;
 
-    return $right_time <=> $left_time;
+    if ($left_time !== $right_time) {
+        return $right_time <=> $left_time;
+    }
+
+    return ((int) ($right['roomBookingID'] ?? 0)) <=> ((int) ($left['roomBookingID'] ?? 0));
 };
 
 $my_bookings_sorted = $my_bookings;
 usort($my_bookings_sorted, $sort_bookings_latest);
 
-$my_booking_limit = 5;
 $my_booking_total = count($my_bookings_sorted);
-$my_booking_display = min($my_booking_limit, $my_booking_total);
-$my_bookings_latest = array_slice($my_bookings_sorted, 0, $my_booking_limit);
 $my_booking_subtitle = $my_booking_total > 0
-    ? "แสดงล่าสุด {$my_booking_display} จากทั้งหมด {$my_booking_total} รายการ"
+    ? "ทั้งหมด {$my_booking_total} รายการ"
     : '';
+$my_bookings_latest = $my_bookings_sorted;
 
 $room_booking_events = room_booking_build_events($room_booking_approved_bookings, $room_booking_rooms);
