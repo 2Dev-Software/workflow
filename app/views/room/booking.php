@@ -249,7 +249,7 @@ ob_start();
                             placeholder="โปรเจคเตอร์, ไมโครโฟน"></textarea>
                     </div>
                     <div class="form-group full">
-                        <label class="form-label" for="bookingOwner">ผู้ประสานงาน</label>
+                        <label class="form-label" for="bookingOwner">ผู้จองสถานที่ / ห้อง</label>
                         <input class="form-input" type="text" id="bookingOwner" name="requesterDisplayName"
                             value="<?= h($teacher_name) ?>" readonly>
                     </div>

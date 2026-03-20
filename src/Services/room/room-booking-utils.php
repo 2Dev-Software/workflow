@@ -333,6 +333,13 @@ if (!function_exists('room_booking_get_active_status_values')) {
     }
 }
 
+if (!function_exists('room_booking_get_conflict_status_value')) {
+    function room_booking_get_conflict_status_value(mysqli $connection): array
+    {
+        return room_booking_status_to_db($connection, 1);
+    }
+}
+
 if (!function_exists('room_booking_normalize_time')) {
     function room_booking_normalize_time(?string $time): string
     {
