@@ -115,15 +115,15 @@ ob_start();
                 <p id="noSignatureText" <?= $signature_path !== '' ? ' style="display:none;"' : '' ?>>ไม่มีลายเซ็นในระบบ</p>
             </div>
             <div class="signature-field">
-                <button class="btn-upload" data-action="signature-file-open">
+                <!-- <button class="btn-upload" data-action="signature-file-open">
                     <?= $signature_path !== '' ? 'เปลี่ยนลายเซ็น' : 'แนบลายเซ็น' ?>
                 </button>
-                <div class="file-hint">รองรับไฟล์นามสกุล .JPG , .PNG เท่านั้น ขนาดไม่เกิน 2MB</div>
+                <div class="file-hint">รองรับไฟล์นามสกุล .JPG , .PNG เท่านั้น ขนาดไม่เกิน 2MB</div> -->
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay hidden" id="signatureModal">
+    <!-- <div class="modal-overlay hidden" id="signatureModal">
         <div class="modal-content upload-modal">
             <form class="modal-body upload-body" id="signatureUploadForm" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>" enctype="multipart/form-data">
                 <?= csrf_field() ?>
@@ -140,7 +140,7 @@ ob_start();
                 </div>
             </form>
         </div>
-    </div>
+    </div> -->
 
     <div id="password" class="tab-content<?= $active_tab === 'password' ? ' active' : '' ?>">
         <form class="password-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? '') ?>">

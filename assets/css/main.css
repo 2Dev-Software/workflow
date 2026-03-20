@@ -4560,6 +4560,43 @@ select {
     margin: 0 0 30px 0;
   }
 
+  .booking-detail-row.consider-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 0;
+    /* background-color: rgba(var(--rgb-primary-dark), 0.05);
+    box-shadow: 200px 0 0 0 rgba(var(--rgb-primary-dark), 0.05),
+      -200px 0 0 0 rgba(var(--rgb-primary-dark), 0.05); */
+    margin: 0;
+  }
+
+  .booking-detail-row.consider-section h1 {
+    font-size: var(--font-size-title);
+    font-weight: bold;
+    padding: 40px 0 0;
+    margin: 0;
+    border-top: 4px solid var(--color-secondary);
+  }
+
+  .booking-detail-row.consider-section textarea {
+    width: 100%;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--color-secondary);
+    outline: none;
+    background-color: var(--color-neutral-lightest);
+    font-size: var(--font-size-body-1);
+    color: var(--color-secondary);
+    transition: 0.4s
+  }
+
+  .booking-detail-row.consider-section .booking-detail-content-group {
+    display: flex;
+    flex-direction: row;
+    gap: 50px
+  }
+
   .booking-detail-content {
     display: flex;
     flex-direction: column;
@@ -34686,6 +34723,7 @@ select {
   margin: 4px 0 0;
   color: rgba(var(--rgb-secondary), 0.82);
   font-size: var(--font-size-body-2);
+}
 }
 
 .memo-archive-table table {
