@@ -428,10 +428,12 @@ ob_start();
                                                 <i class="fa-solid fa-eye"></i>
                                                 <span class="tooltip">ดูรายละเอียด</span>
                                             </button>
-                                            <a class="booking-action-btn secondary" href="<?= h($detail_workflow_page) ?>?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
+                                            <button
+                                                class="booking-action-btn secondary js-open-circular-send-modal"
+                                                type="button">
                                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                                                 <span class="tooltip">ส่งต่อ</span>
-                                            </a>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -580,8 +582,7 @@ ob_start();
                     </div>
                     <div class="content-topic-sec">
                         <p><strong>รายละเอียด</strong></p>
-                        <textarea name="detail" id="memo_editor"><?php //h((string) $values['detail'])
-                                                                    ?></textarea>
+                        <textarea name="detail" class="js-memo-editor"></textarea>
                     </div>
 
                     <div class="content-topic-sec row">
@@ -626,15 +627,15 @@ ob_start();
                     <div class="form-group receive" data-recipients-section="">
                         <label>ส่งถึง :</label>
                         <div class="dropdown-container">
-                            <div class="search-input-wrapper" id="recipientToggle">
-                                <input type="text" id="mainInput" class="search-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                            <div class="search-input-wrapper js-recipient-toggle">
+                                <input type="text" class="search-input js-main-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
                                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                             </div>
 
-                            <div class="dropdown-content" id="dropdownContent">
+                            <div class="dropdown-content js-dropdown-content">
                                 <div class="dropdown-header">
                                     <label class="select-all-box">
-                                        <input type="checkbox" id="selectAll">เลือกทั้งหมด
+                                        <input type="checkbox" class="js-select-all">เลือกทั้งหมด
                                     </label>
                                 </div>
 
@@ -2532,19 +2533,19 @@ ob_start();
                             </div>
                         </div>
                         <div class="sent-notice-selected">
-                            <button id="btnShowRecipients" type="button">
+                            <button class="js-btn-show-recipients" type="button">
                                 <p>แสดงผู้รับทั้งหมด</p>
                             </button>
                         </div>
 
-                        <div id="recipientModal" class="modal-overlay-recipient">
+                        <div class="modal-overlay-recipient js-recipient-modal">
                             <div class="modal-container">
                                 <div class="modal-header">
                                     <div class="modal-title">
                                         <i class="fa-solid fa-users" aria-hidden="true"></i>
                                         <span>รายชื่อผู้รับหนังสือเวียน</span>
                                     </div>
-                                    <button class="modal-close" id="closeModalBtn" type="button">
+                                    <button class="modal-close js-close-recipient-modal" type="button">
                                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                                     </button>
                                 </div>
@@ -2557,7 +2558,7 @@ ob_start();
                                                 <th>กลุ่ม/ฝ่าย</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="recipientTableBody">
+                                        <tbody class="js-recipient-table-body">
                                             <tr>
                                                 <td colspan="3" style="text-align:center; padding: 16px;">ไม่มีผู้รับที่เลือก</td>
                                             </tr>
@@ -2581,6 +2582,7 @@ ob_start();
                         </button>
                     </form>
                 </div>
+
             </div>
         </div>
     <?php else : ?>
@@ -2652,6 +2654,2081 @@ ob_start();
         </div>
 
     <?php endif; ?>
+
+    <div class="modal-overlay-circular-notice-index keep-sending" id="modalNoticeSendOverlay">
+        <div class="modal-content">
+            <div class="header-modal">
+                <p id="">ส่งหนังสือเวียนต่อ</p>
+                <i class="fa-solid fa-xmark" id="closeModalNoticeSend"></i>
+            </div>
+
+            <div class="content-modal">
+
+                <div class="content-topic-sec">
+                    <div class="more-details">
+                        <p><strong>ลงวันที่</strong></p>
+                        <input type="text" id="modalIssuedDate" placeholder="-" disabled>
+                    </div>
+                </div>
+
+                <div class="content-topic-sec">
+                    <div class="more-details">
+                        <p><strong>จาก</strong></p>
+                        <input type="text" id="modalFromText" placeholder="-" disabled>
+                    </div>
+                </div>
+
+
+                <div class="content-details-sec">
+                    <p><strong>หัวเรื่อง :</strong></p>
+                    <p id="modalSubject">-</p>
+                </div>
+                <div class="content-details-sec">
+                    <p><strong>รายละเอียดเพิ่มเติม</strong></p>
+                    <p id="modalDetail">-</p>
+                </div>
+
+                <div class="content-file-sec">
+                    <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
+                    <div class="file-section" id="modalFileSection"></div>
+                </div>
+
+                <div class="content-read-sec">
+                    <p><strong>สถานะการอ่านรายบุคคล</strong></p>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อผู้รับ</th>
+                                    <th>สถานะ</th>
+                                    <th>เวลาอ่านล่าสุด</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receiptStatusTableBody">
+                                <!-- <tr>
+                                        <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
+                                    </tr> -->
+                                <tr>
+                                    <td>นายธันวิน ณ นคร</td>
+                                    <td><span class="status-pill pending">ยังไม่อ่าน</span></td>
+                                    <td>-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+                <div class="content-topic-sec">
+                    <p><strong>เรื่อง</strong></p>
+                    <input type="text" id="modalSubject" class="subject-disabled-solid" value="" disabled>
+                </div>
+                <div class="content-topic-sec">
+                    <p><strong>รายละเอียด</strong></p>
+                   <textarea name="detail" class="js-memo-editor"></textarea>
+                </div>
+
+                <div class="content-topic-sec row">
+                    <p><strong>ผู้ส่ง</strong></p>
+                    <div class="room-admin-filter">
+                        <div class="custom-select-wrapper">
+                            <div class="custom-select-trigger">
+                                <p class="select-value"><?= h(!empty($sender_factions) ? (string) ($sender_factions[0]['fName'] ?? '') : 'ไม่มีข้อมูลหน่วยงาน') ?></p>
+                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                            </div>
+
+                            <div class="custom-options">
+                                <?php if (empty($sender_factions)) : ?>
+                                    <div class="custom-option selected" data-value="">ไม่มีข้อมูลหน่วยงาน</div>
+                                <?php else : ?>
+                                    <?php foreach ($sender_factions as $index => $sender_faction) : ?>
+                                        <?php
+                                        $sender_fid = (string) ((int) ($sender_faction['fID'] ?? 0));
+                                        $sender_faction_name = (string) ($sender_faction['fName'] ?? '');
+                                        ?>
+                                        <div class="custom-option<?= h($index === 0 ? ' selected' : '') ?>" data-value="<?= h($sender_fid) ?>"><?= h($sender_faction_name) ?></div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+
+                            <select class="form-input" name="sender_fid">
+                                <?php if (empty($sender_factions)) : ?>
+                                    <option value="">ไม่มีข้อมูลหน่วยงาน</option>
+                                <?php else : ?>
+                                    <?php foreach ($sender_factions as $index => $sender_faction) : ?>
+                                        <?php
+                                        $sender_fid = (string) ((int) ($sender_faction['fID'] ?? 0));
+                                        $sender_faction_name = (string) ($sender_faction['fName'] ?? '');
+                                        ?>
+                                        <option value="<?= h($sender_fid) ?>" <?= h($index === 0 ? 'selected' : '') ?>><?= h($sender_faction_name) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group receive" data-recipients-section="">
+                    <label>ส่งถึง :</label>
+                    <div class="dropdown-container">
+                        <div class="search-input-wrapper js-recipient-toggle">
+                            <input type="text" class="search-input js-main-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </div>
+
+                        <div class="dropdown-content js-dropdown-content">
+                            <div class="dropdown-header">
+                                <label class="select-all-box">
+                                    <input type="checkbox" class="js-select-all">เลือกทั้งหมด
+                                </label>
+                            </div>
+
+                            <div class="dropdown-list">
+                                <div class="category-group">
+                                    <div class="category-title">
+                                        <span>หน่วยงาน</span>
+                                    </div>
+                                    <div class="category-items">
+                                        <div class="item item-group is-collapsed" data-faction-id="5">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction" data-group-key="faction-5" data-group-label="กลุ่มบริหารกิจการนักเรียน" data-members="[{&quot;pID&quot;:&quot;3820400215231&quot;,&quot;name&quot;:&quot;นางชมทิศา ขันภักดี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3950300068146&quot;,&quot;name&quot;:&quot;นางพวงทิพย์ ทวีรส&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900172052&quot;,&quot;name&quot;:&quot;นางสาวชาลิสา จิตต์พันธ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3820800038999&quot;,&quot;name&quot;:&quot;นางสาวนิรัตน์ เพชรแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900170670&quot;,&quot;name&quot;:&quot;นางสาวอรบุษย์ หนักแน่น&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3601000301019&quot;,&quot;name&quot;:&quot;นางสุนิษา  จินดาพล&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3820400309367&quot;,&quot;name&quot;:&quot;นางเขมษิญากรณ์ อุดมคุณ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3930300329632&quot;,&quot;name&quot;:&quot;นางเพ็ญแข หวานสนิท&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3820400261097&quot;,&quot;name&quot;:&quot;นายจรุง  บำรุงเขตต์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3820700017680&quot;,&quot;name&quot;:&quot;นายณณัฐพล  บุญสุรัชต์สิรี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1319800069611&quot;,&quot;name&quot;:&quot;นายณัฐพงษ์ สัจจารักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1839900193629&quot;,&quot;name&quot;:&quot;นายธีรภัส  สฤษดิสุข&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1841500136302&quot;,&quot;name&quot;:&quot;นายธีระวัฒน์ เพชรขุ้ม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900109890&quot;,&quot;name&quot;:&quot;นายพจนันท์  พรหมสงค์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900012446&quot;,&quot;name&quot;:&quot;นายรชต  ปานบุญ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3820100028745&quot;,&quot;name&quot;:&quot;นายวรานนท์ ภาระพฤติ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900093446&quot;,&quot;name&quot;:&quot;นายศุภสวัสดิ์ กาญวิจิต&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;3929900087867&quot;,&quot;name&quot;:&quot;นายอนุสรณ์ ชูทอง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1901100006087&quot;,&quot;name&quot;:&quot;นายเจนสกนธ์  ศรัณย์บัณฑิต&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;},{&quot;pID&quot;:&quot;1829900072562&quot;,&quot;name&quot;:&quot;นายเอกพงษ์ สงวนทรัพย์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารกิจการนักเรียน&quot;}]" name="faction_ids[]" value="5">
+                                                    <span class="item-title">กลุ่มบริหารกิจการนักเรียน</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 20 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางชมทิศา ขันภักดี" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820400215231">
+                                                        <span class="member-name">นางชมทิศา ขันภักดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางพวงทิพย์ ทวีรส" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3950300068146">
+                                                        <span class="member-name">นางพวงทิพย์ ทวีรส</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางสาวชาลิสา จิตต์พันธ์" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900172052">
+                                                        <span class="member-name">นางสาวชาลิสา จิตต์พันธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางสาวนิรัตน์ เพชรแก้ว" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820800038999">
+                                                        <span class="member-name">นางสาวนิรัตน์ เพชรแก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางสาวอรบุษย์ หนักแน่น" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900170670">
+                                                        <span class="member-name">นางสาวอรบุษย์ หนักแน่น</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางสุนิษา  จินดาพล" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3601000301019">
+                                                        <span class="member-name">นางสุนิษา จินดาพล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางเขมษิญากรณ์ อุดมคุณ" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820400309367">
+                                                        <span class="member-name">นางเขมษิญากรณ์ อุดมคุณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นางเพ็ญแข หวานสนิท" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3930300329632">
+                                                        <span class="member-name">นางเพ็ญแข หวานสนิท</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายจรุง  บำรุงเขตต์" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820400261097">
+                                                        <span class="member-name">นายจรุง บำรุงเขตต์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายณณัฐพล  บุญสุรัชต์สิรี" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820700017680">
+                                                        <span class="member-name">นายณณัฐพล บุญสุรัชต์สิรี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายณัฐพงษ์ สัจจารักษ์" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1319800069611">
+                                                        <span class="member-name">นายณัฐพงษ์ สัจจารักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายธีรภัส  สฤษดิสุข" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1839900193629">
+                                                        <span class="member-name">นายธีรภัส สฤษดิสุข</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายธีระวัฒน์ เพชรขุ้ม" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1841500136302">
+                                                        <span class="member-name">นายธีระวัฒน์ เพชรขุ้ม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายพจนันท์  พรหมสงค์" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900109890">
+                                                        <span class="member-name">นายพจนันท์ พรหมสงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายรชต  ปานบุญ" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900012446">
+                                                        <span class="member-name">นายรชต ปานบุญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายวรานนท์ ภาระพฤติ" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3820100028745">
+                                                        <span class="member-name">นายวรานนท์ ภาระพฤติ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายศุภสวัสดิ์ กาญวิจิต" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900093446">
+                                                        <span class="member-name">นายศุภสวัสดิ์ กาญวิจิต</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายอนุสรณ์ ชูทอง" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="3929900087867">
+                                                        <span class="member-name">นายอนุสรณ์ ชูทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายเจนสกนธ์  ศรัณย์บัณฑิต" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1901100006087">
+                                                        <span class="member-name">นายเจนสกนธ์ ศรัณย์บัณฑิต</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-5" data-member-name="นายเอกพงษ์ สงวนทรัพย์" data-group-label="กลุ่มบริหารกิจการนักเรียน" name="person_ids[]" value="1829900072562">
+                                                        <span class="member-name">นายเอกพงษ์ สงวนทรัพย์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed" data-faction-id="4">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction" data-group-key="faction-4" data-group-label="กลุ่มบริหารงานทั่วไป" data-members="[{&quot;pID&quot;:&quot;1820500007021&quot;,&quot;name&quot;:&quot;นางจิตติพร เกตุรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3820100172170&quot;,&quot;name&quot;:&quot;นางพูนสุข ถิ่นลิพอน&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1809900084706&quot;,&quot;name&quot;:&quot;นางภทรมน ลิ่มบุตร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3820100025495&quot;,&quot;name&quot;:&quot;นางวาสนา  สุทธจิตร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3850100320012&quot;,&quot;name&quot;:&quot;นางสาวธารทิพย์ ภาระพฤติ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1829900174284&quot;,&quot;name&quot;:&quot;นางสาวนิรชา ธรรมัสโร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3829900019706&quot;,&quot;name&quot;:&quot;นางสาวปาณิสรา  มงคลบุตร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1920100023843&quot;,&quot;name&quot;:&quot;นางสาวพรทิพย์ สมบัติบุญ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1101401730717&quot;,&quot;name&quot;:&quot;นางสาวพรรณพนัช  คงผอม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1820500148121&quot;,&quot;name&quot;:&quot;นางสาวรัตนาพร พรประสิทธิ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3820500121271&quot;,&quot;name&quot;:&quot;นางสาวราศรี  อนันตมงคลกุล&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1809901015490&quot;,&quot;name&quot;:&quot;นางสาวสรัลรัตน์ จันทับ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1820800031408&quot;,&quot;name&quot;:&quot;นางสาวสุดาทิพย์ ยกย่อง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1860700158147&quot;,&quot;name&quot;:&quot;นายนพดล วงศ์สุวัฒน์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1860100007288&quot;,&quot;name&quot;:&quot;นายนพพร  ถิ่นไทย&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1102003266698&quot;,&quot;name&quot;:&quot;นายนรินทร์เพชร นิลเวช&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1160100618291&quot;,&quot;name&quot;:&quot;นายวิศรุต ชามทอง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3810500157631&quot;,&quot;name&quot;:&quot;นายสหัส เสือยืนยง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1829900162341&quot;,&quot;name&quot;:&quot;นายอิสรพงศ์ สัตปานนท์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;3180600191510&quot;,&quot;name&quot;:&quot;นายเพลิน โอรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;},{&quot;pID&quot;:&quot;1809900094507&quot;,&quot;name&quot;:&quot;ว่าที่ร้อยตรีเรืองเดชย์  ผสารพจน์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานทั่วไป&quot;}]" name="faction_ids[]" value="4">
+                                                    <span class="item-title">กลุ่มบริหารงานทั่วไป</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 21 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางจิตติพร เกตุรักษ์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1820500007021">
+                                                        <span class="member-name">นางจิตติพร เกตุรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางพูนสุข ถิ่นลิพอน" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3820100172170">
+                                                        <span class="member-name">นางพูนสุข ถิ่นลิพอน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางภทรมน ลิ่มบุตร" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1809900084706">
+                                                        <span class="member-name">นางภทรมน ลิ่มบุตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางวาสนา  สุทธจิตร์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3820100025495">
+                                                        <span class="member-name">นางวาสนา สุทธจิตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวธารทิพย์ ภาระพฤติ" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3850100320012">
+                                                        <span class="member-name">นางสาวธารทิพย์ ภาระพฤติ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวนิรชา ธรรมัสโร" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1829900174284">
+                                                        <span class="member-name">นางสาวนิรชา ธรรมัสโร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวปาณิสรา  มงคลบุตร" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3829900019706">
+                                                        <span class="member-name">นางสาวปาณิสรา มงคลบุตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวพรทิพย์ สมบัติบุญ" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1920100023843">
+                                                        <span class="member-name">นางสาวพรทิพย์ สมบัติบุญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวพรรณพนัช  คงผอม" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1101401730717">
+                                                        <span class="member-name">นางสาวพรรณพนัช คงผอม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวรัตนาพร พรประสิทธิ์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1820500148121">
+                                                        <span class="member-name">นางสาวรัตนาพร พรประสิทธิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวราศรี  อนันตมงคลกุล" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3820500121271">
+                                                        <span class="member-name">นางสาวราศรี อนันตมงคลกุล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวสรัลรัตน์ จันทับ" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1809901015490">
+                                                        <span class="member-name">นางสาวสรัลรัตน์ จันทับ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นางสาวสุดาทิพย์ ยกย่อง" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1820800031408">
+                                                        <span class="member-name">นางสาวสุดาทิพย์ ยกย่อง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายนพดล วงศ์สุวัฒน์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1860700158147">
+                                                        <span class="member-name">นายนพดล วงศ์สุวัฒน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายนพพร  ถิ่นไทย" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1860100007288">
+                                                        <span class="member-name">นายนพพร ถิ่นไทย</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายนรินทร์เพชร นิลเวช" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1102003266698">
+                                                        <span class="member-name">นายนรินทร์เพชร นิลเวช</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายวิศรุต ชามทอง" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1160100618291">
+                                                        <span class="member-name">นายวิศรุต ชามทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายสหัส เสือยืนยง" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3810500157631">
+                                                        <span class="member-name">นายสหัส เสือยืนยง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายอิสรพงศ์ สัตปานนท์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1829900162341">
+                                                        <span class="member-name">นายอิสรพงศ์ สัตปานนท์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="นายเพลิน โอรักษ์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="3180600191510">
+                                                        <span class="member-name">นายเพลิน โอรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-4" data-member-name="ว่าที่ร้อยตรีเรืองเดชย์  ผสารพจน์" data-group-label="กลุ่มบริหารงานทั่วไป" name="person_ids[]" value="1809900094507">
+                                                        <span class="member-name">ว่าที่ร้อยตรีเรืองเดชย์ ผสารพจน์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed" data-faction-id="3">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction" data-group-key="faction-3" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" data-members="[{&quot;pID&quot;:&quot;5800900028151&quot;,&quot;name&quot;:&quot;นางจริยาวดี  เวชจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;3800400522290&quot;,&quot;name&quot;:&quot;นางจิราภรณ์  เสรีรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;3920100747937&quot;,&quot;name&quot;:&quot;นางจุไรรัตน์ สวัสดิ์วงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900007736&quot;,&quot;name&quot;:&quot;นางปวีณา  บำรุงภักดิ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1930600099890&quot;,&quot;name&quot;:&quot;นางฝาติหม๊ะ ขนาดผล&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900179103&quot;,&quot;name&quot;:&quot;นางสาวกนกลักษณ์ พันธ์สวัสดิ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1810500062871&quot;,&quot;name&quot;:&quot;นางสาวกานต์พิชชา ปากลาว&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1820500147966&quot;,&quot;name&quot;:&quot;นางสาวธนวรรณ พิทักษ์คง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900119712&quot;,&quot;name&quot;:&quot;นางสาวธิดารัตน์ ทองกอบ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1920600250041&quot;,&quot;name&quot;:&quot;นางสาวนฤมล บุญถาวร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900118058&quot;,&quot;name&quot;:&quot;นางสาวนัยน์เนตร ทองวล&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1910300050321&quot;,&quot;name&quot;:&quot;นางสาวนิลญา หมานมิตร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900051727&quot;,&quot;name&quot;:&quot;นางสาวบงกชรัตน์  มาลี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1840100431373&quot;,&quot;name&quot;:&quot;นางสาวบุษรา  เมืองชู&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1829900090897&quot;,&quot;name&quot;:&quot;นางสาวปริษา  แก้วเขียว&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1820400055491&quot;,&quot;name&quot;:&quot;นางสาวปาณิสรา  มัจฉาเวช&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1820600006469&quot;,&quot;name&quot;:&quot;นางสาวปิยธิดา นิยมเดชา&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;3820100171700&quot;,&quot;name&quot;:&quot;นางสาวพิมพ์จันทร์  สุวรรณดี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1820500130320&quot;,&quot;name&quot;:&quot;นางสาวลภัสภาส์ หนูคง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1940100013597&quot;,&quot;name&quot;:&quot;นางสาววรินญา โรจธนะวรรธน์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1840100326120&quot;,&quot;name&quot;:&quot;นางสาวศรัณย์รัชต์ สุขผ่องใส&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1102001245405&quot;,&quot;name&quot;:&quot;นางสาวอมราภรณ์ เพ็ชรสุ่ม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;3820700050342&quot;,&quot;name&quot;:&quot;นางสุมณฑา  เกิดทรัพย์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1820700004867&quot;,&quot;name&quot;:&quot;นางอรชา ชูเชื้อ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1800800331088&quot;,&quot;name&quot;:&quot;นายสราวุธ กุหลาบวรรณ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;},{&quot;pID&quot;:&quot;1640700056303&quot;,&quot;name&quot;:&quot;นายไชยวัฒน์ สังข์ทอง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานบุคคลและงบประมาณ&quot;}]" name="faction_ids[]" value="3">
+                                                    <span class="item-title">กลุ่มบริหารงานบุคคลและงบประมาณ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 26 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางจริยาวดี  เวชจันทร์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="5800900028151">
+                                                        <span class="member-name">นางจริยาวดี เวชจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางจิราภรณ์  เสรีรักษ์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="3800400522290">
+                                                        <span class="member-name">นางจิราภรณ์ เสรีรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางจุไรรัตน์ สวัสดิ์วงศ์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="3920100747937">
+                                                        <span class="member-name">นางจุไรรัตน์ สวัสดิ์วงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางปวีณา  บำรุงภักดิ์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900007736">
+                                                        <span class="member-name">นางปวีณา บำรุงภักดิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางฝาติหม๊ะ ขนาดผล" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1930600099890">
+                                                        <span class="member-name">นางฝาติหม๊ะ ขนาดผล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวกนกลักษณ์ พันธ์สวัสดิ์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900179103">
+                                                        <span class="member-name">นางสาวกนกลักษณ์ พันธ์สวัสดิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวกานต์พิชชา ปากลาว" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1810500062871">
+                                                        <span class="member-name">นางสาวกานต์พิชชา ปากลาว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวธนวรรณ พิทักษ์คง" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1820500147966">
+                                                        <span class="member-name">นางสาวธนวรรณ พิทักษ์คง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวธิดารัตน์ ทองกอบ" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900119712">
+                                                        <span class="member-name">นางสาวธิดารัตน์ ทองกอบ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวนฤมล บุญถาวร" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1920600250041">
+                                                        <span class="member-name">นางสาวนฤมล บุญถาวร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวนัยน์เนตร ทองวล" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900118058">
+                                                        <span class="member-name">นางสาวนัยน์เนตร ทองวล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวนิลญา หมานมิตร" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1910300050321">
+                                                        <span class="member-name">นางสาวนิลญา หมานมิตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวบงกชรัตน์  มาลี" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900051727">
+                                                        <span class="member-name">นางสาวบงกชรัตน์ มาลี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวบุษรา  เมืองชู" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1840100431373">
+                                                        <span class="member-name">นางสาวบุษรา เมืองชู</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวปริษา  แก้วเขียว" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1829900090897">
+                                                        <span class="member-name">นางสาวปริษา แก้วเขียว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวปาณิสรา  มัจฉาเวช" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1820400055491">
+                                                        <span class="member-name">นางสาวปาณิสรา มัจฉาเวช</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวปิยธิดา นิยมเดชา" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1820600006469">
+                                                        <span class="member-name">นางสาวปิยธิดา นิยมเดชา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวพิมพ์จันทร์  สุวรรณดี" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="3820100171700">
+                                                        <span class="member-name">นางสาวพิมพ์จันทร์ สุวรรณดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวลภัสภาส์ หนูคง" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1820500130320">
+                                                        <span class="member-name">นางสาวลภัสภาส์ หนูคง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาววรินญา โรจธนะวรรธน์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1940100013597">
+                                                        <span class="member-name">นางสาววรินญา โรจธนะวรรธน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวศรัณย์รัชต์ สุขผ่องใส" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1840100326120">
+                                                        <span class="member-name">นางสาวศรัณย์รัชต์ สุขผ่องใส</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสาวอมราภรณ์ เพ็ชรสุ่ม" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1102001245405">
+                                                        <span class="member-name">นางสาวอมราภรณ์ เพ็ชรสุ่ม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางสุมณฑา  เกิดทรัพย์" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="3820700050342">
+                                                        <span class="member-name">นางสุมณฑา เกิดทรัพย์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นางอรชา ชูเชื้อ" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1820700004867">
+                                                        <span class="member-name">นางอรชา ชูเชื้อ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นายสราวุธ กุหลาบวรรณ" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1800800331088">
+                                                        <span class="member-name">นายสราวุธ กุหลาบวรรณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-3" data-member-name="นายไชยวัฒน์ สังข์ทอง" data-group-label="กลุ่มบริหารงานบุคคลและงบประมาณ" name="person_ids[]" value="1640700056303">
+                                                        <span class="member-name">นายไชยวัฒน์ สังข์ทอง</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed" data-faction-id="2">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction" data-group-key="faction-2" data-group-label="กลุ่มบริหารงานวิชาการ" data-members="[{&quot;pID&quot;:&quot;3810100580006&quot;,&quot;name&quot;:&quot;นางกนกวรรณ  ณ นคร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820100025592&quot;,&quot;name&quot;:&quot;นางจารุวรรณ ส่องศิริ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3930300511171&quot;,&quot;name&quot;:&quot;นางณิภาภรณ์  ไชยชนะ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3840100521778&quot;,&quot;name&quot;:&quot;นางดวงกมล  เพ็ชรพรหม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820300027670&quot;,&quot;name&quot;:&quot;นางดาริน ทรายทอง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900063989&quot;,&quot;name&quot;:&quot;นางธนิษฐา  ยงยุทธ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3331001384867&quot;,&quot;name&quot;:&quot;นางประภาพร  อุดมผลชัยเจริญ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1920600003469&quot;,&quot;name&quot;:&quot;นางผกาวรรณ  โชติวัฒนากร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3940400027034&quot;,&quot;name&quot;:&quot;นางพนิดา ค้าของ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1839900175043&quot;,&quot;name&quot;:&quot;นางพรพิมล แซ่เจี่ย&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900003064&quot;,&quot;name&quot;:&quot;นางพิมพา ทองอุไร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900054688&quot;,&quot;name&quot;:&quot;นางสาวกนกรัตน์ อุ้ยเฉ้ง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900059485&quot;,&quot;name&quot;:&quot;นางสาวจันทิพา ประทีป ณ ถลาง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1930500083592&quot;,&quot;name&quot;:&quot;นางสาวจิราวัลย์  อินทร์อักษร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3829900033725&quot;,&quot;name&quot;:&quot;นางสาวชนิกานต์  สวัสดิวงค์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3840200430855&quot;,&quot;name&quot;:&quot;นางสาวณพสร สามสุวรรณ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1729900457121&quot;,&quot;name&quot;:&quot;นางสาวณัฐวรรณ  ทรัพย์เฉลิม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900202598&quot;,&quot;name&quot;:&quot;นางสาวธนวรรณ สมัครการ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1820700006258&quot;,&quot;name&quot;:&quot;นางสาวนุชรีย์ หัศนี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3840700282162&quot;,&quot;name&quot;:&quot;นางสาวประภัสสร  โอจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1410100117524&quot;,&quot;name&quot;:&quot;นางสาวประภาพรรณ กุลแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900096909&quot;,&quot;name&quot;:&quot;นางสาวพิมพ์ประภา  ผลากิจ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820400028481&quot;,&quot;name&quot;:&quot;นางสาวยศยา ศักดิ์ศิลปศาสตร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900012535&quot;,&quot;name&quot;:&quot;นางสาวรัชฎาพร สุวรรณสาม&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1820500097624&quot;,&quot;name&quot;:&quot;นางสาวรัชนีกร ผอมจีน&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820700136859&quot;,&quot;name&quot;:&quot;นางสาวลภัสนันท์ บำรุงวงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3801600044431&quot;,&quot;name&quot;:&quot;นางสาวศศิธร นาคสง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900099401&quot;,&quot;name&quot;:&quot;นางสาวศุลีพร ขันภักดี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900065485&quot;,&quot;name&quot;:&quot;นางสาวองค์ปรางค์ แสงสุรินทร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1909901558298&quot;,&quot;name&quot;:&quot;นางสาวอภิชญา จันทร์มา&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1800100218262&quot;,&quot;name&quot;:&quot;นางสาวอาตีนา  พัชนี&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1800800204043&quot;,&quot;name&quot;:&quot;นางสาวอินทิรา บุญนิสสัย&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1930500116202&quot;,&quot;name&quot;:&quot;นางสุรางค์รัศมิ์ ย้อยพระจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820700019381&quot;,&quot;name&quot;:&quot;นางเสาวลีย์ จันทร์ทอง&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1859900070560&quot;,&quot;name&quot;:&quot;นายจตุรวิทย์ มิตรวงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1809901028575&quot;,&quot;name&quot;:&quot;นายธนวัฒน์ ศิริพงศ์ประพันธ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1959900030702&quot;,&quot;name&quot;:&quot;นายธันวิน  ณ นคร&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1839900094990&quot;,&quot;name&quot;:&quot;นายนพรัตน์ ย้อยพระจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1819900163142&quot;,&quot;name&quot;:&quot;นายบพิธ มังคะลา&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1920400002230&quot;,&quot;name&quot;:&quot;นายประสิทธิ์  สะไน&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3940400221191&quot;,&quot;name&quot;:&quot;นายพิพัฒน์ ไชยชนะ&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820800037747&quot;,&quot;name&quot;:&quot;นายศรายุทธ  มิตรวงค์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;1829900056460&quot;,&quot;name&quot;:&quot;นายศุภวุฒิ &nbsp;อินทร์แก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820700143669&quot;,&quot;name&quot;:&quot;นายสมชาย สุทธจิตร์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;},{&quot;pID&quot;:&quot;3820400194578&quot;,&quot;name&quot;:&quot;นายสุพัฒน์  เจริญฤทธิ์&quot;,&quot;faction&quot;:&quot;กลุ่มบริหารงานวิชาการ&quot;}]" name="faction_ids[]" value="2">
+                                                    <span class="item-title">กลุ่มบริหารงานวิชาการ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 45 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางกนกวรรณ  ณ นคร" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3810100580006">
+                                                        <span class="member-name">นางกนกวรรณ ณ นคร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางจารุวรรณ ส่องศิริ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820100025592">
+                                                        <span class="member-name">นางจารุวรรณ ส่องศิริ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางณิภาภรณ์  ไชยชนะ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3930300511171">
+                                                        <span class="member-name">นางณิภาภรณ์ ไชยชนะ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางดวงกมล  เพ็ชรพรหม" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3840100521778">
+                                                        <span class="member-name">นางดวงกมล เพ็ชรพรหม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางดาริน ทรายทอง" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820300027670">
+                                                        <span class="member-name">นางดาริน ทรายทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางธนิษฐา  ยงยุทธ์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900063989">
+                                                        <span class="member-name">นางธนิษฐา ยงยุทธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางประภาพร  อุดมผลชัยเจริญ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3331001384867">
+                                                        <span class="member-name">นางประภาพร อุดมผลชัยเจริญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางผกาวรรณ  โชติวัฒนากร" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1920600003469">
+                                                        <span class="member-name">นางผกาวรรณ โชติวัฒนากร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางพนิดา ค้าของ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3940400027034">
+                                                        <span class="member-name">นางพนิดา ค้าของ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางพรพิมล แซ่เจี่ย" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1839900175043">
+                                                        <span class="member-name">นางพรพิมล แซ่เจี่ย</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางพิมพา ทองอุไร" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900003064">
+                                                        <span class="member-name">นางพิมพา ทองอุไร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวกนกรัตน์ อุ้ยเฉ้ง" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900054688">
+                                                        <span class="member-name">นางสาวกนกรัตน์ อุ้ยเฉ้ง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวจันทิพา ประทีป ณ ถลาง" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900059485">
+                                                        <span class="member-name">นางสาวจันทิพา ประทีป ณ ถลาง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวจิราวัลย์  อินทร์อักษร" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1930500083592">
+                                                        <span class="member-name">นางสาวจิราวัลย์ อินทร์อักษร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวชนิกานต์  สวัสดิวงค์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3829900033725">
+                                                        <span class="member-name">นางสาวชนิกานต์ สวัสดิวงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวณพสร สามสุวรรณ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3840200430855">
+                                                        <span class="member-name">นางสาวณพสร สามสุวรรณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวณัฐวรรณ  ทรัพย์เฉลิม" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1729900457121">
+                                                        <span class="member-name">นางสาวณัฐวรรณ ทรัพย์เฉลิม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวธนวรรณ สมัครการ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900202598">
+                                                        <span class="member-name">นางสาวธนวรรณ สมัครการ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวนุชรีย์ หัศนี" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1820700006258">
+                                                        <span class="member-name">นางสาวนุชรีย์ หัศนี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวประภัสสร  โอจันทร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3840700282162">
+                                                        <span class="member-name">นางสาวประภัสสร โอจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวประภาพรรณ กุลแก้ว" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1410100117524">
+                                                        <span class="member-name">นางสาวประภาพรรณ กุลแก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวพิมพ์ประภา  ผลากิจ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900096909">
+                                                        <span class="member-name">นางสาวพิมพ์ประภา ผลากิจ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวยศยา ศักดิ์ศิลปศาสตร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820400028481">
+                                                        <span class="member-name">นางสาวยศยา ศักดิ์ศิลปศาสตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวรัชฎาพร สุวรรณสาม" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900012535">
+                                                        <span class="member-name">นางสาวรัชฎาพร สุวรรณสาม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวรัชนีกร ผอมจีน" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1820500097624">
+                                                        <span class="member-name">นางสาวรัชนีกร ผอมจีน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวลภัสนันท์ บำรุงวงศ์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820700136859">
+                                                        <span class="member-name">นางสาวลภัสนันท์ บำรุงวงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวศศิธร นาคสง" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3801600044431">
+                                                        <span class="member-name">นางสาวศศิธร นาคสง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวศุลีพร ขันภักดี" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900099401">
+                                                        <span class="member-name">นางสาวศุลีพร ขันภักดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวองค์ปรางค์ แสงสุรินทร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900065485">
+                                                        <span class="member-name">นางสาวองค์ปรางค์ แสงสุรินทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวอภิชญา จันทร์มา" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1909901558298">
+                                                        <span class="member-name">นางสาวอภิชญา จันทร์มา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวอาตีนา  พัชนี" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1800100218262">
+                                                        <span class="member-name">นางสาวอาตีนา พัชนี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสาวอินทิรา บุญนิสสัย" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1800800204043">
+                                                        <span class="member-name">นางสาวอินทิรา บุญนิสสัย</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางสุรางค์รัศมิ์ ย้อยพระจันทร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1930500116202">
+                                                        <span class="member-name">นางสุรางค์รัศมิ์ ย้อยพระจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นางเสาวลีย์ จันทร์ทอง" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820700019381">
+                                                        <span class="member-name">นางเสาวลีย์ จันทร์ทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายจตุรวิทย์ มิตรวงศ์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1859900070560">
+                                                        <span class="member-name">นายจตุรวิทย์ มิตรวงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายธนวัฒน์ ศิริพงศ์ประพันธ์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1809901028575">
+                                                        <span class="member-name">นายธนวัฒน์ ศิริพงศ์ประพันธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายธันวิน  ณ นคร" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1959900030702">
+                                                        <span class="member-name">นายธันวิน ณ นคร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายนพรัตน์ ย้อยพระจันทร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1839900094990">
+                                                        <span class="member-name">นายนพรัตน์ ย้อยพระจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายบพิธ มังคะลา" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1819900163142">
+                                                        <span class="member-name">นายบพิธ มังคะลา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายประสิทธิ์  สะไน" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1920400002230">
+                                                        <span class="member-name">นายประสิทธิ์ สะไน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายพิพัฒน์ ไชยชนะ" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3940400221191">
+                                                        <span class="member-name">นายพิพัฒน์ ไชยชนะ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายศรายุทธ  มิตรวงค์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820800037747">
+                                                        <span class="member-name">นายศรายุทธ มิตรวงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายศุภวุฒิ &nbsp;อินทร์แก้ว" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="1829900056460">
+                                                        <span class="member-name">นายศุภวุฒิ &nbsp;อินทร์แก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายสมชาย สุทธจิตร์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820700143669">
+                                                        <span class="member-name">นายสมชาย สุทธจิตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-2" data-member-name="นายสุพัฒน์  เจริญฤทธิ์" data-group-label="กลุ่มบริหารงานวิชาการ" name="person_ids[]" value="3820400194578">
+                                                        <span class="member-name">นายสุพัฒน์ เจริญฤทธิ์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed" data-faction-id="6">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction" data-group-key="faction-6" data-group-label="กลุ่มสนับสนุนการสอน" data-members="[{&quot;pID&quot;:&quot;1820700059157&quot;,&quot;name&quot;:&quot;นางสาวนัฐลิณี ทอสงค์&quot;,&quot;faction&quot;:&quot;กลุ่มสนับสนุนการสอน&quot;},{&quot;pID&quot;:&quot;1829900149409&quot;,&quot;name&quot;:&quot;นางสาวอุบลวรรณ คงสม&quot;,&quot;faction&quot;:&quot;กลุ่มสนับสนุนการสอน&quot;},{&quot;pID&quot;:&quot;3810200084621&quot;,&quot;name&quot;:&quot;นายสิงหนาท  แต่งแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสนับสนุนการสอน&quot;}]" name="faction_ids[]" value="6">
+                                                    <span class="item-title">กลุ่มสนับสนุนการสอน</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 3 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-6" data-member-name="นางสาวนัฐลิณี ทอสงค์" data-group-label="กลุ่มสนับสนุนการสอน" name="person_ids[]" value="1820700059157">
+                                                        <span class="member-name">นางสาวนัฐลิณี ทอสงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-6" data-member-name="นางสาวอุบลวรรณ คงสม" data-group-label="กลุ่มสนับสนุนการสอน" name="person_ids[]" value="1829900149409">
+                                                        <span class="member-name">นางสาวอุบลวรรณ คงสม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="faction-6" data-member-name="นายสิงหนาท  แต่งแก้ว" data-group-label="กลุ่มสนับสนุนการสอน" name="person_ids[]" value="3810200084621">
+                                                        <span class="member-name">นายสิงหนาท แต่งแก้ว</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="category-group">
+                                    <div class="category-title">
+                                        <span>กลุ่มสาระ</span>
+                                    </div>
+                                    <div class="category-items">
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-9" data-group-label="กลุ่มกิจกรรมพัฒนาผู้เรียน" data-members="[{&quot;pID&quot;:&quot;1820700006258&quot;,&quot;name&quot;:&quot;นางสาวนุชรีย์ หัศนี&quot;,&quot;faction&quot;:&quot;กลุ่มกิจกรรมพัฒนาผู้เรียน&quot;},{&quot;pID&quot;:&quot;1102001245405&quot;,&quot;name&quot;:&quot;นางสาวอมราภรณ์ เพ็ชรสุ่ม&quot;,&quot;faction&quot;:&quot;กลุ่มกิจกรรมพัฒนาผู้เรียน&quot;},{&quot;pID&quot;:&quot;3810200084621&quot;,&quot;name&quot;:&quot;นายสิงหนาท  แต่งแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มกิจกรรมพัฒนาผู้เรียน&quot;}]" value="department-9">
+                                                    <span class="item-title">กลุ่มกิจกรรมพัฒนาผู้เรียน</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 3 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-9" data-member-name="นางสาวนุชรีย์ หัศนี" data-group-label="กลุ่มกิจกรรมพัฒนาผู้เรียน" name="person_ids[]" value="1820700006258">
+                                                        <span class="member-name">นางสาวนุชรีย์ หัศนี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-9" data-member-name="นางสาวอมราภรณ์ เพ็ชรสุ่ม" data-group-label="กลุ่มกิจกรรมพัฒนาผู้เรียน" name="person_ids[]" value="1102001245405">
+                                                        <span class="member-name">นางสาวอมราภรณ์ เพ็ชรสุ่ม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-9" data-member-name="นายสิงหนาท  แต่งแก้ว" data-group-label="กลุ่มกิจกรรมพัฒนาผู้เรียน" name="person_ids[]" value="3810200084621">
+                                                        <span class="member-name">นายสิงหนาท แต่งแก้ว</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-10" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" data-members="[{&quot;pID&quot;:&quot;1930500083592&quot;,&quot;name&quot;:&quot;นางสาวจิราวัลย์  อินทร์อักษร&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;},{&quot;pID&quot;:&quot;3801600044431&quot;,&quot;name&quot;:&quot;นางสาวศศิธร นาคสง&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;},{&quot;pID&quot;:&quot;1859900070560&quot;,&quot;name&quot;:&quot;นายจตุรวิทย์ มิตรวงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;},{&quot;pID&quot;:&quot;1959900030702&quot;,&quot;name&quot;:&quot;นายธันวิน  ณ นคร&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;},{&quot;pID&quot;:&quot;1819900163142&quot;,&quot;name&quot;:&quot;นายบพิธ มังคะลา&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;},{&quot;pID&quot;:&quot;3810500157631&quot;,&quot;name&quot;:&quot;นายสหัส เสือยืนยง&quot;,&quot;faction&quot;:&quot;กลุ่มคอมพิวเตอร์และเทคโนโลยี&quot;}]" value="department-10">
+                                                    <span class="item-title">กลุ่มคอมพิวเตอร์และเทคโนโลยี</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 6 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นางสาวจิราวัลย์  อินทร์อักษร" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="1930500083592">
+                                                        <span class="member-name">นางสาวจิราวัลย์ อินทร์อักษร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นางสาวศศิธร นาคสง" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="3801600044431">
+                                                        <span class="member-name">นางสาวศศิธร นาคสง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นายจตุรวิทย์ มิตรวงศ์" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="1859900070560">
+                                                        <span class="member-name">นายจตุรวิทย์ มิตรวงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นายธันวิน  ณ นคร" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="1959900030702">
+                                                        <span class="member-name">นายธันวิน ณ นคร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นายบพิธ มังคะลา" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="1819900163142">
+                                                        <span class="member-name">นายบพิธ มังคะลา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-10" data-member-name="นายสหัส เสือยืนยง" data-group-label="กลุ่มคอมพิวเตอร์และเทคโนโลยี" name="person_ids[]" value="3810500157631">
+                                                        <span class="member-name">นายสหัส เสือยืนยง</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-11" data-group-label="กลุ่มธุรการ" data-members="[{&quot;pID&quot;:&quot;3820400234871&quot;,&quot;name&quot;:&quot;นางนวลน้อย  ชูสงค์&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;1800700082485&quot;,&quot;name&quot;:&quot;นางสาว ณัฐชลียา ยิ่งคง&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;1829900082835&quot;,&quot;name&quot;:&quot;นางสาวจารุลักษณ์  ตรีศรี&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;3820100155283&quot;,&quot;name&quot;:&quot;นางสาวจิราวรรณ ว่องปลูกศิลป์&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;2800800033557&quot;,&quot;name&quot;:&quot;นางสาวธัญเรศ  วรศานต์&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;3820600035619&quot;,&quot;name&quot;:&quot;นางสาวนภัสสร  รัฐการ&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;1810600075673&quot;,&quot;name&quot;:&quot;นางสาวประภัสสร พันธ์แก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;3820100140782&quot;,&quot;name&quot;:&quot;นางสาวศศิธร  มธุรส&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;3810300076964&quot;,&quot;name&quot;:&quot;นายอดิศักดิ์  ธรรมจิตต์&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;},{&quot;pID&quot;:&quot;1640700056303&quot;,&quot;name&quot;:&quot;นายไชยวัฒน์ สังข์ทอง&quot;,&quot;faction&quot;:&quot;กลุ่มธุรการ&quot;}]" value="department-11">
+                                                    <span class="item-title">กลุ่มธุรการ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 10 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางนวลน้อย  ชูสงค์" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="3820400234871">
+                                                        <span class="member-name">นางนวลน้อย ชูสงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาว ณัฐชลียา ยิ่งคง" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="1800700082485">
+                                                        <span class="member-name">นางสาว ณัฐชลียา ยิ่งคง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวจารุลักษณ์  ตรีศรี" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="1829900082835">
+                                                        <span class="member-name">นางสาวจารุลักษณ์ ตรีศรี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวจิราวรรณ ว่องปลูกศิลป์" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="3820100155283">
+                                                        <span class="member-name">นางสาวจิราวรรณ ว่องปลูกศิลป์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวธัญเรศ  วรศานต์" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="2800800033557">
+                                                        <span class="member-name">นางสาวธัญเรศ วรศานต์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวนภัสสร  รัฐการ" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="3820600035619">
+                                                        <span class="member-name">นางสาวนภัสสร รัฐการ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวประภัสสร พันธ์แก้ว" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="1810600075673">
+                                                        <span class="member-name">นางสาวประภัสสร พันธ์แก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นางสาวศศิธร  มธุรส" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="3820100140782">
+                                                        <span class="member-name">นางสาวศศิธร มธุรส</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นายอดิศักดิ์  ธรรมจิตต์" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="3810300076964">
+                                                        <span class="member-name">นายอดิศักดิ์ ธรรมจิตต์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-11" data-member-name="นายไชยวัฒน์ สังข์ทอง" data-group-label="กลุ่มธุรการ" name="person_ids[]" value="1640700056303">
+                                                        <span class="member-name">นายไชยวัฒน์ สังข์ทอง</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-7" data-group-label="กลุ่มสาระฯ การงานอาชีพ" data-members="[{&quot;pID&quot;:&quot;1829900062591&quot;,&quot;name&quot;:&quot;นางสาวจารุวรรณ ผลแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;3810500179350&quot;,&quot;name&quot;:&quot;นางสาวนงลักษณ์   แก้วสว่าง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;1849900176813&quot;,&quot;name&quot;:&quot;นายชนม์กมล เพ็ขรพรหม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;1829900003064&quot;,&quot;name&quot;:&quot;นางพิมพา ทองอุไร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;5800900028151&quot;,&quot;name&quot;:&quot;นางจริยาวดี  เวชจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;3800400522290&quot;,&quot;name&quot;:&quot;นางจิราภรณ์  เสรีรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;3820100172170&quot;,&quot;name&quot;:&quot;นางพูนสุข ถิ่นลิพอน&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;1809900084706&quot;,&quot;name&quot;:&quot;นางภทรมน ลิ่มบุตร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;},{&quot;pID&quot;:&quot;1860100007288&quot;,&quot;name&quot;:&quot;นายนพพร  ถิ่นไทย&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ การงานอาชีพ&quot;}]" value="department-7">
+                                                    <span class="item-title">กลุ่มสาระฯ การงานอาชีพ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 9 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางสาวจารุวรรณ ผลแก้ว" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="1829900062591">
+                                                        <span class="member-name">นางสาวจารุวรรณ ผลแก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางสาวนงลักษณ์   แก้วสว่าง" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="3810500179350">
+                                                        <span class="member-name">นางสาวนงลักษณ์ แก้วสว่าง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นายชนม์กมล เพ็ขรพรหม" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="1849900176813">
+                                                        <span class="member-name">นายชนม์กมล เพ็ขรพรหม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางพิมพา ทองอุไร" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="1829900003064">
+                                                        <span class="member-name">นางพิมพา ทองอุไร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางจริยาวดี  เวชจันทร์" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="5800900028151">
+                                                        <span class="member-name">นางจริยาวดี เวชจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางจิราภรณ์  เสรีรักษ์" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="3800400522290">
+                                                        <span class="member-name">นางจิราภรณ์ เสรีรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางพูนสุข ถิ่นลิพอน" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="3820100172170">
+                                                        <span class="member-name">นางพูนสุข ถิ่นลิพอน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นางภทรมน ลิ่มบุตร" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="1809900084706">
+                                                        <span class="member-name">นางภทรมน ลิ่มบุตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-7" data-member-name="นายนพพร  ถิ่นไทย" data-group-label="กลุ่มสาระฯ การงานอาชีพ" name="person_ids[]" value="1860100007288">
+                                                        <span class="member-name">นายนพพร ถิ่นไทย</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-2" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" data-members="[{&quot;pID&quot;:&quot;1829900206275&quot;,&quot;name&quot;:&quot;นายภูมิวิชญ์ จีนนาพัฒ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;3810100580006&quot;,&quot;name&quot;:&quot;นางกนกวรรณ  ณ นคร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;3331001384867&quot;,&quot;name&quot;:&quot;นางประภาพร  อุดมผลชัยเจริญ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1920600003469&quot;,&quot;name&quot;:&quot;นางผกาวรรณ  โชติวัฒนากร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1839900175043&quot;,&quot;name&quot;:&quot;นางพรพิมล แซ่เจี่ย&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900096909&quot;,&quot;name&quot;:&quot;นางสาวพิมพ์ประภา  ผลากิจ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1820500097624&quot;,&quot;name&quot;:&quot;นางสาวรัชนีกร ผอมจีน&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1909901558298&quot;,&quot;name&quot;:&quot;นางสาวอภิชญา จันทร์มา&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1800800204043&quot;,&quot;name&quot;:&quot;นางสาวอินทิรา บุญนิสสัย&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;3820700019381&quot;,&quot;name&quot;:&quot;นางเสาวลีย์ จันทร์ทอง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1809901028575&quot;,&quot;name&quot;:&quot;นายธนวัฒน์ ศิริพงศ์ประพันธ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;3940400221191&quot;,&quot;name&quot;:&quot;นายพิพัฒน์ ไชยชนะ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1930600099890&quot;,&quot;name&quot;:&quot;นางฝาติหม๊ะ ขนาดผล&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900119712&quot;,&quot;name&quot;:&quot;นางสาวธิดารัตน์ ทองกอบ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900051727&quot;,&quot;name&quot;:&quot;นางสาวบงกชรัตน์  มาลี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1800800331088&quot;,&quot;name&quot;:&quot;นายสราวุธ กุหลาบวรรณ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1920100023843&quot;,&quot;name&quot;:&quot;นางสาวพรทิพย์ สมบัติบุญ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1820500148121&quot;,&quot;name&quot;:&quot;นางสาวรัตนาพร พรประสิทธิ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;3929900087867&quot;,&quot;name&quot;:&quot;นายอนุสรณ์ ชูทอง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;},{&quot;pID&quot;:&quot;1820700059157&quot;,&quot;name&quot;:&quot;นางสาวนัฐลิณี ทอสงค์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ คณิตศาสตร์&quot;}]" value="department-2">
+                                                    <span class="item-title">กลุ่มสาระฯ คณิตศาสตร์</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 20 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นายภูมิวิชญ์ จีนนาพัฒ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1829900206275">
+                                                        <span class="member-name">นายภูมิวิชญ์ จีนนาพัฒ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางกนกวรรณ  ณ นคร" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="3810100580006">
+                                                        <span class="member-name">นางกนกวรรณ ณ นคร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางประภาพร  อุดมผลชัยเจริญ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="3331001384867">
+                                                        <span class="member-name">นางประภาพร อุดมผลชัยเจริญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางผกาวรรณ  โชติวัฒนากร" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1920600003469">
+                                                        <span class="member-name">นางผกาวรรณ โชติวัฒนากร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางพรพิมล แซ่เจี่ย" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1839900175043">
+                                                        <span class="member-name">นางพรพิมล แซ่เจี่ย</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวพิมพ์ประภา  ผลากิจ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1829900096909">
+                                                        <span class="member-name">นางสาวพิมพ์ประภา ผลากิจ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวรัชนีกร ผอมจีน" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1820500097624">
+                                                        <span class="member-name">นางสาวรัชนีกร ผอมจีน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวอภิชญา จันทร์มา" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1909901558298">
+                                                        <span class="member-name">นางสาวอภิชญา จันทร์มา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวอินทิรา บุญนิสสัย" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1800800204043">
+                                                        <span class="member-name">นางสาวอินทิรา บุญนิสสัย</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางเสาวลีย์ จันทร์ทอง" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="3820700019381">
+                                                        <span class="member-name">นางเสาวลีย์ จันทร์ทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นายธนวัฒน์ ศิริพงศ์ประพันธ์" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1809901028575">
+                                                        <span class="member-name">นายธนวัฒน์ ศิริพงศ์ประพันธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นายพิพัฒน์ ไชยชนะ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="3940400221191">
+                                                        <span class="member-name">นายพิพัฒน์ ไชยชนะ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางฝาติหม๊ะ ขนาดผล" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1930600099890">
+                                                        <span class="member-name">นางฝาติหม๊ะ ขนาดผล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวธิดารัตน์ ทองกอบ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1829900119712">
+                                                        <span class="member-name">นางสาวธิดารัตน์ ทองกอบ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวบงกชรัตน์  มาลี" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1829900051727">
+                                                        <span class="member-name">นางสาวบงกชรัตน์ มาลี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นายสราวุธ กุหลาบวรรณ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1800800331088">
+                                                        <span class="member-name">นายสราวุธ กุหลาบวรรณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวพรทิพย์ สมบัติบุญ" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1920100023843">
+                                                        <span class="member-name">นางสาวพรทิพย์ สมบัติบุญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวรัตนาพร พรประสิทธิ์" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1820500148121">
+                                                        <span class="member-name">นางสาวรัตนาพร พรประสิทธิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นายอนุสรณ์ ชูทอง" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="3929900087867">
+                                                        <span class="member-name">นายอนุสรณ์ ชูทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-2" data-member-name="นางสาวนัฐลิณี ทอสงค์" data-group-label="กลุ่มสาระฯ คณิตศาสตร์" name="person_ids[]" value="1820700059157">
+                                                        <span class="member-name">นางสาวนัฐลิณี ทอสงค์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-8" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" data-members="[{&quot;pID&quot;:&quot;1820800093039&quot;,&quot;name&quot;:&quot;นางสาวปาริชาต เดชอาษา&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1809900831358&quot;,&quot;name&quot;:&quot;นางสาวพลอยไพลิน เที่ยวแสวง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3820300027670&quot;,&quot;name&quot;:&quot;นางดาริน ทรายทอง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3940400027034&quot;,&quot;name&quot;:&quot;นางพนิดา ค้าของ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900054688&quot;,&quot;name&quot;:&quot;นางสาวกนกรัตน์ อุ้ยเฉ้ง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900059485&quot;,&quot;name&quot;:&quot;นางสาวจันทิพา ประทีป ณ ถลาง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1729900457121&quot;,&quot;name&quot;:&quot;นางสาวณัฐวรรณ  ทรัพย์เฉลิม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900202598&quot;,&quot;name&quot;:&quot;นางสาวธนวรรณ สมัครการ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900065485&quot;,&quot;name&quot;:&quot;นางสาวองค์ปรางค์ แสงสุรินทร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1930500116202&quot;,&quot;name&quot;:&quot;นางสุรางค์รัศมิ์ ย้อยพระจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1810500062871&quot;,&quot;name&quot;:&quot;นางสาวกานต์พิชชา ปากลาว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1910300050321&quot;,&quot;name&quot;:&quot;นางสาวนิลญา หมานมิตร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900090897&quot;,&quot;name&quot;:&quot;นางสาวปริษา  แก้วเขียว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1940100013597&quot;,&quot;name&quot;:&quot;นางสาววรินญา โรจธนะวรรธน์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1829900162341&quot;,&quot;name&quot;:&quot;นายอิสรพงศ์ สัตปานนท์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3950300068146&quot;,&quot;name&quot;:&quot;นางพวงทิพย์ ทวีรส&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3820400309367&quot;,&quot;name&quot;:&quot;นางเขมษิญากรณ์ อุดมคุณ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3930300329632&quot;,&quot;name&quot;:&quot;นางเพ็ญแข หวานสนิท&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;3820700017680&quot;,&quot;name&quot;:&quot;นายณณัฐพล  บุญสุรัชต์สิรี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;},{&quot;pID&quot;:&quot;1841500136302&quot;,&quot;name&quot;:&quot;นายธีระวัฒน์ เพชรขุ้ม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาต่างประเทศ&quot;}]" value="department-8">
+                                                    <span class="item-title">กลุ่มสาระฯ ภาษาต่างประเทศ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 20 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวปาริชาต เดชอาษา" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1820800093039">
+                                                        <span class="member-name">นางสาวปาริชาต เดชอาษา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวพลอยไพลิน เที่ยวแสวง" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1809900831358">
+                                                        <span class="member-name">นางสาวพลอยไพลิน เที่ยวแสวง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางดาริน ทรายทอง" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3820300027670">
+                                                        <span class="member-name">นางดาริน ทรายทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางพนิดา ค้าของ" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3940400027034">
+                                                        <span class="member-name">นางพนิดา ค้าของ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวกนกรัตน์ อุ้ยเฉ้ง" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900054688">
+                                                        <span class="member-name">นางสาวกนกรัตน์ อุ้ยเฉ้ง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวจันทิพา ประทีป ณ ถลาง" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900059485">
+                                                        <span class="member-name">นางสาวจันทิพา ประทีป ณ ถลาง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวณัฐวรรณ  ทรัพย์เฉลิม" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1729900457121">
+                                                        <span class="member-name">นางสาวณัฐวรรณ ทรัพย์เฉลิม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวธนวรรณ สมัครการ" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900202598">
+                                                        <span class="member-name">นางสาวธนวรรณ สมัครการ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวองค์ปรางค์ แสงสุรินทร์" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900065485">
+                                                        <span class="member-name">นางสาวองค์ปรางค์ แสงสุรินทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสุรางค์รัศมิ์ ย้อยพระจันทร์" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1930500116202">
+                                                        <span class="member-name">นางสุรางค์รัศมิ์ ย้อยพระจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวกานต์พิชชา ปากลาว" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1810500062871">
+                                                        <span class="member-name">นางสาวกานต์พิชชา ปากลาว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวนิลญา หมานมิตร" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1910300050321">
+                                                        <span class="member-name">นางสาวนิลญา หมานมิตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาวปริษา  แก้วเขียว" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900090897">
+                                                        <span class="member-name">นางสาวปริษา แก้วเขียว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางสาววรินญา โรจธนะวรรธน์" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1940100013597">
+                                                        <span class="member-name">นางสาววรินญา โรจธนะวรรธน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นายอิสรพงศ์ สัตปานนท์" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1829900162341">
+                                                        <span class="member-name">นายอิสรพงศ์ สัตปานนท์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางพวงทิพย์ ทวีรส" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3950300068146">
+                                                        <span class="member-name">นางพวงทิพย์ ทวีรส</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางเขมษิญากรณ์ อุดมคุณ" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3820400309367">
+                                                        <span class="member-name">นางเขมษิญากรณ์ อุดมคุณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นางเพ็ญแข หวานสนิท" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3930300329632">
+                                                        <span class="member-name">นางเพ็ญแข หวานสนิท</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นายณณัฐพล  บุญสุรัชต์สิรี" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="3820700017680">
+                                                        <span class="member-name">นายณณัฐพล บุญสุรัชต์สิรี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-8" data-member-name="นายธีระวัฒน์ เพชรขุ้ม" data-group-label="กลุ่มสาระฯ ภาษาต่างประเทศ" name="person_ids[]" value="1841500136302">
+                                                        <span class="member-name">นายธีระวัฒน์ เพชรขุ้ม</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-1" data-group-label="กลุ่มสาระฯ ภาษาไทย" data-members="[{&quot;pID&quot;:&quot;1829900103735&quot;,&quot;name&quot;:&quot;นางสาวจันทนี บุญนำ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1829900141980&quot;,&quot;name&quot;:&quot;นางสาวสุกานดา ปานมั่งคั่ง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;3840100521778&quot;,&quot;name&quot;:&quot;นางดวงกมล  เพ็ชรพรหม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;3840200430855&quot;,&quot;name&quot;:&quot;นางสาวณพสร สามสุวรรณ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;3820400028481&quot;,&quot;name&quot;:&quot;นางสาวยศยา ศักดิ์ศิลปศาสตร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;3820700136859&quot;,&quot;name&quot;:&quot;นางสาวลภัสนันท์ บำรุงวงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1829900118058&quot;,&quot;name&quot;:&quot;นางสาวนัยน์เนตร ทองวล&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1840100431373&quot;,&quot;name&quot;:&quot;นางสาวบุษรา  เมืองชู&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1820500007021&quot;,&quot;name&quot;:&quot;นางจิตติพร เกตุรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1101401730717&quot;,&quot;name&quot;:&quot;นางสาวพรรณพนัช  คงผอม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;3820500121271&quot;,&quot;name&quot;:&quot;นางสาวราศรี  อนันตมงคลกุล&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1860700158147&quot;,&quot;name&quot;:&quot;นายนพดล วงศ์สุวัฒน์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1102003266698&quot;,&quot;name&quot;:&quot;นายนรินทร์เพชร นิลเวช&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;},{&quot;pID&quot;:&quot;1829900109890&quot;,&quot;name&quot;:&quot;นายพจนันท์  พรหมสงค์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ภาษาไทย&quot;}]" value="department-1">
+                                                    <span class="item-title">กลุ่มสาระฯ ภาษาไทย</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 14 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวจันทนี บุญนำ" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1829900103735">
+                                                        <span class="member-name">นางสาวจันทนี บุญนำ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวสุกานดา ปานมั่งคั่ง" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1829900141980">
+                                                        <span class="member-name">นางสาวสุกานดา ปานมั่งคั่ง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางดวงกมล  เพ็ชรพรหม" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="3840100521778">
+                                                        <span class="member-name">นางดวงกมล เพ็ชรพรหม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวณพสร สามสุวรรณ" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="3840200430855">
+                                                        <span class="member-name">นางสาวณพสร สามสุวรรณ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวยศยา ศักดิ์ศิลปศาสตร์" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="3820400028481">
+                                                        <span class="member-name">นางสาวยศยา ศักดิ์ศิลปศาสตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวลภัสนันท์ บำรุงวงศ์" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="3820700136859">
+                                                        <span class="member-name">นางสาวลภัสนันท์ บำรุงวงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวนัยน์เนตร ทองวล" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1829900118058">
+                                                        <span class="member-name">นางสาวนัยน์เนตร ทองวล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวบุษรา  เมืองชู" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1840100431373">
+                                                        <span class="member-name">นางสาวบุษรา เมืองชู</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางจิตติพร เกตุรักษ์" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1820500007021">
+                                                        <span class="member-name">นางจิตติพร เกตุรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวพรรณพนัช  คงผอม" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1101401730717">
+                                                        <span class="member-name">นางสาวพรรณพนัช คงผอม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นางสาวราศรี  อนันตมงคลกุล" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="3820500121271">
+                                                        <span class="member-name">นางสาวราศรี อนันตมงคลกุล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นายนพดล วงศ์สุวัฒน์" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1860700158147">
+                                                        <span class="member-name">นายนพดล วงศ์สุวัฒน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นายนรินทร์เพชร นิลเวช" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1102003266698">
+                                                        <span class="member-name">นายนรินทร์เพชร นิลเวช</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-1" data-member-name="นายพจนันท์  พรหมสงค์" data-group-label="กลุ่มสาระฯ ภาษาไทย" name="person_ids[]" value="1829900109890">
+                                                        <span class="member-name">นายพจนันท์ พรหมสงค์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-3" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" data-members="[{&quot;pID&quot;:&quot;1819300006267&quot;,&quot;name&quot;:&quot;นายคุณากร ประดับศิลป์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3820400295111&quot;,&quot;name&quot;:&quot;นายนิมิตร สุสิมานนท์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3930300511171&quot;,&quot;name&quot;:&quot;นางณิภาภรณ์  ไชยชนะ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900063989&quot;,&quot;name&quot;:&quot;นางธนิษฐา  ยงยุทธ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900012535&quot;,&quot;name&quot;:&quot;นางสาวรัชฎาพร สุวรรณสาม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900099401&quot;,&quot;name&quot;:&quot;นางสาวศุลีพร ขันภักดี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1800100218262&quot;,&quot;name&quot;:&quot;นางสาวอาตีนา  พัชนี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1839900094990&quot;,&quot;name&quot;:&quot;นายนพรัตน์ ย้อยพระจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3920100747937&quot;,&quot;name&quot;:&quot;นางจุไรรัตน์ สวัสดิ์วงศ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900179103&quot;,&quot;name&quot;:&quot;นางสาวกนกลักษณ์ พันธ์สวัสดิ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1920600250041&quot;,&quot;name&quot;:&quot;นางสาวนฤมล บุญถาวร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1820400055491&quot;,&quot;name&quot;:&quot;นางสาวปาณิสรา  มัจฉาเวช&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3820100171700&quot;,&quot;name&quot;:&quot;นางสาวพิมพ์จันทร์  สุวรรณดี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1840100326120&quot;,&quot;name&quot;:&quot;นางสาวศรัณย์รัชต์ สุขผ่องใส&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3820700050342&quot;,&quot;name&quot;:&quot;นางสุมณฑา  เกิดทรัพย์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1820700004867&quot;,&quot;name&quot;:&quot;นางอรชา ชูเชื้อ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3820400215231&quot;,&quot;name&quot;:&quot;นางชมทิศา ขันภักดี&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900172052&quot;,&quot;name&quot;:&quot;นางสาวชาลิสา จิตต์พันธ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900170670&quot;,&quot;name&quot;:&quot;นางสาวอรบุษย์ หนักแน่น&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;3601000301019&quot;,&quot;name&quot;:&quot;นางสุนิษา  จินดาพล&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1319800069611&quot;,&quot;name&quot;:&quot;นายณัฐพงษ์ สัจจารักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1839900193629&quot;,&quot;name&quot;:&quot;นายธีรภัส  สฤษดิสุข&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900012446&quot;,&quot;name&quot;:&quot;นายรชต  ปานบุญ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;},{&quot;pID&quot;:&quot;1829900149409&quot;,&quot;name&quot;:&quot;นางสาวอุบลวรรณ คงสม&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ วิทยาศาสตร์&quot;}]" value="department-3">
+                                                    <span class="item-title">กลุ่มสาระฯ วิทยาศาสตร์</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 24 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายคุณากร ประดับศิลป์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1819300006267">
+                                                        <span class="member-name">นายคุณากร ประดับศิลป์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายนิมิตร สุสิมานนท์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3820400295111">
+                                                        <span class="member-name">นายนิมิตร สุสิมานนท์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางณิภาภรณ์  ไชยชนะ" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3930300511171">
+                                                        <span class="member-name">นางณิภาภรณ์ ไชยชนะ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางธนิษฐา  ยงยุทธ์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900063989">
+                                                        <span class="member-name">นางธนิษฐา ยงยุทธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวรัชฎาพร สุวรรณสาม" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900012535">
+                                                        <span class="member-name">นางสาวรัชฎาพร สุวรรณสาม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวศุลีพร ขันภักดี" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900099401">
+                                                        <span class="member-name">นางสาวศุลีพร ขันภักดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวอาตีนา  พัชนี" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1800100218262">
+                                                        <span class="member-name">นางสาวอาตีนา พัชนี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายนพรัตน์ ย้อยพระจันทร์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1839900094990">
+                                                        <span class="member-name">นายนพรัตน์ ย้อยพระจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางจุไรรัตน์ สวัสดิ์วงศ์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3920100747937">
+                                                        <span class="member-name">นางจุไรรัตน์ สวัสดิ์วงศ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวกนกลักษณ์ พันธ์สวัสดิ์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900179103">
+                                                        <span class="member-name">นางสาวกนกลักษณ์ พันธ์สวัสดิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวนฤมล บุญถาวร" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1920600250041">
+                                                        <span class="member-name">นางสาวนฤมล บุญถาวร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวปาณิสรา  มัจฉาเวช" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1820400055491">
+                                                        <span class="member-name">นางสาวปาณิสรา มัจฉาเวช</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวพิมพ์จันทร์  สุวรรณดี" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3820100171700">
+                                                        <span class="member-name">นางสาวพิมพ์จันทร์ สุวรรณดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวศรัณย์รัชต์ สุขผ่องใส" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1840100326120">
+                                                        <span class="member-name">นางสาวศรัณย์รัชต์ สุขผ่องใส</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสุมณฑา  เกิดทรัพย์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3820700050342">
+                                                        <span class="member-name">นางสุมณฑา เกิดทรัพย์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางอรชา ชูเชื้อ" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1820700004867">
+                                                        <span class="member-name">นางอรชา ชูเชื้อ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางชมทิศา ขันภักดี" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3820400215231">
+                                                        <span class="member-name">นางชมทิศา ขันภักดี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวชาลิสา จิตต์พันธ์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900172052">
+                                                        <span class="member-name">นางสาวชาลิสา จิตต์พันธ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวอรบุษย์ หนักแน่น" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900170670">
+                                                        <span class="member-name">นางสาวอรบุษย์ หนักแน่น</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสุนิษา  จินดาพล" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="3601000301019">
+                                                        <span class="member-name">นางสุนิษา จินดาพล</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายณัฐพงษ์ สัจจารักษ์" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1319800069611">
+                                                        <span class="member-name">นายณัฐพงษ์ สัจจารักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายธีรภัส  สฤษดิสุข" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1839900193629">
+                                                        <span class="member-name">นายธีรภัส สฤษดิสุข</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นายรชต  ปานบุญ" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900012446">
+                                                        <span class="member-name">นายรชต ปานบุญ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-3" data-member-name="นางสาวอุบลวรรณ คงสม" data-group-label="กลุ่มสาระฯ วิทยาศาสตร์" name="person_ids[]" value="1829900149409">
+                                                        <span class="member-name">นางสาวอุบลวรรณ คงสม</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-6" data-group-label="กลุ่มสาระฯ ศิลปะ" data-members="[{&quot;pID&quot;:&quot;3840700282162&quot;,&quot;name&quot;:&quot;นางสาวประภัสสร  โอจันทร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;1829900056460&quot;,&quot;name&quot;:&quot;นายศุภวุฒิ &nbsp;อินทร์แก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;3820400194578&quot;,&quot;name&quot;:&quot;นายสุพัฒน์  เจริญฤทธิ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;3850100320012&quot;,&quot;name&quot;:&quot;นางสาวธารทิพย์ ภาระพฤติ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;3829900019706&quot;,&quot;name&quot;:&quot;นางสาวปาณิสรา  มงคลบุตร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;1160100618291&quot;,&quot;name&quot;:&quot;นายวิศรุต ชามทอง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;},{&quot;pID&quot;:&quot;1901100006087&quot;,&quot;name&quot;:&quot;นายเจนสกนธ์  ศรัณย์บัณฑิต&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ ศิลปะ&quot;}]" value="department-6">
+                                                    <span class="item-title">กลุ่มสาระฯ ศิลปะ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 7 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นางสาวประภัสสร  โอจันทร์" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="3840700282162">
+                                                        <span class="member-name">นางสาวประภัสสร โอจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นายศุภวุฒิ &nbsp;อินทร์แก้ว" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="1829900056460">
+                                                        <span class="member-name">นายศุภวุฒิ &nbsp;อินทร์แก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นายสุพัฒน์  เจริญฤทธิ์" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="3820400194578">
+                                                        <span class="member-name">นายสุพัฒน์ เจริญฤทธิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นางสาวธารทิพย์ ภาระพฤติ" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="3850100320012">
+                                                        <span class="member-name">นางสาวธารทิพย์ ภาระพฤติ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นางสาวปาณิสรา  มงคลบุตร" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="3829900019706">
+                                                        <span class="member-name">นางสาวปาณิสรา มงคลบุตร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นายวิศรุต ชามทอง" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="1160100618291">
+                                                        <span class="member-name">นายวิศรุต ชามทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-6" data-member-name="นายเจนสกนธ์  ศรัณย์บัณฑิต" data-group-label="กลุ่มสาระฯ ศิลปะ" name="person_ids[]" value="1901100006087">
+                                                        <span class="member-name">นายเจนสกนธ์ ศรัณย์บัณฑิต</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-4" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" data-members="[{&quot;pID&quot;:&quot;1830101156953&quot;,&quot;name&quot;:&quot;นางสาวนัสรีน สุวิสัน&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1810300103434&quot;,&quot;name&quot;:&quot;นางสาวปณิดา คลองรั้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1820501214179&quot;,&quot;name&quot;:&quot;นายมงคล ตันเจริญรัตน์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;3820100025592&quot;,&quot;name&quot;:&quot;นางจารุวรรณ ส่องศิริ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;3829900033725&quot;,&quot;name&quot;:&quot;นางสาวชนิกานต์  สวัสดิวงค์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1410100117524&quot;,&quot;name&quot;:&quot;นางสาวประภาพรรณ กุลแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1829900007736&quot;,&quot;name&quot;:&quot;นางปวีณา  บำรุงภักดิ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1820500147966&quot;,&quot;name&quot;:&quot;นางสาวธนวรรณ พิทักษ์คง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1820600006469&quot;,&quot;name&quot;:&quot;นางสาวปิยธิดา นิยมเดชา&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1820500130320&quot;,&quot;name&quot;:&quot;นางสาวลภัสภาส์ หนูคง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;3820100025495&quot;,&quot;name&quot;:&quot;นางวาสนา  สุทธจิตร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1829900174284&quot;,&quot;name&quot;:&quot;นางสาวนิรชา ธรรมัสโร&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1809901015490&quot;,&quot;name&quot;:&quot;นางสาวสรัลรัตน์ จันทับ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1820800031408&quot;,&quot;name&quot;:&quot;นางสาวสุดาทิพย์ ยกย่อง&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;3180600191510&quot;,&quot;name&quot;:&quot;นายเพลิน โอรักษ์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1809900094507&quot;,&quot;name&quot;:&quot;ว่าที่ร้อยตรีเรืองเดชย์  ผสารพจน์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;3820100028745&quot;,&quot;name&quot;:&quot;นายวรานนท์ ภาระพฤติ&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;},{&quot;pID&quot;:&quot;1829900093446&quot;,&quot;name&quot;:&quot;นายศุภสวัสดิ์ กาญวิจิต&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม&quot;}]" value="department-4">
+                                                    <span class="item-title">กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 18 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวนัสรีน สุวิสัน" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1830101156953">
+                                                        <span class="member-name">นางสาวนัสรีน สุวิสัน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวปณิดา คลองรั้ว" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1810300103434">
+                                                        <span class="member-name">นางสาวปณิดา คลองรั้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นายมงคล ตันเจริญรัตน์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1820501214179">
+                                                        <span class="member-name">นายมงคล ตันเจริญรัตน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางจารุวรรณ ส่องศิริ" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="3820100025592">
+                                                        <span class="member-name">นางจารุวรรณ ส่องศิริ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวชนิกานต์  สวัสดิวงค์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="3829900033725">
+                                                        <span class="member-name">นางสาวชนิกานต์ สวัสดิวงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวประภาพรรณ กุลแก้ว" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1410100117524">
+                                                        <span class="member-name">นางสาวประภาพรรณ กุลแก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางปวีณา  บำรุงภักดิ์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1829900007736">
+                                                        <span class="member-name">นางปวีณา บำรุงภักดิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวธนวรรณ พิทักษ์คง" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1820500147966">
+                                                        <span class="member-name">นางสาวธนวรรณ พิทักษ์คง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวปิยธิดา นิยมเดชา" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1820600006469">
+                                                        <span class="member-name">นางสาวปิยธิดา นิยมเดชา</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวลภัสภาส์ หนูคง" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1820500130320">
+                                                        <span class="member-name">นางสาวลภัสภาส์ หนูคง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางวาสนา  สุทธจิตร์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="3820100025495">
+                                                        <span class="member-name">นางวาสนา สุทธจิตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวนิรชา ธรรมัสโร" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1829900174284">
+                                                        <span class="member-name">นางสาวนิรชา ธรรมัสโร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวสรัลรัตน์ จันทับ" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1809901015490">
+                                                        <span class="member-name">นางสาวสรัลรัตน์ จันทับ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นางสาวสุดาทิพย์ ยกย่อง" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1820800031408">
+                                                        <span class="member-name">นางสาวสุดาทิพย์ ยกย่อง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นายเพลิน โอรักษ์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="3180600191510">
+                                                        <span class="member-name">นายเพลิน โอรักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="ว่าที่ร้อยตรีเรืองเดชย์  ผสารพจน์" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1809900094507">
+                                                        <span class="member-name">ว่าที่ร้อยตรีเรืองเดชย์ ผสารพจน์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นายวรานนท์ ภาระพฤติ" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="3820100028745">
+                                                        <span class="member-name">นายวรานนท์ ภาระพฤติ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-4" data-member-name="นายศุภสวัสดิ์ กาญวิจิต" data-group-label="กลุ่มสาระฯ สังคมศึกษา ศาสนาและวัฒนธรรม" name="person_ids[]" value="1829900093446">
+                                                        <span class="member-name">นายศุภสวัสดิ์ กาญวิจิต</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department" data-group-key="department-5" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" data-members="[{&quot;pID&quot;:&quot;1920400002230&quot;,&quot;name&quot;:&quot;นายประสิทธิ์  สะไน&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;},{&quot;pID&quot;:&quot;3820800037747&quot;,&quot;name&quot;:&quot;นายศรายุทธ  มิตรวงค์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;},{&quot;pID&quot;:&quot;3820700143669&quot;,&quot;name&quot;:&quot;นายสมชาย สุทธจิตร์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;},{&quot;pID&quot;:&quot;3820800038999&quot;,&quot;name&quot;:&quot;นางสาวนิรัตน์ เพชรแก้ว&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;},{&quot;pID&quot;:&quot;3820400261097&quot;,&quot;name&quot;:&quot;นายจรุง  บำรุงเขตต์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;},{&quot;pID&quot;:&quot;1829900072562&quot;,&quot;name&quot;:&quot;นายเอกพงษ์ สงวนทรัพย์&quot;,&quot;faction&quot;:&quot;กลุ่มสาระฯ สุขศึกษาและพลศึกษา&quot;}]" value="department-5">
+                                                    <span class="item-title">กลุ่มสาระฯ สุขศึกษาและพลศึกษา</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 6 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นายประสิทธิ์  สะไน" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="1920400002230">
+                                                        <span class="member-name">นายประสิทธิ์ สะไน</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นายศรายุทธ  มิตรวงค์" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="3820800037747">
+                                                        <span class="member-name">นายศรายุทธ มิตรวงค์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นายสมชาย สุทธจิตร์" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="3820700143669">
+                                                        <span class="member-name">นายสมชาย สุทธจิตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นางสาวนิรัตน์ เพชรแก้ว" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="3820800038999">
+                                                        <span class="member-name">นางสาวนิรัตน์ เพชรแก้ว</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นายจรุง  บำรุงเขตต์" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="3820400261097">
+                                                        <span class="member-name">นายจรุง บำรุงเขตต์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="department-5" data-member-name="นายเอกพงษ์ สงวนทรัพย์" data-group-label="กลุ่มสาระฯ สุขศึกษาและพลศึกษา" name="person_ids[]" value="1829900072562">
+                                                        <span class="member-name">นายเอกพงษ์ สงวนทรัพย์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="category-group">
+                                    <div class="category-title">
+                                        <span>อื่นๆ</span>
+                                    </div>
+                                    <div class="category-items">
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox" data-group="special" data-group-key="special-executive" data-group-label="คณะผู้บริหารสถานศึกษา" data-members="[{&quot;pID&quot;:&quot;1820500005169&quot;,&quot;name&quot;:&quot;นางสาวศริญญา  ผั้วผดุง&quot;,&quot;faction&quot;:&quot;คณะผู้บริหารสถานศึกษา&quot;},{&quot;pID&quot;:&quot;3810500334835&quot;,&quot;name&quot;:&quot;นายดลยวัฒน์ สันติพิทักษ์&quot;,&quot;faction&quot;:&quot;คณะผู้บริหารสถานศึกษา&quot;},{&quot;pID&quot;:&quot;1820500004103&quot;,&quot;name&quot;:&quot;นายยุทธนา สุวรรณวิสุทธิ์&quot;,&quot;faction&quot;:&quot;คณะผู้บริหารสถานศึกษา&quot;},{&quot;pID&quot;:&quot;3430200354125&quot;,&quot;name&quot;:&quot;นายไกรวิชญ์ อ่อนแก้ว&quot;,&quot;faction&quot;:&quot;คณะผู้บริหารสถานศึกษา&quot;}]" value="special-executive">
+                                                    <span class="item-title">คณะผู้บริหารสถานศึกษา</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 4 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-executive" data-member-name="นางสาวศริญญา  ผั้วผดุง" data-group-label="คณะผู้บริหารสถานศึกษา" name="person_ids[]" value="1820500005169">
+                                                        <span class="member-name">นางสาวศริญญา ผั้วผดุง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-executive" data-member-name="นายดลยวัฒน์ สันติพิทักษ์" data-group-label="คณะผู้บริหารสถานศึกษา" name="person_ids[]" value="3810500334835">
+                                                        <span class="member-name">นายดลยวัฒน์ สันติพิทักษ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-executive" data-member-name="นายยุทธนา สุวรรณวิสุทธิ์" data-group-label="คณะผู้บริหารสถานศึกษา" name="person_ids[]" value="1820500004103">
+                                                        <span class="member-name">นายยุทธนา สุวรรณวิสุทธิ์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-executive" data-member-name="นายไกรวิชญ์ อ่อนแก้ว" data-group-label="คณะผู้บริหารสถานศึกษา" name="person_ids[]" value="3430200354125">
+                                                        <span class="member-name">นายไกรวิชญ์ อ่อนแก้ว</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                        <div class="item item-group is-collapsed">
+                                            <div class="group-header">
+                                                <label class="item-main">
+                                                    <input type="checkbox" class="item-checkbox group-item-checkbox" data-group="special" data-group-key="special-subject-head" data-group-label="หัวหน้ากลุ่มสาระ" data-members="[{&quot;pID&quot;:&quot;5800900028151&quot;,&quot;name&quot;:&quot;นางจริยาวดี  เวชจันทร์&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;3840100521778&quot;,&quot;name&quot;:&quot;นางดวงกมล  เพ็ชรพรหม&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;3940400027034&quot;,&quot;name&quot;:&quot;นางพนิดา ค้าของ&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;1820700006258&quot;,&quot;name&quot;:&quot;นางสาวนุชรีย์ หัศนี&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;1820800031408&quot;,&quot;name&quot;:&quot;นางสาวสุดาทิพย์ ยกย่อง&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;3820700019381&quot;,&quot;name&quot;:&quot;นางเสาวลีย์ จันทร์ทอง&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;1959900030702&quot;,&quot;name&quot;:&quot;นายธันวิน  ณ นคร&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;1839900094990&quot;,&quot;name&quot;:&quot;นายนพรัตน์ ย้อยพระจันทร์&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;3820700143669&quot;,&quot;name&quot;:&quot;นายสมชาย สุทธจิตร์&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;},{&quot;pID&quot;:&quot;3820400194578&quot;,&quot;name&quot;:&quot;นายสุพัฒน์  เจริญฤทธิ์&quot;,&quot;faction&quot;:&quot;หัวหน้ากลุ่มสาระ&quot;}]" value="special-subject-head">
+                                                    <span class="item-title">หัวหน้ากลุ่มสาระ</span>
+                                                    <small class="item-subtext">สมาชิกทั้งหมด 10 คน</small>
+                                                </label>
+                                                <button type="button" class="group-toggle" aria-expanded="false" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+
+                                            <ol class="member-sublist">
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางจริยาวดี  เวชจันทร์" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="5800900028151">
+                                                        <span class="member-name">นางจริยาวดี เวชจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางดวงกมล  เพ็ชรพรหม" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="3840100521778">
+                                                        <span class="member-name">นางดวงกมล เพ็ชรพรหม</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางพนิดา ค้าของ" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="3940400027034">
+                                                        <span class="member-name">นางพนิดา ค้าของ</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางสาวนุชรีย์ หัศนี" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="1820700006258">
+                                                        <span class="member-name">นางสาวนุชรีย์ หัศนี</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางสาวสุดาทิพย์ ยกย่อง" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="1820800031408">
+                                                        <span class="member-name">นางสาวสุดาทิพย์ ยกย่อง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นางเสาวลีย์ จันทร์ทอง" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="3820700019381">
+                                                        <span class="member-name">นางเสาวลีย์ จันทร์ทอง</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นายธันวิน  ณ นคร" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="1959900030702">
+                                                        <span class="member-name">นายธันวิน ณ นคร</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นายนพรัตน์ ย้อยพระจันทร์" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="1839900094990">
+                                                        <span class="member-name">นายนพรัตน์ ย้อยพระจันทร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นายสมชาย สุทธจิตร์" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="3820700143669">
+                                                        <span class="member-name">นายสมชาย สุทธจิตร์</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="item member-item">
+                                                        <input type="checkbox" class="member-checkbox" data-member-group-key="special-subject-head" data-member-name="นายสุพัฒน์  เจริญฤทธิ์" data-group-label="หัวหน้ากลุ่มสาระ" name="person_ids[]" value="3820400194578">
+                                                        <span class="member-name">นายสุพัฒน์ เจริญฤทธิ์</span>
+                                                    </label>
+                                                </li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sent-notice-selected">
+                        <button class="js-btn-show-recipients" type="button">
+                            <p>แสดงผู้รับทั้งหมด</p>
+                        </button>
+                    </div>
+
+                    <div class="modal-overlay-recipient js-recipient-modal">
+                        <div class="modal-container">
+                            <div class="modal-header">
+                                <div class="modal-title">
+                                    <i class="fa-solid fa-users" aria-hidden="true"></i>
+                                    <span>รายชื่อผู้รับหนังสือเวียน</span>
+                                </div>
+                                <button class="modal-close js-close-recipient-modal" type="button">
+                                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="recipient-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ลำดับ</th>
+                                            <th>ชื่อจริง-นามสกุล</th>
+                                            <th>กลุ่ม/ฝ่าย</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="js-recipient-table-body">
+                                        <tr>
+                                            <td colspan="3" style="text-align:center; padding: 16px;">ไม่มีผู้รับที่เลือก</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="footer-modal">
+                <form method="POST" id="modalArchiveForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="inbox_id" id="modalInboxId" value="">
+                    <input type="hidden" name="action" value="<?= h($archived ? 'unarchive' : 'archive') ?>">
+                    <button type="submit">
+                        <p><?= h($archived ? 'ย้ายกลับ' : 'ส่งต่อ') ?></p>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </section>
 
 <?php if (!$is_outside_view) : ?>
@@ -2668,7 +4745,7 @@ ob_start();
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
 <script>
     tinymce.init({
-        selector: "#memo_editor",
+        selector: ".js-memo-editor",
         height: 500,
         menubar: false,
         language: "th_TH",
@@ -2867,9 +4944,7 @@ ob_start();
         setupFileUpload("cover_attachment", "cover_attachmentList", 1);
         setupFileUpload("attachment", "attachmentList", 4);
     });
-</script>
 
-<script>
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('circularComposeForm');
         const fileInput = document.getElementById('fileInput');
@@ -3170,8 +5245,6 @@ ob_start();
             });
         });
 
-        // Keep pre-selected group behavior consistent: when a group is selected,
-        // treat all members in that group as selected.
         groupChecks.forEach((item) => {
             if (!item.checked) return;
             const groupKey = item.getAttribute('data-group-key') || '';
@@ -3297,8 +5370,289 @@ ob_start();
             });
         }
     });
-</script>
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const detailModal = document.getElementById('modalNoticeSendOverlay');
+        const closeDetailModalBtn = document.getElementById('closeModalNoticeSend');
+        const openDetailBtns = document.querySelectorAll('.js-open-circular-send-modal');
+
+        openDetailBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (detailModal) {
+                    detailModal.style.display = 'flex';
+                }
+            });
+        });
+
+        if (closeDetailModalBtn) {
+            closeDetailModalBtn.addEventListener('click', () => {
+                detailModal.style.display = 'none';
+            });
+        }
+
+        if (detailModal) {
+            detailModal.addEventListener('click', (e) => {
+                if (e.target === detailModal) {
+                    detailModal.style.display = 'none';
+                }
+            });
+        }
+    });
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const setupRecipients = (modalElement) => {
+            if (!modalElement) return;
+
+            const dropdown = modalElement.querySelector('.js-dropdown-content');
+            const toggle = modalElement.querySelector('.js-recipient-toggle');
+            const searchInput = modalElement.querySelector('.js-main-input');
+            const selectAll = modalElement.querySelector('.js-select-all');
+            const groupChecks = Array.from(modalElement.querySelectorAll('.group-item-checkbox'));
+            const memberChecks = Array.from(modalElement.querySelectorAll('.member-checkbox'));
+            const groupItems = Array.from(modalElement.querySelectorAll('.dropdown-list .item-group'));
+
+            const recipientModal = modalElement.querySelector('.js-recipient-modal');
+            const recipientTableBody = modalElement.querySelector('.js-recipient-table-body');
+            const btnShowRecipients = modalElement.querySelector('.js-btn-show-recipients');
+            const closeRecipients = modalElement.querySelector('.js-close-recipient-modal');
+
+            const setDropdownVisible = (visible) => {
+                if (dropdown) dropdown.classList.toggle('show', visible);
+            };
+
+            toggle?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setDropdownVisible(!dropdown?.classList.contains('show'));
+            });
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.contains(e.target) && !toggle?.contains(e.target)) {
+                    setDropdownVisible(false);
+                }
+            });
+
+            const setGroupCollapsed = (groupItem, collapsed) => {
+                if (!groupItem) return;
+                groupItem.classList.toggle('is-collapsed', collapsed);
+                const toggleBtn = groupItem.querySelector('.group-toggle');
+                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            };
+
+            groupItems.forEach((groupItem) => {
+                const toggleBtn = groupItem.querySelector('.group-toggle');
+                toggleBtn?.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setGroupCollapsed(groupItem, !groupItem.classList.contains('is-collapsed'));
+                });
+            });
+
+            searchInput?.addEventListener('input', () => {
+                const query = (searchInput.value || '').trim().toLowerCase();
+                groupItems.forEach((groupItem) => {
+                    const titleText = (groupItem.querySelector('.item-title')?.textContent || '').trim().toLowerCase();
+                    const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
+                    const isGroupMatch = query !== '' && titleText.includes(query);
+
+                    if (query === '') {
+                        groupItem.style.display = '';
+                        memberRows.forEach((row) => row.style.display = '');
+                        return;
+                    }
+
+                    let hasMemberMatch = false;
+                    memberRows.forEach((row) => {
+                        const matched = isGroupMatch || (row.textContent || '').trim().toLowerCase().includes(query);
+                        row.style.display = matched ? '' : 'none';
+                        if (matched) hasMemberMatch = true;
+                    });
+
+                    const isVisible = isGroupMatch || hasMemberMatch;
+                    groupItem.style.display = isVisible ? '' : 'none';
+                    if (isVisible) setGroupCollapsed(groupItem, false);
+                });
+            });
+
+            const getMemberChecksByGroupKey = (groupKey) => memberChecks.filter((el) => (el.dataset.memberGroupKey || '') === String(groupKey));
+
+            const syncMemberByPid = (pid, checked, source) => {
+                const normalizedPid = String(pid || '').trim();
+                if (normalizedPid === '') return;
+                memberChecks.forEach((m) => {
+                    if (m !== source && String(m.value || '') === normalizedPid && !m.disabled) {
+                        m.checked = checked;
+                    }
+                });
+            };
+
+            const updateSelectAllState = () => {
+                if (!selectAll) return;
+                const allChecks = [...groupChecks, ...memberChecks];
+                const checked = allChecks.filter((el) => el.checked).length;
+                selectAll.checked = allChecks.length > 0 && checked === allChecks.length;
+                selectAll.indeterminate = checked > 0 && checked < allChecks.length;
+
+                groupChecks.forEach((groupCheck) => {
+                    const members = getMemberChecksByGroupKey(groupCheck.getAttribute('data-group-key') || '');
+                    if (members.length === 0) {
+                        groupCheck.indeterminate = false;
+                        return;
+                    }
+                    const memberChecked = members.filter((el) => el.checked).length;
+                    if (memberChecked === 0) {
+                        groupCheck.checked = false;
+                        groupCheck.indeterminate = false;
+                    } else if (memberChecked === members.length) {
+                        groupCheck.checked = true;
+                        groupCheck.indeterminate = false;
+                    } else {
+                        groupCheck.checked = false;
+                        groupCheck.indeterminate = true;
+                    }
+                });
+            };
+
+            selectAll?.addEventListener('change', () => {
+                const checked = selectAll.checked;
+                [...groupChecks, ...memberChecks].forEach((el) => {
+                    if (!el.disabled) el.checked = checked;
+                });
+                updateSelectAllState();
+            });
+
+            groupChecks.forEach((item) => {
+                item.addEventListener('change', () => {
+                    getMemberChecksByGroupKey(item.getAttribute('data-group-key') || '').forEach((member) => {
+                        if (!member.disabled) {
+                            member.checked = item.checked;
+                            syncMemberByPid(member.value || '', item.checked, member);
+                        }
+                    });
+                    if (item.checked) setGroupCollapsed(item.closest('.item-group'), false);
+                    item.indeterminate = false;
+                    updateSelectAllState();
+                });
+            });
+
+            memberChecks.forEach((item) => {
+                item.addEventListener('change', () => {
+                    syncMemberByPid(item.value || '', item.checked, item);
+                    updateSelectAllState();
+                });
+            });
+            updateSelectAllState();
+
+            btnShowRecipients?.addEventListener('click', () => {
+                if (!recipientTableBody) return;
+                recipientTableBody.innerHTML = '';
+                const checkedGroups = groupChecks.filter((item) => item.checked);
+                const checkedMembers = memberChecks.filter((item) => item.checked);
+
+                if (checkedGroups.length === 0 && checkedMembers.length === 0) {
+                    recipientTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 16px;">ไม่มีผู้รับที่เลือก</td></tr>';
+                } else {
+                    const recipientsMap = new Map();
+                    const addRec = (pid, name, faction) => {
+                        const key = String(pid || '').trim();
+                        if (key && !recipientsMap.has(key)) recipientsMap.set(key, {
+                            pid: key,
+                            name: (name || '-').trim(),
+                            faction: (faction || '-').trim()
+                        });
+                    };
+
+                    checkedGroups.forEach((item) => {
+                        try {
+                            JSON.parse(item.getAttribute('data-members') || '[]').forEach(m => addRec(m?.pID, m?.name, item.getAttribute('data-group-label')));
+                        } catch (e) {}
+                    });
+                    checkedMembers.forEach((item) => addRec(item.value, item.getAttribute('data-member-name'), item.getAttribute('data-group-label')));
+
+                    Array.from(recipientsMap.values())
+                        .sort((a, b) => a.faction === b.faction ? a.name.localeCompare(b.name, 'th') : a.faction.localeCompare(b.faction, 'th'))
+                        .forEach((r, i) => recipientTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i+1}</td><td>${r.name}</td><td>${r.faction}</td></tr>`));
+                }
+                recipientModal?.classList.add('active');
+            });
+
+            closeRecipients?.addEventListener('click', () => recipientModal?.classList.remove('active'));
+            recipientModal?.addEventListener('click', (e) => {
+                if (e.target === recipientModal) recipientModal.classList.remove('active');
+            });
+        };
+
+        document.querySelectorAll('.modal-overlay-circular-notice-index').forEach(setupRecipients);
+
+
+        const detailModalKeep = document.getElementById('modalNoticeKeepOverlay');
+        const detailModalExt = document.getElementById('modalNoticeExtOverlay');
+        const closeDetailKeepBtn = document.getElementById('closeModalNoticeKeep');
+        const closeDetailExtBtn = document.getElementById('closeModalNoticeExt');
+
+        document.querySelectorAll('.js-open-circular-modal').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (this.hasAttribute('data-urgency') && detailModalExt) {
+                    detailModalExt.style.display = 'flex';
+                } else if (detailModalKeep) {
+                    detailModalKeep.style.display = 'flex';
+                }
+            });
+        });
+
+        closeDetailKeepBtn?.addEventListener('click', () => {
+            if (detailModalKeep) detailModalKeep.style.display = 'none';
+        });
+        detailModalKeep?.addEventListener('click', (e) => {
+            if (e.target === detailModalKeep) detailModalKeep.style.display = 'none';
+        });
+
+        closeDetailExtBtn?.addEventListener('click', () => {
+            if (detailModalExt) detailModalExt.style.display = 'none';
+        });
+        detailModalExt?.addEventListener('click', (e) => {
+            if (e.target === detailModalExt) detailModalExt.style.display = 'none';
+        });
+
+        const sendModal = document.getElementById('modalNoticeSendOverlay');
+        const closeSendBtn = document.getElementById('closeModalNoticeSend');
+
+        document.querySelectorAll('.js-open-circular-send-modal').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (sendModal) sendModal.style.display = 'flex';
+            });
+        });
+
+        closeSendBtn?.addEventListener('click', () => {
+            if (sendModal) sendModal.style.display = 'none';
+        });
+        sendModal?.addEventListener('click', (e) => {
+            if (e.target === sendModal) sendModal.style.display = 'none';
+        });
+
+        const recipientModal = document.getElementById('recipientModal');
+        const recipientTableBody = document.getElementById('recipientTableBody');
+        const btnShowRecipients = document.getElementById('btnShowRecipients');
+        const closeRecipients = document.getElementById('closeModalBtn');
+
+        const renderRecipients = () => {
+        };
+
+        btnShowRecipients?.addEventListener('click', () => {
+            renderRecipients();
+            recipientModal?.classList.add('active');
+        });
+        closeRecipients?.addEventListener('click', () => recipientModal?.classList.remove('active'));
+        recipientModal?.addEventListener('click', (e) => {
+            if (e.target === recipientModal) recipientModal.classList.remove('active');
+        });
+
+    });
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../layout.php';

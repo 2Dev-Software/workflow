@@ -196,7 +196,7 @@ ob_start();
         </div>
     </header>
 
-    <section class="content-circular-notice-keep" data-circular-notice>
+    <section class="content-circular-notice-index" data-circular-notice>
         <div class="search-bar">
             <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -204,184 +204,275 @@ ob_start();
             </div>
         </div>
 
-        <div class="table-circular-notice-keep">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ประเภทหนังสือ</th>
-                        <th>เรื่อง</th>
-                        <th>ผู้เสนอแฟ้ม</th>
-                        <th>วันที่เสนอแฟ้ม</th>
-                        <th>สถานะ</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                    <!-- MOCK-UP DATA -->
-                    <tr>
-                        <td>ภายใน</td>
-                        <td>เอกสารราชการ</td>
-                        <td>นางสาวกานต์พิชชา ปานสาว</td>
-                        <td>03/02/2569</td>
-                        <td><span class="status-badge read">อ่านแล้ว</span></td>
-                        <td>
-                            <button type="button" class="booking-action-btn secondary js-open-edit-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
-
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                        </td>
-                    </tr>
-
-                    <!-- <?php //if (empty($items)) : 
-                            ?>
-                        <tr>
-                            <td colspan="6" class="booking-empty">ไม่มีรายการ</td>
-                        </tr>
-                    <?php //else : 
-                    ?>
-                        <?php //foreach ($items as $item) : 
-                        ?>
-                            <?php //$file_json = (string) ($item['files_json'] ?? '[]'); 
-                            ?>
+        <?php if (!$is_outside_view) : ?>
+            <form id="bulkActionForm" method="POST">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="<?= h($archived ? 'unarchive_selected' : 'archive_selected') ?>">
+                <div class="table-circular-notice-index">
+                    <table>
+                        <thead>
                             <tr>
-                                <td><?= h((string) ($item['type_label'] ?? '')) ?></td>
-                                <td><?= h((string) ($item['subject'] ?? '')) ?></td>
-                                <td><?= h((string) ($item['sender_name'] ?? '-')) ?></td>
-                                <td><?= h((string) ($item['delivered_date'] ?? '-')) ?></td>
-                                <td><span class="status-badge <?= h(($item['is_read'] ?? false) ? 'read' : 'unread') ?>"><?= h(($item['is_read'] ?? false) ? 'อ่านแล้ว' : 'ยังไม่อ่าน') ?></span></td>
+                                <th>เรื่อง</th>
+                                <th>ผู้เสนอแฟ้ม</th>
+                                <th>วันที่เสนอแฟ้ม</th>
+                                <th>สถานะ</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <!-- <tbody> -->
+                        <!-- <?php if (empty($items)) : ?>
+                            <tr>
+                                <td colspan="7" class="enterprise-empty">ไม่มีรายการ</td>
+                            </tr>
+                        <?php else : ?>
+                            <?php foreach ($items as $item) : ?>
+                                <?php
+                                        $is_read = (bool) ($item['is_read'] ?? false);
+                                        $file_json = (string) ($item['files_json'] ?? '[]');
+                                        $sender_modal_text = trim((string) ($item['sender_name'] ?? '-'));
+
+                                        if (!empty($item['sender_faction_name'])) {
+                                            $sender_modal_text .= "\n" . trim((string) $item['sender_faction_name']);
+                                        }
+                                ?>
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="check-table" name="selected_ids[]" value="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
+                                    </td>
+                                    <td><?= h((string) ($item['type_label'] ?? '')) ?></td>
+                                    <td><?= h((string) ($item['subject'] ?? '')) ?></td>
+                                    <td>
+                                        <div class="circular-sender-stack">
+                                            <span class="circular-sender-name"><?= h((string) ($item['sender_name'] ?? '-')) ?></span>
+                                            <?php if (!empty($item['sender_faction_name'])) : ?>
+                                                <span class="circular-sender-faction"><?= h((string) $item['sender_faction_name']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td><?= h((string) ($item['delivered_date'] ?? '-')) ?></td>
+                                    <td><span class="status-badge <?= h($is_read ? 'read' : 'unread') ?>"><?= h($is_read ? 'อ่านแล้ว' : 'ยังไม่อ่าน') ?></span></td>
+                                    <td>
+                                        <div class="circular-action-stack">
+                                            <button
+                                                class="booking-action-btn secondary js-open-circular-modal"
+                                                type="button"
+                                                data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
+                                                data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
+                                                data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
+                                                data-sender="<?= h($sender_modal_text) ?>"
+                                                data-date="<?= h((string) ($item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
+                                                data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
+                                                data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
+                                                data-type="<?= h((string) ($item['type_label'] ?? '')) ?>"
+                                                data-files="<?= h($file_json) ?>">
+                                                <i class="fa-solid fa-eye"></i>
+                                                <span class="tooltip">ดูรายละเอียด</span>
+                                            </button>
+                                            <a class="booking-action-btn secondary" href="circular-view.php?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">
+                                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                                <span class="tooltip">ส่งต่อ</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?> -->
+                        <!-- </tbody> -->
+                        <tbody>
+                            <tr>
+                                <td>ffgsdfsdf</td>
                                 <td>
-                                    <button
-                                        class="booking-action-btn secondary js-open-circular-modal"
-                                        type="button"
-                                        data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
-                                        data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
-                                        data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
-                                        data-sender="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
-                                        data-date="<?= h((string) ($item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
-                                        data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
-                                        data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
-                                        data-type="<?= h((string) ($item['type_label'] ?? '')) ?>"
-                                        data-files="<?= h($file_json) ?>">
-                                        <i class="fa-solid fa-eye"></i>
+                                    <div class="circular-sender-stack">
+                                        <span class="circular-sender-name">นางสาวทิพยรัตน์ บุญมณี</span>
+                                        <span class="circular-sender-faction">กลุ่มบริหารงานทั่วไป</span>
+                                    </div>
+                                </td>
+                                <td>11/02/2569</td>
+                                <td><span class="status-badge read">อ่านแล้ว</span></td>
+                                <td>
+                                    <button type="button" class="booking-action-btn secondary js-open-edit-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
                                 </td>
                             </tr>
-                        <?php //endforeach; 
-                        ?>
-                    <?php //endif; 
-                    ?> -->
-                </tbody>
-            </table>
-        </div>
-
-        <div class="modal-overlay-memo details" id="modalEditOverlay" style="display: none;">
-            <div class="modal-content">
-                <div class="header-modal">
-                    <p id="modalTypeLabel">รายละเอียด</p>
-                    <i class="fa-solid fa-xmark" id="closeModalEdit" aria-hidden="true"></i>
+                        </tbody>
+                    </table>
                 </div>
+            </form>
 
-                <div class="content-modal">
+            <div class="modal-overlay-memo details" id="modalEditOverlay" style="display: none;">
+                <div class="modal-content">
+                    <div class="header-modal">
+                        <p id="modalTypeLabel">รายละเอียด</p>
+                        <i class="fa-solid fa-xmark" id="closeModalEdit" aria-hidden="true"></i>
+                    </div>
 
-                    <div class="content-memo" style="box-shadow: none;">
-                        <div class="memo-header">
-                            <img src="assets/img/garuda-logo.png" alt="">
-                            <p>บันทึกข้อความ</p>
-                            <div></div>
-                        </div>
+                    <div class="content-modal">
 
-                        <form method="POST" id="circularComposeForm">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="flow_mode" value="CHAIN">
-                            <input type="hidden" name="to_choice" value="DIRECTOR">
+                        <div class="content-memo" style="box-shadow: none;">
+                            <div class="memo-header">
+                                <img src="assets/img/garuda-logo.png" alt="">
+                                <p>บันทึกข้อความ</p>
+                                <div></div>
+                            </div>
 
-                            <div class="memo-detail">
-                                <div class="form-group-row">
-                                    <p><strong>ส่วนราชการ</strong></p>
+                            <form method="POST" id="circularComposeForm">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="flow_mode" value="CHAIN">
+                                <input type="hidden" name="to_choice" value="DIRECTOR">
 
-                                    <div class="custom-select-wrapper">
-                                        <div class="custom-select-trigger">
-                                            <p class="select-value">
-                                                <?php
-                                                $selected_faction_name = '';
+                                <div class="memo-detail">
+                                    <div class="form-group-row">
+                                        <p><strong>ส่วนราชการ</strong></p>
 
-                                                foreach ($factions as $faction) {
-                                                    if ((string) ($faction['fID'] ?? '') === $selected_sender_fid) {
-                                                        $selected_faction_name = (string) ($faction['fname'] ?? '');
-                                                        break;
+                                        <div class="custom-select-wrapper">
+                                            <div class="custom-select-trigger">
+                                                <p class="select-value">
+                                                    <?php
+                                                    $selected_faction_name = '';
+
+                                                    foreach ($factions as $faction) {
+                                                        if ((string) ($faction['fID'] ?? '') === $selected_sender_fid) {
+                                                            $selected_faction_name = (string) ($faction['fname'] ?? '');
+                                                            break;
+                                                        }
                                                     }
-                                                }
-                                                echo h($selected_faction_name !== '' ? $selected_faction_name : 'เลือกส่วนราชการ');
-                                                ?>
-                                            </p>
-                                            <i class="fa-solid fa-chevron-down"></i>
-                                        </div>
+                                                    echo h($selected_faction_name !== '' ? $selected_faction_name : 'เลือกส่วนราชการ');
+                                                    ?>
+                                                </p>
+                                                <i class="fa-solid fa-chevron-down"></i>
+                                            </div>
 
-                                        <div class="custom-options">
-                                            <!-- <?php foreach ($factions as $faction) : ?>
+                                            <div class="custom-options">
+                                                <!-- <?php foreach ($factions as $faction) : ?>
                                                 <?php $fid = (string) ($faction['fID'] ?? ''); ?>
                                                 <div class="custom-option<?= $fid === $selected_sender_fid ? ' selected' : '' ?>" data-value="<?= h($fid) ?>">
                                                     <?= h((string) ($faction['fname'] ?? '')) ?>
                                                 </div>
                                             <?php endforeach; ?> -->
-                                            <div class="custom-option">กลุ่ม</div>
+                                                <div class="custom-option">กลุ่ม</div>
+                                            </div>
+
+                                            <input type="hidden" name="sender_fid" value="<?= h($selected_sender_fid) ?>">
                                         </div>
 
-                                        <input type="hidden" name="sender_fid" value="<?= h($selected_sender_fid) ?>">
+                                        <p><strong>โรงเรียนดีบุกพังงาวิทยายน</strong></p>
                                     </div>
 
-                                    <p><strong>โรงเรียนดีบุกพังงาวิทยายน</strong></p>
-                                </div>
+                                    <div class="form-group-row memo-subject-row">
+                                        <p><strong>เรื่อง</strong></p>
+                                        <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" required>
+                                    </div>
 
-                                <div class="form-group-row memo-subject-row">
-                                    <p><strong>เรื่อง</strong></p>
-                                    <input type="text" name="subject" value="<?= h((string) ($values['subject'] ?? '')) ?>" required>
-                                </div>
+                                    <div class="form-group-row memo-to-row">
+                                        <p><strong>เรียน</strong></p>
+                                        <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
+                                    </div>
 
-                                <div class="form-group-row memo-to-row">
-                                    <p><strong>เรียน</strong></p>
-                                    <p>ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน</p>
-                                </div>
+                                    <div class="content-editor">
+                                        <p><strong>รายละเอียด:</strong></p>
+                                        <br>
+                                        <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                                    </div>
 
-                                <div class="content-editor">
-                                    <p><strong>รายละเอียด:</strong></p>
-                                    <br>
-                                    <textarea name="detail" id="memo_editor"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
-                                </div>
-
-                                <div class="form-group-row signature">
-                                    <!-- <img src="<?= h($signature_src) ?>" alt="">
+                                    <div class="form-group-row signature">
+                                        <!-- <img src="<?= h($signature_src) ?>" alt="">
                                     <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
                                     <p><?= h($current_position !== '' ? $current_position : '-') ?></p> -->
-                                    <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
-                                    <p>(นางสาวกนกรัตน์ บุญถาวร)</p>
-                                    <p>เจ้าหน้าที่</p>
-                                </div>
+                                        <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
+                                        <p>(นางสาวกนกรัตน์ บุญถาวร)</p>
+                                        <p>เจ้าหน้าที่</p>
+                                    </div>
 
-                                <!-- <div class="form-group-row submit">
+                                    <!-- <div class="form-group-row submit">
                             <button type="submit">บันทึกเอกสาร</button>
                         </div> -->
-                            </div>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+
+                    <div class="footer-modal">
+                        <form method="POST" id="modalArchiveForm">
+                            <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac"> <input type="hidden" name="inbox_id" id="modalInboxId" value="10">
+                            <input type="hidden" name="action" value="archive">
+                            <button type="submit">
+                                <p>เสนอแฟ้ม</p>
+                            </button>
                         </form>
                     </div>
 
                 </div>
-
-                <div class="footer-modal">
-                    <form method="POST" id="modalArchiveForm">
-                        <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac"> <input type="hidden" name="inbox_id" id="modalInboxId" value="10">
-                        <input type="hidden" name="action" value="archive">
-                        <button type="submit">
-                            <p>เสนอแฟ้ม</p>
-                        </button>
-                    </form>
-                </div>
-
             </div>
-        </div>
+        <?php else : ?>
+            <!-- <div class="table-circular-notice-index outside-person">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>วันที่รับ</th>
+                            <th>เลขที่ / เรื่อง</th>
+                            <th>ความเร่งด่วน</th>
+                            <th>สถานะปัจุบัน</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($items)) : ?>
+                            <tr>
+                                <td colspan="5" class="enterprise-empty">ไม่มีรายการ</td>
+                            </tr>
+                        <?php else : ?>
+                            <?php foreach ($items as $item) : ?>
+                                <?php
+                                $file_json = (string) ($item['files_json'] ?? '[]');
+                                $priority_label = (string) ($item['ext_priority_label'] ?? 'ปกติ');
+                                ?>
+                                <tr>
+                                    <td>
+                                        <p><?= h((string) ($item['delivered_date'] ?? '-')) ?></p>
+                                        <p><?= h((string) ($item['delivered_time'] ?? '-')) ?></p>
+                                    </td>
+                                    <td>
+                                        <p><?= h((string) ($item['ext_book_no'] ?? '-')) ?></p>
+                                        <p><?= h((string) ($item['subject'] ?? '')) ?></p>
+                                    </td>
+                                    <td><button class="urgency-status <?= h((string) ($item['urgency_class'] ?? 'normal')) ?>">
+                                            <p><?= h($priority_label) ?></p>
+                                        </button></td>
+                                    <td><?= h((string) ($item['status_label'] ?? '-')) ?></td>
+                                    <td>
+                                        <div class="circular-action-stack">
+                                            <button
+                                                class="button-more-details js-open-circular-modal"
+                                                type="button"
+                                                data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
+                                                data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
+                                                data-urgency="<?= h($priority_label) ?>"
+                                                data-urgency-class="<?= h((string) ($item['urgency_class'] ?? 'normal')) ?>"
+                                                data-bookno="<?= h((string) ($item['ext_book_no'] ?? '')) ?>"
+                                                data-issued="<?= h((string) ($item['ext_issued_date'] ?? '-')) ?>"
+                                                data-from="<?= h((string) ($item['ext_from_text'] ?? '')) ?>"
+                                                data-to="<?= h($director_label) ?>"
+                                                data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
+                                                data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
+                                                data-status="<?= h((string) ($item['status_label'] ?? '-')) ?>"
+                                                data-consider="<?= h((string) ($item['consider_class'] ?? 'considering')) ?>"
+                                                data-files="<?= h($file_json) ?>"
+                                                data-received-time="<?= h((string) ($item['delivered_time'] ?? '-')) ?>">
+                                                <p>รายละเอียด</p>
+                                            </button>
+                                            <a class="button-open-workflow" href="circular-view.php?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">อ่าน/ดำเนินการ</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div> -->
+        <?php endif; ?>
     </section>
 
     <div class="button-circular-notice-keep"></div>

@@ -300,6 +300,10 @@ ob_start();
     .content-my-memo .memo-mine-table td.memo-date-col {
         text-align: left;
     }
+
+    .content-memo .memo-detail .file-list {
+        max-width: 420px;
+    }
 </style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>

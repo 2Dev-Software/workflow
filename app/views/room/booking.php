@@ -148,9 +148,9 @@ ob_start();
                 <input type="hidden" name="status" value="0">
 
                 <div class="booking-form-grid">
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label class="form-label" for="bookingRoom">ห้อง/สถานที่</label>
-                        <select class="form-input" id="bookingRoom" name="roomID" required>
+                        <!-- <select class="form-input" id="bookingRoom" name="roomID" required>
                             <option value="" disabled selected>เลือกห้องหรือสถานที่</option>
                             <?php foreach ($room_booking_room_list as $room) : ?>
                                 <?php
@@ -170,25 +170,59 @@ ob_start();
                                     <?= h($room_option_label) ?>
                                 </option>
                             <?php endforeach; ?>
-                        </select>
+                        </select> -->
+                        <div class="page-selector">
+                            <!-- <p>แสดงตามสถานะหนังสือ</p> -->
+
+                            <div class="custom-select-wrapper" data-target="filterReadInput">
+                                <div class="custom-select-trigger">
+                                    <p class="select-value">เลือกห้องหรือสถานที่</p>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+
+                                <div class="custom-options">
+                                    <div class="custom-option">เลือกห้องหรือสถานที่</div>
+                                    <div class="custom-option">หอประชุม</div>
+                                    <div class="custom-option">ทั้งหมด</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="bookingStartDate">วันที่เริ่มใช้</label>
                         <input class="form-input" type="date" id="bookingStartDate" name="startDate" required>
                     </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ช่วงเวลา</label>
+                        <div class="booking-time-range">
+                            <input class="form-input" type="time" name="startTime" required>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label" for="bookingEndDate">วันที่สิ้นสุด</label>
                         <input class="form-input" type="date" id="bookingEndDate" name="endDate">
                     </div>
+
                     <div class="form-group">
+                        <label class="form-label">ถึง</label>
+                        <div class="booking-time-range">
+                            <input class="form-input" type="time" name="endTime" required>
+                        </div>
+                    </div>
+
+                    <!-- <div class="form-group">
                         <label class="form-label">ช่วงเวลา</label>
                         <div class="booking-time-range">
                             <input class="form-input" type="time" name="startTime" required>
                             <span>ถึง</span>
                             <input class="form-input" type="time" name="endTime" required>
                         </div>
-                    </div>
-                    <div class="form-group">
+                    </div> -->
+
+                    <div class="form-group full">
                         <label class="form-label" for="bookingCapacity">จำนวนผู้เข้าร่วม</label>
                         <input class="form-input" type="number" id="bookingCapacity" name="attendeeCount" min="1"
                             placeholder="ระบุจำนวนคน">
@@ -203,12 +237,12 @@ ob_start();
                         <textarea class="form-input booking-textarea" id="bookingDetail" name="bookingDetail" rows="4"
                             placeholder="ระบุรายละเอียดการใช้งาน"></textarea>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label class="form-label" for="bookingEquipment">อุปกรณ์ที่ต้องการ</label>
                         <textarea class="form-input booking-textarea" id="bookingEquipment" name="equipmentDetail" rows="3"
                             placeholder="โปรเจคเตอร์, ไมโครโฟน"></textarea>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label class="form-label" for="bookingOwner">ผู้ประสานงาน</label>
                         <input class="form-input" type="text" id="bookingOwner" name="requesterDisplayName"
                             value="<?= h($teacher_name) ?>" readonly>
@@ -399,11 +433,10 @@ ob_start();
 <div id="bookingListModal" class="modal-overlay hidden">
     <div class="modal-content booking-modal">
         <header class="modal-header">
-            <div class="modal-title">
-                <i class="fa-solid fa-list-check"></i>
+            <div class="modal-title" style="color: var(--color-secondary); font-size: var(--font-size-title); font-weight: bold;">
                 <span>รายการจองของฉันทั้งหมด</span>
             </div>
-            <div class="close-modal-btn" data-booking-modal-close="bookingListModal">
+            <div class="close-modal-btn" data-booking-modal-close="bookingListModal" style="color: var(--color-secondary); font-size: var(--font-size-title); font-weight: bold;">
                 <i class="fa-solid fa-xmark"></i>
             </div>
         </header>
@@ -513,7 +546,6 @@ ob_start();
     <div class="modal-content booking-detail-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-calendar-check"></i>
                 <span>รายละเอียดการจอง</span>
             </div>
             <div>
@@ -524,53 +556,43 @@ ob_start();
             </div>
         </header>
         <div class="modal-body booking-detail-body">
-            <div class="booking-detail-grid">
-                <div class="detail-item">
-                    <p class="detail-label">ห้อง/สถานที่</p>
-                    <p class="detail-value" data-booking-detail="room">-</p>
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>ห้อง/สถานที่</label>
+                    <input type="text" placeholder="-" disabled>
                 </div>
-                <div class="detail-item">
-                    <p class="detail-label">วันที่ใช้</p>
-                    <p class="detail-value" data-booking-detail="date">-</p>
-                </div>
-                <div class="detail-item">
-                    <p class="detail-label">เวลา</p>
-                    <p class="detail-value" data-booking-detail="time">-</p>
-                </div>
-                <div class="detail-item detail-half">
-                    <p class="detail-label">จำนวนผู้เข้าร่วม</p>
-                    <p class="detail-value" data-booking-detail="attendees">-</p>
-                </div>
-                <div class="detail-item detail-approval-item detail-full" data-booking-detail="approval-item">
-                    <p class="detail-label" data-booking-detail="approval-label">ผู้อนุมัติ</p>
-                    <p class="detail-value" data-booking-detail="approval-name">-</p>
-                    <span class="detail-subtext" data-booking-detail="approval-at">-</span>
+                <div class="booking-detail-content">
+                    <label>วันที่ใช้</label>
+                    <input type="text" placeholder="-" disabled>
                 </div>
             </div>
 
-            <div class="booking-detail-section">
-                <h4>หัวข้อการจอง</h4>
-                <p data-booking-detail="topic">-</p>
-            </div>
-
-            <div class="booking-detail-section">
-                <h4>รายละเอียด/วัตถุประสงค์</h4>
-                <p data-booking-detail="detail">-</p>
-            </div>
-
-            <div class="booking-detail-section detail-reason-section hidden" data-booking-detail="reason-row">
-                <h4>เหตุผลการไม่อนุมัติ</h4>
-                <p data-booking-detail="reason">-</p>
-            </div>
-
-            <div class="booking-detail-meta">
-                <div class="detail-meta-item">
-                    <span>สร้างรายการ</span>
-                    <strong data-booking-detail="created">-</strong>
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>เวลา</label>
+                    <input type="text" placeholder="-" disabled>
                 </div>
-                <div class="detail-meta-item">
-                    <span>อัปเดตล่าสุด</span>
-                    <strong data-booking-detail="updated">-</strong>
+                <div class="booking-detail-content">
+                    <label>จำนวนผู้เข้าร่วม</label>
+                    <input type="text" placeholder="-" disabled>
+                </div>
+                <div class="booking-detail-content">
+                    <label>สร้างรายการ</label>
+                    <input type="text" placeholder="-" disabled>
+                </div>
+            </div>
+
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>หัวข้อการจอง</label>
+                    <input type="text" placeholder="-" disabled>
+                </div>
+            </div>
+
+            <div class="booking-detail-row">
+                <div class="booking-detail-content">
+                    <label>รายละเอียด/วัตถุประสงค์</label>
+                    <input type="text" placeholder="-" disabled>
                 </div>
             </div>
 
@@ -585,7 +607,7 @@ ob_start();
     <div class="modal-content">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-regular fa-calendar-days"></i>
+                <!-- <i class="fa-regular fa-calendar-days"></i> -->
                 <span id="modal-date-title">วันที่ ...</span>
             </div>
             <div class="close-modal-btn">

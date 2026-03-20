@@ -188,7 +188,6 @@ ob_start();
         <div class="modal-content booking-detail-modal approval-detail-modal">
             <header class="modal-header">
                 <div class="modal-title">
-                    <i class="fa-solid fa-clipboard-check"></i>
                     <span>รายละเอียดการอนุมัติการจองรถ</span>
                 </div>
                 <div>

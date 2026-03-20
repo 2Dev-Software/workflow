@@ -631,6 +631,9 @@ ob_start();
         /* margin: 30px 0 0; */
         padding-top: 30px;
         /* border-top: 1px solid var(--color-secondary); */
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
 
     .circular-track-modal-host .modal-overlay-circular-notice-index.outside-person .content-read-sec .custom-table {
@@ -1312,6 +1315,13 @@ ob_start();
                                         <i class="fa-solid fa-eye"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
+                                    <button
+                                        class="booking-action-btn secondary js-open-edit-modal"
+                                        type="button"
+                                        data-circular-id="<?= h((string) $circular_id) ?>">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span class="tooltip">แก้ไข</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1321,15 +1331,6 @@ ob_start();
         </table>
     </div>
 
-    <?php
-    // $pagination_url = $build_url(['page' => null]);
-    // component_render('pagination', [
-    //     'page' => $page,
-    //     'total_pages' => $total_pages,
-    //     'base_url' => $pagination_url,
-    //     'class' => 'u-mt-2',
-    // ]);
-    ?>
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">
@@ -1398,509 +1399,782 @@ ob_start();
     </div>
 </div>
 
+<div class="content-circular-notice-index circular-track-modal-host">
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalEditOverlay" style="display: none;">
+        <div class="modal-content">
+            <div class="header-modal">
+                <div class="first-header">
+                    <p>แก้ไขหนังสือเวียน</p>
+                </div>
+                <div class="sec-header">
+                    <i class="fa-solid fa-xmark" id="closeModalEdit" style="cursor: pointer;"></i>
+                </div>
+            </div>
+
+            <div class="content-modal">
+                <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularEditForm" style="box-shadow:none; padding: 0;">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+
+                    <div class="form-group">
+                        <label for="edit_subject"><b>หัวเรื่อง</b></label>
+                        <input type="text" name="subject" id="edit_subject" placeholder="กรุณากรอกหัวเรื่อง" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_detail"><b>รายละเอียด</b></label>
+                        <textarea name="detail" id="edit_detail" rows="4" placeholder="กรุณากรอกรายละเอียด"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label><b>อัปโหลดไฟล์เอกสารใหม่</b></label>
+                        <section class="upload-layout">
+                            <input type="file" id="edit_fileInput" name="attachments[]" multiple accept="application/pdf,image/png,image/jpeg" style="display: none;" />
+                            <div class="upload-box" id="edit_dropzone">
+                                <i class="fa-solid fa-upload"></i>
+                                <p>ลากไฟล์มาวางที่นี่</p>
+                            </div>
+                            <div class="file-list" id="edit_fileListContainer"></div>
+                        </section>
+                    </div>
+
+                    <div class="row form-group">
+                        <button class="btn btn-upload-small" type="button" id="edit_btnAddFiles">
+                            <p>เพิ่มไฟล์</p>
+                        </button>
+                        <div class="file-hint">
+                            <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) *</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_linkURL"><b>แนบลิ้งก์</b></label>
+                        <input type="text" id="edit_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" />
+                    </div>
+
+                    <div class="sender-row">
+                        <div class="form-group sender-field">
+                            <label for="edit_senderDisplay"><b>ผู้ส่ง</b></label>
+                            <input id="edit_senderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_fromFIDDisplay"><b>ในนามของ</b></label>
+                            <input id="edit_fromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
+                            <input type="hidden" name="fromFID" value="<?= h($sender_from_fid > 0 ? (string) $sender_from_fid : '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group receive" data-recipients-section>
+                        <label><b>ส่งถึง :</b></label>
+                        <div class="dropdown-container">
+                            <div class="search-input-wrapper" id="edit_recipientToggle">
+                                <input type="text" id="edit_mainInput" class="search-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+
+                            <div class="dropdown-content" id="edit_dropdownContent">
+    <div class="dropdown-header">
+        <label class="select-all-box" for="edit_selectAll">
+            <input type="checkbox" id="edit_selectAll">เลือกทั้งหมด
+        </label>
+    </div>
+    <div class="dropdown-list">
+        <?php if (!empty($factions)) : ?>
+            <div class="category-group">
+                <div class="category-title">
+                    <span>หน่วยงาน</span>
+                </div>
+                <div class="category-items">
+                    <?php foreach ($factions as $faction) : ?>
+                        <?php
+                        $fid = (int) ($faction['fID'] ?? 0);
+                        if ($fid <= 0) continue;
+                        
+                        $fid_value = (string) $fid;
+                        $faction_name = trim((string) ($faction['fName'] ?? ''));
+
+                        if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) continue;
+                        
+                        $members = $faction_members[$fid] ?? [];
+                        $member_payload = [];
+
+                        foreach ($members as $member) {
+                            $member_payload[] = [
+                                'pID' => (string) ($member['pID'] ?? ''),
+                                'name' => (string) ($member['name'] ?? ''),
+                                'faction' => $faction_name,
+                            ];
+                        }
+                        $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
+                        $member_total = count($members);
+                        $has_selected_member = false;
+
+                        foreach ($members as $member) {
+                            $member_pid = (string) ($member['pID'] ?? '');
+                            if ($member_pid !== '' && $is_selected($member_pid, $selected_people)) {
+                                $has_selected_member = true;
+                                break;
+                            }
+                        }
+                        $expanded_by_default = $is_selected($fid_value, $selected_factions) || $has_selected_member;
+                        
+                        // สร้าง key พิเศษสำหรับ edit
+                        $edit_group_key = 'edit-faction-' . $fid_value;
+                        ?>
+                        <div class="item item-group<?= $expanded_by_default ? '' : ' is-collapsed' ?>" data-faction-id="<?= h($fid_value) ?>">
+                            <div class="group-header">
+                                <label class="item-main" for="edit_group_faction_<?= h($fid_value) ?>">
+                                    <input type="checkbox" id="edit_group_faction_<?= h($fid_value) ?>" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction"
+                                        data-group-key="<?= h($edit_group_key) ?>"
+                                        data-group-label="<?= h($faction_name) ?>"
+                                        data-members="<?= h($member_payload_json) ?>"
+                                        name="faction_ids[]" value="<?= h($fid_value) ?>" <?= h($is_selected($fid_value, $selected_factions) ? 'checked' : '') ?>>
+                                    <span class="item-title"><?= h($faction_name) ?></span>
+                                    <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
+                                </label>
+                                <button type="button" class="group-toggle" aria-expanded="<?= $expanded_by_default ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                            </div>
+
+                            <ol class="member-sublist">
+                                <?php if ($member_total === 0) : ?>
+                                    <li><span class="item-subtext">ไม่มีสมาชิกในฝ่ายนี้</span></li>
+                                <?php else : ?>
+                                    <?php foreach ($members as $member) : ?>
+                                        <?php
+                                        $member_pid = (string) ($member['pID'] ?? '');
+                                        $member_name = (string) ($member['name'] ?? '');
+                                        if ($member_pid === '' || $member_name === '') continue;
+                                        ?>
+                                        <li>
+                                            <label class="item member-item" for="edit_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>">
+                                                <input type="checkbox" id="edit_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>" class="member-checkbox"
+                                                    data-member-group-key="<?= h($edit_group_key) ?>"
+                                                    data-member-name="<?= h($member_name) ?>"
+                                                    data-group-label="<?= h($faction_name) ?>"
+                                                    name="person_ids[]" value="<?= h($member_pid) ?>" <?= h($is_selected($member_pid, $selected_people) ? 'checked' : '') ?>>
+                                                <span class="member-name"><?= h($member_name) ?></span>
+                                            </label>
+                                        </li>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </ol>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($department_groups)) : ?>
+            <div class="category-group">
+                <div class="category-title">
+                    <span>กลุ่มสาระ</span>
+                </div>
+                <div class="category-items">
+                    <?php foreach ($department_groups as $department_group) : ?>
+                        <?php
+                        $did = (int) ($department_group['dID'] ?? 0);
+                        $department_name = trim((string) ($department_group['name'] ?? ''));
+                        $members = (array) ($department_group['members'] ?? []);
+
+                        if ($did <= 0 || $department_name === '' || empty($members)) continue;
+
+                        $member_payload = [];
+                        $has_selected_member = false;
+
+                        foreach ($members as $member) {
+                            $member_pid = (string) ($member['pID'] ?? '');
+                            $member_name = (string) ($member['name'] ?? '');
+                            if ($member_pid === '' || $member_name === '') continue;
+
+                            if ($is_selected($member_pid, $selected_people)) {
+                                $has_selected_member = true;
+                            }
+                            $member_payload[] = [
+                                'pID' => $member_pid,
+                                'name' => $member_name,
+                                'faction' => $department_name,
+                            ];
+                        }
+
+                        if (empty($member_payload)) continue;
+
+                        $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
+                        $member_total = count($member_payload);
+                        
+                        $group_key = 'department-' . $did;
+                        // สร้าง key พิเศษสำหรับ edit
+                        $edit_group_key = 'edit-department-' . $did;
+                        ?>
+                        <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
+                            <div class="group-header">
+                                <label class="item-main" for="edit_group_dept_<?= h($did) ?>">
+                                    <input type="checkbox" id="edit_group_dept_<?= h($did) ?>" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department"
+                                        data-group-key="<?= h($edit_group_key) ?>"
+                                        data-group-label="<?= h($department_name) ?>"
+                                        data-members="<?= h($member_payload_json) ?>"
+                                        value="<?= h($group_key) ?>">
+                                    <span class="item-title"><?= h($department_name) ?></span>
+                                    <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
+                                </label>
+                                <button type="button" class="group-toggle" aria-expanded="<?= $has_selected_member ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                            </div>
+
+                            <ol class="member-sublist">
+                                <?php foreach ($member_payload as $member) : ?>
+                                    <li>
+                                        <label class="item member-item" for="edit_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
+                                            <input type="checkbox" id="edit_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
+                                                data-member-group-key="<?= h($edit_group_key) ?>"
+                                                data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
+                                                data-group-label="<?= h($department_name) ?>"
+                                                name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
+                                            <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
+                                        </label>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ol>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($special_groups)) : ?>
+            <div class="category-group">
+                <div class="category-title">
+                    <span>อื่นๆ</span>
+                </div>
+                <div class="category-items">
+                    <?php foreach ($special_groups as $special_group) : ?>
+                        <?php
+                        $group_key = trim((string) ($special_group['key'] ?? ''));
+                        $group_name = trim((string) ($special_group['name'] ?? ''));
+                        $members = (array) ($special_group['members'] ?? []);
+
+                        if ($group_key === '' || $group_name === '' || empty($members)) continue;
+
+                        $member_payload = [];
+                        $has_selected_member = false;
+
+                        foreach ($members as $member) {
+                            $member_pid = (string) ($member['pID'] ?? '');
+                            $member_name = (string) ($member['name'] ?? '');
+                            if ($member_pid === '' || $member_name === '') continue;
+
+                            if ($is_selected($member_pid, $selected_people)) {
+                                $has_selected_member = true;
+                            }
+                            $member_payload[] = [
+                                'pID' => $member_pid,
+                                'name' => $member_name,
+                                'faction' => $group_name,
+                            ];
+                        }
+
+                        if (empty($member_payload)) continue;
+
+                        $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
+                        $member_total = count($member_payload);
+                        
+                        // สร้าง key พิเศษสำหรับ edit
+                        $edit_group_key = 'edit-special-' . $group_key;
+                        ?>
+                        <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
+                            <div class="group-header">
+                                <label class="item-main" for="edit_group_special_<?= h($group_key) ?>">
+                                    <input type="checkbox" id="edit_group_special_<?= h($group_key) ?>" class="item-checkbox group-item-checkbox" data-group="special"
+                                        data-group-key="<?= h($edit_group_key) ?>"
+                                        data-group-label="<?= h($group_name) ?>"
+                                        data-members="<?= h($member_payload_json) ?>"
+                                        value="<?= h($group_key) ?>">
+                                    <span class="item-title"><?= h($group_name) ?></span>
+                                    <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
+                                </label>
+                                <button type="button" class="group-toggle" aria-expanded="<?= $has_selected_member ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                            </div>
+
+                            <ol class="member-sublist">
+                                <?php foreach ($member_payload as $member) : ?>
+                                    <li>
+                                        <label class="item member-item" for="edit_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
+                                            <input type="checkbox" id="edit_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
+                                                data-member-group-key="<?= h($edit_group_key) ?>"
+                                                data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
+                                                data-group-label="<?= h($group_name) ?>"
+                                                name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
+                                            <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
+                                        </label>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ol>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+                            
+                        </div>
+                        <div class="sent-notice-selected">
+                            <button id="edit_btnShowRecipients" type="button">
+                                <p>แสดงผู้รับทั้งหมด</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="edit_confirmModal" class="modal-overlay-confirm">
+                        <div class="confirm-box">
+                            <div class="confirm-header">
+                                <div class="icon-circle"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            </div>
+                            <div class="confirm-body">
+                                <h3>ยืนยันการแก้ไขและส่งใหม่</h3>
+                                <div class="confirm-actions">
+                                    <button id="edit_btnConfirmYes" class="btn-yes" type="button">ยืนยัน</button>
+                                    <button id="edit_btnConfirmNo" class="btn-no" type="button">ยกเลิก</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="edit_recipientModal" class="modal-overlay-recipient">
+                        <div class="modal-container">
+                            <div class="modal-header">
+                                <div class="modal-title">
+                                    <i class="fa-solid fa-users"></i><span>รายชื่อผู้รับหนังสือเวียน</span>
+                                </div>
+                                <button class="modal-close" id="edit_closeModalBtn" type="button"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="recipient-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ลำดับ</th>
+                                            <th>ชื่อจริง-นามสกุล</th>
+                                            <th>กลุ่ม/ฝ่าย</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="edit_recipientTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="footer-modal">
+                <form method="POST" id="modalArchiveForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="inbox_id" id="modalInboxId" value="">
+                    <input type="hidden" name="action" value="<?= h($archived ? 'unarchive' : 'archive') ?>">
+                    <button type="submit">
+                        <p>ยืนยัน</p>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('circularComposeForm');
+
         const trackFilterForm = document.querySelector('#circularTrack form.circular-my-filter-grid');
         const trackSearchInput = trackFilterForm ? trackFilterForm.querySelector('input[name="q"]') : null;
         const trackStatusSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="status"]') : null;
         const trackSortSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="sort"]') : null;
-        const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileListContainer');
-        const dropzone = document.getElementById('dropzone');
-        const addFilesBtn = document.getElementById('btnAddFiles');
-        const previewModal = document.getElementById('imagePreviewModal');
-        const previewImage = document.getElementById('previewImage');
-        const previewCaption = document.getElementById('previewCaption');
-        const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-        const maxFiles = 5;
-        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-        let selectedFiles = [];
         let trackSearchTimer = null;
 
         if (trackSearchInput && trackFilterForm) {
             trackSearchInput.addEventListener('input', () => {
-                if (trackSearchTimer) {
-                    clearTimeout(trackSearchTimer);
-                }
-                trackSearchTimer = window.setTimeout(() => {
-                    trackFilterForm.submit();
-                }, 300);
+                if (trackSearchTimer) clearTimeout(trackSearchTimer);
+                trackSearchTimer = window.setTimeout(() => trackFilterForm.submit(), 300);
             });
         }
         trackStatusSelect?.addEventListener('change', () => trackFilterForm?.submit());
         trackSortSelect?.addEventListener('change', () => trackFilterForm?.submit());
 
-        const renderFiles = () => {
-            if (!fileList) return;
-            fileList.innerHTML = '';
-            if (selectedFiles.length === 0) return;
-
-            selectedFiles.forEach((file, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'file-item-wrapper';
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                deleteBtn.addEventListener('click', () => {
-                    selectedFiles = selectedFiles.filter((_, i) => i !== index);
-                    syncFiles();
-                    renderFiles();
-                });
-
-                const banner = document.createElement('div');
-                banner.className = 'file-banner';
-
-                const info = document.createElement('div');
-                info.className = 'file-info';
-
-                const icon = document.createElement('div');
-                icon.className = 'file-icon';
-                icon.innerHTML = file.type === 'application/pdf' ?
-                    '<i class="fa-solid fa-file-pdf"></i>' :
-                    '<i class="fa-solid fa-image"></i>';
-
-                const text = document.createElement('div');
-                text.className = 'file-text';
-
-                const name = document.createElement('div');
-                name.className = 'file-name';
-                name.textContent = file.name;
-
-                const type = document.createElement('div');
-                type.className = 'file-type';
-                type.textContent = file.type || 'ไฟล์แนบ';
-
-                text.appendChild(name);
-                text.appendChild(type);
-
-                info.appendChild(icon);
-                info.appendChild(text);
-
-                const actions = document.createElement('div');
-                actions.className = 'file-actions';
-
-                const view = document.createElement('a');
-                view.href = '#';
-                view.innerHTML = '<i class="fa-solid fa-eye"></i>';
-                view.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            if (previewImage) previewImage.src = reader.result;
-                            if (previewCaption) previewCaption.textContent = file.name;
-                            previewModal?.classList.add('active');
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        const url = URL.createObjectURL(file);
-                        window.open(url, '_blank', 'noopener');
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    }
-                });
-
-                actions.appendChild(view);
-                banner.appendChild(info);
-                banner.appendChild(actions);
-
-                wrapper.appendChild(deleteBtn);
-                wrapper.appendChild(banner);
-                fileList.appendChild(wrapper);
-            });
-        };
-
-        const syncFiles = () => {
-            if (!fileInput) return;
-            const dt = new DataTransfer();
-            selectedFiles.forEach((file) => dt.items.add(file));
-            fileInput.files = dt.files;
-        };
-
-        const addFiles = (files) => {
-            if (!files) return;
-            const existing = new Set(selectedFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
-            Array.from(files).forEach((file) => {
-                const key = `${file.name}-${file.size}-${file.lastModified}`;
-                if (existing.has(key)) return;
-                if (!allowedTypes.includes(file.type)) return;
-                if (selectedFiles.length >= maxFiles) return;
-                selectedFiles.push(file);
-                existing.add(key);
-            });
-            syncFiles();
-            renderFiles();
-        };
-
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                addFiles(e.target.files);
-            });
-        }
-
-        if (dropzone) {
-            dropzone.addEventListener('click', () => fileInput?.click());
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('active');
-            });
-            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('active');
-                addFiles(e.dataTransfer?.files || []);
-            });
-        }
-
-        addFilesBtn?.addEventListener('click', () => fileInput?.click());
+        const previewModal = document.getElementById('imagePreviewModal');
+        const previewImage = document.getElementById('previewImage');
+        const previewCaption = document.getElementById('previewCaption');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
 
         closePreviewBtn?.addEventListener('click', () => previewModal?.classList.remove('active'));
         previewModal?.addEventListener('click', (e) => {
             if (e.target === previewModal) previewModal.classList.remove('active');
         });
 
-        const recipientSection = document.querySelector('[data-recipients-section]');
-        if (recipientSection) {
-            recipientSection.classList.remove('u-hidden');
-        }
+        function setupCircularForm(prefix, formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
 
-        const dropdown = document.getElementById('dropdownContent');
-        const toggle = document.getElementById('recipientToggle');
-        const searchInput = document.getElementById('mainInput');
-        const selectAll = document.getElementById('selectAll');
-        const groupChecks = Array.from(document.querySelectorAll('.group-item-checkbox'));
-        const memberChecks = Array.from(document.querySelectorAll('.member-checkbox'));
-        const groupItems = Array.from(document.querySelectorAll('.dropdown-list .item-group'));
-        const categoryGroups = Array.from(document.querySelectorAll('.dropdown-list .category-group'));
+            const fileInput = document.getElementById(prefix + 'fileInput');
+            const fileList = document.getElementById(prefix + 'fileListContainer');
+            const dropzone = document.getElementById(prefix + 'dropzone');
+            const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
 
-        const normalizeSearchText = (value) => String(value || '')
-            .toLowerCase()
-            .replace(/\s+/g, '')
-            .replace(/[^0-9a-z\u0E00-\u0E7F]/gi, '');
+            const maxFiles = 5;
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            let selectedFiles = [];
 
-        const getMemberChecksByGroupKey = (groupKey) => memberChecks.filter((el) => (el.dataset.memberGroupKey || '') === String(groupKey));
-        const syncMemberByPid = (pid, checked, source) => {
-            const normalizedPid = String(pid || '').trim();
-            if (normalizedPid === '') return;
-            memberChecks.forEach((memberCheck) => {
-                if (memberCheck === source) return;
-                if (String(memberCheck.value || '') !== normalizedPid) return;
-                if (memberCheck.disabled) return;
-                memberCheck.checked = checked;
-            });
-        };
-        const setGroupCollapsed = (groupItem, collapsed) => {
-            if (!groupItem) return;
-            groupItem.classList.toggle('is-collapsed', collapsed);
-            const toggleBtn = groupItem.querySelector('.group-toggle');
-            if (toggleBtn) {
-                toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-            }
-        };
+            const renderFiles = () => {
+                if (!fileList) return;
+                fileList.innerHTML = '';
+                selectedFiles.forEach((file, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'file-item-wrapper';
 
-        const setDropdownVisible = (visible) => {
-            if (!dropdown) return;
-            dropdown.classList.toggle('show', visible);
-        };
-
-        toggle?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const clickedInput = e.target instanceof HTMLElement && (
-                e.target.matches('input.search-input') ||
-                !!e.target.closest('input.search-input')
-            );
-            if (clickedInput) {
-                setDropdownVisible(true);
-                return;
-            }
-            setDropdownVisible(!dropdown?.classList.contains('show'));
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!dropdown) return;
-            if (!dropdown.contains(e.target) && !toggle?.contains(e.target)) {
-                setDropdownVisible(false);
-            }
-        });
-
-        groupItems.forEach((groupItem) => {
-            const toggleBtn = groupItem.querySelector('.group-toggle');
-            toggleBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                const isCollapsed = groupItem.classList.contains('is-collapsed');
-                setGroupCollapsed(groupItem, !isCollapsed);
-            });
-        });
-
-        const filterRecipientDropdown = (rawQuery, remoteMatchedPids = null) => {
-            const query = normalizeSearchText(rawQuery);
-            groupItems.forEach((groupItem) => {
-                const titleEl = groupItem.querySelector('.item-title');
-                const titleText = normalizeSearchText(titleEl?.textContent || '');
-                const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
-                const isGroupMatch = query !== '' && titleText.includes(query);
-
-                if (query === '') {
-                    groupItem.style.display = '';
-                    memberRows.forEach((row) => {
-                        row.style.display = '';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteBtn.addEventListener('click', () => {
+                        selectedFiles = selectedFiles.filter((_, i) => i !== index);
+                        syncFiles();
+                        renderFiles();
                     });
-                    return;
-                }
 
-                let hasMemberMatch = false;
-                memberRows.forEach((row) => {
-                    const memberCheckbox = row.querySelector('.member-checkbox');
-                    const memberPid = String(memberCheckbox?.value || '').trim();
-                    const isRemoteMatched = remoteMatchedPids instanceof Set ?
-                        remoteMatchedPids.has(memberPid) :
-                        null;
-                    const rowText = normalizeSearchText(row.textContent || '');
-                    const matchedByText = rowText.includes(query);
-                    const matched = isGroupMatch || matchedByText || isRemoteMatched === true;
-                    row.style.display = matched ? '' : 'none';
-                    if (matched) hasMemberMatch = true;
-                });
+                    const banner = document.createElement('div');
+                    banner.className = 'file-banner';
 
-                const isVisible = isGroupMatch || hasMemberMatch;
-                groupItem.style.display = isVisible ? '' : 'none';
-                if (isVisible) {
-                    setGroupCollapsed(groupItem, false);
-                }
-            });
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
 
-            categoryGroups.forEach((category) => {
-                const hasVisibleItem = Array.from(category.querySelectorAll('.category-items .item-group'))
-                    .some((item) => item.style.display !== 'none');
-                category.style.display = hasVisibleItem ? '' : 'none';
-            });
-        };
+                    const icon = document.createElement('div');
+                    icon.className = 'file-icon';
+                    icon.innerHTML = file.type === 'application/pdf' ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-image"></i>';
 
-        let recipientSearchTimer = null;
-        let recipientSearchRequestNo = 0;
-        const recipientSearchEndpoint = 'public/api/circular-recipient-search.php';
+                    const text = document.createElement('div');
+                    text.className = 'file-text';
+                    text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'}</div>`;
 
-        const requestRecipientSearch = (query) => {
-            const requestNo = ++recipientSearchRequestNo;
-            const url = `${recipientSearchEndpoint}?q=${encodeURIComponent(query)}`;
-            return fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                })
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error('search_failed');
-                    }
-                    return response.json();
-                })
-                .then((payload) => {
-                    if (requestNo !== recipientSearchRequestNo) {
-                        return;
-                    }
-                    const pids = Array.isArray(payload?.pids) ? payload.pids : [];
-                    filterRecipientDropdown(query, new Set(pids.map((pid) => String(pid))));
-                })
-                .catch(() => {
-                    if (requestNo !== recipientSearchRequestNo) {
-                        return;
-                    }
-                    filterRecipientDropdown(query);
-                });
-        };
+                    info.appendChild(icon);
+                    info.appendChild(text);
 
-        searchInput?.addEventListener('focus', () => {
-            setDropdownVisible(true);
-        });
+                    const actions = document.createElement('div');
+                    actions.className = 'file-actions';
 
-        searchInput?.addEventListener('input', () => {
-            setDropdownVisible(true);
-            const query = String(searchInput.value || '').trim();
-            if (recipientSearchTimer) {
-                clearTimeout(recipientSearchTimer);
-            }
-            if (query === '') {
-                recipientSearchRequestNo++;
-                filterRecipientDropdown('');
-                return;
-            }
-            recipientSearchTimer = window.setTimeout(() => {
-                requestRecipientSearch(query);
-            }, 180);
-        });
+                    const view = document.createElement('a');
+                    view.href = '#';
+                    view.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                    view.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const url = URL.createObjectURL(file);
+                        window.open(url, '_blank', 'noopener');
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    });
 
-        searchInput?.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                setDropdownVisible(false);
-            }
-        });
-
-        const updateSelectAllState = () => {
-            if (!selectAll) return;
-            const allChecks = [...groupChecks, ...memberChecks];
-            const checked = allChecks.filter((el) => el.checked).length;
-            selectAll.checked = allChecks.length > 0 && checked === allChecks.length;
-            selectAll.indeterminate = checked > 0 && checked < allChecks.length;
-
-            groupChecks.forEach((groupCheck) => {
-                const groupKey = groupCheck.getAttribute('data-group-key') || '';
-                const members = getMemberChecksByGroupKey(groupKey);
-                if (members.length === 0) {
-                    groupCheck.indeterminate = false;
-                    return;
-                }
-                const memberChecked = members.filter((el) => el.checked).length;
-                if (memberChecked === 0) {
-                    groupCheck.checked = false;
-                    groupCheck.indeterminate = false;
-                    return;
-                }
-                if (memberChecked === members.length) {
-                    groupCheck.checked = true;
-                    groupCheck.indeterminate = false;
-                    return;
-                }
-                groupCheck.checked = false;
-                groupCheck.indeterminate = true;
-            });
-        };
-
-        selectAll?.addEventListener('change', () => {
-            const checked = selectAll.checked;
-            [...groupChecks, ...memberChecks].forEach((el) => {
-                if (!el.disabled) el.checked = checked;
-            });
-            updateSelectAllState();
-        });
-
-        groupChecks.forEach((item) => {
-            item.addEventListener('change', () => {
-                const groupKey = item.getAttribute('data-group-key') || '';
-                const members = getMemberChecksByGroupKey(groupKey);
-                members.forEach((member) => {
-                    if (!member.disabled) {
-                        member.checked = item.checked;
-                        syncMemberByPid(member.value || '', item.checked, member);
-                    }
-                });
-                const parentGroup = item.closest('.item-group');
-                if (item.checked) {
-                    setGroupCollapsed(parentGroup, false);
-                }
-                item.indeterminate = false;
-                updateSelectAllState();
-            });
-        });
-        memberChecks.forEach((item) => {
-            item.addEventListener('change', () => {
-                syncMemberByPid(item.value || '', item.checked, item);
-                updateSelectAllState();
-            });
-        });
-
-        // Keep pre-selected group behavior consistent: when a group is selected,
-        // treat all members in that group as selected.
-        groupChecks.forEach((item) => {
-            if (!item.checked) return;
-            const groupKey = item.getAttribute('data-group-key') || '';
-            const members = getMemberChecksByGroupKey(groupKey);
-            members.forEach((member) => {
-                member.checked = true;
-                syncMemberByPid(member.value || '', true, member);
-            });
-        });
-        updateSelectAllState();
-
-        const btnSend = document.getElementById('btnSendNotice');
-        const confirmModal = document.getElementById('confirmModal');
-        const confirmYes = document.getElementById('btnConfirmYes');
-        const confirmNo = document.getElementById('btnConfirmNo');
-
-        btnSend?.addEventListener('click', (e) => {
-            e.preventDefault();
-            confirmModal?.classList.add('active');
-        });
-        confirmNo?.addEventListener('click', () => confirmModal?.classList.remove('active'));
-        confirmModal?.addEventListener('click', (e) => {
-            if (e.target === confirmModal) confirmModal.classList.remove('active');
-        });
-        confirmYes?.addEventListener('click', () => form?.submit());
-
-        const recipientModal = document.getElementById('recipientModal');
-        const recipientTableBody = document.getElementById('recipientTableBody');
-        const btnShowRecipients = document.getElementById('btnShowRecipients');
-        const closeRecipients = document.getElementById('closeModalBtn');
-
-        const renderRecipients = () => {
-            if (!recipientTableBody) return;
-            recipientTableBody.innerHTML = '';
-            const checkedGroups = groupChecks.filter((item) => item.checked);
-            const checkedMembers = memberChecks.filter((item) => item.checked);
-            if (checkedGroups.length === 0 && checkedMembers.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = '<td colspan=\"3\" style=\"text-align:center; padding: 16px;\">ไม่มีผู้รับที่เลือก</td>';
-                recipientTableBody.appendChild(row);
-                return;
-            }
-
-            const recipientsMap = new Map();
-            const addRecipient = (pid, name, faction) => {
-                const key = String(pid || '').trim();
-                if (key === '') return;
-                if (recipientsMap.has(key)) return;
-                recipientsMap.set(key, {
-                    pid: key,
-                    name: (name || '-').trim() || '-',
-                    faction: (faction || '-').trim() || '-',
+                    actions.appendChild(view);
+                    banner.appendChild(info);
+                    banner.appendChild(actions);
+                    wrapper.appendChild(deleteBtn);
+                    wrapper.appendChild(banner);
+                    fileList.appendChild(wrapper);
                 });
             };
 
-            checkedGroups.forEach((item) => {
-                let members = [];
-                try {
-                    members = JSON.parse(item.getAttribute('data-members') || '[]');
-                } catch (error) {
-                    members = [];
+            const syncFiles = () => {
+                if (!fileInput) return;
+                const dt = new DataTransfer();
+                selectedFiles.forEach((file) => dt.items.add(file));
+                fileInput.files = dt.files;
+            };
+
+            const addFiles = (files) => {
+                if (!files) return;
+                const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
+                Array.from(files).forEach((file) => {
+                    const key = `${file.name}-${file.size}-${file.lastModified}`;
+                    if (!existing.has(key) && allowedTypes.includes(file.type) && selectedFiles.length < maxFiles) {
+                        selectedFiles.push(file);
+                        existing.add(key);
+                    }
+                });
+                syncFiles();
+                renderFiles();
+            };
+
+            if (fileInput) fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+            if (dropzone) {
+                dropzone.addEventListener('click', () => fileInput?.click());
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('active');
+                });
+                dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('active');
+                    addFiles(e.dataTransfer?.files || []);
+                });
+            }
+            addFilesBtn?.addEventListener('click', () => fileInput?.click());
+
+            const dropdown = document.getElementById(prefix + 'dropdownContent');
+            const toggle = document.getElementById(prefix + 'recipientToggle');
+            const searchInput = document.getElementById(prefix + 'mainInput');
+            const selectAll = document.getElementById(prefix + 'selectAll');
+
+            const groupChecks = Array.from(form.querySelectorAll('.group-item-checkbox'));
+            const memberChecks = Array.from(form.querySelectorAll('.member-checkbox'));
+            const groupItems = Array.from(form.querySelectorAll('.dropdown-list .item-group'));
+            const categoryGroups = Array.from(form.querySelectorAll('.dropdown-list .category-group'));
+
+            const setDropdownVisible = (visible) => dropdown?.classList.toggle('show', visible);
+
+            toggle?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (e.target.matches('input.search-input') || e.target.closest('input.search-input')) {
+                    setDropdownVisible(true);
+                } else {
+                    setDropdownVisible(!dropdown?.classList.contains('show'));
                 }
-                if (!Array.isArray(members)) return;
-                members.forEach((member) => {
-                    addRecipient(member && member.pID ? String(member.pID) : '', member && member.name ? String(member.name) : '-', item.getAttribute('data-group-label') || '-');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.contains(e.target) && !toggle?.contains(e.target)) {
+                    setDropdownVisible(false);
+                }
+            });
+
+            const setGroupCollapsed = (groupItem, collapsed) => {
+                if (!groupItem) return;
+                groupItem.classList.toggle('is-collapsed', collapsed);
+                const toggleBtn = groupItem.querySelector('.group-toggle');
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                }
+            };
+
+            groupItems.forEach((groupItem) => {
+                const toggleBtn = groupItem.querySelector('.group-toggle');
+                toggleBtn?.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const isCollapsed = groupItem.classList.contains('is-collapsed');
+                    setGroupCollapsed(groupItem, !isCollapsed);
                 });
             });
 
-            checkedMembers.forEach((item) => {
-                addRecipient(item.value || '', item.getAttribute('data-member-name') || '-', item.getAttribute('data-group-label') || '-');
-            });
+            const normalizeSearchText = (value) => String(value || '').toLowerCase().replace(/\s+/g, '').replace(/[^0-9a-z\u0E00-\u0E7F]/gi, '');
+            const filterRecipientDropdown = (rawQuery, remoteMatchedPids = null) => {
+                const query = normalizeSearchText(rawQuery);
+                groupItems.forEach((groupItem) => {
+                    const titleEl = groupItem.querySelector('.item-title');
+                    const titleText = normalizeSearchText(titleEl?.textContent || '');
+                    const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
+                    const isGroupMatch = query !== '' && titleText.includes(query);
 
-            const uniqueRecipients = Array.from(recipientsMap.values());
-            uniqueRecipients.sort((a, b) => {
-                if (a.faction === b.faction) {
-                    return a.name.localeCompare(b.name, 'th');
+                    if (query === '') {
+                        groupItem.style.display = '';
+                        memberRows.forEach((row) => row.style.display = '');
+                        return;
+                    }
+
+                    let hasMemberMatch = false;
+                    memberRows.forEach((row) => {
+                        const memberCheckbox = row.querySelector('.member-checkbox');
+                        const memberPid = String(memberCheckbox?.value || '').trim();
+                        const isRemoteMatched = remoteMatchedPids instanceof Set ? remoteMatchedPids.has(memberPid) : null;
+                        const rowText = normalizeSearchText(row.textContent || '');
+                        const matchedByText = rowText.includes(query);
+                        const matched = isGroupMatch || matchedByText || isRemoteMatched === true;
+                        row.style.display = matched ? '' : 'none';
+                        if (matched) hasMemberMatch = true;
+                    });
+
+                    const isVisible = isGroupMatch || hasMemberMatch;
+                    groupItem.style.display = isVisible ? '' : 'none';
+                    if (isVisible) setGroupCollapsed(groupItem, false);
+                });
+
+                categoryGroups.forEach((category) => {
+                    const hasVisibleItem = Array.from(category.querySelectorAll('.category-items .item-group')).some((item) => item.style.display !== 'none');
+                    category.style.display = hasVisibleItem ? '' : 'none';
+                });
+            };
+
+            let recipientSearchTimer = null;
+            let recipientSearchRequestNo = 0;
+            const recipientSearchEndpoint = 'public/api/circular-recipient-search.php';
+
+            const requestRecipientSearch = (query) => {
+                const requestNo = ++recipientSearchRequestNo;
+                const url = `${recipientSearchEndpoint}?q=${encodeURIComponent(query)}`;
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
+                    .then((payload) => {
+                        if (requestNo !== recipientSearchRequestNo) return;
+                        const pids = Array.isArray(payload?.pids) ? payload.pids : [];
+                        filterRecipientDropdown(query, new Set(pids.map(pid => String(pid))));
+                    })
+                    .catch(() => {
+                        if (requestNo !== recipientSearchRequestNo) return;
+                        filterRecipientDropdown(query);
+                    });
+            };
+
+            searchInput?.addEventListener('focus', () => setDropdownVisible(true));
+            searchInput?.addEventListener('input', () => {
+                setDropdownVisible(true);
+                const query = String(searchInput.value || '').trim();
+                if (recipientSearchTimer) clearTimeout(recipientSearchTimer);
+                if (query === '') {
+                    recipientSearchRequestNo++;
+                    filterRecipientDropdown('');
+                    return;
                 }
-                return a.faction.localeCompare(b.faction, 'th');
+                recipientSearchTimer = window.setTimeout(() => requestRecipientSearch(query), 180);
+            });
+            searchInput?.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDropdownVisible(false); });
+
+            const getMemberChecksByGroupKey = (groupKey) => memberChecks.filter((el) => (el.dataset.memberGroupKey || '') === String(groupKey));
+            const syncMemberByPid = (pid, checked, source) => {
+                const normalizedPid = String(pid || '').trim();
+                if (normalizedPid === '') return;
+                memberChecks.forEach((memberCheck) => {
+                    if (memberCheck === source) return;
+                    if (String(memberCheck.value || '') !== normalizedPid) return;
+                    if (memberCheck.disabled) return;
+                    memberCheck.checked = checked;
+                });
+            };
+
+            const updateSelectAllState = () => {
+                if (!selectAll) return;
+                const allChecks = [...groupChecks, ...memberChecks];
+                const checked = allChecks.filter((el) => el.checked).length;
+                selectAll.checked = allChecks.length > 0 && checked === allChecks.length;
+                selectAll.indeterminate = checked > 0 && checked < allChecks.length;
+
+                groupChecks.forEach((groupCheck) => {
+                    const groupKey = groupCheck.getAttribute('data-group-key') || '';
+                    const members = getMemberChecksByGroupKey(groupKey);
+                    if (members.length === 0) {
+                        groupCheck.indeterminate = false;
+                        return;
+                    }
+                    const memberChecked = members.filter((el) => el.checked).length;
+                    if (memberChecked === 0) {
+                        groupCheck.checked = false;
+                        groupCheck.indeterminate = false;
+                        return;
+                    }
+                    if (memberChecked === members.length) {
+                        groupCheck.checked = true;
+                        groupCheck.indeterminate = false;
+                        return;
+                    }
+                    groupCheck.checked = false;
+                    groupCheck.indeterminate = true;
+                });
+            };
+
+            selectAll?.addEventListener('change', () => {
+                const checked = selectAll.checked;
+                [...groupChecks, ...memberChecks].forEach((el) => { if (!el.disabled) el.checked = checked; });
+                updateSelectAllState();
             });
 
-            uniqueRecipients.forEach((recipient, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${index + 1}</td><td>${recipient.name}</td><td>${recipient.faction}</td>`;
-                recipientTableBody.appendChild(row);
+            groupChecks.forEach((item) => {
+                item.addEventListener('change', () => {
+                    const groupKey = item.getAttribute('data-group-key') || '';
+                    const members = getMemberChecksByGroupKey(groupKey);
+                    members.forEach((member) => {
+                        if (!member.disabled) {
+                            member.checked = item.checked;
+                            syncMemberByPid(member.value || '', item.checked, member);
+                        }
+                    });
+                    if (item.checked) setGroupCollapsed(item.closest('.item-group'), false);
+                    item.indeterminate = false;
+                    updateSelectAllState();
+                });
             });
-        };
 
-        btnShowRecipients?.addEventListener('click', () => {
-            renderRecipients();
-            recipientModal?.classList.add('active');
-        });
-        closeRecipients?.addEventListener('click', () => recipientModal?.classList.remove('active'));
-        recipientModal?.addEventListener('click', (e) => {
-            if (e.target === recipientModal) recipientModal.classList.remove('active');
-        });
+            memberChecks.forEach((item) => {
+                item.addEventListener('change', () => {
+                    syncMemberByPid(item.value || '', item.checked, item);
+                    updateSelectAllState();
+                });
+            });
+
+            groupChecks.forEach((item) => {
+                if (!item.checked) return;
+                const groupKey = item.getAttribute('data-group-key') || '';
+                const members = getMemberChecksByGroupKey(groupKey);
+                members.forEach((member) => {
+                    member.checked = true;
+                    syncMemberByPid(member.value || '', true, member);
+                });
+            });
+            updateSelectAllState();
+
+            const btnSend = document.getElementById(prefix + 'btnSendNotice');
+            const confirmModal = document.getElementById(prefix + 'confirmModal');
+            const confirmYes = document.getElementById(prefix + 'btnConfirmYes');
+            const confirmNo = document.getElementById(prefix + 'btnConfirmNo');
+
+            btnSend?.addEventListener('click', (e) => { e.preventDefault(); confirmModal?.classList.add('active'); });
+            confirmNo?.addEventListener('click', () => confirmModal?.classList.remove('active'));
+            confirmModal?.addEventListener('click', (e) => { if (e.target === confirmModal) confirmModal.classList.remove('active'); });
+            confirmYes?.addEventListener('click', () => form?.submit());
+
+            const recipientModal = document.getElementById(prefix + 'recipientModal');
+            const recipientTableBody = document.getElementById(prefix + 'recipientTableBody');
+            const btnShowRecipients = document.getElementById(prefix + 'btnShowRecipients');
+            const closeRecipients = document.getElementById(prefix + 'closeModalBtn');
+
+            const renderRecipients = () => {
+                if (!recipientTableBody) return;
+                recipientTableBody.innerHTML = '';
+                const checkedGroups = groupChecks.filter((item) => item.checked);
+                const checkedMembers = memberChecks.filter((item) => item.checked);
+                if (checkedGroups.length === 0 && checkedMembers.length === 0) {
+                    recipientTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 16px;">ไม่มีผู้รับที่เลือก</td></tr>';
+                    return;
+                }
+
+                const recipientsMap = new Map();
+                const addRecipient = (pid, name, faction) => {
+                    const key = String(pid || '').trim();
+                    if (key === '' || recipientsMap.has(key)) return;
+                    recipientsMap.set(key, { pid: key, name: (name || '-').trim() || '-', faction: (faction || '-').trim() || '-' });
+                };
+
+                checkedGroups.forEach((item) => {
+                    let members = [];
+                    try { members = JSON.parse(item.getAttribute('data-members') || '[]'); } catch (e) { members = []; }
+                    if (!Array.isArray(members)) return;
+                    members.forEach((member) => addRecipient(member?.pID, member?.name, item.getAttribute('data-group-label')));
+                });
+
+                checkedMembers.forEach((item) => addRecipient(item.value, item.getAttribute('data-member-name'), item.getAttribute('data-group-label')));
+
+                const uniqueRecipients = Array.from(recipientsMap.values()).sort((a, b) => a.faction === b.faction ? a.name.localeCompare(b.name, 'th') : a.faction.localeCompare(b.faction, 'th'));
+                uniqueRecipients.forEach((recipient, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${index + 1}</td><td>${recipient.name}</td><td>${recipient.faction}</td>`;
+                    recipientTableBody.appendChild(row);
+                });
+            };
+
+            btnShowRecipients?.addEventListener('click', () => { renderRecipients(); recipientModal?.classList.add('active'); });
+            closeRecipients?.addEventListener('click', () => recipientModal?.classList.remove('active'));
+            recipientModal?.addEventListener('click', (e) => { if (e.target === recipientModal) recipientModal.classList.remove('active'); });
+        }
+
+        setupCircularForm('', 'circularComposeForm');
+        setupCircularForm('edit_', 'circularEditForm');
 
         const detailModal = document.getElementById('modalNoticeKeepOverlay');
         const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
@@ -1927,51 +2201,51 @@ ob_start();
 
             const iconWrap = document.createElement('div');
             iconWrap.className = 'file-icon';
-            const icon = document.createElement('i');
             const mime = String(file?.mimeType || '').toLowerCase();
-            if (mime.includes('pdf')) {
-                icon.className = 'fa-solid fa-file-pdf';
-            } else if (mime.includes('image')) {
-                icon.className = 'fa-solid fa-file-image';
-            } else {
-                icon.className = 'fa-solid fa-file';
-            }
-            iconWrap.appendChild(icon);
+            iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
 
             const text = document.createElement('div');
             text.className = 'file-text';
-            const nameEl = document.createElement('span');
-            nameEl.className = 'file-name';
-            nameEl.textContent = String(file?.fileName || '-');
-            const typeEl = document.createElement('span');
-            typeEl.className = 'file-type';
-            typeEl.textContent = String(file?.mimeType || '');
-            text.appendChild(nameEl);
-            text.appendChild(typeEl);
+            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${file?.mimeType || ''}</span>`;
 
             info.appendChild(iconWrap);
             info.appendChild(text);
 
+            const fileUrl = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+
             const viewAction = document.createElement('div');
             viewAction.className = 'file-actions';
+
+            // const viewLink = document.createElement('a');
+            // viewLink.href = '#'; 
+            // viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+            
+            // viewLink.addEventListener('click', (e) => {
+            //     e.preventDefault();
+            //     if (mime.includes('image')) {
+
+            //     if (previewImage) previewImage.src = fileUrl;
+            //         if (previewCaption) previewCaption.textContent = file?.fileName || '-';
+            //         if (previewModal) {
+            //             previewModal.classList.add('active');
+            //             previewModal.style.zIndex = '99999';
+            //         }
+            //     } else {
+            //         window.open(fileUrl, '_blank', 'noopener');
+            //     }
+            // });
+
             const viewLink = document.createElement('a');
-            viewLink.href = 'public/api/file-download.php?module=circulars&entity_id=' +
-                encodeURIComponent(String(entityId || '')) +
-                '&file_id=' + encodeURIComponent(String(file?.fileID || ''));
+            viewLink.href = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
             viewLink.target = '_blank';
             viewLink.rel = 'noopener';
             viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+
             viewAction.appendChild(viewLink);
 
             const downloadAction = document.createElement('div');
             downloadAction.className = 'file-actions';
-            const downloadLink = document.createElement('a');
-            downloadLink.href = 'public/api/file-download.php?module=circulars&entity_id=' +
-                encodeURIComponent(String(entityId || '')) +
-                '&file_id=' + encodeURIComponent(String(file?.fileID || '')) +
-                '&download=1';
-            downloadLink.innerHTML = '<i class="fa-solid fa-download"></i>';
-            downloadAction.appendChild(downloadLink);
+            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download"></i></a>`;
 
             container.appendChild(info);
             container.appendChild(viewAction);
@@ -1982,49 +2256,23 @@ ob_start();
         const renderModalFiles = (files, entityId) => {
             if (!modalFileSection) return;
             modalFileSection.innerHTML = '';
-
             if (!Array.isArray(files) || files.length === 0) {
                 modalFileSection.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p id="modalDetail">-</p></div>';
                 return;
             }
-
-            files.forEach((file) => {
-                modalFileSection.appendChild(buildModalFileItem(file, entityId));
-            });
+            files.forEach((file) => modalFileSection.appendChild(buildModalFileItem(file, entityId)));
         };
 
         const renderReceiptRows = (stats) => {
             if (!receiptStatusTableBody) return;
             receiptStatusTableBody.innerHTML = '';
-
             if (!Array.isArray(stats) || stats.length === 0) {
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = '<td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>';
-                receiptStatusTableBody.appendChild(emptyRow);
+                receiptStatusTableBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
                 return;
             }
-
             stats.forEach((item) => {
-                const name = String(item?.name || '-');
-                const statusText = String(item?.status || 'ยังไม่อ่าน');
-                const pill = String(item?.pill || 'pending');
-                const readAt = String(item?.readAt || '-');
                 const row = document.createElement('tr');
-                const nameTd = document.createElement('td');
-                nameTd.textContent = name;
-
-                const statusTd = document.createElement('td');
-                const statusSpan = document.createElement('span');
-                statusSpan.className = `status-pill ${pill}`;
-                statusSpan.textContent = statusText;
-                statusTd.appendChild(statusSpan);
-
-                const readAtTd = document.createElement('td');
-                readAtTd.textContent = readAt;
-
-                row.appendChild(nameTd);
-                row.appendChild(statusTd);
-                row.appendChild(readAtTd);
+                row.innerHTML = `<td>${item?.name || '-'}</td><td><span class="status-pill ${item?.pill || 'pending'}">${item?.status || 'ยังไม่อ่าน'}</span></td><td>${item?.readAt || '-'}</td>`;
                 receiptStatusTableBody.appendChild(row);
             });
         };
@@ -2032,71 +2280,62 @@ ob_start();
         openDetailBtns.forEach((btn) => {
             btn.addEventListener('click', (event) => {
                 event.preventDefault();
-                const circularType = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase();
                 const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
-                const detail = String(btn.getAttribute('data-detail') || '').trim();
-                const subject = String(btn.getAttribute('data-subject') || '').trim();
-                const bookNo = String(btn.getAttribute('data-bookno') || '-').trim();
-                const issuedDate = String(btn.getAttribute('data-issued') || '-').trim();
-                const fromText = String(btn.getAttribute('data-from') || '-').trim();
-                const toText = String(btn.getAttribute('data-to') || '-').trim();
-                const statusText = String(btn.getAttribute('data-status') || '-').trim();
-                const considerClass = String(btn.getAttribute('data-consider') || 'considering').trim() || 'considering';
-                const receivedTime = String(btn.getAttribute('data-received-time') || '-').trim();
-                let stats = [];
-                let files = [];
-                try {
-                    stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
-                } catch (error) {
-                    stats = [];
-                }
-                try {
-                    files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
-                } catch (error) {
-                    files = [];
-                }
+                let stats = []; let files = [];
+                try { stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]')); } catch (e) { }
+                try { files = JSON.parse(String(btn.getAttribute('data-files') || '[]')); } catch (e) { }
 
                 if (modalUrgency) {
                     modalUrgency.className = 'urgency-status normal';
-                    const typeLabel = circularType === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
                     const urgencyLabel = modalUrgency.querySelector('p');
-                    if (urgencyLabel) {
-                        urgencyLabel.textContent = typeLabel;
-                    }
+                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
                 }
-                if (modalBookNo) modalBookNo.value = bookNo !== '' ? bookNo : '-';
-                if (modalIssuedDate) modalIssuedDate.value = issuedDate !== '' ? issuedDate : '-';
-                if (modalFromText) modalFromText.value = fromText !== '' ? fromText : '-';
-                if (modalToText) modalToText.value = toText !== '' ? toText : '-';
-                if (modalSubject) modalSubject.textContent = subject !== '' ? subject : '-';
-                if (modalDetail) modalDetail.textContent = detail !== '' ? detail : '-';
-                if (modalReceivedTime) modalReceivedTime.value = receivedTime !== '' ? receivedTime : '-';
-                if (modalStatus) modalStatus.value = statusText !== '' ? statusText : '-';
-
+                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
+                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
+                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
+                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
+                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
+                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
+                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
+                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
                 if (modalConsiderStatus) {
-                    modalConsiderStatus.className = `consider-status ${considerClass}`;
-                    modalConsiderStatus.textContent = statusText !== '' ? statusText : '-';
+                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
+                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
                 }
-
+                
                 renderModalFiles(files, circularId);
                 renderReceiptRows(stats);
 
-                if (detailModal) {
-                    detailModal.style.display = 'flex';
-                }
+                if (detailModal) detailModal.style.display = 'flex';
             });
         });
 
-        closeDetailModalBtn?.addEventListener('click', () => {
-            if (detailModal) {
-                detailModal.style.display = 'none';
-            }
+        closeDetailModalBtn?.addEventListener('click', () => { if (detailModal) detailModal.style.display = 'none'; });
+        detailModal?.addEventListener('click', (event) => { if (event.target === detailModal) detailModal.style.display = 'none'; });
+
+        const editModal = document.getElementById('modalEditOverlay');
+        const closeEditModalBtn = document.getElementById('closeModalEdit');
+        const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
+        const editTargetInput = document.getElementById('editTargetCircularId');
+
+        openEditBtns.forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+                if (editTargetInput) editTargetInput.value = circularId;
+                
+                const subjectInput = document.getElementById('edit_subject');
+                const detailInput = document.getElementById('edit_detail');
+                if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
+                if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+
+                if (editModal) editModal.style.display = 'flex';
+            });
         });
-        detailModal?.addEventListener('click', (event) => {
-            if (event.target === detailModal) {
-                detailModal.style.display = 'none';
-            }
-        });
+
+        closeEditModalBtn?.addEventListener('click', () => { if (editModal) editModal.style.display = 'none'; });
+        editModal?.addEventListener('click', (event) => { if (event.target === editModal) editModal.style.display = 'none'; });
+
     });
 </script>
 <?php

@@ -113,14 +113,30 @@ ob_start();
                         autocomplete="off" data-vehicle-search-input>
                 </div>
                 <div class="room-admin-filter">
-                    <select class="form-input" data-vehicle-status-filter>
+                    <!-- <select class="form-input" data-vehicle-status-filter>
                         <option value="all">ทุกสถานะ</option>
                         <?php foreach ($status_options as $status_option) : ?>
                             <option value="<?= h((string) ($status_classes[$status_option] ?? '')) ?>">
                                 <?= h((string) $status_option) ?>
                             </option>
                         <?php endforeach; ?>
-                    </select>
+                    </select> -->
+                    <div class="page-selector">
+                        <!-- <p>แสดงตามสถานะหนังสือ</p> -->
+
+                        <div class="custom-select-wrapper" data-target="filterReadInput">
+                            <div class="custom-select-trigger">
+                                <p class="select-value">ทุกสถานะ</p>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+
+                            <div class="custom-options">
+                                <div class="custom-option">อ่านแล้ว</div>
+                                <div class="custom-option">ยังไม่อ่าน</div>
+                                <div class="custom-option">ทั้งหมด</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <button type="button" class="btn-confirm" data-vehicle-modal-open="vehicleAddModal">เพิ่มยานพาหนะใหม่</button>
             </div>
@@ -310,7 +326,6 @@ ob_start();
     <div class="modal-content room-admin-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-plus"></i>
                 <span>เพิ่มยานพาหนะใหม่</span>
             </div>
             <div class="close-modal-btn" data-vehicle-modal-close="vehicleAddModal">
@@ -385,7 +400,7 @@ ob_start();
                         ?>
                     </select> -->
                 </div>
-                <div class="room-admin-modal-actions">
+                <!-- <div class="room-admin-modal-actions">
                     <button
                         type="submit"
                         class="btn-confirm"
@@ -393,8 +408,19 @@ ob_start();
                         data-confirm-title="ยืนยันการบันทึก"
                         data-confirm-ok="ยืนยัน"
                         data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div>
+                </div> -->
             </form>
+        </div>
+
+        <div class="footer-modal">
+            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
+
+                <button type="submit" form="">
+                    <p>บันทึก</p>
+                </button>
+
+            </form>
+
         </div>
     </div>
 </div>
@@ -403,7 +429,6 @@ ob_start();
     <div class="modal-content room-admin-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-pen"></i>
                 <span>แก้ไขข้อมูลยานพาหนะ</span>
             </div>
             <div class="close-modal-btn" data-vehicle-modal-close="vehicleEditModal">
@@ -455,7 +480,7 @@ ob_start();
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="room-admin-modal-actions">
+                <!-- <div class="room-admin-modal-actions">
                     <button
                         type="submit"
                         class="btn-confirm"
@@ -463,8 +488,18 @@ ob_start();
                         data-confirm-title="ยืนยันการบันทึก"
                         data-confirm-ok="ยืนยัน"
                         data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div>
+                </div> -->
             </form>
+        </div>
+        <div class="footer-modal">
+            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
+
+                <button type="submit" form="">
+                    <p>บันทึก</p>
+                </button>
+
+            </form>
+
         </div>
     </div>
 </div>
@@ -473,7 +508,6 @@ ob_start();
     <div class="modal-content room-admin-modal room-admin-member-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-user-plus"></i>
                 <span>เพิ่มสมาชิกทีมผู้ดูแล</span>
             </div>
             <div class="close-modal-btn" data-vehicle-modal-close="vehicleMemberModal">
@@ -505,29 +539,29 @@ ob_start();
                         <?php
                         $candidate_seen = [];
 
-foreach ($vehicle_candidate_members as $candidate) :
-    $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
+                        foreach ($vehicle_candidate_members as $candidate) :
+                            $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
 
-    if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
-        continue;
-    }
-    $candidate_seen[$candidate_pid] = true;
+                            if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
+                                continue;
+                            }
+                            $candidate_seen[$candidate_pid] = true;
 
-    $candidate_name = trim((string) ($candidate['name'] ?? ''));
-    $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
-    $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
-    $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
-    $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
-    $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+                            $candidate_name = trim((string) ($candidate['name'] ?? ''));
+                            $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
+                            $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
+                            $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
+                            $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
+                            $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
 
-    $member_search = trim(implode(' ', array_filter([
-        $candidate_pid,
-        $candidate_name,
-        $candidate_department,
-        $candidate_position,
-        $candidate_tel,
-    ])));
-    ?>
+                            $member_search = trim(implode(' ', array_filter([
+                                $candidate_pid,
+                                $candidate_name,
+                                $candidate_department,
+                                $candidate_position,
+                                $candidate_tel,
+                            ])));
+                        ?>
                             <tr data-member-row data-member-search="<?= h($member_search) ?>">
                                 <td>
                                     <strong><?= h($candidate_name) ?></strong>
@@ -546,7 +580,10 @@ foreach ($vehicle_candidate_members as $candidate) :
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="member_action" value="add">
                                             <input type="hidden" name="member_pid" value="<?= h($candidate_pid) ?>">
-                                            <button type="submit" class="booking-action-btn add" data-member-add-btn>เพิ่ม</button>
+                                            <button type="submit" class="booking-action-btn add" data-member-add-btn>
+                                                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                                <span class="tooltip">เพิ่มสมาชิก</span>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>

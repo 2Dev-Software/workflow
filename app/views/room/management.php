@@ -279,7 +279,6 @@ ob_start();
     <div class="modal-content room-admin-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-plus"></i>
                 <span>เพิ่มห้องใหม่</span>
             </div>
             <div class="close-modal-btn" data-room-modal-close="roomAddModal">
@@ -322,8 +321,8 @@ ob_start();
                     <label class="form-label">หมายเหตุ</label>
                     <textarea class="form-input" name="room_note" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
-                <div class="room-admin-modal-actions">
-                    <!-- <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button> -->
+                <!-- <div class="room-admin-modal-actions">
+                    <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button>
                     <button
                         type="submit"
                         class="btn-confirm"
@@ -331,8 +330,22 @@ ob_start();
                         data-confirm-title="ยืนยันการบันทึก"
                         data-confirm-ok="ยืนยัน"
                         data-confirm-cancel="ยกเลิก">บันทึกห้องใหม่</button>
-                </div>
+                </div> -->
             </form>
+        </div>
+        <div class="footer-modal">
+            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
+
+                <button type="submit"
+                    data-confirm="ยืนยันการบันทึกห้องใหม่ใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการบันทึก"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">
+                    <p>บันทึกห้องใหม่</p>
+                </button>
+
+            </form>
+
         </div>
     </div>
 </div>
@@ -341,7 +354,6 @@ ob_start();
     <div class="modal-content room-admin-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-pen"></i>
                 <span>แก้ไขข้อมูลห้อง</span>
             </div>
             <div class="close-modal-btn" data-room-modal-close="roomEditModal">
@@ -383,8 +395,8 @@ ob_start();
                     <label class="form-label">หมายเหตุ</label>
                     <textarea class="form-input" name="room_note" rows="3" data-room-edit-note placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
-                <div class="room-admin-modal-actions">
-                    <!-- <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button> -->
+                <!-- <div class="room-admin-modal-actions">
+                    <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button>
                     <button
                         type="submit"
                         class="btn-confirm"
@@ -392,8 +404,22 @@ ob_start();
                         data-confirm-title="ยืนยันการบันทึก"
                         data-confirm-ok="ยืนยัน"
                         data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div>
+                </div> -->
             </form>
+        </div>
+        <div class="footer-modal">
+            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
+
+                <button type="submit" form=""
+                data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลห้องใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึก"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">
+                    <p>บันทึก</p>
+                </button>
+
+            </form>
+
         </div>
     </div>
 </div>
@@ -402,7 +428,6 @@ ob_start();
     <div class="modal-content room-admin-modal room-admin-member-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-user-plus"></i>
                 <span>เพิ่มสมาชิกทีมผู้ดูแล</span>
             </div>
             <div class="close-modal-btn" data-room-modal-close="roomMemberModal">
@@ -434,29 +459,29 @@ ob_start();
                         <?php
                         $candidate_seen = [];
 
-foreach ($room_candidate_members as $candidate):
-    $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
+                        foreach ($room_candidate_members as $candidate):
+                            $candidate_pid = trim((string) ($candidate['pID'] ?? ''));
 
-    if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
-        continue;
-    }
-    $candidate_seen[$candidate_pid] = true;
+                            if ($candidate_pid === '' || isset($candidate_seen[$candidate_pid])) {
+                                continue;
+                            }
+                            $candidate_seen[$candidate_pid] = true;
 
-    $candidate_name = trim((string) ($candidate['name'] ?? ''));
-    $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
-    $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
-    $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
-    $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
-    $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
+                            $candidate_name = trim((string) ($candidate['name'] ?? ''));
+                            $candidate_name = $candidate_name !== '' ? $candidate_name : 'ไม่ระบุชื่อ';
+                            $candidate_department = trim((string) ($candidate['department_name'] ?? ''));
+                            $candidate_department = $candidate_department !== '' ? $candidate_department : '-';
+                            $candidate_position = trim((string) ($candidate['position_name'] ?? ''));
+                            $candidate_tel = trim((string) ($candidate['telephone'] ?? ''));
 
-    $member_search = trim(implode(' ', array_filter([
-        $candidate_pid,
-        $candidate_name,
-        $candidate_department,
-        $candidate_position,
-        $candidate_tel,
-    ])));
-    ?>
+                            $member_search = trim(implode(' ', array_filter([
+                                $candidate_pid,
+                                $candidate_name,
+                                $candidate_department,
+                                $candidate_position,
+                                $candidate_tel,
+                            ])));
+                        ?>
                             <tr data-member-row data-member-search="<?= h($member_search) ?>">
                                 <td>
                                     <strong><?= h($candidate_name) ?></strong>

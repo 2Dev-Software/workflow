@@ -311,7 +311,7 @@ ob_start();
                                         data-vehicle-booking-id="<?= htmlspecialchars((string) ($booking['bookingID'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
 
                                         <i class="fa-solid fa-eye"></i>
-                                        <span class="tooltip"><?= $status_key === 'PENDING' ? 'ดู/แก้ไข' : 'ดูรายละเอียด' ?></span>
+                                        <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
                                     <?php if ($status_key === 'APPROVED') : ?>
                                         <a href="public/api/vehicle-booking-pdf.php?booking_id=<?= urlencode((string) ($booking['bookingID'] ?? '')) ?>&v=<?= urlencode((string) ($vehicle_pdf_mtime ?: time())) ?>"
@@ -342,9 +342,7 @@ ob_start();
             </div>
         </div>
 
-        <form id="vehicleReservationEditForm" class="tab-content active" method="post"
-            action="<?= htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>"
-            enctype="multipart/form-data" data-vehicle-form data-vehicle-edit-form>
+        <form id="vehicleReservationDetailForm" class="vehicle-detail-form is-readonly" data-vehicle-detail-form>
             <?= csrf_field() ?>
             <input type="hidden" name="vehicle_booking_id" value="">
             <input type="hidden" name="dh_year"
@@ -355,7 +353,7 @@ ob_start();
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label>ส่วนราชการ</label>
-                    <div class="custom-select-wrapper" id="vehicleEditDeptWrapper">
+                    <div class="custom-select-wrapper is-disabled" id="vehicleEditDeptWrapper">
                         <input type="hidden" id="vehicleEditDepartment" name="department" value="">
 
                         <div class="custom-select-trigger">
@@ -380,39 +378,21 @@ ob_start();
                 <div class="vehicle-input-content">
                     <label for="vehicleEditWriteDate">วันที่เขียน</label>
                     <input type="date" id="vehicleEditWriteDate" name="writeDate"
-                        value="<?= htmlspecialchars($today, ENT_QUOTES, 'UTF-8') ?>" required>
+                        value="<?= htmlspecialchars($today, ENT_QUOTES, 'UTF-8') ?>" disabled>
                 </div>
             </div>
 
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label>ข้าพเจ้าพร้อมด้วย</label>
-                    <div data-vehicle-companion-edit>
-                        <div class="go-with-dropdown">
-                            <input type="text" id="vehicleEditSearchInput" placeholder="ค้นหารายชื่อคุณครู" autocomplete="off" />
-
-                            <div id="vehicleEditDropdown" class="go-with-dropdown-content">
-                                <?php foreach ($vehicle_teachers as $teacher_item): ?>
-                                    <label class="dropdown-item">
-                                        <input type="checkbox"
-                                            name="companionIds[]"
-                                            value="<?= htmlspecialchars($teacher_item['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                            data-name="<?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?>">
-                                        <p><?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-
-                        <button id="openShowMemberVehicle" class="show-member" type="button">
-                            <p>แสดงผู้เดินทางทั้งหมด</p>
-                        </button>
+                    <div class="go-with-dropdown">
+                        <input type="text" id="vehicleDetailCompanionSummary" placeholder="ไม่มีผู้ร่วมเดินทาง"
+                            autocomplete="off" readonly disabled>
                     </div>
 
-                    <div class="calculated-field hidden" data-vehicle-companion-view>
-                        <i class="fa-solid fa-users" aria-hidden="true"></i>
-                        <p data-vehicle-passenger-list aria-live="polite">-</p>
-                    </div>
+                    <button id="openShowMemberVehicle" class="show-member" type="button">
+                        <p>แสดงผู้เดินทางทั้งหมด</p>
+                    </button>
                 </div>
             </div>
 
@@ -430,14 +410,14 @@ ob_start();
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditPurpose">ขออนุญาตใช้รถเพื่อ</label>
-                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุวัตถุประสงค์" required></textarea>
+                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุวัตถุประสงค์" disabled></textarea>
                 </div>
             </div>
 
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditLocation">ณ (สถานที่)</label>
-                    <input type="text" id="vehicleEditLocation" name="location" placeholder="ระบุสถานที่ปลายทาง" required>
+                    <input type="text" id="vehicleEditLocation" name="location" placeholder="ระบุสถานที่ปลายทาง" disabled>
                 </div>
 
                 <div class="vehicle-input-content">
@@ -446,19 +426,19 @@ ob_start();
                         <i class="fa-solid fa-users" aria-hidden="true"></i>
                         <p data-passenger-count aria-live="polite">1 คน</p>
                     </div>
-                    <input type="hidden" id="vehicleEditPassengerCount" name="passengerCount" value="1">
+                    <input type="hidden" id="vehicleEditPassengerCount" name="passengerCount" value="1" disabled>
                 </div>
             </div>
 
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditStartDate">ในวันที่</label>
-                    <input type="date" id="vehicleEditStartDate" name="startDate" required>
+                    <input type="date" id="vehicleEditStartDate" name="startDate" disabled>
                 </div>
 
                 <div class="vehicle-input-content">
                     <label for="vehicleEditEndDate">ถึงวันที่</label>
-                    <input type="date" id="vehicleEditEndDate" name="endDate" required>
+                    <input type="date" id="vehicleEditEndDate" name="endDate" disabled>
                 </div>
 
                 <div class="vehicle-input-content">
@@ -473,12 +453,12 @@ ob_start();
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditStartTime">เวลาเริ่มต้น</label>
-                    <input type="time" id="vehicleEditStartTime" name="startTime" required>
+                    <input type="time" id="vehicleEditStartTime" name="startTime" disabled>
                 </div>
 
                 <div class="vehicle-input-content">
                     <label for="vehicleEditEndTime">เวลาสิ้นสุด</label>
-                    <input type="time" id="vehicleEditEndTime" name="endTime" required>
+                    <input type="time" id="vehicleEditEndTime" name="endTime" disabled>
                 </div>
             </div>
 
@@ -487,15 +467,15 @@ ob_start();
                     <label>ใช้น้ำมันเชื้อเพลิงจาก</label>
                     <div class="radio-group">
                         <div class="radio-item">
-                            <input type="radio" id="vehicleEditFuelCentral" name="fuelSource" value="central" checked>
+                            <input type="radio" id="vehicleEditFuelCentral" name="fuelSource" value="central" checked disabled>
                             <label for="vehicleEditFuelCentral">ส่วนกลาง</label>
                         </div>
                         <div class="radio-item">
-                            <input type="radio" id="vehicleEditFuelProject" name="fuelSource" value="project">
+                            <input type="radio" id="vehicleEditFuelProject" name="fuelSource" value="project" disabled>
                             <label for="vehicleEditFuelProject">โครงการ</label>
                         </div>
                         <div class="radio-item">
-                            <input type="radio" id="vehicleEditFuelUser" name="fuelSource" value="user">
+                            <input type="radio" id="vehicleEditFuelUser" name="fuelSource" value="user" disabled>
                             <label for="vehicleEditFuelUser">ผู้ใช้</label>
                         </div>
                     </div>
@@ -504,28 +484,10 @@ ob_start();
 
             <div class="vehicle-row file-sec">
                 <div class="vehicle-input-content">
-                    <label>แนบเอกสาร <strong>(แนบเอกสารได้สูงสุด 5 ไฟล์)</strong></label>
-
-                    <div id="vehicleRetainAttachments"></div>
-
-                    <div data-vehicle-attachment-edit>
-                        <button type="button" class="btn btn-upload-small"
-                            onclick="document.getElementById('vehicleEditAttachments').click()">
-                            <p>เพิ่มไฟล์</p>
-                        </button>
-                    </div>
-
-                    <input type="file" id="vehicleEditAttachments" name="attachments[]" class="file-input" multiple
-                        accept=".pdf,image/png,image/jpeg" hidden>
-
-                    <p class="form-error hidden" id="vehicleEditAttachmentError">แนบได้สูงสุด 5 ไฟล์</p>
+                    <label>แนบเอกสาร</label>
                 </div>
 
                 <div class="file-list" id="vehicleAttachmentList" aria-live="polite"></div>
-            </div>
-
-            <div class="submit-section">
-                <button type="submit" class="btn-submit" name="vehicle_reservation_update" value="1" data-vehicle-edit-submit>บันทึกการแก้ไข</button>
             </div>
         </form>
 
@@ -548,21 +510,13 @@ ob_start();
         const modal = document.getElementById('vehicleBookingDetailModal');
         const closeButtons = document.querySelectorAll('[data-vehicle-modal-close]');
         const openButtons = document.querySelectorAll('[data-vehicle-booking-action="detail"]');
-        const form = modal ? modal.querySelector('[data-vehicle-edit-form]') : null;
-        const statusPill = modal ? modal.querySelector('[data-vehicle-detail="status-pill"]') : null;
-        const statusNote = modal ? modal.querySelector('[data-vehicle-detail="status-note"]') : null;
-        const createdValue = modal ? modal.querySelector('[data-vehicle-detail="created"]') : null;
-        const updatedValue = modal ? modal.querySelector('[data-vehicle-detail="updated"]') : null;
-        const submitBtn = modal ? modal.querySelector('[data-vehicle-edit-submit]') : null;
+        const form = modal ? modal.querySelector('[data-vehicle-detail-form]') : null;
 
         const departmentWrapper = document.getElementById('vehicleEditDeptWrapper');
         const departmentDisplay = departmentWrapper ? departmentWrapper.querySelector('.select-value') : null;
         const departmentOptions = departmentWrapper ? departmentWrapper.querySelectorAll('.custom-option') : [];
         const dayCountDisplay = modal ? modal.querySelector('#vehicleEditDayCount [data-day-count]') : null;
-
-        const companionEditBlock = modal ? modal.querySelector('[data-vehicle-companion-edit]') : null;
-        const companionViewBlock = modal ? modal.querySelector('[data-vehicle-companion-view]') : null;
-        const passengerListText = companionViewBlock ? companionViewBlock.querySelector('[data-vehicle-passenger-list]') : null;
+        const companionSummaryInput = document.getElementById('vehicleDetailCompanionSummary');
 
         const fieldMap = modal ? {
             bookingId: modal.querySelector('[name="vehicle_booking_id"]'),
@@ -580,31 +534,14 @@ ob_start();
             startTime: document.getElementById('vehicleEditStartTime'),
             endTime: document.getElementById('vehicleEditEndTime'),
             fuelRadios: modal.querySelectorAll('input[name="fuelSource"]'),
-            companionList: document.getElementById('vehicleEditDropdown'),
-            companionSearch: document.getElementById('vehicleEditSearchInput'),
             dayCount: dayCountDisplay,
         } : {};
 
-        const retainContainer = document.getElementById('vehicleRetainAttachments');
-        const editAttachmentsInput = document.getElementById('vehicleEditAttachments');
         const editAttachmentsList = document.getElementById('vehicleAttachmentList');
-        const editAttachmentError = document.getElementById('vehicleEditAttachmentError');
-        const editAttachmentBox = modal ? modal.querySelector('[data-vehicle-attachment-edit]') : null;
-        const editAttachmentButton = editAttachmentBox ? editAttachmentBox.querySelector('button') : null;
         const companionModal = document.getElementById('memberModalVehicle');
         const companionModalTrigger = document.getElementById('openShowMemberVehicle');
         const companionModalClose = companionModal ? companionModal.querySelector('.close-modal') : null;
         const companionModalList = document.getElementById('selectedMemberListVehicle');
-
-        const MAX_ATTACHMENTS = 5;
-        const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
-        const ALLOWED_ATTACHMENT_TYPES = [
-            'application/pdf',
-            'image/jpeg',
-            'image/png',
-        ];
-
-        let pendingEditFiles = [];
         let currentBooking = null;
 
         function formatFileSize(size) {
@@ -613,19 +550,6 @@ ob_start();
             if (kb < 1024) return `${Math.ceil(kb)} KB`;
             const mb = kb / 1024;
             return `${mb.toFixed(1)} MB`;
-        }
-
-        function setEditAttachmentError(message) {
-            if (!editAttachmentError) return;
-            editAttachmentError.textContent = message || '';
-            editAttachmentError.classList.toggle('hidden', !message);
-        }
-
-        function syncEditAttachmentInput() {
-            if (!editAttachmentsInput) return;
-            const dataTransfer = new DataTransfer();
-            pendingEditFiles.forEach((file) => dataTransfer.items.add(file));
-            editAttachmentsInput.files = dataTransfer.files;
         }
 
         function setDepartmentValue(value) {
@@ -667,45 +591,24 @@ ob_start();
         }
 
         function renderAttachmentList(editable) {
-            if (!editAttachmentsList || !retainContainer) return;
+            if (!editAttachmentsList) return;
             editAttachmentsList.innerHTML = '';
-            retainContainer.innerHTML = '';
 
             const existing = currentBooking && Array.isArray(currentBooking.attachments) ?
                 currentBooking.attachments : [];
 
-            // if (existing.length === 0 && pendingEditFiles.length === 0) {
-            //     const empty = document.createElement('p');
-            //     empty.className = 'attachment-empty';
-            //     empty.textContent = 'ยังไม่มีไฟล์แนบ';
-            //     editAttachmentsList.appendChild(empty);
-            //     return;
-            // }
+            if (existing.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'attachment-empty';
+                empty.textContent = 'ไม่มีไฟล์แนบ';
+                editAttachmentsList.appendChild(empty);
+                return;
+            }
 
             existing.forEach((file) => {
                 const item = document.createElement('div');
                 item.className = 'file-item-wrapper';
                 item.dataset.fileId = String(file.fileID || '');
-
-                if (editable) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'delete-btn';
-                    removeBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-                    removeBtn.addEventListener('click', () => {
-                        currentBooking.attachments = currentBooking.attachments.filter(
-                            (item) => item.fileID !== file.fileID
-                        );
-                        renderAttachmentList(editable);
-                    });
-                    item.appendChild(removeBtn);
-
-                    const retainInput = document.createElement('input');
-                    retainInput.type = 'hidden';
-                    retainInput.name = 'retainAttachmentIds[]';
-                    retainInput.value = String(file.fileID || '');
-                    retainContainer.appendChild(retainInput);
-                }
 
                 const banner = document.createElement('div');
                 banner.className = 'file-banner';
@@ -729,7 +632,7 @@ ob_start();
                 name.textContent = file.fileName || 'ไฟล์แนบ';
                 const type = document.createElement('span');
                 type.className = 'file-type';
-                type.textContent = file.mimeType || 'file';
+                type.textContent = `${file.mimeType || 'file'} • ${formatFileSize(Number(file.fileSize || 0))}`;
                 text.appendChild(name);
                 text.appendChild(type);
 
@@ -756,148 +659,6 @@ ob_start();
                 item.appendChild(banner);
                 editAttachmentsList.appendChild(item);
             });
-
-            pendingEditFiles.forEach((file, index) => {
-                const item = document.createElement('div');
-                item.className = 'file-item-wrapper';
-
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'delete-btn';
-                removeBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-                removeBtn.addEventListener('click', () => {
-                    pendingEditFiles = pendingEditFiles.filter((_, i) => i !== index);
-                    syncEditAttachmentInput();
-                    renderAttachmentList(editable);
-                    setEditAttachmentError('');
-                });
-
-                const banner = document.createElement('div');
-                banner.className = 'file-banner';
-
-                const info = document.createElement('div');
-                info.className = 'file-info';
-
-                const iconWrap = document.createElement('div');
-                iconWrap.className = 'file-icon';
-                const icon = document.createElement('i');
-                const isPdf = file.type === 'application/pdf';
-                const isImage = file.type === 'image/jpeg' || file.type === 'image/png';
-                icon.className = isPdf ? 'fa-solid fa-file-pdf' : (isImage ? 'fa-solid fa-file-image' : 'fa-solid fa-file');
-                icon.setAttribute('aria-hidden', 'true');
-                iconWrap.appendChild(icon);
-
-                const text = document.createElement('div');
-                text.className = 'file-text';
-                const name = document.createElement('span');
-                name.className = 'file-name';
-                name.textContent = file.name;
-                const type = document.createElement('span');
-                type.className = 'file-type';
-                type.textContent = file.type || 'file';
-                text.appendChild(name);
-                text.appendChild(type);
-
-                info.appendChild(iconWrap);
-                info.appendChild(text);
-
-                const actions = document.createElement('div');
-                actions.className = 'file-actions';
-                const viewLink = document.createElement('a');
-                viewLink.href = 'javascript:void(0)';
-                viewLink.className = 'action-btn';
-                viewLink.title = 'ดูตัวอย่าง';
-                viewLink.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
-                viewLink.addEventListener('click', () => {
-                    const url = URL.createObjectURL(file);
-                    window.open(url, '_blank', 'noopener');
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                });
-                actions.appendChild(viewLink);
-
-                banner.appendChild(info);
-                banner.appendChild(actions);
-                item.appendChild(removeBtn);
-                item.appendChild(banner);
-                editAttachmentsList.appendChild(item);
-            });
-        }
-
-        function addNewAttachments(files) {
-            if (!files || files.length === 0) return;
-            const existingKeys = new Set(
-                pendingEditFiles.map(
-                    (file) => `${file.name}-${file.size}-${file.lastModified}`
-                )
-            );
-
-            let hasInvalid = false;
-            let hitLimit = false;
-            const existingCount = currentBooking && Array.isArray(currentBooking.attachments) ?
-                currentBooking.attachments.length :
-                0;
-
-            Array.from(files).forEach((file) => {
-                const key = `${file.name}-${file.size}-${file.lastModified}`;
-                if (existingKeys.has(key)) {
-                    return;
-                }
-
-                if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type) || file.size > MAX_ATTACHMENT_SIZE) {
-                    hasInvalid = true;
-                    return;
-                }
-
-                if (existingCount + pendingEditFiles.length >= MAX_ATTACHMENTS) {
-                    hitLimit = true;
-                    return;
-                }
-
-                pendingEditFiles.push(file);
-                existingKeys.add(key);
-            });
-
-            if (hitLimit) {
-                setEditAttachmentError(`แนบได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์`);
-            } else if (hasInvalid) {
-                setEditAttachmentError('รองรับเฉพาะ PDF, JPG, PNG ขนาดไม่เกิน 10MB');
-            } else {
-                setEditAttachmentError('');
-            }
-
-            syncEditAttachmentInput();
-            renderAttachmentList(true);
-        }
-
-        function updateCompanionSummary() {
-            if (!fieldMap.companionSearch || !fieldMap.companionList) return;
-            const selected = fieldMap.companionList.querySelectorAll('input[type="checkbox"]:checked').length;
-            if (document.activeElement === fieldMap.companionSearch) {
-                return;
-            }
-            fieldMap.companionSearch.value = selected > 0 ? `จำนวน ${selected} รายชื่อ` : '';
-        }
-
-        function filterCompanionDropdown(keyword) {
-            if (!fieldMap.companionList) return;
-            const searchText = keyword.trim().toLowerCase();
-            fieldMap.companionList.querySelectorAll('.dropdown-item').forEach((item) => {
-                const name = (item.dataset.name || item.textContent || '').toLowerCase();
-                item.style.display = searchText !== '' && !name.includes(searchText) ? 'none' : '';
-            });
-        }
-
-        function openCompanionDropdown() {
-            if (fieldMap.companionList) {
-                fieldMap.companionList.classList.add('show');
-            }
-        }
-
-        function closeCompanionDropdown() {
-            if (fieldMap.companionList) {
-                fieldMap.companionList.classList.remove('show');
-            }
-            updateCompanionSummary();
         }
 
         function openCompanionModal() {
@@ -916,60 +677,8 @@ ob_start();
             }, 300);
         }
 
-        function setEditable(editable) {
-            if (!modal || !form) return;
-            form.classList.toggle('is-readonly', !editable);
-            if (companionEditBlock) {
-                companionEditBlock.classList.toggle('hidden', !editable);
-            }
-            if (companionViewBlock) {
-                companionViewBlock.classList.toggle('hidden', editable);
-            }
-            if (submitBtn) {
-                submitBtn.disabled = !editable;
-                submitBtn.classList.toggle('hidden', !editable);
-            }
-            if (editAttachmentBox) {
-                editAttachmentBox.classList.toggle('hidden', !editable);
-            }
-            if (editAttachmentsInput) {
-                editAttachmentsInput.disabled = !editable;
-            }
-            if (fieldMap.departmentWrapper) {
-                fieldMap.departmentWrapper.style.pointerEvents = editable ? '' : 'none';
-            }
-            if (companionModalTrigger) {
-                companionModalTrigger.disabled = !editable;
-            }
-            if (!editable) {
-                closeCompanionDropdown();
-                pendingEditFiles = [];
-                syncEditAttachmentInput();
-                setEditAttachmentError('');
-            }
-
-            const inputs = form.querySelectorAll('input, textarea, select');
-            inputs.forEach((input) => {
-                if (input.name === 'csrf_token' || input.name === 'vehicle_booking_id' || input.name === 'vehicle_reservation_update' || input.name === 'dh_year') {
-                    return;
-                }
-                if (input.type === 'hidden') {
-                    return;
-                }
-                input.disabled = !editable;
-            });
-
-            if (statusNote) {
-                statusNote.textContent = editable ?
-                    'แก้ไขได้เฉพาะรายการที่ส่งเอกสารแล้ว' :
-                    'รายการนี้ไม่สามารถแก้ไขได้';
-            }
-        }
-
         function resetModal() {
             currentBooking = null;
-            pendingEditFiles = [];
-            syncEditAttachmentInput();
             renderAttachmentList(false);
             if (fieldMap.bookingId) fieldMap.bookingId.value = '';
             setDepartmentValue('');
@@ -978,7 +687,7 @@ ob_start();
             if (fieldMap.location) fieldMap.location.value = '';
             if (fieldMap.passengerCount) fieldMap.passengerCount.value = '1';
             if (fieldMap.passengerCountDisplay) fieldMap.passengerCountDisplay.textContent = '1 คน';
-            if (passengerListText) passengerListText.textContent = '-';
+            if (companionSummaryInput) companionSummaryInput.value = '';
             if (fieldMap.startDate) fieldMap.startDate.value = '';
             if (fieldMap.endDate) fieldMap.endDate.value = '';
             if (fieldMap.startTime) fieldMap.startTime.value = '';
@@ -989,34 +698,22 @@ ob_start();
                     radio.checked = false;
                 });
             }
-            if (fieldMap.companionList) {
-                fieldMap.companionList.querySelectorAll('input[type="checkbox"]').forEach((box) => {
-                    box.checked = false;
-                });
-            }
-            if (fieldMap.companionSearch) {
-                fieldMap.companionSearch.value = '';
-            }
-            if (fieldMap.companionList) {
-                fieldMap.companionList.classList.remove('show');
-            }
-            filterCompanionDropdown('');
-            updateCompanionSummary();
             closeCompanionModal();
-            setEditAttachmentError('');
         }
 
-        function renderPassengerList() {
-            if (!passengerListText || !fieldMap.companionList) return;
-            const names = [];
-            fieldMap.companionList.querySelectorAll('input[type="checkbox"]:checked').forEach((box) => {
-                const nameText = (box.dataset.name || '').trim();
-                if (nameText !== '') {
-                    names.push(nameText);
-                }
-            });
-            const uniqueNames = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean)));
-            passengerListText.textContent = uniqueNames.length ? uniqueNames.join(', ') : 'ไม่มีผู้ร่วมเดินทาง';
+        function renderPassengerSummary(names) {
+            if (!companionSummaryInput) return;
+            const normalized = Array.isArray(names)
+                ? Array.from(new Set(names.map((name) => String(name || '').trim()).filter(Boolean)))
+                : [];
+
+            if (normalized.length === 0) {
+                companionSummaryInput.value = '';
+                companionSummaryInput.placeholder = 'ไม่มีผู้ร่วมเดินทาง';
+                return;
+            }
+
+            companionSummaryInput.value = `จำนวน ${normalized.length} รายชื่อ`;
         }
 
         function fillModal(data) {
@@ -1049,111 +746,21 @@ ob_start();
                 });
             }
 
-            if (fieldMap.companionList) {
-                const selectedSet = new Set(data.companionIds || []);
-                fieldMap.companionList.querySelectorAll('input[type="checkbox"]').forEach((box) => {
-                    box.checked = selectedSet.has(box.value);
-                });
-            }
-            if (fieldMap.companionSearch) {
-                fieldMap.companionSearch.value = '';
-            }
-            filterCompanionDropdown('');
-            updateCompanionSummary();
-            renderPassengerList();
-
-            if (statusPill) {
-                statusPill.textContent = data.statusLabel || 'ส่งเอกสารแล้ว';
-                statusPill.className = `status-pill ${data.statusClass || 'pending'}`;
-            }
-
-            if (createdValue) {
-                createdValue.textContent = data.createdAtLabel || data.createdAt || '-';
-            }
-            if (updatedValue) {
-                updatedValue.textContent = data.updatedAtLabel || data.updatedAt || '-';
-            }
-
-            const editable = data.status === 'PENDING';
-            setEditable(editable);
-            pendingEditFiles = [];
-            syncEditAttachmentInput();
-            renderAttachmentList(editable);
+            renderPassengerSummary(data.companionNames || []);
+            renderAttachmentList(false);
         }
 
-        function updatePassengerCountFromCompanions() {
-            if (!fieldMap.companionList || !fieldMap.passengerCount) return;
-            const selected = fieldMap.companionList.querySelectorAll('input[type="checkbox"]:checked').length;
-            const minPassengers = selected + 1;
-            const currentValue = parseInt(fieldMap.passengerCount.value || '0', 10);
-            if (!currentValue || currentValue < minPassengers) {
-                fieldMap.passengerCount.value = String(minPassengers);
-            }
-            const passengerValue = parseInt(fieldMap.passengerCount.value || '0', 10);
-            if (fieldMap.passengerCountDisplay) {
-                fieldMap.passengerCountDisplay.textContent = passengerValue > 0 ? `${passengerValue} คน` : '-';
-            }
-            updateCompanionSummary();
-            renderPassengerList();
-        }
-
-        if (fieldMap.companionList) {
-            fieldMap.companionList.addEventListener('change', function(event) {
-                if (event.target && event.target.matches('input[type="checkbox"]')) {
-                    updatePassengerCountFromCompanions();
-                }
-            });
-        }
-
-        if (fieldMap.passengerCount && form) {
-            fieldMap.passengerCount.addEventListener('input', function() {
-                fieldMap.passengerCount.setCustomValidity('');
-            });
-
-            form.addEventListener('submit', function(event) {
-                if (!fieldMap.companionList) return;
-                const selected = fieldMap.companionList.querySelectorAll('input[type="checkbox"]:checked').length;
-                const minPassengers = selected + 1;
-                const currentValue = parseInt(fieldMap.passengerCount.value || '0', 10);
-                if (currentValue < minPassengers) {
-                    fieldMap.passengerCount.setCustomValidity(`จำนวนผู้เดินทางต้องไม่น้อยกว่า ${minPassengers} คน`);
-                    event.preventDefault();
-                    if (typeof form.reportValidity === 'function') {
-                        form.reportValidity();
-                    }
-                } else {
-                    fieldMap.passengerCount.setCustomValidity('');
-                }
-            });
-        }
-
-        if (fieldMap.companionSearch && fieldMap.companionList) {
-            fieldMap.companionSearch.addEventListener('focus', function() {
-                if (this.value.startsWith('จำนวน')) {
-                    this.value = '';
-                }
-                openCompanionDropdown();
-                filterCompanionDropdown(this.value);
-            });
-
-            fieldMap.companionSearch.addEventListener('click', function() {
-                openCompanionDropdown();
-            });
-
-            fieldMap.companionSearch.addEventListener('input', function() {
-                filterCompanionDropdown(this.value);
-            });
-        }
-
-        if (companionModalTrigger && companionModalList && fieldMap.companionList) {
+        if (companionModalTrigger && companionModalList) {
             companionModalTrigger.addEventListener('click', function(event) {
                 event.preventDefault();
                 companionModalList.innerHTML = '';
-                const checkedBoxes = fieldMap.companionList.querySelectorAll('input[type="checkbox"]:checked');
-                if (checkedBoxes.length > 0) {
+                const companionNames = currentBooking && Array.isArray(currentBooking.companionNames) ?
+                    Array.from(new Set(currentBooking.companionNames.map((name) => String(name || '').trim()).filter(Boolean))) :
+                    [];
+
+                if (companionNames.length > 0) {
                     const ul = document.createElement('ul');
-                    checkedBoxes.forEach((checkbox) => {
-                        const nameText = checkbox.dataset.name || checkbox.nextElementSibling?.innerText || '';
+                    companionNames.forEach((nameText) => {
                         const li = document.createElement('li');
                         li.textContent = nameText;
                         ul.appendChild(li);
@@ -1180,26 +787,6 @@ ob_start();
             });
         }
 
-        if (fieldMap.startDate) {
-            fieldMap.startDate.addEventListener('change', updateModalDayCount);
-        }
-        if (fieldMap.endDate) {
-            fieldMap.endDate.addEventListener('change', updateModalDayCount);
-        }
-
-        if (editAttachmentsInput) {
-            editAttachmentsInput.addEventListener('change', function() {
-                addNewAttachments(this.files);
-            });
-        }
-
-        if (editAttachmentButton && editAttachmentsInput) {
-            editAttachmentButton.addEventListener('click', function(event) {
-                event.preventDefault();
-                editAttachmentsInput.click();
-            });
-        }
-
         openButtons.forEach((button) => {
             button.addEventListener('click', function() {
                 const bookingId = parseInt(button.dataset.vehicleBookingId || '0', 10);
@@ -1221,14 +808,6 @@ ob_start();
                 }
                 closeCompanionModal();
             });
-        });
-
-        document.addEventListener('click', function(event) {
-            if (!fieldMap.companionList || !fieldMap.companionSearch) return;
-            const dropdownWrapper = fieldMap.companionSearch.closest('.go-with-dropdown');
-            if (dropdownWrapper && !dropdownWrapper.contains(event.target)) {
-                closeCompanionDropdown();
-            }
         });
 
         if (modal) {
