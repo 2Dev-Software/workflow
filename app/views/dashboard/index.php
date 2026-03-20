@@ -52,7 +52,7 @@ ob_start();
         <p><strong>แผนผังระบบสำนักงานอิเล็กทรอนิกส์</strong></p>
     </div>
 
-    <div class="dashboard-content">
+    <!-- <div class="dashboard-content">
         <?php foreach ($visible_shortcuts as $shortcut) : ?>
             <?php
             $shortcut_href = trim((string) ($shortcut['href'] ?? '#'));
@@ -66,7 +66,65 @@ ob_start();
                 </div>
             </a>
         <?php endforeach; ?>
+    </div> -->
+
+    <div class="dashboard-content">
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Register.svg" alt="">
+                <p><strong>ลงทะเบียนรับ</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Memo.svg" alt="">
+                <p><strong>บันทึกข้อความ</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/SendCir.svg" alt="">
+                <p><strong>ส่งหนังสือเวียน</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Order.svg" alt="">
+                <p><strong>คำสั่งราชการ</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Booking-Vehicle.svg" alt="">
+                <p><strong>การจองพาหนะ</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Booking-Room.svg" alt="">
+                <p><strong>การจองสถานที่/ห้อง</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Tel.svg" alt="">
+                <p><strong>สมุดโทรศัพท์</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Profile.svg" alt="">
+                <p><strong>โปรไฟล์</strong></p>
+            </div>
+        </a>
+        <a href="#">
+            <div class="card-shortcut">
+                <img src="/public/assets/img/dashboard/Setting.svg" alt="">
+                <p><strong>การตั้งค่า</strong></p>
+            </div>
+        </a>
     </div>
+
 </div>
 <?php
 $content = ob_get_clean();

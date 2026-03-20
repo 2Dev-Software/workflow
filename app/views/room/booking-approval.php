@@ -104,7 +104,7 @@ ob_start();
                     </div>
                 </div>
             </div>
-            
+
         </form>
     </section>
 
@@ -140,7 +140,6 @@ ob_start();
     <div class="modal-content booking-detail-modal approval-detail-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
                 <span>รายละเอียดคำขอจอง</span>
             </div>
             <div>
@@ -236,17 +235,29 @@ ob_start();
                             </div>
                         </div>
 
-                        <div class="booking-actions">
+                        <!-- <div class="booking-actions">
                             <button type="button" class="btn-outline"
                                 data-approval-modal-close="bookingApprovalDetailModal">ปิด</button>
                             <button type="submit" class="btn-outline"
                                 data-approval-submit="reject">ไม่อนุมัติ</button>
-                            <button type="submit" class="btn-confirm"
-                                data-approval-submit="approve">อนุมัติรายการ</button>
-                        </div>
+                        </div> -->
                     </section>
                 </div>
             </form>
+        </div>
+        <div class="footer-modal operation">
+            <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
+
+                <button type="submit" class="btn-outline" form="modalOrderSendForm" data-approval-submit="reject">
+                    <p>ไม่อนุมัติ</p>
+                </button>
+
+                <button type="submit" form="modalOrderSendForm" data-approval-submit="approve">
+                    <p>อนุมัติรายการ</p>
+                </button>
+
+            </form>
+
         </div>
     </div>
 </div>

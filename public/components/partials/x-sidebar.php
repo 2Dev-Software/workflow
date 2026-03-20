@@ -38,7 +38,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/db-hub-banner.svg" alt="db-logo">
+            <img src="assets/img/DBHub-logo2.png" alt="db-logo">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>
@@ -118,35 +118,6 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                 <li><a href="orders-archive.php">คำสั่งราชการที่จัดเก็บ</a></li>
             </ul>
         </li>
-
-        <?php if ($can_access_external_circular_menu): ?>
-            <li class="navigation-links-has-sub">
-                <div class="icon-link">
-                    <a href="#">
-                        <i class="fa-solid fa-paper-plane"></i>
-                        <p class="link-name">หนังสือเวียนภายนอก</p>
-                    </a>
-                    <i class="fa-solid fa-caret-down"></i>
-                </div>
-                <ul class="navigation-links-sub-menu">
-                    <?php if ($can_manage_external_circular): ?>
-                        <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
-                        <li><a
-                                href="outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a>
-                        </li>
-                        <li><a
-                                href="outgoing-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a>
-                        </li>
-                        <li><a href="outgoing.php">ทะเบียนหนังสือออก</a></li>
-                        <li><a href="outgoing-create.php">ออกเลขหนังสือภายนอก</a></li>
-                    <?php endif; ?>
-                    <?php if ($is_director_or_acting): ?>
-                        <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา
-                                (ผอ./รักษาการ)</a></li>
-                    <?php endif; ?>
-                </ul>
-            </li>
-        <?php endif; ?>
 
         <?php if ($can_manage_room_module): ?>
             <li class="navigation-links-has-sub">

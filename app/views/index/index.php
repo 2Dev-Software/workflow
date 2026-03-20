@@ -136,7 +136,7 @@ $calendar_events = (array) ($calendar_events ?? []);
         <div class="modal-content">
             <header class="modal-header">
                 <div class="modal-title">
-                    <i class="fa-regular fa-calendar-days"></i>
+                    <!-- <i class="fa-regular fa-calendar-days"></i> -->
                     <span id="modal-date-title">วันที่ ...</span>
                 </div>
                 <div class="close-modal-btn">
