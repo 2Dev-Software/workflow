@@ -233,9 +233,9 @@ $handle_db_exception = static function (mysqli_sql_exception $exception, string 
     exit();
 };
 
-$active_status = room_booking_get_active_status_values($connection);
+$conflict_status = room_booking_get_conflict_status_value($connection);
 $conflict_sql = 'SELECT roomBookingID FROM dh_room_bookings
-    WHERE roomID = ? AND deletedAt IS NULL AND status IN (?, ?)
+    WHERE roomID = ? AND deletedAt IS NULL AND status = ?
     AND startDate <= ? AND COALESCE(endDate, startDate) >= ?
     AND NOT (endTime <= ? OR startTime >= ?)
     LIMIT 1';
@@ -259,10 +259,9 @@ if ($conflict_stmt === false) {
 try {
     mysqli_stmt_bind_param(
         $conflict_stmt,
-        's' . $active_status['types'] . 'ssss',
+        's' . $conflict_status['type'] . 'ssss',
         $room_id,
-        $active_status['values'][0],
-        $active_status['values'][1],
+        $conflict_status['value'],
         $end_date,
         $start_date,
         $start_time,
