@@ -19,8 +19,8 @@
         $equipment_text = $equipment_text !== '' ? $equipment_text : '-';
         $contact_phone = trim((string) ($request_item['contactPhone'] ?? ''));
         $contact_label = $contact_phone !== '' ? $contact_phone : '-';
-        // Requirement: show only status (no rejection reason) on approval list/detail.
-        $status_reason = '-';
+        $approval_note = trim((string) ($request_item['approvalNote'] ?? ''));
+        $approval_note = $approval_note !== '' ? $approval_note : '-';
         $approval_name = trim((string) ($request_item['approvedByName'] ?? ''));
 
         if ($approval_name === '' && $status_value !== 0) {
@@ -75,7 +75,7 @@
                         data-approval-status="<?= h((string) $status_value) ?>"
                         data-approval-status-label="<?= h($status_label) ?>"
                         data-approval-status-class="<?= h($status_class) ?>"
-                        data-approval-reason="<?= h($status_reason) ?>"
+                        data-approval-note="<?= h($approval_note) ?>"
                         data-approval-name="<?= h($approval_name) ?>"
                         data-approval-at="<?= h($approval_at) ?>"
                         data-approval-created="<?= h($created_label) ?>"

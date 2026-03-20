@@ -52,6 +52,7 @@ $optional_columns = [
     'bookingDetail',
     'equipmentDetail',
     'requesterDisplayName',
+    'approvalNote',
 ];
 
 $select_fields = [

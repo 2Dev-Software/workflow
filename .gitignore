@@ -2,6 +2,7 @@
 # 1. SECURITY & ENVIRONMENT (สำคัญที่สุด 🔒)
 # =========================================
 .env
+.env.docker
 .env.local
 .env.*.local
 
@@ -47,3 +48,7 @@ LINUX*.sql
 LINUX*.csv
 tmp/pdfs/*
 !tmp/pdfs/.gitkeep
+docker/package/*
+!docker/package/.gitkeep
+docker/runtime-assets/*.tar.gz
+docker/runtime-assets/*.sha256

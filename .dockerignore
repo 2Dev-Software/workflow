@@ -1,0 +1,11 @@
+.git
+.github
+.DS_Store
+tmp
+docs
+node_modules
+docker/mysql/initdb/*.sql
+docker/mysql/initdb/*.sql.gz
+storage/uploads
+assets/img/profile
+docker/runtime-assets

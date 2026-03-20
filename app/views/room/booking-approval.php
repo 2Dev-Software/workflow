@@ -224,6 +224,11 @@ ob_start();
                             <p class="detail-value" data-approval-detail="equipment">-</p>
                         </div>
 
+                        <div class="detail-item detail-full">
+                            <p class="detail-label">รายละเอียดเพิ่มเติม</p>
+                            <textarea class="form-input booking-textarea" name="approvalNote" data-approval-detail="approval-note" rows="4" placeholder="ระบุเหตุผลในการอนุมัติ / ไม่อนุมัติ"></textarea>
+                        </div>
+
                         <div class="booking-detail-meta">
                             <div class="detail-meta-item">
                                 <span>สร้างรายการ</span>
