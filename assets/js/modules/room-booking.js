@@ -103,6 +103,10 @@
     checkButton.addEventListener("click", function (event) {
       event.preventDefault();
 
+      if (typeof bookingForm.reportValidity === "function" && !bookingForm.reportValidity()) {
+        return;
+      }
+
       var formData = new FormData(bookingForm);
       formData.set("room_booking_check", "1");
       formData.delete("room_booking_save");

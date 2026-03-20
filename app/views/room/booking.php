@@ -231,22 +231,22 @@ ob_start();
                     <div class="form-group full">
                         <label class="form-label" for="bookingCapacity">จำนวนผู้เข้าร่วม</label>
                         <input class="form-input" type="number" id="bookingCapacity" name="attendeeCount" min="1"
-                            placeholder="ระบุจำนวนคน">
+                            placeholder="ระบุจำนวนคน" required>
                     </div>
                     <div class="form-group full">
                         <label class="form-label" for="bookingTopic">หัวข้อการจอง</label>
                         <input class="form-input" type="text" id="bookingTopic" name="bookingTopic"
-                            placeholder="เช่น ประชุมกลุ่มสาระ/อบรม">
+                            placeholder="เช่น ประชุมกลุ่มสาระ/อบรม" required>
                     </div>
                     <div class="form-group full">
                         <label class="form-label" for="bookingDetail">รายละเอียด/วัตถุประสงค์</label>
                         <textarea class="form-input booking-textarea" id="bookingDetail" name="bookingDetail" rows="4"
-                            placeholder="ระบุรายละเอียดการใช้งาน"></textarea>
+                            placeholder="ระบุรายละเอียดการใช้งาน" required></textarea>
                     </div>
                     <div class="form-group full">
                         <label class="form-label" for="bookingEquipment">อุปกรณ์ที่ต้องการ</label>
                         <textarea class="form-input booking-textarea" id="bookingEquipment" name="equipmentDetail" rows="3"
-                            placeholder="โปรเจคเตอร์, ไมโครโฟน"></textarea>
+                            placeholder="โปรเจคเตอร์, ไมโครโฟน" required></textarea>
                     </div>
                     <div class="form-group full">
                         <label class="form-label" for="bookingOwner">ผู้จองสถานที่ / ห้อง</label>

@@ -206,7 +206,24 @@ if ($requester_display_name === '') {
 }
 
 if ($booking_topic === '') {
-    $booking_topic = 'รายการจองห้อง';
+    $audit_fail('missing_booking_topic');
+    $set_room_booking_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุหัวข้อการจอง');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
+
+if ($booking_detail === '') {
+    $audit_fail('missing_booking_detail');
+    $set_room_booking_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุรายละเอียด/วัตถุประสงค์');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
+}
+
+if ($equipment_detail === '') {
+    $audit_fail('missing_equipment_detail');
+    $set_room_booking_alert('danger', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุอุปกรณ์ที่ต้องการ');
+    header('Location: ' . $redirect_url, true, 303);
+    exit();
 }
 
 $clip_text = static function (string $value, int $limit): string {
