@@ -4587,6 +4587,23 @@ select {
     transition: 0.3s;
   }
 
+  .booking-detail-content textarea:disabled {
+    background-color: rgba(var(--rgb-secondary), 0.2);
+    border-color: transparent;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 1;
+    -webkit-text-fill-color: var(--color-secondary);
+    width: 100%;
+    min-height: 110px;
+    padding: 14px 20px;
+    border-radius: 6px;
+    font-size: var(--font-size-body-1);
+    color: var(--color-secondary);
+    transition: 0.3s;
+    resize: none;
+  }
+
   .booking-detail-grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));

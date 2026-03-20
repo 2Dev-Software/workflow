@@ -79,8 +79,10 @@
         date: detailModal.querySelector('[data-booking-detail="date"]'),
         time: detailModal.querySelector('[data-booking-detail="time"]'),
         attendees: detailModal.querySelector('[data-booking-detail="attendees"]'),
+        requester: detailModal.querySelector('[data-booking-detail="requester"]'),
         topic: detailModal.querySelector('[data-booking-detail="topic"]'),
         detail: detailModal.querySelector('[data-booking-detail="detail"]'),
+        equipment: detailModal.querySelector('[data-booking-detail="equipment"]'),
         status: detailModal.querySelector('[data-booking-detail="status"]'),
         reason: detailModal.querySelector('[data-booking-detail="reason"]'),
         reasonRow: detailModal.querySelector('[data-booking-detail="reason-row"]'),
@@ -89,14 +91,20 @@
         approvalAt: detailModal.querySelector('[data-booking-detail="approval-at"]'),
         approvalItem: detailModal.querySelector('[data-booking-detail="approval-item"]'),
         created: detailModal.querySelector('[data-booking-detail="created"]'),
-        updated: detailModal.querySelector('[data-booking-detail="updated"]'),
       }
     : null;
 
   function setDetailValue(node, value, fallback) {
     if (!node) return;
     var text = (value || "").toString().trim();
-    node.textContent = text !== "" ? text : fallback || "-";
+    var resolved = text !== "" ? text : fallback || "-";
+
+    if ("value" in node) {
+      node.value = resolved;
+      return;
+    }
+
+    node.textContent = resolved;
   }
 
   if (checkButton && bookingForm) {
@@ -192,10 +200,11 @@
           ? attendeesValue + " คน"
           : "-";
       setDetailValue(detailFields.attendees, attendeesLabel);
+      setDetailValue(detailFields.requester, dataset.bookingRequester);
       setDetailValue(detailFields.topic, dataset.bookingTopic);
       setDetailValue(detailFields.detail, dataset.bookingDetail, "ไม่มีรายละเอียดเพิ่มเติม");
+      setDetailValue(detailFields.equipment, dataset.bookingEquipment, "ไม่มีอุปกรณ์เพิ่มเติม");
       setDetailValue(detailFields.created, dataset.bookingCreated);
-      setDetailValue(detailFields.updated, dataset.bookingUpdated);
       setDetailValue(detailFields.reason, reasonValue);
       setDetailValue(detailFields.approvalLabel, approvalLabel, "ผู้อนุมัติ");
       setDetailValue(detailFields.approvalName, approvalName);
@@ -220,13 +229,6 @@
         detailFields.approvalItem.classList.toggle(
           "hidden",
           dataset.bookingStatus === "0"
-        );
-      }
-
-      if (detailFields.approvalAt) {
-        detailFields.approvalAt.classList.toggle(
-          "hidden",
-          approvalAt === "-" || approvalAt === ""
         );
       }
 
