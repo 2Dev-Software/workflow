@@ -2103,6 +2103,8 @@ select {
     font-size: var(--font-size-body-1);
     color: var(--color-primary-dark);
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* .teacher-phone-table-control .page-selector select {
@@ -26219,6 +26221,8 @@ select {
     font-size: var(--font-size-desc-3);
     color: var(--color-primary-dark);
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .teacher-phone-table-control .custom-select-wrapper {
