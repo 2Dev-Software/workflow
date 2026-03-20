@@ -42,6 +42,15 @@ if (!function_exists('memo_archive_index')) {
         $connection = db_connection();
         $has_table = db_table_exists($connection, 'dh_memos');
         $has_routes = db_table_exists($connection, 'dh_memo_routes');
+        $current_thai_year = (int) date('Y') + 543;
+        $active_dh_year = system_get_dh_year();
+        $dh_year_options = [];
+
+        if ($active_dh_year < 2568 || $active_dh_year > ($current_thai_year + 1)) {
+            $active_dh_year = $current_thai_year;
+        }
+
+        $selected_dh_year = (int) ($_GET['dh_year'] ?? 0);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = (string) ($_POST['action'] ?? '');
@@ -82,14 +91,29 @@ if (!function_exists('memo_archive_index')) {
             }
             $items = [];
         } else {
-            $filtered_total = memo_count_by_creator($current_pid, true, $status_filter, $search);
+            $dh_year_options = memo_list_creator_years($current_pid, true);
+
+            if (!in_array($active_dh_year, $dh_year_options, true)) {
+                array_unshift($dh_year_options, $active_dh_year);
+            }
+
+            $dh_year_options = array_values(array_unique(array_filter($dh_year_options, static function (int $year): bool {
+                return $year >= 2568;
+            })));
+            rsort($dh_year_options);
+
+            if (!in_array($selected_dh_year, $dh_year_options, true)) {
+                $selected_dh_year = (int) ($dh_year_options[0] ?? $active_dh_year);
+            }
+
+            $filtered_total = memo_count_by_creator($current_pid, true, $status_filter, $search, $selected_dh_year);
             $total_pages = max(1, (int) ceil($filtered_total / $per_page));
 
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
             $offset = ($page - 1) * $per_page;
-            $items = memo_list_by_creator_page($current_pid, true, $status_filter, $search, $per_page, $offset);
+            $items = memo_list_by_creator_page($current_pid, true, $status_filter, $search, $per_page, $offset, null, $selected_dh_year);
         }
 
         $base_params = [];
@@ -100,6 +124,10 @@ if (!function_exists('memo_archive_index')) {
 
         if ($status_filter !== 'all') {
             $base_params['status'] = $status_filter;
+        }
+
+        if ($selected_dh_year > 0) {
+            $base_params['dh_year'] = (string) $selected_dh_year;
         }
         $pagination_base_url = 'memo-archive.php';
 
@@ -114,6 +142,8 @@ if (!function_exists('memo_archive_index')) {
             'total_pages' => $total_pages,
             'search' => $search,
             'status_filter' => $status_filter,
+            'dh_year_options' => $dh_year_options,
+            'selected_dh_year' => $selected_dh_year,
             'filtered_total' => $filtered_total,
             'pagination_base_url' => $pagination_base_url,
         ]);
