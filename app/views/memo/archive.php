@@ -9,6 +9,12 @@ $search = trim((string) ($search ?? ''));
 $status_filter = (string) ($status_filter ?? 'all');
 $filtered_total = (int) ($filtered_total ?? 0);
 $pagination_base_url = (string) ($pagination_base_url ?? 'memo-archive.php');
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? ($dh_year_options[0] ?? 0));
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : '-';
+$filter_search = (string) ($filter_search ?? $search);
 
 $memo_page_my = 'memo.php';
 $memo_page_inbox = 'memo-inbox.php';
@@ -135,7 +141,7 @@ ob_start();
 <form id="circularFilterForm" method="GET">
     <input type="hidden" name="box" value="<?= h($box_key) ?>">
     <input type="hidden" name="archived" value="1">
-    <input type="hidden" name="type" id="filterTypeInput" value="<?= h($filter_type) ?>">
+    <input type="hidden" name="dh_year" id="filterYearInput" value="<?= h((string) $selected_dh_year) ?>">
     <input type="hidden" name="read" id="filterReadInput" value="<?= h($filter_read) ?>">
     <input type="hidden" name="sort" id="filterSortInput" value="<?= h($filter_sort) ?>">
     <input type="hidden" name="view" id="filterViewInput" value="<?= h($filter_view) ?>">
@@ -146,18 +152,22 @@ ob_start();
     <header class="header-circular-notice-keep">
         <div class="circular-notice-keep-control">
             <div class="page-selector">
-                <p>แสดงตามประเภทหนังสือ</p>
+                <p>แสดงตามปีสารบรรณ</p>
 
-                <div class="custom-select-wrapper" data-target="filterTypeInput">
+                <div class="custom-select-wrapper" data-target="filterYearInput">
                     <div class="custom-select-trigger">
-                        <p class="select-value"><?= h($filter_type === 'internal' ? 'ภายใน' : ($filter_type === 'external' ? 'ภายนอก' : 'ทั้งหมด')) ?></p>
+                        <p class="select-value"><?= h($dh_year_label) ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option<?= h($filter_type === 'external' ? ' selected' : '') ?>" data-value="external">ภายนอก</div>
-                        <div class="custom-option<?= h($filter_type === 'internal' ? ' selected' : '') ?>" data-value="internal">ภายใน</div>
-                        <div class="custom-option<?= h($filter_type === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                        <?php if (empty($dh_year_options)) : ?>
+                            <div class="custom-option selected" data-value="<?= h((string) $selected_dh_year) ?>"><?= h($dh_year_label) ?></div>
+                        <?php else : ?>
+                            <?php foreach ($dh_year_options as $year_option) : ?>
+                                <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
