@@ -40,6 +40,14 @@ if (!function_exists('memo_inbox_index')) {
         $connection = db_connection();
         $has_table = db_table_exists($connection, 'dh_memos');
         $has_routes = db_table_exists($connection, 'dh_memo_routes');
+        $current_thai_year = (int) date('Y') + 543;
+        $active_dh_year = system_get_dh_year();
+        $dh_year_options = [];
+
+        if ($active_dh_year < 2568 || $active_dh_year > ($current_thai_year + 1)) {
+            $active_dh_year = $current_thai_year;
+        }
+        $selected_dh_year = (int) ($_GET['dh_year'] ?? 0);
 
         $total_pages = 1;
         $filtered_total = 0;
@@ -48,14 +56,29 @@ if (!function_exists('memo_inbox_index')) {
             $alert = system_not_ready_alert('ยังไม่พบตาราง memo workflow กรุณารัน migrations/011_update_memos_workflow.sql');
             $items = [];
         } else {
-            $filtered_total = memo_count_by_reviewer($current_pid, $status_filter, $search);
+            $dh_year_options = memo_list_reviewer_years($current_pid);
+
+            if (!in_array($active_dh_year, $dh_year_options, true)) {
+                array_unshift($dh_year_options, $active_dh_year);
+            }
+
+            $dh_year_options = array_values(array_unique(array_filter($dh_year_options, static function (int $year): bool {
+                return $year >= 2568;
+            })));
+            rsort($dh_year_options);
+
+            if (!in_array($selected_dh_year, $dh_year_options, true)) {
+                $selected_dh_year = (int) ($dh_year_options[0] ?? $active_dh_year);
+            }
+
+            $filtered_total = memo_count_by_reviewer($current_pid, $status_filter, $search, $selected_dh_year);
             $total_pages = max(1, (int) ceil($filtered_total / $per_page));
 
             if ($page > $total_pages) {
                 $page = $total_pages;
             }
             $offset = ($page - 1) * $per_page;
-            $items = memo_list_by_reviewer_page($current_pid, $status_filter, $search, $per_page, $offset);
+            $items = memo_list_by_reviewer_page($current_pid, $status_filter, $search, $per_page, $offset, $selected_dh_year);
         }
 
         $base_params = [];
@@ -66,6 +89,10 @@ if (!function_exists('memo_inbox_index')) {
 
         if ($status_filter !== 'all') {
             $base_params['status'] = $status_filter;
+        }
+
+        if ($selected_dh_year > 0) {
+            $base_params['dh_year'] = (string) $selected_dh_year;
         }
         $pagination_base_url = 'memo-inbox.php';
 
@@ -80,6 +107,8 @@ if (!function_exists('memo_inbox_index')) {
             'total_pages' => $total_pages,
             'search' => $search,
             'status_filter' => $status_filter,
+            'dh_year_options' => $dh_year_options,
+            'selected_dh_year' => $selected_dh_year,
             'filtered_total' => $filtered_total,
             'pagination_base_url' => $pagination_base_url,
         ]);

@@ -9,6 +9,13 @@ $search = trim((string) ($search ?? ''));
 $status_filter = (string) ($status_filter ?? 'all');
 $filtered_total = (int) ($filtered_total ?? 0);
 $pagination_base_url = (string) ($pagination_base_url ?? 'memo-archive.php');
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? ($dh_year_options[0] ?? 0));
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : '-';
+$filter_search = (string) ($filter_search ?? $search);
+$archived = (bool) ($archived ?? true);
 
 $memo_page_my = 'memo.php';
 $memo_page_inbox = 'memo-inbox.php';
@@ -37,6 +44,52 @@ $status_options = [
     'REJECTED' => 'ไม่อนุมัติ',
     'CANCELLED' => 'ยกเลิก',
 ];
+
+$status_pill_map = [
+    'neutral' => 'processing',
+    'warning' => 'pending',
+    'danger' => 'rejected',
+    'success' => 'approved',
+];
+
+$thai_months = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
+];
+
+$format_thai_datetime = static function (?string $date_value) use ($thai_months): array {
+    $date_value = trim((string) $date_value);
+
+    if ($date_value === '' || strpos($date_value, '0000-00-00') === 0) {
+        return ['-', '-'];
+    }
+
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $date_value);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i', $date_value);
+    }
+
+    if ($date_obj === false) {
+        return [$date_value, '-'];
+    }
+
+    $day = (int) $date_obj->format('j');
+    $month = $thai_months[(int) $date_obj->format('n')] ?? '';
+    $year = (int) $date_obj->format('Y') + 543;
+
+    return [trim($day . ' ' . $month . ' ' . $year), $date_obj->format('H:i') . ' น.'];
+};
 
 $rows = [];
 
@@ -135,7 +188,7 @@ ob_start();
 <form id="circularFilterForm" method="GET">
     <input type="hidden" name="box" value="<?= h($box_key) ?>">
     <input type="hidden" name="archived" value="1">
-    <input type="hidden" name="type" id="filterTypeInput" value="<?= h($filter_type) ?>">
+    <input type="hidden" name="dh_year" id="filterYearInput" value="<?= h((string) $selected_dh_year) ?>">
     <input type="hidden" name="read" id="filterReadInput" value="<?= h($filter_read) ?>">
     <input type="hidden" name="sort" id="filterSortInput" value="<?= h($filter_sort) ?>">
     <input type="hidden" name="view" id="filterViewInput" value="<?= h($filter_view) ?>">
@@ -146,18 +199,22 @@ ob_start();
     <header class="header-circular-notice-keep">
         <div class="circular-notice-keep-control">
             <div class="page-selector">
-                <p>แสดงตามประเภทหนังสือ</p>
+                <p>แสดงตามปีสารบรรณ</p>
 
-                <div class="custom-select-wrapper" data-target="filterTypeInput">
+                <div class="custom-select-wrapper" data-target="filterYearInput">
                     <div class="custom-select-trigger">
-                        <p class="select-value"><?= h($filter_type === 'internal' ? 'ภายใน' : ($filter_type === 'external' ? 'ภายนอก' : 'ทั้งหมด')) ?></p>
+                        <p class="select-value"><?= h($dh_year_label) ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option<?= h($filter_type === 'external' ? ' selected' : '') ?>" data-value="external">ภายนอก</div>
-                        <div class="custom-option<?= h($filter_type === 'internal' ? ' selected' : '') ?>" data-value="internal">ภายใน</div>
-                        <div class="custom-option<?= h($filter_type === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                        <?php if (empty($dh_year_options)) : ?>
+                            <div class="custom-option selected" data-value="<?= h((string) $selected_dh_year) ?>"><?= h($dh_year_label) ?></div>
+                        <?php else : ?>
+                            <?php foreach ($dh_year_options as $year_option) : ?>
+                                <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -196,11 +253,15 @@ ob_start();
         </div>
     </header>
 
-    <section class="content-circular-notice-index" data-circular-notice>
+    <section
+        class="content-circular-notice-index"
+        data-circular-notice
+        data-ajax-filter="true"
+        data-ajax-target=".table-circular-notice-index">
         <div class="search-bar">
             <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย...">
+                <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย..." data-auto-submit="true" data-auto-submit-delay="450">
             </div>
         </div>
 
@@ -208,7 +269,7 @@ ob_start();
             <form id="bulkActionForm" method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="<?= h($archived ? 'unarchive_selected' : 'archive_selected') ?>">
-                <div class="table-circular-notice-index">
+                <div class="table-circular-notice-index memo-archive-table">
                     <table>
                         <thead>
                             <tr>
@@ -279,23 +340,45 @@ ob_start();
                         <?php endif; ?> -->
                         <!-- </tbody> -->
                         <tbody>
-                            <tr>
-                                <td>ffgsdfsdf</td>
-                                <td>
-                                    <div class="circular-sender-stack">
-                                        <span class="circular-sender-name">นางสาวทิพยรัตน์ บุญมณี</span>
-                                        <span class="circular-sender-faction">กลุ่มบริหารงานทั่วไป</span>
-                                    </div>
-                                </td>
-                                <td>11/02/2569</td>
-                                <td><span class="status-badge read">อ่านแล้ว</span></td>
-                                <td>
-                                    <button type="button" class="booking-action-btn secondary js-open-edit-modal" data-vehicle-approval-action="detail" data-vehicle-booking-action="detail" data-vehicle-booking-id="4">
-                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                        <span class="tooltip">ดูรายละเอียด</span>
-                                    </button>
-                                </td>
-                            </tr>
+                            <?php if (empty($items)) : ?>
+                                <tr>
+                                    <td colspan="5" class="enterprise-empty">ไม่มีรายการ</td>
+                                </tr>
+                            <?php else : ?>
+                                <?php foreach ($items as $item) : ?>
+                                    <?php
+                                    $memo_id = (int) ($item['memoID'] ?? 0);
+                                    $subject = trim((string) ($item['subject'] ?? ''));
+                                    $approver_name = trim((string) ($item['approverName'] ?? ''));
+                                    $status = (string) ($item['status'] ?? '');
+                                    $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'neutral'];
+                                    $status_class = $status_pill_map[(string) ($status_meta['variant'] ?? 'neutral')] ?? 'processing';
+                                    $submitted_at = trim((string) ($item['submittedAt'] ?? ''));
+                                    $created_at = trim((string) ($item['createdAt'] ?? ''));
+                                    [$date_line, $time_line] = $format_thai_datetime($submitted_at !== '' ? $submitted_at : $created_at);
+                                    $view_href = $memo_page_view . '?memo_id=' . $memo_id;
+                                    ?>
+                                    <tr>
+                                        <td><?= h($subject !== '' ? $subject : '-') ?></td>
+                                        <td>
+                                            <div class="circular-sender-stack">
+                                                <span class="circular-sender-name"><?= h($approver_name !== '' ? $approver_name : '-') ?></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <p><?= h($date_line) ?></p>
+                                            <p class="detail-subtext"><?= h($time_line) ?></p>
+                                        </td>
+                                        <td><span class="status-pill <?= h($status_class) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span></td>
+                                        <td>
+                                            <a class="booking-action-btn secondary" href="<?= h($view_href) ?>">
+                                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                                <span class="tooltip">ดูรายละเอียด</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

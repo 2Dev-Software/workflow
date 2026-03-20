@@ -2103,6 +2103,8 @@ select {
     font-size: var(--font-size-body-1);
     color: var(--color-primary-dark);
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* .teacher-phone-table-control .page-selector select {
@@ -26256,6 +26258,8 @@ select {
     font-size: var(--font-size-desc-3);
     color: var(--color-primary-dark);
     margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .teacher-phone-table-control .custom-select-wrapper {
@@ -34719,4 +34723,78 @@ select {
   margin: 4px 0 0;
   color: rgba(var(--rgb-secondary), 0.82);
   font-size: var(--font-size-body-2);
+}
+}
+
+.memo-archive-table table {
+  table-layout: fixed;
+}
+
+.memo-archive-table table thead th:nth-child(1) {
+  width: 42%;
+  min-width: 0;
+}
+
+.memo-archive-table table thead th:nth-child(2) {
+  width: 21%;
+  min-width: 0;
+}
+
+.memo-archive-table table thead th:nth-child(3) {
+  width: 14%;
+  min-width: 0;
+}
+
+.memo-archive-table table thead th:nth-child(4) {
+  width: 11%;
+  min-width: 0;
+}
+
+.memo-archive-table table thead th:nth-child(5) {
+  width: 12%;
+  min-width: 0;
+}
+
+.memo-archive-table table tbody td:nth-child(3) p {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.memo-inbox-table table {
+  table-layout: fixed;
+}
+
+.memo-inbox-table table thead th:nth-child(1) {
+  width: 44px;
+  min-width: 44px;
+}
+
+.memo-inbox-table table thead th:nth-child(2) {
+  width: 46%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(3) {
+  width: 19%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(4) {
+  width: 12%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(5) {
+  width: 11%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(6) {
+  width: 12%;
+  min-width: 0;
+}
+
+.memo-inbox-table table tbody td:nth-child(4) p {
+  margin: 0;
+  white-space: nowrap;
 }

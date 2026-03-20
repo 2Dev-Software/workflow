@@ -156,7 +156,7 @@ if (!function_exists('memo_list_by_creator')) {
 }
 
 if (!function_exists('memo_count_by_creator')) {
-    function memo_count_by_creator(string $pID, bool $archived = false, ?string $status = null, ?string $search = null): int
+    function memo_count_by_creator(string $pID, bool $archived = false, ?string $status = null, ?string $search = null, ?int $dh_year = null): int
     {
         $archivedFlag = $archived ? 1 : 0;
         $status = trim((string) $status);
@@ -169,6 +169,12 @@ if (!function_exists('memo_count_by_creator')) {
             $where .= ' AND status = ?';
             $types .= 's';
             $params[] = $status;
+        }
+
+        if ($dh_year !== null && $dh_year > 0) {
+            $where .= ' AND dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
         }
 
         [$term, $like] = memo_prepare_search($search);
@@ -187,7 +193,7 @@ if (!function_exists('memo_count_by_creator')) {
 }
 
 if (!function_exists('memo_list_by_creator_page')) {
-    function memo_list_by_creator_page(string $pID, bool $archived, ?string $status, ?string $search, int $limit, int $offset, ?string $sort = null): array
+    function memo_list_by_creator_page(string $pID, bool $archived, ?string $status, ?string $search, int $limit, int $offset, ?string $sort = null, ?int $dh_year = null): array
     {
         $archivedFlag = $archived ? 1 : 0;
         $limit = max(1, $limit);
@@ -203,6 +209,12 @@ if (!function_exists('memo_list_by_creator_page')) {
             $where .= ' AND m.status = ?';
             $types .= 's';
             $params[] = $status;
+        }
+
+        if ($dh_year !== null && $dh_year > 0) {
+            $where .= ' AND m.dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
         }
 
         [$term, $like] = memo_prepare_search($search);
@@ -232,8 +244,33 @@ if (!function_exists('memo_list_by_creator_page')) {
     }
 }
 
+if (!function_exists('memo_list_creator_years')) {
+    function memo_list_creator_years(string $pID, bool $archived = false): array
+    {
+        $archivedFlag = $archived ? 1 : 0;
+        $sql = 'SELECT DISTINCT m.dh_year
+            FROM dh_memos AS m
+            WHERE m.createdByPID = ? AND m.deletedAt IS NULL AND m.isArchived = ?
+              AND m.dh_year IS NOT NULL AND m.dh_year >= 2568
+            ORDER BY m.dh_year DESC';
+
+        $rows = db_fetch_all($sql, 'si', $pID, $archivedFlag);
+        $years = [];
+
+        foreach ($rows as $row) {
+            $year = (int) ($row['dh_year'] ?? 0);
+
+            if ($year > 0) {
+                $years[] = $year;
+            }
+        }
+
+        return array_values(array_unique($years));
+    }
+}
+
 if (!function_exists('memo_count_by_reviewer')) {
-    function memo_count_by_reviewer(string $pID, ?string $status = null, ?string $search = null): int
+    function memo_count_by_reviewer(string $pID, ?string $status = null, ?string $search = null, ?int $dh_year = null): int
     {
         $status = trim((string) $status);
 
@@ -248,6 +285,12 @@ if (!function_exists('memo_count_by_reviewer')) {
             $where .= ' AND status = ?';
             $types .= 's';
             $params[] = $status;
+        }
+
+        if ($dh_year !== null && $dh_year > 0) {
+            $where .= ' AND dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
         }
 
         [$term, $like] = memo_prepare_search($search);
@@ -266,7 +309,7 @@ if (!function_exists('memo_count_by_reviewer')) {
 }
 
 if (!function_exists('memo_list_by_reviewer_page')) {
-    function memo_list_by_reviewer_page(string $pID, ?string $status, ?string $search, int $limit, int $offset): array
+    function memo_list_by_reviewer_page(string $pID, ?string $status, ?string $search, int $limit, int $offset, ?int $dh_year = null): array
     {
         $limit = max(1, $limit);
         $offset = max(0, $offset);
@@ -283,6 +326,12 @@ if (!function_exists('memo_list_by_reviewer_page')) {
             $where .= ' AND m.status = ?';
             $types .= 's';
             $params[] = $status;
+        }
+
+        if ($dh_year !== null && $dh_year > 0) {
+            $where .= ' AND m.dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
         }
 
         [$term, $like] = memo_prepare_search($search);
@@ -306,6 +355,31 @@ if (!function_exists('memo_list_by_reviewer_page')) {
             LIMIT ? OFFSET ?';
 
         return db_fetch_all($sql, $types . 'ii', ...array_merge($params, [$limit, $offset]));
+    }
+}
+
+if (!function_exists('memo_list_reviewer_years')) {
+    function memo_list_reviewer_years(string $pID): array
+    {
+        $sql = 'SELECT DISTINCT m.dh_year
+            FROM dh_memos AS m
+            WHERE m.toPID = ? AND m.createdByPID <> ? AND m.deletedAt IS NULL
+              AND m.dh_year IS NOT NULL AND m.dh_year >= 2568
+              AND (m.submittedAt IS NOT NULL OR m.status IN ("SUBMITTED","IN_REVIEW","RETURNED","APPROVED_UNSIGNED","SIGNED","REJECTED"))
+            ORDER BY m.dh_year DESC';
+
+        $rows = db_fetch_all($sql, 'ss', $pID, $pID);
+        $years = [];
+
+        foreach ($rows as $row) {
+            $year = (int) ($row['dh_year'] ?? 0);
+
+            if ($year > 0) {
+                $years[] = $year;
+            }
+        }
+
+        return array_values(array_unique($years));
     }
 }
 

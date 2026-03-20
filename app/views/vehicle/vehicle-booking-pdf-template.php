@@ -13,6 +13,7 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
     {
         $school_name = trim((string) ($data['school_name'] ?? ''));
         $write_date_label = trim((string) ($data['write_date_label'] ?? '-'));
+        $order_status_label = trim((string) ($data['order_status_label'] ?? '-'));
 
         $paragraph_lines = $data['paragraph_lines'] ?? [];
 
@@ -23,6 +24,7 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
             static fn ($v) => trim((string) $v),
             $paragraph_lines
         ), static fn (string $v) => $v !== ''));
+        $paragraph_text = implode(' ', $paragraph_lines);
 
         $requester_sig = $data['requester_signature'] ?? null;
         $requester_sig = is_string($requester_sig) && $requester_sig !== '' ? $requester_sig : null;
@@ -46,9 +48,6 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
 
         $boss_signature = $data['boss_signature'] ?? null;
         $boss_signature = is_string($boss_signature) && $boss_signature !== '' ? $boss_signature : null;
-
-        $assigned_note_line_2 = $assigned_note !== '' ? $assigned_note : 'อื่นๆ ........................................................';
-
         ob_start();
         ?>
 <!doctype html>
@@ -56,134 +55,222 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
 <head>
 	  <meta charset="utf-8">
 	  <style>
-	    /* Thai official docs often use Sarabun with tighter leading (Word-like). */
-	    body { font-family: sarabun; font-size: 15pt; line-height: 1.35; color: #000; }
+	    body {
+        font-family: sarabun;
+        font-size: 14pt;
+        line-height: 1.55;
+        color: #111;
+        margin: 0;
+      }
 	    * { box-sizing: border-box; }
-	    .center { text-align: center; }
-	    .title { font-weight: bold; font-size: 18.5pt; margin-top: 4pt; }
-	    .date-line { margin-top: 4pt; margin-bottom: 8pt; }
-	    .salutation { margin-top: 8pt; }
-
-    /* Word-like paragraph block with consistent left indent for every line. */
-    .para-block { margin: 0; margin-left: 2.2em; }
-    .para-line { margin: 0 0 3pt 0; }
-
-	    .sig-block { text-align: center; margin-top: 14pt; }
-	    .sig-img { display: block; height: 54pt; width: auto; max-width: 240pt; margin: 0 auto; }
-	    .sig-name { margin-top: 2pt; }
-	    .sig-role { margin-top: 0pt; }
-
-    .space-md { height: 14pt; }
-    .note { margin: 0 0 6pt 0; }
-
-	    .approval-grid { width: 100%; margin-top: 14pt; border-collapse: collapse; }
-	    .approval-grid td { vertical-align: top; }
-    .approval-grid td.col { width: 50%; }
-    .approval-grid td.gap { width: 12pt; }
-
-    .box { width: 100%; border-collapse: collapse; border: 0.6pt solid #000; }
-    .box-title { font-weight: bold; text-align: center; padding: 8pt 10pt; border-bottom: 0.6pt solid #000; }
-    .box-body { padding: 10pt 12pt; }
-	    .box-body.fixed { height: 112pt; }
-    .box-sign { padding: 10pt 12pt; border-top: 0.6pt solid #000; text-align: center; }
-
-    .fill-line { border-bottom: 0.6pt dotted #000; height: 18pt; margin: 0 0 6pt 0; }
-    .sign-table { width: 100%; border-collapse: collapse; margin-top: 6pt; }
-    .sign-table td { vertical-align: bottom; }
-    .sign-label { width: 46pt; text-align: left; }
-	    .sign-dots { border-bottom: 0.6pt dotted #000; }
+      .center { text-align: center; }
+      .form-code {
+        font-size: 11pt;
+        text-align: right;
+        margin: 0 0 4pt 0;
+      }
+      .header-table,
+      .signature-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .header-table td,
+      .signature-table td {
+        vertical-align: top;
+      }
+	    .title {
+        font-weight: bold;
+        font-size: 18.5pt;
+        text-align: center;
+        padding: 0 0 4pt 0;
+      }
+	    .date-line {
+        text-align: right;
+        padding: 0 0 10pt 0;
+      }
+	    .salutation {
+        padding: 0 0 10pt 0;
+      }
+      .para-block {
+        margin: 0 0 8pt 0;
+      }
+      .para-text {
+        margin: 0;
+        text-indent: 1.8em;
+        text-align: justify;
+      }
+      .signature-table {
+        margin: 16pt 0 12pt 0;
+      }
+      .signature-spacer {
+        width: 55%;
+      }
+      .sig-block {
+        width: 45%;
+        text-align: center;
+      }
+      .sig-meta {
+        display: inline-block;
+        min-width: 180pt;
+        text-align: center;
+      }
+	    .sig-img {
+        display: block;
+        height: 54pt;
+        width: auto;
+        max-width: 220pt;
+        margin: 0 auto;
+      }
+      .sig-name { margin-top: 2pt; }
+      .sig-role { margin-top: 0; }
+      .sig-role-nowrap { white-space: nowrap; }
+      .approval-stack {
+        margin-top: 10pt;
+      }
+      .approval-card {
+        margin: 0 0 18pt 0;
+      }
+      .approval-card--boss {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .approval-title {
+        font-weight: bold;
+        text-align: left;
+        padding: 0 0 6pt 0;
+        margin: 0 0 10pt 0;
+        border-bottom: 0.8pt solid #000;
+      }
+      .approval-body {
+        padding: 0;
+        min-height: 58pt;
+      }
+      .approval-sign {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8pt;
+      }
+      .approval-sign-spacer {
+        width: 36%;
+      }
+      .approval-sign-block {
+        width: 64%;
+        text-align: center;
+      }
+      .note {
+        margin: 0 0 7pt 0;
+      }
+      .status-row {
+        font-weight: bold;
+        margin-bottom: 8pt;
+      }
+      .fill-line {
+        border-bottom: 0.6pt dotted #000;
+        height: 18pt;
+        margin: 0 0 7pt 0;
+      }
+      .muted {
+        color: #333;
+      }
 	  </style>
 	</head>
 	<body>
-  <div class="center title">แบบขออนุญาตใช้รถยนต์ราชการ</div>
-  <div class="center date-line">วันที่ <?= h($write_date_label) ?></div>
-
-  <div class="salutation">เรียน&nbsp;&nbsp;ผู้อำนวยการ<?= h($school_name) ?></div>
-
-  <div class="para-block">
-    <?php foreach ($paragraph_lines as $line): ?>
-      <div class="para-line"><?= h($line) ?></div>
-    <?php endforeach; ?>
-  </div>
-
-  <div class="sig-block">
-    <?php if ($requester_sig): ?>
-      <img class="sig-img" src="<?= h($requester_sig) ?>" alt="signature">
-    <?php else: ?>
-      <div style="height:60pt;"></div>
-    <?php endif; ?>
-    <div class="sig-name">(<?= h($requester_name !== '' ? $requester_name : '-') ?>)</div>
-    <div class="sig-role"><?= h($requester_position !== '' ? $requester_position : '-') ?></div>
-    <div class="sig-role">ผู้ขออนุญาต</div>
-  </div>
-
-  <table class="approval-grid" cellpadding="0" cellspacing="0">
+  <div class="form-code">แบบ 3</div>
+  <table class="header-table" cellpadding="0" cellspacing="0">
     <tr>
-      <td class="col">
-        <table class="box" cellpadding="0" cellspacing="0">
-          <tr>
-            <td class="box-title">ความเห็นเจ้าหน้าที่ควบคุมยานพาหนะ</td>
-          </tr>
-          <tr>
-            <td class="box-body fixed">
-              <div class="note">
-                1. ควรอนุญาตให้ใช้รถยนต์ส่วนกลาง หมายเลขทะเบียน <?= h($vehicle_label !== '' ? $vehicle_label : '-') ?>
-                โดยมี <?= h($driver_name !== '' ? $driver_name : '-') ?> ทำหน้าที่พนักงานขับรถ<?= $driver_tel !== '' ? (' (' . h($driver_tel) . ')') : '' ?>
-              </div>
-              <div class="note">2. <?= h($assigned_note_line_2) ?></div>
-            </td>
-          </tr>
-          <tr>
-            <td class="box-sign">
-              <?php if ($assigned_sig): ?>
-                <img class="sig-img" src="<?= h($assigned_sig) ?>" alt="signature">
-              <?php else: ?>
-                <div style="height:60pt;"></div>
-              <?php endif; ?>
-              <div class="sig-name">(<?= h($assigned_name !== '' ? $assigned_name : '-') ?>)</div>
-              <div class="sig-role"><?= h($assigned_position !== '' ? $assigned_position : '-') ?></div>
-              <div class="sig-role">ผู้ตรวจสอบ</div>
-            </td>
-          </tr>
-        </table>
+      <td class="title">แบบขออนุญาตใช้รถยนต์ราชการ</td>
+    </tr>
+    <tr>
+      <td class="date-line">วันที่ <?= h($write_date_label) ?></td>
+    </tr>
+    <tr>
+      <td class="salutation">เรียน&nbsp;&nbsp;ผู้อำนวยการ<?= h($school_name) ?></td>
+    </tr>
+  </table>
+  <div class="para-block">
+    <div class="para-text"><?= h($paragraph_text !== '' ? $paragraph_text : '-') ?></div>
+  </div>
+
+  <table class="signature-table" cellpadding="0" cellspacing="0">
+    <tr>
+      <td class="signature-spacer"></td>
+      <td class="sig-block">
+        <?php if ($requester_sig): ?>
+          <img class="sig-img" src="<?= h($requester_sig) ?>" alt="signature">
+        <?php else: ?>
+          <div style="height:60pt;"></div>
+        <?php endif; ?>
+        <div class="sig-meta">
+          <div class="sig-name">(<?= h($requester_name !== '' ? $requester_name : '-') ?>)</div>
+          <div class="sig-role"><?= h($requester_position !== '' ? $requester_position : '-') ?></div>
+          <div class="sig-role">ผู้ขออนุญาต</div>
+        </div>
       </td>
-      <td class="gap"></td>
-      <td class="col">
-        <table class="box" cellpadding="0" cellspacing="0">
-          <tr>
-            <td class="box-title">ความเห็นผู้บังคับบัญชา</td>
-          </tr>
-          <tr>
-            <td class="box-body fixed">
-              <?php if ($boss_note !== ''): ?>
-                <div class="note"><?= nl2br(h($boss_note)) ?></div>
-              <?php else: ?>
-                <div class="fill-line"></div>
-                <div class="fill-line"></div>
-                <div class="fill-line"></div>
-                <div class="fill-line"></div>
-              <?php endif; ?>
-            </td>
-	          </tr>
-	          <tr>
-	            <td class="box-sign">
-	              <?php if ($boss_signature): ?>
-	                <img class="sig-img" src="<?= h($boss_signature) ?>" alt="signature">
-	              <?php else: ?>
-	                <div style="height:60pt;"></div>
-	              <?php endif; ?>
-	              <div class="sig-name">(<?= h($boss_name !== '' ? $boss_name : '-') ?>)</div>
-	              <div class="sig-role"><?= h($boss_position_line_1 !== '' ? $boss_position_line_1 : '-') ?></div>
-	              <?php if ($boss_position_line_2 !== ''): ?>
-	                <div class="sig-role"><?= h($boss_position_line_2) ?></div>
-	              <?php endif; ?>
-	              <div class="sig-role">ผู้อนุญาต</div>
-	            </td>
-	          </tr>
-	        </table>
-	      </td>
-	    </tr>
-	  </table>
+    </tr>
+  </table>
+
+  <div class="approval-stack">
+    <div class="approval-card">
+      <div class="approval-title">ความเห็นเจ้าหน้าที่</div>
+      <div class="approval-body">
+        <div class="note">
+          1. ควรอนุญาตให้ใช้รถยนต์ส่วนกลาง หมายเลขทะเบียน <?= h($vehicle_label !== '' ? $vehicle_label : '-') ?>
+          โดยมี <?= h($driver_name !== '' ? $driver_name : '-') ?> ทำหน้าที่พนักงานขับรถ<?= $driver_tel !== '' ? (' (' . h($driver_tel) . ')') : '' ?>
+        </div>
+        <?php if ($assigned_note !== ''): ?>
+          <div class="note"><?= h($assigned_note) ?></div>
+        <?php endif; ?>
+      </div>
+      <table class="approval-sign" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="approval-sign-spacer"></td>
+          <td class="approval-sign-block">
+            <?php if ($assigned_sig): ?>
+              <img class="sig-img" src="<?= h($assigned_sig) ?>" alt="signature">
+            <?php else: ?>
+              <div style="height:60pt;"></div>
+            <?php endif; ?>
+            <div class="sig-name">(<?= h($assigned_name !== '' ? $assigned_name : '-') ?>)</div>
+            <div class="sig-role"><?= h($assigned_position !== '' ? $assigned_position : '-') ?></div>
+            <div class="sig-role">ผู้ตรวจสอบ</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="approval-card approval-card--boss">
+      <div class="approval-title">ความเห็นผู้บังคับบัญชา</div>
+      <div class="approval-body">
+        <div class="status-row">ผลการพิจารณา: <?= h($order_status_label !== '' ? $order_status_label : 'รอพิจารณา') ?></div>
+        <?php if ($boss_note !== ''): ?>
+          <div class="note"><?= nl2br(h($boss_note)) ?></div>
+        <?php else: ?>
+          <div class="fill-line"></div>
+          <div class="fill-line"></div>
+          <div class="fill-line"></div>
+          <div class="fill-line"></div>
+        <?php endif; ?>
+      </div>
+      <table class="approval-sign" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="approval-sign-spacer"></td>
+          <td class="approval-sign-block">
+            <?php if ($boss_signature): ?>
+              <img class="sig-img" src="<?= h($boss_signature) ?>" alt="signature">
+            <?php else: ?>
+              <div style="height:60pt;"></div>
+            <?php endif; ?>
+            <div class="sig-name">(<?= h($boss_name !== '' ? $boss_name : '-') ?>)</div>
+            <div class="sig-role sig-role-nowrap"><?= h($boss_position_line_1 !== '' ? $boss_position_line_1 : '-') ?></div>
+            <?php if ($boss_position_line_2 !== ''): ?>
+              <div class="sig-role"><?= h($boss_position_line_2) ?></div>
+            <?php endif; ?>
+            <div class="sig-role">ผู้อนุญาต</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
 	</body>
 	</html>
 	        <?php

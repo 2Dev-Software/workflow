@@ -4,11 +4,182 @@
     return;
   }
   var loadingApi = window.App && window.App.loading ? window.App.loading : null;
-  var circularListLoadingTarget =
-    root.querySelector(".table-circular-notice-index") || root;
+  var ajaxTargetSelector =
+    root.getAttribute("data-ajax-target") || ".table-circular-notice-index";
+  var getCircularListLoadingTarget = function () {
+    return root.querySelector(ajaxTargetSelector) || root;
+  };
 
   var filterForm = document.getElementById("circularFilterForm");
+  var ajaxFilterEnabled =
+    !!filterForm &&
+    root.getAttribute("data-ajax-filter") === "true" &&
+    typeof window.fetch === "function" &&
+    typeof window.DOMParser === "function";
+  var filterRequestInFlight = false;
+  var filterRequestToken = 0;
+  var pendingFilterRequest = null;
+
+  var buildFilterUrl = function () {
+    if (!filterForm) {
+      return "";
+    }
+
+    var formData = new FormData(filterForm);
+    var params = new URLSearchParams();
+
+    formData.forEach(function (value, key) {
+      params.set(key, String(value));
+    });
+
+    var action = filterForm.getAttribute("action") || "";
+    var baseUrl = action !== "" ? action : window.location.pathname;
+    var query = params.toString();
+
+    return query === "" ? baseUrl : baseUrl + "?" + query;
+  };
+
+  var bindCheckAllToggle = function () {
+    var checkAll = document.getElementById("checkAllCircular");
+    if (!checkAll) {
+      return;
+    }
+
+    checkAll.addEventListener("change", function () {
+      root
+        .querySelectorAll(".check-table:not(.checkall)")
+        .forEach(function (checkbox) {
+          checkbox.checked = checkAll.checked;
+        });
+    });
+  };
+
+  var applyAjaxFilterUpdate = function (htmlText, requestUrl) {
+    var parser = new DOMParser();
+    var nextDocument = parser.parseFromString(htmlText, "text/html");
+    var currentBulkForm = document.getElementById("bulkActionForm");
+    var nextBulkForm = nextDocument.getElementById("bulkActionForm");
+
+    if (!currentBulkForm || !nextBulkForm) {
+      window.location.assign(requestUrl);
+      return;
+    }
+
+    currentBulkForm.replaceWith(nextBulkForm);
+
+    var currentPagination = document.querySelector(".c-pagination");
+    var nextPagination = nextDocument.querySelector(".c-pagination");
+
+    if (currentPagination && nextPagination) {
+      currentPagination.replaceWith(nextPagination);
+    } else if (!currentPagination && nextPagination && root.parentNode) {
+      root.insertAdjacentElement("afterend", nextPagination);
+    } else if (currentPagination && !nextPagination) {
+      currentPagination.remove();
+    }
+
+    var currentActionBar = document.querySelector(".button-circular-notice-keep");
+    var nextActionBar = nextDocument.querySelector(".button-circular-notice-keep");
+
+    if (currentActionBar && nextActionBar) {
+      currentActionBar.replaceWith(nextActionBar);
+    } else if (!currentActionBar && nextActionBar && root.parentNode) {
+      root.insertAdjacentElement("afterend", nextActionBar);
+    } else if (currentActionBar && !nextActionBar) {
+      currentActionBar.remove();
+    }
+
+    window.history.replaceState({}, "", requestUrl);
+    bindCheckAllToggle();
+  };
+
+  var submitFilter = function (options) {
+    options = options || {};
+
+    if (!filterForm) {
+      return;
+    }
+
+    var targetUrl = options.requestUrl || buildFilterUrl();
+
+    if (!ajaxFilterEnabled || targetUrl === "") {
+      filterForm.submit();
+      return;
+    }
+
+    if (filterRequestInFlight) {
+      pendingFilterRequest = {
+        requestUrl: targetUrl,
+      };
+      return;
+    }
+
+    filterRequestInFlight = true;
+    filterRequestToken += 1;
+    var currentToken = filterRequestToken;
+
+    if (loadingApi) {
+      loadingApi.startComponent(getCircularListLoadingTarget());
+    }
+
+    window
+      .fetch(targetUrl, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        credentials: "same-origin",
+      })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Failed to fetch filtered list");
+        }
+        return response.text();
+      })
+      .then(function (htmlText) {
+        if (currentToken !== filterRequestToken) {
+          return;
+        }
+        applyAjaxFilterUpdate(htmlText, targetUrl);
+      })
+      .catch(function () {
+        window.location.assign(targetUrl);
+      })
+      .finally(function () {
+        if (loadingApi) {
+          loadingApi.stopComponent(getCircularListLoadingTarget());
+        }
+
+        if (currentToken === filterRequestToken) {
+          filterRequestInFlight = false;
+        }
+
+        if (pendingFilterRequest !== null) {
+          var nextRequest = pendingFilterRequest;
+          pendingFilterRequest = null;
+          submitFilter(nextRequest);
+        }
+      });
+  };
+
+  var requestFilterUpdate = function (options) {
+    if (ajaxFilterEnabled) {
+      submitFilter(options);
+      return;
+    }
+
+    if (filterForm) {
+      filterForm.submit();
+    }
+  };
+
   if (filterForm) {
+    if (ajaxFilterEnabled) {
+      filterForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        submitFilter();
+      });
+    }
+
     document.querySelectorAll(".custom-select-wrapper").forEach(function (wrapper) {
       var targetId = wrapper.getAttribute("data-target") || "";
       var input = targetId ? document.getElementById(targetId) : null;
@@ -29,7 +200,7 @@
             valueDisplay.textContent = option.textContent.trim();
           }
           if (input) {
-            filterForm.submit();
+            requestFilterUpdate();
           }
         });
       });
@@ -53,7 +224,7 @@
           value = checked[0] || "all";
         }
         filterTypeInput.value = value;
-        filterForm.submit();
+        requestFilterUpdate();
       };
 
       typeCheckboxes.forEach(function (checkbox) {
@@ -79,7 +250,7 @@
           value = checked[0] || "all";
         }
         filterReadInput.value = value;
-        filterForm.submit();
+        requestFilterUpdate();
       };
 
       readCheckboxes.forEach(function (checkbox) {
@@ -89,12 +260,48 @@
 
     var searchInput = document.getElementById("search-input");
     if (searchInput) {
+      var autoSubmit = searchInput.getAttribute("data-auto-submit") === "true";
+      var autoSubmitDelay = parseInt(searchInput.getAttribute("data-auto-submit-delay") || "450", 10);
+      var searchTimer = null;
+      var isComposing = false;
+      var submitSearch = function () {
+        if (searchTimer) {
+          window.clearTimeout(searchTimer);
+          searchTimer = null;
+        }
+        requestFilterUpdate();
+      };
+
       searchInput.addEventListener("keydown", function (event) {
         if (event.key === "Enter") {
           event.preventDefault();
-          filterForm.submit();
+          submitSearch();
         }
       });
+
+      if (autoSubmit) {
+        searchInput.addEventListener("compositionstart", function () {
+          isComposing = true;
+        });
+
+        searchInput.addEventListener("compositionend", function () {
+          isComposing = false;
+          if (searchTimer) {
+            window.clearTimeout(searchTimer);
+          }
+          searchTimer = window.setTimeout(submitSearch, autoSubmitDelay);
+        });
+
+        searchInput.addEventListener("input", function () {
+          if (isComposing) {
+            return;
+          }
+          if (searchTimer) {
+            window.clearTimeout(searchTimer);
+          }
+          searchTimer = window.setTimeout(submitSearch, autoSubmitDelay);
+        });
+      }
     }
 
     document.querySelectorAll(".table-change button[data-view]").forEach(function (button) {
@@ -103,23 +310,11 @@
         if (viewInput) {
           viewInput.value = button.getAttribute("data-view") || "table1";
         }
-        filterForm.submit();
+        requestFilterUpdate();
       });
     });
   }
-
-  var checkAll = document.getElementById("checkAllCircular");
-  if (checkAll) {
-    checkAll.addEventListener("change", function () {
-      document
-        .querySelectorAll(
-          ".table-circular-notice-index .check-table:not(.checkall), .table-circular-notice-archive .check-table:not(.checkall)"
-        )
-        .forEach(function (checkbox) {
-          checkbox.checked = checkAll.checked;
-        });
-    });
-  }
+  bindCheckAllToggle();
 
   var modalOverlay = document.getElementById("modalNoticeKeepOverlay");
   var modalClose = document.getElementById("closeModalNoticeKeep");

@@ -210,6 +210,16 @@ $fuel_label = static function (?string $fuel): string {
     };
 };
 
+$normalize_inline_text = static function (?string $value): string {
+    $value = trim((string) $value);
+
+    if ($value === '') {
+        return '';
+    }
+
+    return preg_replace('/\s+/u', ' ', $value) ?? $value;
+};
+
 $safe_file_to_data_uri = static function (?string $relative_path): ?string {
     $relative_path = trim((string) $relative_path);
 
@@ -616,10 +626,12 @@ $order_allow_checked = $boss_decision_by_director && $is_approved;
 $order_deny_checked = $boss_decision_by_director && $is_rejected;
 $order_pending_label = !$boss_decision_by_director ? 'รอพิจารณา' : '';
 
-$requester_position_label = $requester_position !== '' ? $requester_position : '-';
-$requester_department_label = $requester_department !== '' ? $requester_department : '';
-$purpose_label = $purpose !== '' ? $purpose : '-';
-$location_label = $location !== '' ? $location : '-';
+$requester_position_label = $normalize_inline_text($requester_position !== '' ? $requester_position : '-');
+$requester_department_label = $normalize_inline_text($requester_department !== '' ? $requester_department : '');
+$purpose_label = $normalize_inline_text($purpose !== '' ? $purpose : '-');
+$location_label = $normalize_inline_text($location !== '' ? $location : '-');
+$companion_label = $normalize_inline_text($companion_label);
+$requester_name = $normalize_inline_text($requester_name !== '' ? $requester_name : '-');
 $companion_inline = $companion_label !== '' ? ('พร้อมด้วย ' . $companion_label . ' ') : '';
 
 $paragraph_lines = [];
@@ -636,6 +648,17 @@ require_once __DIR__ . '/../../app/views/vehicle/vehicle-booking-pdf-template.ph
 $html = vehicle_booking_pdf_render_html([
     'school_name' => $school_name,
     'write_date_label' => $format_thai_date($write_date),
+    'requester_department' => $requester_department_label,
+    'purpose_label' => $purpose_label,
+    'location_label' => $location_label,
+    'start_date_label' => $format_thai_date($start_date),
+    'end_date_label' => $format_thai_date($end_date),
+    'start_time_label' => $format_thai_time($start_at),
+    'end_time_label' => $format_thai_time($end_at),
+    'day_count_label' => $day_count_label,
+    'passengers_label' => $passengers,
+    'fuel_label' => $fuel,
+    'companion_label' => $companion_label,
     'paragraph_lines' => $paragraph_lines,
     'requester_signature' => $requester_sig,
     'requester_name' => $requester_name !== '' ? $requester_name : '-',
@@ -712,9 +735,9 @@ try {
         'default_font' => $has_sarabun ? 'sarabun' : 'garuda',
         // All inputs are UTF-8 already; disabling conversion avoids iconv warnings corrupting PDF output.
         'allow_charset_conversion' => false,
-        // mPDF dictionary line breaking inserts U+200B (ZWSP) which can render as tofu squares
-        // in some viewers/fonts. We prefer no boxes over dictionary-based Thai line breaking.
-        'useDictionaryLBR' => false,
+        // Use Thai dictionary line breaking so long Thai strings wrap naturally in PDFs.
+        // Sarabun fonts in this project are patched to avoid visible tofu squares from ZWSP.
+        'useDictionaryLBR' => true,
         'tempDir' => $mpdf_tmp,
         // Better vertical metrics for Thai (prevents tone marks/combining marks from clipping).
         'fontDescriptor' => 'winTypo',
