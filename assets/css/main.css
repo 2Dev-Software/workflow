@@ -34721,3 +34721,42 @@ select {
   margin: 0;
   white-space: nowrap;
 }
+
+.memo-inbox-table table {
+  table-layout: fixed;
+}
+
+.memo-inbox-table table thead th:nth-child(1) {
+  width: 44px;
+  min-width: 44px;
+}
+
+.memo-inbox-table table thead th:nth-child(2) {
+  width: 46%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(3) {
+  width: 19%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(4) {
+  width: 12%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(5) {
+  width: 11%;
+  min-width: 0;
+}
+
+.memo-inbox-table table thead th:nth-child(6) {
+  width: 12%;
+  min-width: 0;
+}
+
+.memo-inbox-table table tbody td:nth-child(4) p {
+  margin: 0;
+  white-space: nowrap;
+}

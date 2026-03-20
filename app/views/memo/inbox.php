@@ -377,7 +377,7 @@ ob_start();
             <form id="bulkActionForm" method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="<?= h($archived ? 'unarchive_selected' : 'archive_selected') ?>">
-                <div class="table-circular-notice-index">
+                <div class="table-circular-notice-index memo-inbox-table">
                     <table>
                         <thead>
                             <tr>
