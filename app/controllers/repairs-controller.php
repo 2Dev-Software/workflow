@@ -19,8 +19,8 @@ if (!function_exists('repairs_mode_config')) {
         $configs = [
             'report' => [
                 'base_url' => 'repairs.php',
-                'title' => 'แจ้งเหตุซ่อมแซม',
-                'subtitle' => 'บันทึกและติดตามสถานะงานซ่อมของคุณ',
+                'title' => 'ยินดีต้อนรับ',
+                'subtitle' => 'แจ้งเหตุซ่อมแซม',
                 'form_title' => 'แจ้งเหตุซ่อมแซม',
                 'form_subtitle' => 'กรอกข้อมูลให้ครบถ้วนเพื่อส่งคำขอซ่อม',
                 'list_title' => 'รายการแจ้งซ่อมของฉัน',
