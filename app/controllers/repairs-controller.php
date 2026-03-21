@@ -33,8 +33,8 @@ if (!function_exists('repairs_mode_config')) {
             ],
             'approval' => [
                 'base_url' => 'repairs-approval.php',
-                'title' => 'อนุมัติการซ่อมแซม',
-                'subtitle' => 'ตรวจสอบและพิจารณาคำขอซ่อมที่รอดำเนินการ',
+                'title' => 'ยินดีต้อนรับ',
+                'subtitle' => 'แจ้งเหตุซ่อมแซม / อนุมัติการซ่อมแซม',
                 'form_title' => '',
                 'form_subtitle' => '',
                 'list_title' => 'รายการรออนุมัติการซ่อมแซม',
@@ -47,8 +47,8 @@ if (!function_exists('repairs_mode_config')) {
             ],
             'manage' => [
                 'base_url' => 'repairs-management.php',
-                'title' => 'ติดตามงานซ่อม',
-                'subtitle' => 'ติดตามความคืบหน้าและปิดงานซ่อมทั้งหมดของระบบ',
+                'title' => 'ยินดีต้อนรับ',
+                'subtitle' => 'แจ้งเหตุซ่อมแซม / จัดการงานซ่อม',
                 'form_title' => '',
                 'form_subtitle' => '',
                 'list_title' => 'รายการงานซ่อมทั้งหมด',
