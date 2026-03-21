@@ -7,18 +7,51 @@ require_once __DIR__ . '/../../db/db.php';
 const REPAIR_MODULE_NAME = 'repairs';
 const REPAIR_ENTITY_NAME = 'dh_repair_requests';
 
+if (!function_exists('repair_build_filters')) {
+    function repair_build_filters(?string $requester_pid = null, array $statuses = [], string $alias = ''): array
+    {
+        $prefix = $alias !== '' ? ($alias . '.') : '';
+        $conditions = [$prefix . 'deletedAt IS NULL'];
+        $types = '';
+        $params = [];
+
+        if ($requester_pid !== null && $requester_pid !== '') {
+            $conditions[] = $prefix . 'requesterPID = ?';
+            $types .= 's';
+            $params[] = $requester_pid;
+        }
+
+        $statuses = array_values(array_filter(array_map('strval', $statuses), static function (string $status): bool {
+            return $status !== '';
+        }));
+
+        if (!empty($statuses)) {
+            $conditions[] = $prefix . 'status IN (' . implode(', ', array_fill(0, count($statuses), '?')) . ')';
+            $types .= str_repeat('s', count($statuses));
+            array_push($params, ...$statuses);
+        }
+
+        return [
+            'sql' => implode(' AND ', $conditions),
+            'types' => $types,
+            'params' => $params,
+        ];
+    }
+}
+
 if (!function_exists('repair_create_record')) {
     function repair_create_record(array $data): int
     {
         $stmt = db_query(
-            'INSERT INTO dh_repair_requests (dh_year, requesterPID, subject, detail, location, status, assignedToPID)
-             VALUES (?, ?, ?, ?, ?, ?, ?)',
-            'issssss',
+            'INSERT INTO dh_repair_requests (dh_year, requesterPID, subject, detail, location, equipment, status, assignedToPID)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'isssssss',
             (int) $data['dh_year'],
             (string) $data['requesterPID'],
             (string) $data['subject'],
             $data['detail'] ?? null,
             $data['location'] ?? null,
+            $data['equipment'] ?? null,
             (string) $data['status'],
             $data['assignedToPID'] ?? null
         );
@@ -32,74 +65,78 @@ if (!function_exists('repair_create_record')) {
 if (!function_exists('repair_list_by_requester')) {
     function repair_list_by_requester(string $pID): array
     {
-        $sql = 'SELECT repairID, requesterPID, subject, location, status, createdAt
-            FROM dh_repair_requests
-            WHERE requesterPID = ? AND deletedAt IS NULL
-            ORDER BY createdAt DESC, repairID DESC';
-
-        return db_fetch_all($sql, 's', $pID);
+        return repair_list_filtered_page($pID, [], 1000, 0);
     }
 }
 
 if (!function_exists('repair_list_all')) {
     function repair_list_all(): array
     {
-        $sql = 'SELECT r.repairID, r.requesterPID, r.subject, r.location, r.status, r.createdAt, t.fName AS requesterName
-            FROM dh_repair_requests AS r
-            LEFT JOIN teacher AS t ON r.requesterPID = t.pID
-            WHERE r.deletedAt IS NULL
-            ORDER BY r.createdAt DESC, r.repairID DESC';
-
-        return db_fetch_all($sql);
+        return repair_list_filtered_page(null, [], 1000, 0);
     }
 }
 
 if (!function_exists('repair_count_by_requester')) {
     function repair_count_by_requester(string $pID): int
     {
-        $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_repair_requests WHERE requesterPID = ? AND deletedAt IS NULL', 's', $pID);
-
-        return (int) ($row['total'] ?? 0);
+        return repair_count_filtered($pID, []);
     }
 }
 
 if (!function_exists('repair_list_by_requester_page')) {
     function repair_list_by_requester_page(string $pID, int $limit, int $offset): array
     {
-        $limit = max(1, $limit);
-        $offset = max(0, $offset);
-        $sql = 'SELECT repairID, requesterPID, subject, location, status, createdAt
-            FROM dh_repair_requests
-            WHERE requesterPID = ? AND deletedAt IS NULL
-            ORDER BY createdAt DESC, repairID DESC
-            LIMIT ? OFFSET ?';
-
-        return db_fetch_all($sql, 'sii', $pID, $limit, $offset);
+        return repair_list_filtered_page($pID, [], $limit, $offset);
     }
 }
 
 if (!function_exists('repair_count_all')) {
     function repair_count_all(): int
     {
-        $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_repair_requests WHERE deletedAt IS NULL');
-
-        return (int) ($row['total'] ?? 0);
+        return repair_count_filtered(null, []);
     }
 }
 
 if (!function_exists('repair_list_all_page')) {
     function repair_list_all_page(int $limit, int $offset): array
     {
+        return repair_list_filtered_page(null, [], $limit, $offset);
+    }
+}
+
+if (!function_exists('repair_count_filtered')) {
+    function repair_count_filtered(?string $requester_pid = null, array $statuses = []): int
+    {
+        $filters = repair_build_filters($requester_pid, $statuses);
+        $sql = 'SELECT COUNT(*) AS total FROM dh_repair_requests WHERE ' . $filters['sql'];
+        $row = db_fetch_one($sql, $filters['types'], ...$filters['params']);
+
+        return (int) ($row['total'] ?? 0);
+    }
+}
+
+if (!function_exists('repair_list_filtered_page')) {
+    function repair_list_filtered_page(?string $requester_pid, array $statuses, int $limit, int $offset): array
+    {
         $limit = max(1, $limit);
         $offset = max(0, $offset);
-        $sql = 'SELECT r.repairID, r.requesterPID, r.subject, r.location, r.status, r.createdAt, t.fName AS requesterName
+        $filters = repair_build_filters($requester_pid, $statuses, 'r');
+        $sql = 'SELECT r.repairID, r.requesterPID, r.subject, r.detail, r.location, r.equipment, r.status, r.assignedToPID, r.resolvedAt, r.createdAt, r.updatedAt,
+                requester.fName AS requesterName,
+                assigned.fName AS assignedToName
             FROM dh_repair_requests AS r
-            LEFT JOIN teacher AS t ON r.requesterPID = t.pID
-            WHERE r.deletedAt IS NULL
+            LEFT JOIN teacher AS requester ON r.requesterPID = requester.pID
+            LEFT JOIN teacher AS assigned ON r.assignedToPID = assigned.pID
+            WHERE ' . $filters['sql'] . '
             ORDER BY r.createdAt DESC, r.repairID DESC
             LIMIT ? OFFSET ?';
 
-        return db_fetch_all($sql, 'ii', $limit, $offset);
+        $types = $filters['types'] . 'ii';
+        $params = $filters['params'];
+        $params[] = $limit;
+        $params[] = $offset;
+
+        return db_fetch_all($sql, $types, ...$params);
     }
 }
 
@@ -140,9 +177,10 @@ if (!function_exists('repair_delete_record')) {
 if (!function_exists('repair_get')) {
     function repair_get(int $repairID): ?array
     {
-        $sql = 'SELECT r.*, t.fName AS requesterName
+        $sql = 'SELECT r.*, requester.fName AS requesterName, assigned.fName AS assignedToName
             FROM dh_repair_requests AS r
-            LEFT JOIN teacher AS t ON r.requesterPID = t.pID
+            LEFT JOIN teacher AS requester ON r.requesterPID = requester.pID
+            LEFT JOIN teacher AS assigned ON r.assignedToPID = assigned.pID
             WHERE r.repairID = ?
             LIMIT 1';
 
