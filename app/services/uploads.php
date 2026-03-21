@@ -58,6 +58,18 @@ if (!function_exists('upload_allowed_mimes')) {
     }
 }
 
+if (!function_exists('upload_allowed_image_mimes')) {
+    function upload_allowed_image_mimes(): array
+    {
+        return [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+        ];
+    }
+}
+
 if (!function_exists('upload_scan_for_viruses')) {
     function upload_scan_for_viruses(string $path): bool
     {
@@ -88,7 +100,7 @@ if (!function_exists('upload_store_files')) {
         $max_size = (int) ($options['max_size'] ?? (5 * 1024 * 1024));
         $base_dir = (string) ($options['base_dir'] ?? (__DIR__ . '/../../storage/uploads'));
 
-        $allowed = upload_allowed_mimes();
+        $allowed = (array) ($options['allowed_mimes'] ?? upload_allowed_mimes());
         $normalized = upload_normalize_files($files);
         $normalized = array_values(array_filter($normalized, static function (array $file): bool {
             return (int) $file['error'] !== UPLOAD_ERR_NO_FILE;

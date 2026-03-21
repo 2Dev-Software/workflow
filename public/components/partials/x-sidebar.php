@@ -173,14 +173,24 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                 </a>
             </li>
         <?php endif; ?>
-        <!--
-        <li>
-            <a href="repairs.php">
-                <i class="fa-solid fa-wrench"></i>
-                <p class="link-name">แจ้งเหตุซ่อมแซม</p>
-            </a>
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <i class="fa-solid fa-wrench"></i>
+                    <p class="link-name">แจ้งเหตุซ่อมแซม</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="repairs.php">แจ้งเหตุซ่อมแซม</a></li>
+                <?php if ($is_admin_user || $is_facility_user): ?>
+                    <li><a href="repairs-approval.php">อนุมัติการซ่อมแซม</a></li>
+                <?php endif; ?>
+                <?php if ($is_admin_user): ?>
+                    <li><a href="repairs-management.php">ติดตามงานซ่อม</a></li>
+                <?php endif; ?>
+            </ul>
         </li>
-        -->
         <li>
             <a href="teacher-phone-directory.php">
                 <i class="fa-solid fa-phone"></i>

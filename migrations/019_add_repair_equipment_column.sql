@@ -1,0 +1,2 @@
+ALTER TABLE `dh_repair_requests`
+  ADD COLUMN IF NOT EXISTS `equipment` varchar(255) DEFAULT NULL AFTER `location`;

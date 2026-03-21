@@ -174,14 +174,31 @@ if ($module === 'circulars') {
         $authorized = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
     }
 } elseif ($module === 'repairs') {
-    $check = mysqli_prepare($connection, 'SELECT 1 FROM dh_repair_requests WHERE repairID = ? AND requesterPID = ? LIMIT 1');
+    $check = mysqli_prepare($connection, 'SELECT requesterPID FROM dh_repair_requests WHERE repairID = ? LIMIT 1');
 
     if ($check) {
-        mysqli_stmt_bind_param($check, 'is', $entity_id, $current_pid);
+        mysqli_stmt_bind_param($check, 'i', $entity_id);
         mysqli_stmt_execute($check);
         $res = mysqli_stmt_get_result($check);
-        $authorized = $res && mysqli_fetch_assoc($res);
+        $row = $res ? mysqli_fetch_assoc($res) : null;
+        $authorized = ((string) ($row['requesterPID'] ?? '') === $current_pid);
         mysqli_stmt_close($check);
+    }
+
+    if (!$authorized && function_exists('rbac_user_has_any_role')) {
+        $authorized = rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN, ROLE_FACILITY]);
+    }
+
+    if (!$authorized) {
+        $check = mysqli_prepare($connection, 'SELECT 1 FROM teacher WHERE pID = ? AND roleID IN (1, 5) LIMIT 1');
+
+        if ($check) {
+            mysqli_stmt_bind_param($check, 's', $current_pid);
+            mysqli_stmt_execute($check);
+            $res = mysqli_stmt_get_result($check);
+            $authorized = $res && mysqli_fetch_assoc($res);
+            mysqli_stmt_close($check);
+        }
     }
 }
 
