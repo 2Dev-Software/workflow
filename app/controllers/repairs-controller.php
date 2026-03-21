@@ -33,8 +33,8 @@ if (!function_exists('repairs_mode_config')) {
             ],
             'approval' => [
                 'base_url' => 'repairs-approval.php',
-                'title' => 'อนุมัติการซ่อมแซม',
-                'subtitle' => 'ตรวจสอบและพิจารณาคำขอซ่อมที่รอดำเนินการ',
+                'title' => 'ยินดีต้อนรับ',
+                'subtitle' => 'แจ้งเหตุซ่อมแซม / อนุมัติการซ่อมแซม',
                 'form_title' => '',
                 'form_subtitle' => '',
                 'list_title' => 'รายการรออนุมัติการซ่อมแซม',
