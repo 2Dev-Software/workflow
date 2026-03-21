@@ -187,7 +187,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <li><a href="repairs-approval.php">อนุมัติการซ่อมแซม</a></li>
                 <?php endif; ?>
                 <?php if ($is_admin_user): ?>
-                    <li><a href="repairs-management.php">ติดตามงานซ่อม</a></li>
+                    <li><a href="repairs-management.php">จัดการงานซ่อม</a></li>
                 <?php endif; ?>
             </ul>
         </li>
