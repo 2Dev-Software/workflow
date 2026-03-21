@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../views/view.php';
 require_once __DIR__ . '/../modules/circulars/repository.php';
 require_once __DIR__ . '/../modules/vehicle/calendar.php';
+require_once __DIR__ . '/../modules/system/system.php';
 
 if (!function_exists('index_page_index')) {
     function index_page_index(): void
@@ -18,7 +19,8 @@ if (!function_exists('index_page_index')) {
         require_once __DIR__ . '/../../src/Services/system/exec-duty-announcement.php';
         require_once __DIR__ . '/../../src/Services/system/system-year.php';
 
-        $room_booking_year = isset($dh_year) ? (int) $dh_year : 0;
+        $dh_year_value = system_get_dh_year();
+        $room_booking_year = $dh_year_value;
         require __DIR__ . '/../../src/Services/room/room-booking-data.php';
 
         $announcement_items = circular_get_announcements(10);
@@ -38,6 +40,7 @@ if (!function_exists('index_page_index')) {
             'announcement_items' => (array) $announcement_items,
             'room_booking_events' => (array) ($room_booking_events ?? []),
             'calendar_events' => $calendar_events,
+            'dh_year_value' => $dh_year_value,
         ]);
     }
 }

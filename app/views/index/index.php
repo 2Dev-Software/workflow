@@ -4,6 +4,11 @@ $exec_duty_announcement = (string) ($exec_duty_announcement ?? '');
 $announcement_items = (array) ($announcement_items ?? []);
 $room_booking_events = (array) ($room_booking_events ?? []);
 $calendar_events = (array) ($calendar_events ?? []);
+$dh_year_value = (int) ($dh_year_value ?? 0);
+
+if ($dh_year_value <= 0) {
+    $dh_year_value = (int) date('Y') + 543;
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -63,7 +68,7 @@ $calendar_events = (array) ($calendar_events ?? []);
             <footer class="footer-login">
                 <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
                 <p>DB HUB V.1.0.0 Copyright 2DEV&Software All rights reserved</p>
-                <p>Paperless office พ.ศ.2568</p>
+                <p>Paperless office พ.ศ.<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?></p>
             </footer>
 
         </div>
