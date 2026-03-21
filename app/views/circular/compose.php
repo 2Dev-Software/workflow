@@ -1118,7 +1118,7 @@ ob_start();
         </div>
     </div>
 
-    <form method="GET" class="circular-my-filter-grid">
+    <form method="GET" class="circular-my-filter-grid" id="circularTrackFilterForm">
         <input type="hidden" name="tab" value="track">
         <div class="approval-filter-group">
             <div class="room-admin-search">
@@ -1178,159 +1178,162 @@ ob_start();
         </div>
     </form>
 
-    <div class="enterprise-card-header">
-        <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการหนังสือเวียนของฉัน</h2>
+    <div id="circularTrackResults">
+        <div class="enterprise-card-header">
+            <div class="enterprise-card-title-group">
+                <h2 class="enterprise-card-title">รายการหนังสือเวียนของฉัน</h2>
+            </div>
         </div>
-    </div>
 
-    <div class="table-responsive circular-my-table-wrap">
-        <table class="custom-table circular-my-table">
-            <thead>
-                <tr>
-                    <th>เรื่อง</th>
-                    <th>สถานะ</th>
-                    <th>อ่านแล้ว/ทั้งหมด</th>
-                    <th>วันที่ส่ง</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($sent_items)) : ?>
+        <div class="table-responsive circular-my-table-wrap">
+            <table class="custom-table circular-my-table">
+                <thead>
                     <tr>
-                        <td colspan="5" class="enterprise-empty">ไม่มีรายการหนังสือเวียนตามเงื่อนไข</td>
+                        <th>เรื่อง</th>
+                        <th>สถานะ</th>
+                        <th>อ่านแล้ว/ทั้งหมด</th>
+                        <th>วันที่ส่ง</th>
+                        <th>จัดการ</th>
                     </tr>
-                <?php else : ?>
-                    <?php foreach ($sent_items as $item) : ?>
-                        <?php
-                        $circular_id = (int) ($item['circularID'] ?? 0);
-                        $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
-                        $status_meta = $status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
-                        $item_type = strtoupper((string) ($item['circularType'] ?? ''));
-                        $read_count = (int) ($item['readCount'] ?? 0);
-                        $recipient_count = (int) ($item['recipientCount'] ?? 0);
-                        $created_at = (string) ($item['createdAt'] ?? '');
-                        $date_display = $format_thai_datetime($created_at);
-                        $date_long_display = $format_thai_date_long($created_at);
-                        $sender_faction_name = (string) ($item['senderFactionName'] ?? '');
-                        $detail_row = (array) ($detail_map[$circular_id] ?? []);
-                        $detail_text = trim((string) ($detail_row['detail'] ?? ''));
-                        $detail_sender_name = trim((string) ($detail_row['senderName'] ?? ''));
-                        $detail_sender_faction = trim((string) ($detail_row['senderFactionName'] ?? $sender_faction_name));
-                        $attachments = (array) ($detail_row['files'] ?? []);
-                        $files_json = json_encode($attachments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                        if ($files_json === false) {
-                            $files_json = '[]';
-                        }
-                        $consider_class = 'considering';
-
-                        if (in_array($status_key, [INTERNAL_STATUS_RECALLED], true)) {
-                            $consider_class = 'considered';
-                        } elseif (in_array($status_key, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED], true)) {
-                            $consider_class = 'success';
-                        }
-                        $stats_rows = [];
-                        $has_any_read = $read_count > 0;
-
-                        foreach ((array) ($read_stats_map[$circular_id] ?? []) as $stat) {
-                            $is_read = (int) ($stat['isRead'] ?? 0) === 1;
-
-                            if ($is_read) {
-                                $has_any_read = true;
-                            }
-                            $stats_rows[] = [
-                                'name' => (string) ($stat['fName'] ?? '-'),
-                                'status' => $is_read ? 'อ่านแล้ว' : 'ยังไม่อ่าน',
-                                'pill' => $is_read ? 'approved' : 'pending',
-                                'readAt' => $is_read ? $format_thai_datetime((string) ($stat['readAt'] ?? '')) : '-',
-                            ];
-                        }
-                        $stats_json = json_encode($stats_rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                        if ($stats_json === false) {
-                            $stats_json = '[]';
-                        }
-                        ?>
+                </thead>
+                <tbody>
+                    <?php if (empty($sent_items)) : ?>
                         <tr>
-                            <td>
-                                <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
-                                <?php if (!empty($item['senderFactionName'])) : ?>
-                                    <div class="circular-my-meta">ในนาม <?= h((string) $item['senderFactionName']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
-                            </td>
-                            <td><?= h((string) $read_count) ?>/<?= h((string) $recipient_count) ?></td>
-                            <td><?= h($date_display) ?></td>
-                            <td>
-                                <div class="circular-my-actions">
-                                    <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_SENT && !$has_any_read) : ?>
-                                        <form method="POST">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="recall">
-                                            <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
-                                            <button type="submit" class="booking-action-btn secondary">
-                                                <i class="fa-solid fa-rotate-left"></i>
-                                                <span class="tooltip">ดึงกลับ</span>
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
+                            <td colspan="5" class="enterprise-empty">ไม่มีรายการหนังสือเวียนตามเงื่อนไข</td>
+                        </tr>
+                    <?php else : ?>
+                        <?php foreach ($sent_items as $item) : ?>
+                            <?php
+                            $circular_id = (int) ($item['circularID'] ?? 0);
+                            $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+                            $status_meta = $status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
+                            $item_type = strtoupper((string) ($item['circularType'] ?? ''));
+                            $read_count = (int) ($item['readCount'] ?? 0);
+                            $recipient_count = (int) ($item['recipientCount'] ?? 0);
+                            $created_at = (string) ($item['createdAt'] ?? '');
+                            $date_display = $format_thai_datetime($created_at);
+                            $date_long_display = $format_thai_date_long($created_at);
+                            $sender_faction_name = (string) ($item['senderFactionName'] ?? '');
+                            $detail_row = (array) ($detail_map[$circular_id] ?? []);
+                            $detail_text = trim((string) ($detail_row['detail'] ?? ''));
+                            $detail_sender_name = trim((string) ($detail_row['senderName'] ?? ''));
+                            $detail_sender_faction = trim((string) ($detail_row['senderFactionName'] ?? $sender_faction_name));
+                            $attachments = (array) ($detail_row['files'] ?? []);
+                            $files_json = json_encode($attachments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-                                    <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_RECALLED) : ?>
-                                        <form method="POST">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="resend">
-                                            <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
-                                            <button type="submit" class="booking-action-btn secondary">
-                                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                                                <span class="tooltip">ส่งใหม่</span>
-                                            </button>
-                                        </form>
-                                        <a class="c-button c-button--sm booking-action-btn secondary" href="circular-compose.php?edit=<?= h((string) $circular_id) ?>">
+                            if ($files_json === false) {
+                                $files_json = '[]';
+                            }
+                            $consider_class = 'considering';
+
+                            if (in_array($status_key, [INTERNAL_STATUS_RECALLED], true)) {
+                                $consider_class = 'considered';
+                            } elseif (in_array($status_key, [INTERNAL_STATUS_SENT, INTERNAL_STATUS_ARCHIVED], true)) {
+                                $consider_class = 'success';
+                            }
+                            $stats_rows = [];
+                            $has_any_read = $read_count > 0;
+
+                            foreach ((array) ($read_stats_map[$circular_id] ?? []) as $stat) {
+                                $is_read = (int) ($stat['isRead'] ?? 0) === 1;
+
+                                if ($is_read) {
+                                    $has_any_read = true;
+                                }
+                                $stats_rows[] = [
+                                    'name' => (string) ($stat['fName'] ?? '-'),
+                                    'status' => $is_read ? 'อ่านแล้ว' : 'ยังไม่อ่าน',
+                                    'pill' => $is_read ? 'approved' : 'pending',
+                                    'readAt' => $is_read ? $format_thai_datetime((string) ($stat['readAt'] ?? '')) : '-',
+                                ];
+                            }
+                            $stats_json = json_encode($stats_rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                            if ($stats_json === false) {
+                                $stats_json = '[]';
+                            }
+                            ?>
+                            <tr>
+                                <td>
+                                    <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
+                                    <?php if (!empty($item['senderFactionName'])) : ?>
+                                        <div class="circular-my-meta">ในนาม <?= h((string) $item['senderFactionName']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
+                                </td>
+                                <td><?= h((string) $read_count) ?>/<?= h((string) $recipient_count) ?></td>
+                                <td><?= h($date_display) ?></td>
+                                <td>
+                                    <div class="circular-my-actions">
+                                        <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_SENT && !$has_any_read) : ?>
+                                            <form method="POST">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="recall">
+                                                <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
+                                                <button type="submit" class="booking-action-btn secondary">
+                                                    <i class="fa-solid fa-rotate-left"></i>
+                                                    <span class="tooltip">ดึงกลับ</span>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+
+                                        <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_RECALLED) : ?>
+                                            <form method="POST">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="resend">
+                                                <input type="hidden" name="circular_id" value="<?= h((string) $circular_id) ?>">
+                                                <button type="submit" class="booking-action-btn secondary">
+                                                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                                    <span class="tooltip">ส่งใหม่</span>
+                                                </button>
+                                            </form>
+                                            <a class="c-button c-button--sm booking-action-btn secondary" href="circular-compose.php?edit=<?= h((string) $circular_id) ?>">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                                <span class="tooltip">แก้ไข</span>
+                                            </a>
+                                        <?php endif; ?>
+
+                                        <button
+                                            class="booking-action-btn secondary js-open-circular-modal"
+                                            type="button"
+                                            data-circular-id="<?= h((string) $circular_id) ?>"
+                                            data-type="<?= h($item_type) ?>"
+                                            data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
+                                            data-detail="<?= h($detail_text) ?>"
+                                            data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
+                                            data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
+                                            data-bookno="<?= h('#' . (string) $circular_id) ?>"
+                                            data-issued="<?= h($date_long_display) ?>"
+                                            data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
+                                            data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
+                                            data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                            data-consider="<?= h($consider_class) ?>"
+                                            data-received-time="<?= h($date_display) ?>"
+                                            data-files="<?= h($files_json) ?>"
+                                            data-read-stats="<?= h($stats_json) ?>">
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
+                                        </button>
+                                        <button
+                                            class="booking-action-btn secondary js-open-edit-modal"
+                                            type="button"
+                                            data-circular-id="<?= h((string) $circular_id) ?>"
+                                            data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
+                                            data-detail="<?= h($detail_text) ?>">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                             <span class="tooltip">แก้ไข</span>
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <button
-                                        class="booking-action-btn secondary js-open-circular-modal"
-                                        type="button"
-                                        data-circular-id="<?= h((string) $circular_id) ?>"
-                                        data-type="<?= h($item_type) ?>"
-                                        data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
-                                        data-detail="<?= h($detail_text) ?>"
-                                        data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
-                                        data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
-                                        data-bookno="<?= h('#' . (string) $circular_id) ?>"
-                                        data-issued="<?= h($date_long_display) ?>"
-                                        data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
-                                        data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
-                                        data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
-                                        data-consider="<?= h($consider_class) ?>"
-                                        data-received-time="<?= h($date_display) ?>"
-                                        data-files="<?= h($files_json) ?>"
-                                        data-read-stats="<?= h($stats_json) ?>">
-                                        <i class="fa-solid fa-eye"></i>
-                                        <span class="tooltip">ดูรายละเอียด</span>
-                                    </button>
-                                    <button
-                                        class="booking-action-btn secondary js-open-edit-modal"
-                                        type="button"
-                                        data-circular-id="<?= h((string) $circular_id) ?>">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                        <span class="tooltip">แก้ไข</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">
@@ -1787,21 +1790,205 @@ ob_start();
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-
-        const trackFilterForm = document.querySelector('#circularTrack form.circular-my-filter-grid');
-        const trackSearchInput = trackFilterForm ? trackFilterForm.querySelector('input[name="q"]') : null;
-        const trackStatusSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="status"]') : null;
-        const trackSortSelect = trackFilterForm ? trackFilterForm.querySelector('select[name="sort"]') : null;
+        const trackSectionSelector = '#circularTrack';
+        const trackResultsSelector = '#circularTrackResults';
+        const loadingApi = window.App && window.App.loading ? window.App.loading : null;
+        let isTrackRequestInFlight = false;
+        let trackRequestToken = 0;
+        let pendingTrackRequest = null;
         let trackSearchTimer = null;
+        let isTrackSearchComposing = false;
 
-        if (trackSearchInput && trackFilterForm) {
-            trackSearchInput.addEventListener('input', () => {
-                if (trackSearchTimer) clearTimeout(trackSearchTimer);
-                trackSearchTimer = window.setTimeout(() => trackFilterForm.submit(), 300);
+        const getTrackSection = () => document.querySelector(trackSectionSelector);
+        const getTrackResults = () => document.querySelector(trackResultsSelector);
+        const getTrackFilterForm = () => document.getElementById('circularTrackFilterForm');
+
+        const buildTrackRequestUrl = () => {
+            const form = getTrackFilterForm();
+            if (!form) {
+                return '';
+            }
+
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+
+            formData.forEach((value, key) => {
+                params.set(key, String(value));
             });
-        }
-        trackStatusSelect?.addEventListener('change', () => trackFilterForm?.submit());
-        trackSortSelect?.addEventListener('change', () => trackFilterForm?.submit());
+
+            const action = form.getAttribute('action') || window.location.pathname;
+            const query = params.toString();
+
+            return query === '' ? action : `${action}?${query}`;
+        };
+
+        const applyTrackSectionUpdate = (htmlText, requestUrl) => {
+            const parser = new DOMParser();
+            const nextDocument = parser.parseFromString(htmlText, 'text/html');
+            const currentTrackResults = getTrackResults();
+            const nextTrackResults = nextDocument.querySelector(trackResultsSelector);
+
+            if (!currentTrackResults || !nextTrackResults) {
+                window.location.assign(requestUrl);
+                return;
+            }
+
+            currentTrackResults.replaceWith(nextTrackResults);
+            window.history.replaceState({}, '', requestUrl);
+        };
+
+        const submitTrackFilter = (options = {}) => {
+            const { requestUrl = '' } = options;
+            const form = getTrackFilterForm();
+
+            if (!form) {
+                return;
+            }
+
+            const targetUrl = requestUrl !== '' ? requestUrl : buildTrackRequestUrl();
+
+            if (targetUrl === '' || typeof window.fetch !== 'function' || typeof window.DOMParser !== 'function') {
+                form.submit();
+                return;
+            }
+
+            if (isTrackRequestInFlight) {
+                pendingTrackRequest = { requestUrl: targetUrl };
+                return;
+            }
+
+            isTrackRequestInFlight = true;
+            trackRequestToken += 1;
+            const currentToken = trackRequestToken;
+
+            if (loadingApi) {
+                loadingApi.startComponent(getTrackResults() || getTrackSection());
+            }
+
+            window.fetch(targetUrl, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            }).then((response) => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch circular track list');
+                }
+                return response.text();
+            }).then((htmlText) => {
+                if (currentToken !== trackRequestToken) {
+                    return;
+                }
+
+                applyTrackSectionUpdate(htmlText, targetUrl);
+            }).catch(() => {
+                window.location.assign(targetUrl);
+            }).finally(() => {
+                if (loadingApi) {
+                    loadingApi.stopComponent(getTrackResults() || getTrackSection());
+                }
+
+                if (currentToken === trackRequestToken) {
+                    isTrackRequestInFlight = false;
+                }
+
+                if (pendingTrackRequest !== null) {
+                    const nextRequest = pendingTrackRequest;
+                    pendingTrackRequest = null;
+                    submitTrackFilter(nextRequest);
+                }
+            });
+        };
+
+        const bindTrackFilterEvents = () => {
+            const form = getTrackFilterForm();
+            if (!form || form.dataset.ajaxBound === 'true') {
+                return;
+            }
+
+            form.dataset.ajaxBound = 'true';
+
+            const searchInput = form.querySelector('input[name="q"]');
+            const statusSelect = form.querySelector('select[name="status"]');
+            const sortSelect = form.querySelector('select[name="sort"]');
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                submitTrackFilter();
+            });
+
+            searchInput?.addEventListener('input', () => {
+                if (isTrackSearchComposing) {
+                    return;
+                }
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                trackSearchTimer = window.setTimeout(() => submitTrackFilter(), 450);
+            });
+
+            searchInput?.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                submitTrackFilter();
+            });
+
+            searchInput?.addEventListener('compositionstart', () => {
+                isTrackSearchComposing = true;
+            });
+
+            searchInput?.addEventListener('compositionend', () => {
+                isTrackSearchComposing = false;
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                trackSearchTimer = window.setTimeout(() => submitTrackFilter(), 450);
+            });
+
+            statusSelect?.addEventListener('change', () => {
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                submitTrackFilter();
+            });
+            sortSelect?.addEventListener('change', () => {
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+                submitTrackFilter();
+            });
+
+        };
+
+        document.addEventListener('click', (event) => {
+            const paginationLink = event.target.closest(`${trackSectionSelector} .c-pagination a[href]`);
+            if (!paginationLink) {
+                return;
+            }
+
+            event.preventDefault();
+            const href = paginationLink.getAttribute('href') || '';
+            if (href === '') {
+                return;
+            }
+
+            const absoluteUrl = new URL(href, window.location.href);
+            submitTrackFilter({
+                requestUrl: absoluteUrl.pathname + (absoluteUrl.search || ''),
+            });
+        });
+        bindTrackFilterEvents();
 
         const previewModal = document.getElementById('imagePreviewModal');
         const previewImage = document.getElementById('previewImage');
@@ -2178,7 +2365,6 @@ ob_start();
 
         const detailModal = document.getElementById('modalNoticeKeepOverlay');
         const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
-        const openDetailBtns = document.querySelectorAll('.js-open-circular-modal');
         const modalUrgency = document.getElementById('modalUrgency');
         const modalBookNo = document.getElementById('modalBookNo');
         const modalIssuedDate = document.getElementById('modalIssuedDate');
@@ -2277,37 +2463,46 @@ ob_start();
             });
         };
 
-        openDetailBtns.forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
-                let stats = []; let files = [];
-                try { stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]')); } catch (e) { }
-                try { files = JSON.parse(String(btn.getAttribute('data-files') || '[]')); } catch (e) { }
+        const openTrackDetailModal = (btn) => {
+            const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+            let stats = [];
+            let files = [];
 
-                if (modalUrgency) {
-                    modalUrgency.className = 'urgency-status normal';
-                    const urgencyLabel = modalUrgency.querySelector('p');
-                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
-                }
-                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
-                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
-                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
-                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
-                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
-                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
-                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
-                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
-                if (modalConsiderStatus) {
-                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
-                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
-                }
-                
-                renderModalFiles(files, circularId);
-                renderReceiptRows(stats);
+            try { stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]')); } catch (e) { stats = []; }
+            try { files = JSON.parse(String(btn.getAttribute('data-files') || '[]')); } catch (e) { files = []; }
 
-                if (detailModal) detailModal.style.display = 'flex';
-            });
+            if (modalUrgency) {
+                modalUrgency.className = 'urgency-status normal';
+                const urgencyLabel = modalUrgency.querySelector('p');
+                if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
+            }
+            if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
+            if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
+            if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
+            if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
+            if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
+            if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
+            if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
+            if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
+            if (modalConsiderStatus) {
+                modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
+                modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
+            }
+
+            renderModalFiles(files, circularId);
+            renderReceiptRows(stats);
+
+            if (detailModal) detailModal.style.display = 'flex';
+        };
+
+        document.addEventListener('click', (event) => {
+            const detailTrigger = event.target.closest('.js-open-circular-modal');
+            if (!detailTrigger) {
+                return;
+            }
+
+            event.preventDefault();
+            openTrackDetailModal(detailTrigger);
         });
 
         closeDetailModalBtn?.addEventListener('click', () => { if (detailModal) detailModal.style.display = 'none'; });
@@ -2315,22 +2510,24 @@ ob_start();
 
         const editModal = document.getElementById('modalEditOverlay');
         const closeEditModalBtn = document.getElementById('closeModalEdit');
-        const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
         const editTargetInput = document.getElementById('editTargetCircularId');
 
-        openEditBtns.forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
-                if (editTargetInput) editTargetInput.value = circularId;
-                
-                const subjectInput = document.getElementById('edit_subject');
-                const detailInput = document.getElementById('edit_detail');
-                if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
-                if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+        document.addEventListener('click', (event) => {
+            const editTrigger = event.target.closest('.js-open-edit-modal');
+            if (!editTrigger) {
+                return;
+            }
 
-                if (editModal) editModal.style.display = 'flex';
-            });
+            event.preventDefault();
+            const circularId = String(editTrigger.getAttribute('data-circular-id') || '').trim();
+            if (editTargetInput) editTargetInput.value = circularId;
+
+            const subjectInput = document.getElementById('edit_subject');
+            const detailInput = document.getElementById('edit_detail');
+            if (subjectInput) subjectInput.value = String(editTrigger.getAttribute('data-subject') || '').trim();
+            if (detailInput) detailInput.value = String(editTrigger.getAttribute('data-detail') || '').trim();
+
+            if (editModal) editModal.style.display = 'flex';
         });
 
         closeEditModalBtn?.addEventListener('click', () => { if (editModal) editModal.style.display = 'none'; });
