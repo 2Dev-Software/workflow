@@ -107,242 +107,699 @@ if ($edit_item) {
 
 ob_start();
 ?>
+
+<style>
+    .form-group .upload-layout .upload-box {
+        width: 100%;
+        height: 200px;
+    }
+
+    .enterprise-card-title {
+        margin: 20px 0 0 0;
+    }
+
+    .circular-my-table-wrap {
+        margin-top: 8px;
+    }
+
+    .circular-my-table td {
+        vertical-align: top;
+    }
+
+    .circular-my-table td:nth-child(n+2) {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .circular-my-table th:nth-child(n+5) {
+        text-align: center;
+    }
+
+    .content-modal .container-circular-notice-sending {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .content-modal .container-circular-notice-sending .sender-row {
+        gap: 50px;
+    }
+</style>
+
 <div class="content-header">
     <h1><?= h($page_title) ?></h1>
     <p><?= h($page_subtitle) ?></p>
 </div>
 
-<?php if ($show_form) : ?>
-    <section class="booking-card booking-form-card">
-        <div class="booking-card-header">
-            <div class="booking-card-title-group">
-                <h2 class="booking-card-title"><?= h($is_editing ? 'แก้ไขรายการแจ้งซ่อม' : $form_title) ?></h2>
-                <p class="booking-card-subtitle"><?= h($is_editing ? 'แก้ไขได้เฉพาะรายการที่รอดำเนินการ' : $form_subtitle) ?></p>
-            </div>
-            <?php if ($is_editing && $edit_status) : ?>
-                <?php component_render('status-pill', [
-                    'label' => $edit_status['label'],
-                    'variant' => $edit_status['variant'],
-                ]); ?>
-            <?php endif; ?>
+<div class="tabs-container setting-page">
+    <div class="button-container vehicle">
+        <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
+            onclick="openTab('repairs', event)">แจ้งเหตุซ่อมแซม</button>
+        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+            onclick="openTab('myRepair', event)">รายการของฉัน</button>
+    </div>
+</div>
+
+<form method="POST" class="tab-content container-circular-notice-sending active" id="repairs">
+
+    <div class="sender-row">
+        <div class="form-group">
+            <label for="">หัวข้อ</label>
+            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม">
         </div>
-
-        <form class="booking-form" method="post" enctype="multipart/form-data" data-confirm-title="ยืนยันการบันทึก" data-confirm-ok="ยืนยัน" data-confirm-cancel="ยกเลิก">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="<?= h($is_editing ? 'update' : 'create') ?>">
-            <?php if ($is_editing) : ?>
-                <input type="hidden" name="repair_id" value="<?= h((string) ($edit_item['repairID'] ?? 0)) ?>">
-            <?php endif; ?>
-            <div class="booking-form-grid">
-                <?php component_render('input', [
-                    'name' => 'subject',
-                    'label' => 'หัวข้อ',
-                    'value' => $values['subject'],
-                    'placeholder' => 'ระบุหัวข้อที่ต้องการแจ้งซ่อม',
-                    'required' => true,
-                ]); ?>
-                <?php component_render('input', [
-                    'name' => 'location',
-                    'label' => 'สถานที่',
-                    'value' => $values['location'],
-                    'placeholder' => 'เช่น อาคาร 1 ห้อง 205',
-                ]); ?>
-                <?php component_render('input', [
-                    'name' => 'equipment',
-                    'label' => 'อุปกรณ์',
-                    'value' => $values['equipment'],
-                    'placeholder' => 'เช่น โปรเจกเตอร์ / เครื่องปรับอากาศ',
-                ]); ?>
-                <?php component_render('textarea', [
-                    'name' => 'detail',
-                    'label' => 'รายละเอียดเพิ่มเติม',
-                    'value' => $values['detail'],
-                    'placeholder' => 'อธิบายอาการหรือปัญหาที่พบ',
-                    'rows' => 5,
-                    'class' => 'booking-textarea',
-                    'field_class' => 'full',
-                ]); ?>
-                <?php component_render('input', [
-                    'name' => 'attachments[]',
-                    'label' => 'แนบรูป',
-                    'type' => 'file',
-                    'field_class' => 'full',
-                    'help' => 'รองรับไฟล์รูป JPG/PNG/WEBP/GIF แนบได้ไม่จำกัดจำนวน',
-                    'attrs' => [
-                        'multiple' => true,
-                        'accept' => '.jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif',
-                    ],
-                ]); ?>
-                <div class="c-field form-group full">
-                    <div class="booking-actions">
-                        <?php component_render('button', [
-                            'label' => $is_editing ? 'บันทึกการแก้ไข' : 'ส่งแจ้งซ่อม',
-                            'variant' => 'primary',
-                            'type' => 'submit',
-                            'attrs' => [
-                                'data-confirm' => $is_editing ? 'ยืนยันการบันทึกการแก้ไขรายการนี้ใช่หรือไม่?' : 'ยืนยันการส่งแจ้งซ่อมรายการนี้ใช่หรือไม่?',
-                            ],
-                        ]); ?>
-                        <?php component_render('button', [
-                            'label' => $is_editing ? 'ยกเลิกการแก้ไข' : 'ล้างฟอร์ม',
-                            'variant' => 'secondary',
-                            'href' => $base_url,
-                        ]); ?>
-                    </div>
-                </div>
-            </div>
-        </form>
-
-        <?php if ($is_editing && !empty($edit_attachments)) : ?>
-            <div class="enterprise-divider"></div>
-            <div class="enterprise-panel">
-                <p><strong>ไฟล์ที่แนบแล้ว:</strong></p>
-                <div class="attachment-list">
-                    <?php foreach ($edit_attachments as $file) : ?>
-                        <div class="attachment-item">
-                            <span class="attachment-name"><?= h($file['fileName'] ?? '') ?></span>
-                            <a class="attachment-link" href="public/api/file-download.php?module=repairs&entity_id=<?= h((string) ($edit_item['repairID'] ?? 0)) ?>&file_id=<?= h((string) ($file['fileID'] ?? '')) ?>" target="_blank" rel="noopener">ดูไฟล์</a>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endif; ?>
-    </section>
-<?php endif; ?>
-
-<?php if ($view_item) : ?>
-    <section class="booking-card">
-        <div class="booking-card-header">
-            <div class="booking-card-title-group">
-                <h2 class="booking-card-title">รายละเอียดแจ้งซ่อม</h2>
-                <p class="booking-card-subtitle">ข้อมูลการแจ้งซ่อมและการดำเนินการ</p>
-            </div>
-            <?php if ($detail_status) : ?>
-                <?php component_render('status-pill', [
-                    'label' => $detail_status['label'],
-                    'variant' => $detail_status['variant'],
-                ]); ?>
-            <?php endif; ?>
-        </div>
-
-        <div class="enterprise-info">
-            <div class="enterprise-info-row">
-                <span class="enterprise-info-label">หัวข้อ</span>
-                <span class="enterprise-info-value"><?= h($view_item['subject'] ?? '') ?></span>
-            </div>
-            <div class="enterprise-info-row">
-                <span class="enterprise-info-label">สถานที่</span>
-                <span class="enterprise-info-value"><?= h($view_item['location'] ?? '-') ?></span>
-            </div>
-            <div class="enterprise-info-row">
-                <span class="enterprise-info-label">อุปกรณ์</span>
-                <span class="enterprise-info-value"><?= h($view_item['equipment'] ?? '-') ?></span>
-            </div>
-            <?php if (!empty($view_item['requesterName'])) : ?>
-                <div class="enterprise-info-row">
-                    <span class="enterprise-info-label">ผู้แจ้ง</span>
-                    <span class="enterprise-info-value"><?= h($view_item['requesterName'] ?? '') ?></span>
-                </div>
-            <?php endif; ?>
-            <?php if (!empty($view_item['assignedToName'])) : ?>
-                <div class="enterprise-info-row">
-                    <span class="enterprise-info-label">ผู้รับผิดชอบ</span>
-                    <span class="enterprise-info-value"><?= h($view_item['assignedToName'] ?? '') ?></span>
-                </div>
-            <?php endif; ?>
-            <div class="enterprise-info-row">
-                <span class="enterprise-info-label">วันที่แจ้ง</span>
-                <span class="enterprise-info-value"><?= h($view_item['createdAt'] ?? '') ?></span>
-            </div>
-            <?php if (!empty($view_item['resolvedAt'])) : ?>
-                <div class="enterprise-info-row">
-                    <span class="enterprise-info-label">ปิดงานเมื่อ</span>
-                    <span class="enterprise-info-value"><?= h($view_item['resolvedAt'] ?? '') ?></span>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <?php if (!empty($view_item['detail'])) : ?>
-            <div class="enterprise-divider"></div>
-            <div class="enterprise-panel">
-                <p><strong>รายละเอียด:</strong></p>
-                <p><?= nl2br(h((string) ($view_item['detail'] ?? ''))) ?></p>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($view_attachments)) : ?>
-            <div class="enterprise-divider"></div>
-            <div class="enterprise-panel">
-                <p><strong>ไฟล์แนบ:</strong></p>
-                <div class="attachment-list">
-                    <?php foreach ($view_attachments as $file) : ?>
-                        <div class="attachment-item">
-                            <span class="attachment-name"><?= h($file['fileName'] ?? '') ?></span>
-                            <a class="attachment-link" href="public/api/file-download.php?module=repairs&entity_id=<?= h((string) ($view_item['repairID'] ?? 0)) ?>&file_id=<?= h((string) ($file['fileID'] ?? '')) ?>" target="_blank" rel="noopener">ดูไฟล์</a>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($transition_actions)) : ?>
-            <div class="enterprise-divider"></div>
-            <div class="enterprise-panel">
-                <p><strong><?= h($mode === 'approval' ? 'การพิจารณา' : 'จัดการสถานะงานซ่อม') ?>:</strong></p>
-                <div class="booking-actions">
-                    <?php foreach ($transition_actions as $action) : ?>
-                        <form method="post" action="<?= h($base_url) ?>">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="action" value="transition">
-                            <input type="hidden" name="repair_id" value="<?= h((string) ($view_item['repairID'] ?? 0)) ?>">
-                            <input type="hidden" name="target_status" value="<?= h((string) ($action['target_status'] ?? '')) ?>">
-                            <?php component_render('button', [
-                                'label' => (string) ($action['label'] ?? ''),
-                                'variant' => (string) ($action['variant'] ?? 'primary'),
-                                'type' => 'submit',
-                                'attrs' => [
-                                    'data-confirm' => (string) ($action['confirm'] ?? 'ยืนยันการทำรายการนี้ใช่หรือไม่?'),
-                                    'data-confirm-title' => (string) ($action['confirm_title'] ?? 'ยืนยันการทำรายการ'),
-                                    'data-confirm-ok' => 'ยืนยัน',
-                                    'data-confirm-cancel' => 'ยกเลิก',
-                                ],
-                            ]); ?>
-                        </form>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endif; ?>
-    </section>
-<?php endif; ?>
-
-<section class="booking-card booking-list-card">
-    <div class="booking-card-header">
-        <div class="booking-card-title-group">
-            <h2 class="booking-card-title"><?= h($list_title) ?></h2>
-            <p class="booking-card-subtitle"><?= h($list_subtitle) ?></p>
+        <div class="form-group">
+            <label for="">สถานที่</label>
+            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205">
         </div>
     </div>
 
-    <?php if (empty($requests)) : ?>
-        <?php component_render('empty-state', [
-            'title' => $empty_title,
-            'message' => $empty_message,
-        ]); ?>
-    <?php else : ?>
-        <p class="booking-note">กำลังแสดง <?= h((string) $page_count) ?> รายการ จากทั้งหมด <?= h((string) $total_count) ?> รายการ</p>
-        <?php component_render('table', [
-            'headers' => $headers,
-            'rows' => $rows,
-            'empty_text' => 'ไม่มีรายการ',
-        ]); ?>
-        <?php component_render('pagination', [
-            'page' => $page,
-            'total_pages' => $total_pages,
-            'base_url' => $base_url,
-            'class' => 'u-mt-2',
-        ]); ?>
-    <?php endif; ?>
+    <div class="form-group">
+        <label for="">อุปกรณ์</label>
+        <input type="text" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
+    </div>
+
+    <div class="form-group">
+        <label for="">รายละเอียดเพิ่มเติม</label>
+        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>อัปโหลดไฟล์เอกสาร</label>
+        <section class="upload-layout">
+            <input type="file" id="fileInput" name="attachments[]" multiple accept="application/pdf,image/png,image/jpeg" style="display: none;" />
+
+            <div class="upload-box" id="dropzone">
+                <i class="fa-solid fa-upload"></i>
+                <p>ลากไฟล์มาวางที่นี่</p>
+            </div>
+
+            <div class="file-list" id="fileListContainer"></div>
+        </section>
+    </div>
+
+    <div class="row form-group">
+        <button class="btn btn-upload-small" type="button" id="btnAddFiles">
+            <p>เพิ่มไฟล์</p>
+        </button>
+    </div>
+
+    <div class="form-group button">
+        <div class="input-group">
+            <button class="submit" type="submit">
+                <p>ส่งแจ้งซ่อม</p>
+            </button>
+        </div>
+    </div>
+
+</form>
+
+<section class="tab-content enterprise-card" id="myRepair">
+    <div class="enterprise-card-header">
+        <div class="enterprise-card-title-group">
+            <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
+        </div>
+    </div>
+
+    <form method="GET" class="circular-my-filter-grid">
+        <input type="hidden" name="tab" value="track">
+        <div class="approval-filter-group">
+            <div class="room-admin-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input class="form-input" type="search" name="q" value=""
+                    placeholder="ค้นหาชื่อผู้จอง/ห้อง/หัวข้อ" autocomplete="off">
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value">
+                            <?php
+                            $status_label = 'ทั้งหมด';
+
+                            if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
+                                $status_label = 'ส่งแล้ว';
+                            } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
+                                $status_label = 'ดึงกลับ';
+                            }
+                            echo h($status_label);
+                            ?>
+                        </p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <div class="custom-option" data-value="all">ทั้งหมด</div>
+                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>">ส่งแล้ว</div>
+                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>">ดึงกลับ</div>
+                    </div>
+
+                    <select class="form-input" name="status">
+                        <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
+                        <option value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_SENT) ? 'selected' : '' ?>>ส่งแล้ว</option>
+                        <option value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_RECALLED) ? 'selected' : '' ?>>ดึงกลับ</option>
+                    </select>
+                </div>
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <div class="custom-option" data-value="newest">ใหม่ไปเก่า</div>
+                        <div class="custom-option" data-value="oldest">เก่าไปใหม่</div>
+                    </div>
+
+                    <select class="form-input" name="sort">
+                        <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
+                        <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="enterprise-card-header">
+        <div class="enterprise-card-title-group">
+            <h2 class="enterprise-card-title">รายการหนังสือเวียนของฉัน</h2>
+        </div>
+    </div>
+
+    <div class="table-responsive circular-my-table-wrap">
+        <table class="custom-table circular-my-table">
+            <thead>
+                <tr>
+                    <th>หัวข้อ</th>
+                    <th>สถานที่</th>
+                    <th>สถานะ</th>
+                    <th>วันที่แจ้ง</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="circular-my-subject">sgfdsdfsdfsd</div>
+                        <div class="circular-my-meta">ในนาม กลุ่มบริหารงานทั่วไป</div>
+                    </td>
+
+                    <td>หอประชุมการประเรียน</td>
+
+                    <td>
+                        <span class="status-pill rejected">ดึงกลับ</span>
+                    </td>
+
+                    <td>15 มี.ค. 2569 14:16 น.</td>
+
+                    <td>
+                        <div class="circular-my-actions">
+                            <button
+                                class="booking-action-btn secondary js-open-circular-modal"
+                                type="button"
+                                data-circular-id="<?= h((string) $circular_id) ?>"
+                                data-type="<?= h($item_type) ?>"
+                                data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
+                                data-detail="<?= h($detail_text) ?>"
+                                data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
+                                data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
+                                data-bookno="<?= h('#' . (string) $circular_id) ?>"
+                                data-issued="<?= h($date_long_display) ?>"
+                                data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
+                                data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
+                                data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                data-consider="<?= h($consider_class) ?>"
+                                data-received-time="<?= h($date_display) ?>"
+                                data-files="<?= h($files_json) ?>"
+                                data-read-stats="<?= h($stats_json) ?>">
+                                <i class="fa-solid fa-eye"></i>
+                                <span class="tooltip">ดูรายละเอียด</span>
+                            </button>
+                            <button
+                                class="booking-action-btn secondary js-open-edit-modal"
+                                type="button"
+                                data-circular-id="<?= h((string) $circular_id) ?>">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span class="tooltip">แก้ไข</span>
+                            </button>
+                            <button type="submit" class="booking-action-btn danger" data-confirm="ยืนยันการลบข้อมูลรายการนี้ใช่หรือไม่" data-confirm-title="ยืนยันการลบข้อมูล" data-confirm-ok="ยืนยัน" data-confirm-cancel="ยกเลิก">
+                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                <span class="tooltip danger">ลบข้อมูล</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </section>
+
+<div class="content-circular-notice-index circular-track-modal-host">
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalNoticeKeepOverlay">
+        <div class="modal-content">
+
+            <div class="header-modal">
+                <div class="first-header">
+                    <p>แสดงข้อความรายละเอียดหนังสือเวียน</p>
+                </div>
+                <div class="sec-header">
+                    <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
+                </div>
+            </div>
+
+            <div class="content-modal">
+
+                <form method="" class="container-circular-notice-sending" id="repairs">
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">หัวข้อ</label>
+                            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="">สถานที่</label>
+                            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="">อุปกรณ์</label>
+                        <input type="text" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="">รายละเอียดเพิ่มเติม</label>
+                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ" disabled></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>อัปโหลดไฟล์เอกสาร</label>
+                        <section class="upload-layout">
+                            <div class="file-list" id="fileListContainer">
+                                <div class="file-item-wrapper">
+                                    <div class="file-banner">
+                                        <div class="file-info">
+                                            <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                            <div class="file-text"><span class="file-name">Screenshot_20260221_224247.png</span><span class="file-type">981.3 KB</span></div>
+                                        </div>
+                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
+                                            <div class="file-actions"><a href="#" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="content-circular-notice-index circular-track-modal-host">
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalEditOverlay" style="display: none;">
+        <div class="modal-content">
+            <div class="header-modal">
+                <div class="first-header">
+                    <p>แก้ไขหนังสือเวียน</p>
+                </div>
+                <div class="sec-header">
+                    <i class="fa-solid fa-xmark" id="closeModalEdit" style="cursor: pointer;"></i>
+                </div>
+            </div>
+
+            <div class="content-modal">
+
+                <form method="POST" class="container-circular-notice-sending" id="repairs">
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">หัวข้อ</label>
+                            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม">
+                        </div>
+                        <div class="form-group">
+                            <label for="">สถานที่</label>
+                            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="">อุปกรณ์</label>
+                        <input type="text" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="">รายละเอียดเพิ่มเติม</label>
+                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>อัปโหลดไฟล์เอกสาร</label>
+                        <section class="upload-layout">
+                            <input type="file" id="edit_fileInput" name="attachments[]" multiple accept="application/pdf,image/png,image/jpeg" style="display: none;" />
+
+                            <div class="upload-box" id="edit_dropzone">
+                                <i class="fa-solid fa-upload"></i>
+                                <p>ลากไฟล์มาวางที่นี่</p>
+                            </div>
+
+                            <div class="file-list" id="edit_fileListContainer"></div>
+                        </section>
+                    </div>
+
+                    <div class="row form-group">
+                        <button class="btn btn-upload-small" type="button" id="edit_btnAddFiles">
+                            <p>เพิ่มไฟล์</p>
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+
+            <div class="footer-modal">
+                <form method="POST" id="">
+                    <button>
+                        <p>ยืนยัน</p>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTab(tabId, btnElement, event) {
+        event.preventDefault();
+
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    
+    function setupFileUpload(prefix) {
+        const fileInput = document.getElementById(prefix + 'fileInput');
+        const fileList = document.getElementById(prefix + 'fileListContainer');
+        const dropzone = document.getElementById(prefix + 'dropzone');
+        const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
+
+        if (!fileInput) return;
+
+        const maxFiles = 999;
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        let selectedFiles = [];
+
+        const renderFiles = () => {
+            if (!fileList) return;
+            fileList.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const container = document.createElement('div');
+                container.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'file-icon';
+                const mime = String(file.type || '').toLowerCase();
+                iconWrap.innerHTML = mime.includes('pdf') ?
+                    '<i class="fa-solid fa-file-pdf"></i>' :
+                    mime.includes('image') ?
+                    '<i class="fa-solid fa-file-image"></i>' :
+                    '<i class="fa-solid fa-file"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+
+                const sizeKB = (file.size / 1024).toFixed(1);
+                text.innerHTML = `<span class="file-name">${file.name}</span><span class="file-type">${sizeKB} KB</span>`;
+
+                info.appendChild(iconWrap);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions-group';
+                actions.style.display = 'flex';
+                actions.style.gap = '10px';
+
+                const viewAction = document.createElement('div');
+                viewAction.className = 'file-actions';
+                const viewLink = document.createElement('a');
+
+                const fileUrl = URL.createObjectURL(file);
+                viewLink.href = fileUrl;
+                viewLink.target = '_blank';
+                viewLink.rel = 'noopener';
+                viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                viewAction.appendChild(viewLink);
+
+                const deleteAction = document.createElement('div');
+                deleteAction.className = 'file-actions';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.background = 'none';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.style.color = '#dc3545';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+                deleteBtn.onclick = () => {
+                    URL.revokeObjectURL(fileUrl);
+                    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+                    syncFiles();
+                    renderFiles();
+                };
+                deleteAction.appendChild(deleteBtn);
+
+                actions.appendChild(viewAction);
+                actions.appendChild(deleteAction);
+
+                container.appendChild(info);
+                container.appendChild(actions);
+                wrapper.appendChild(container);
+                fileList.appendChild(wrapper);
+            });
+        };
+
+        const syncFiles = () => {
+            if (!fileInput) return;
+            const dt = new DataTransfer();
+            selectedFiles.forEach((file) => dt.items.add(file));
+            fileInput.files = dt.files;
+        };
+
+        const addFiles = (files) => {
+            if (!files) return;
+            const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}`));
+            Array.from(files).forEach((file) => {
+                const key = `${file.name}-${file.size}`;
+                if (!existing.has(key) && allowedTypes.includes(file.type) && selectedFiles.length < maxFiles) {
+                    selectedFiles.push(file);
+                    existing.add(key);
+                }
+            });
+            syncFiles();
+            renderFiles();
+        };
+
+        fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+        if (dropzone) {
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('active');
+            });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('active');
+                addFiles(e.dataTransfer?.files || []);
+            });
+        }
+        if (addFilesBtn) {
+            addFilesBtn.addEventListener('click', () => fileInput.click());
+        }
+    }
+
+    setupFileUpload('');
+    
+    setupFileUpload('edit_');
+
+});
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const detailModal = document.getElementById('modalNoticeKeepOverlay');
+        const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
+        const openDetailBtns = document.querySelectorAll('.js-open-circular-modal');
+
+        const modalUrgency = document.getElementById('modalUrgency');
+        const modalBookNo = document.getElementById('modalBookNo');
+        const modalIssuedDate = document.getElementById('modalIssuedDate');
+        const modalFromText = document.getElementById('modalFromText');
+        const modalToText = document.getElementById('modalToText');
+        const modalSubject = document.getElementById('modalSubject');
+        const modalDetail = document.getElementById('modalDetail');
+        const modalFileSection = document.getElementById('modalFileSection');
+        const modalReceivedTime = document.getElementById('modalReceivedTime');
+        const modalStatus = document.getElementById('modalStatus');
+        const modalConsiderStatus = document.getElementById('modalConsiderStatus');
+        const receiptStatusTableBody = document.getElementById('receiptStatusTableBody');
+
+        const buildModalFileItem = (file, entityId) => {
+            const container = document.createElement('div');
+            container.className = 'file-banner';
+
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'file-icon';
+            const mime = String(file?.mimeType || '').toLowerCase();
+            iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
+
+            const text = document.createElement('div');
+            text.className = 'file-text';
+            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${file?.mimeType || ''}</span>`;
+
+            info.appendChild(iconWrap);
+            info.appendChild(text);
+
+            const fileUrl = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+
+            const viewAction = document.createElement('div');
+            viewAction.className = 'file-actions';
+
+            const viewLink = document.createElement('a');
+            viewLink.href = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            viewLink.target = '_blank';
+            viewLink.rel = 'noopener';
+            viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+
+            viewAction.appendChild(viewLink);
+
+            const downloadAction = document.createElement('div');
+            downloadAction.className = 'file-actions';
+            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download"></i></a>`;
+
+            container.appendChild(info);
+            container.appendChild(viewAction);
+            container.appendChild(downloadAction);
+            return container;
+        };
+
+        const renderModalFiles = (files, entityId) => {
+            if (!modalFileSection) return;
+            modalFileSection.innerHTML = '';
+            if (!Array.isArray(files) || files.length === 0) {
+                modalFileSection.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p id="modalDetail">-</p></div>';
+                return;
+            }
+            files.forEach((file) => modalFileSection.appendChild(buildModalFileItem(file, entityId)));
+        };
+
+        const renderReceiptRows = (stats) => {
+            if (!receiptStatusTableBody) return;
+            receiptStatusTableBody.innerHTML = '';
+            if (!Array.isArray(stats) || stats.length === 0) {
+                receiptStatusTableBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
+                return;
+            }
+            stats.forEach((item) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${item?.name || '-'}</td><td><span class="status-pill ${item?.pill || 'pending'}">${item?.status || 'ยังไม่อ่าน'}</span></td><td>${item?.readAt || '-'}</td>`;
+                receiptStatusTableBody.appendChild(row);
+            });
+        };
+
+        openDetailBtns.forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+
+                let stats = [];
+                let files = [];
+                try {
+                    stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
+                } catch (e) {}
+                try {
+                    files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+                } catch (e) {}
+
+                if (modalUrgency) {
+                    modalUrgency.className = 'urgency-status normal';
+                    const urgencyLabel = modalUrgency.querySelector('p');
+                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
+                }
+                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
+                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
+                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
+                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
+                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
+                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
+                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
+                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
+                if (modalConsiderStatus) {
+                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
+                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
+                }
+
+                renderModalFiles(files, circularId);
+                renderReceiptRows(stats);
+
+                if (detailModal) detailModal.style.display = 'flex';
+            });
+        });
+
+        closeDetailModalBtn?.addEventListener('click', () => {
+            if (detailModal) detailModal.style.display = 'none';
+        });
+        detailModal?.addEventListener('click', (event) => {
+            if (event.target === detailModal) detailModal.style.display = 'none';
+        });
+
+        const editModal = document.getElementById('modalEditOverlay');
+        const closeEditModalBtn = document.getElementById('closeModalEdit');
+        const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
+        const editTargetInput = document.getElementById('editTargetCircularId');
+
+        openEditBtns.forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+
+                if (editTargetInput) editTargetInput.value = circularId;
+
+                const subjectInput = document.getElementById('edit_subject');
+                const detailInput = document.getElementById('edit_detail');
+                if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
+                if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+
+                if (editModal) editModal.style.display = 'flex';
+            });
+        });
+
+        closeEditModalBtn?.addEventListener('click', () => {
+            if (editModal) editModal.style.display = 'none';
+        });
+        editModal?.addEventListener('click', (event) => {
+            if (event.target === editModal) editModal.style.display = 'none';
+        });
+
+    });
+</script>
+
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../layout.php';
