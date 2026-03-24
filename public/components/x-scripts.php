@@ -31,4 +31,5 @@ if (!(window.Swal && typeof window.Swal.fire === 'function') && window.Sweetaler
 <script src="assets/js/modules/room-booking-approval.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/room-booking-approval.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/modules/room-management.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/room-management.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/modules/circular-notice.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/circular-notice.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="assets/js/modules/circular-compose.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/circular-compose.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="assets/js/modules/orders-ui.js?v=<?= htmlspecialchars($asset_version('assets/js/modules/orders-ui.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
