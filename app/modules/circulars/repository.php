@@ -143,7 +143,7 @@ if (!function_exists('circular_get_inbox')) {
     {
         $archivedFlag = $archived ? 1 : 0;
         $sql = 'SELECT i.inboxID, i.isRead, i.readAt, i.isArchived, i.deliveredAt,
-                c.circularID, c.circularType, c.subject, c.status, c.createdAt,
+                c.circularID, c.circularType, c.subject, c.detail, c.linkURL, c.status, c.createdAt,
                 t.fName AS senderName,
                 COALESCE(sf.fName, tf.fName, "") AS senderFactionName
             FROM dh_circular_inboxes AS i

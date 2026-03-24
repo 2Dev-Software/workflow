@@ -9378,7 +9378,7 @@ select {
   .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 50px;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row .form-group {
@@ -9391,7 +9391,16 @@ select {
     line-height: 1.2;
   }
 
-  .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row input[disabled],
+  .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row input[disabled] {
+    background-color: rgba(var(--rgb-secondary), 0.2);
+    border-color: transparent;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 1;
+    -webkit-text-fill-color: var(--color-secondary);
+    color: var(--color-secondary);
+  }
+
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group input[disabled],
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group textarea[disabled] {
     background-color: rgba(var(--rgb-secondary), 0.2);
