@@ -23,6 +23,11 @@
 !/assets/uploads/vehicle-bookings/
 assets/uploads/vehicle-bookings/*
 !/assets/uploads/vehicle-bookings/.gitkeep
+/assets/img/profile/**
+/storage/uploads/**
+!/storage/uploads/
+!/storage/uploads/.gitkeep
+!/storage/uploads/.htaccess
 
 # =========================================
 # 4. SYSTEM & IDE FILES (ไฟล์ขยะ)
@@ -48,6 +53,7 @@ LINUX*.sql
 LINUX*.csv
 tmp/pdfs/*
 !tmp/pdfs/.gitkeep
+tmp/mock-circular-seed/
 docker/package/*
 !docker/package/.gitkeep
 docker/runtime-assets/*.tar.gz
