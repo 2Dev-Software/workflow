@@ -17,6 +17,7 @@ $show_type_filter = (bool) ($show_type_filter ?? true);
 $show_book_type_column = (bool) ($show_book_type_column ?? true);
 $page_section_label = (string) ($page_section_label ?? 'หนังสือเวียน');
 $page_box_label = (string) ($page_box_label ?? ($archived ? 'หนังสือเวียนที่จัดเก็บ' : 'กล่องข้อความ'));
+$forward_open_inbox_id = (int) ($forward_open_inbox_id ?? 0);
 $detail_workflow_page = $is_outside_view ? 'outgoing-view.php' : 'circular-view.php';
 
 ob_start();
@@ -36,6 +37,7 @@ $edit_circular_id = (int) ($edit_circular_id ?? 0);
 $existing_attachments = (array) ($existing_attachments ?? []);
 
 $current_user = current_user() ?? [];
+$current_pid = trim((string) ($current_user['pID'] ?? ''));
 $sender_name = trim((string) ($current_user['fName'] ?? ''));
 
 if ($sender_name === '') {
@@ -387,10 +389,11 @@ ob_start();
                                 <?php
                                 $is_read = (bool) ($item['is_read'] ?? false);
                                 $file_json = (string) ($item['files_json'] ?? '[]');
+                                $read_stats_json = (string) ($item['read_stats_json'] ?? '[]');
                                 $sender_modal_text = trim((string) ($item['sender_name'] ?? '-'));
 
                                 if (!empty($item['sender_faction_name'])) {
-                                    $sender_modal_text .= "\n" . trim((string) $item['sender_faction_name']);
+                                    $sender_modal_text .= ' (' . trim((string) $item['sender_faction_name']) . ')';
                                 }
                                 ?>
                                 <tr>
@@ -430,7 +433,15 @@ ob_start();
                                             </button>
                                             <button
                                                 class="booking-action-btn secondary js-open-circular-send-modal"
-                                                type="button">
+                                                type="button"
+                                                data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
+                                                data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
+                                                data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
+                                                data-sender="<?= h($sender_modal_text) ?>"
+                                                data-date="<?= h((string) ($item['created_date_long'] ?? $item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
+                                                data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
+                                                data-files="<?= h($file_json) ?>"
+                                                data-read-stats="<?= h($read_stats_json) ?>">
                                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                                                 <span class="tooltip">ส่งต่อ</span>
                                             </button>
@@ -2667,30 +2678,30 @@ ob_start();
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ลงวันที่</strong></p>
-                        <input type="text" id="modalIssuedDate" placeholder="-" disabled>
+                        <input type="text" data-send-issued placeholder="-" disabled>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>จาก</strong></p>
-                        <input type="text" id="modalFromText" placeholder="-" disabled>
+                        <input type="text" data-send-from placeholder="-" disabled>
                     </div>
                 </div>
 
 
                 <div class="content-details-sec">
                     <p><strong>หัวเรื่อง :</strong></p>
-                    <p id="modalSubject">-</p>
+                    <p data-send-subject-text>-</p>
                 </div>
                 <div class="content-details-sec">
                     <p><strong>รายละเอียดเพิ่มเติม</strong></p>
-                    <p id="modalDetail">-</p>
+                    <p data-send-detail-text>-</p>
                 </div>
 
                 <div class="content-file-sec">
                     <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                    <div class="file-section" id="modalFileSection"></div>
+                    <div class="file-section" data-send-file-section></div>
                 </div>
 
                 <div class="content-read-sec">
@@ -2704,14 +2715,9 @@ ob_start();
                                     <th>เวลาอ่านล่าสุด</th>
                                 </tr>
                             </thead>
-                            <tbody id="receiptStatusTableBody">
-                                <!-- <tr>
-                                        <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
-                                    </tr> -->
+                            <tbody data-send-read-stats-body>
                                 <tr>
-                                    <td>นายธันวิน ณ นคร</td>
-                                    <td><span class="status-pill pending">ยังไม่อ่าน</span></td>
-                                    <td>-</td>
+                                    <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -2721,50 +2727,22 @@ ob_start();
 
                 <div class="content-topic-sec">
                     <p><strong>เรื่อง</strong></p>
-                    <input type="text" id="modalSubject" class="subject-disabled-solid" value="" disabled>
+                    <input type="text" class="subject-disabled-solid" data-send-subject-input value="" disabled>
                 </div>
                 <div class="content-topic-sec">
                     <p><strong>รายละเอียด</strong></p>
-                   <textarea name="detail" class="js-memo-editor"></textarea>
+                   <textarea name="detail" id="sendForwardEditor" class="js-memo-editor" data-send-detail-editor data-editor-readonly="1" readonly></textarea>
                 </div>
 
-                <div class="content-topic-sec row">
-                    <p><strong>ผู้ส่ง</strong></p>
-                    <div class="room-admin-filter">
-                        <div class="custom-select-wrapper">
-                            <div class="custom-select-trigger">
-                                <p class="select-value"><?= h(!empty($sender_factions) ? (string) ($sender_factions[0]['fName'] ?? '') : 'ไม่มีข้อมูลหน่วยงาน') ?></p>
-                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                            </div>
-
-                            <div class="custom-options">
-                                <?php if (empty($sender_factions)) : ?>
-                                    <div class="custom-option selected" data-value="">ไม่มีข้อมูลหน่วยงาน</div>
-                                <?php else : ?>
-                                    <?php foreach ($sender_factions as $index => $sender_faction) : ?>
-                                        <?php
-                                        $sender_fid = (string) ((int) ($sender_faction['fID'] ?? 0));
-                                        $sender_faction_name = (string) ($sender_faction['fName'] ?? '');
-                                        ?>
-                                        <div class="custom-option<?= h($index === 0 ? ' selected' : '') ?>" data-value="<?= h($sender_fid) ?>"><?= h($sender_faction_name) ?></div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-
-                            <select class="form-input" name="sender_fid">
-                                <?php if (empty($sender_factions)) : ?>
-                                    <option value="">ไม่มีข้อมูลหน่วยงาน</option>
-                                <?php else : ?>
-                                    <?php foreach ($sender_factions as $index => $sender_faction) : ?>
-                                        <?php
-                                        $sender_fid = (string) ((int) ($sender_faction['fID'] ?? 0));
-                                        $sender_faction_name = (string) ($sender_faction['fName'] ?? '');
-                                        ?>
-                                        <option value="<?= h($sender_fid) ?>" <?= h($index === 0 ? 'selected' : '') ?>><?= h($sender_faction_name) ?></option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
+                <div class="sender-row">
+                    <div class="form-group sender-field">
+                        <label for="sendSenderDisplay">ผู้ส่ง</label>
+                        <input id="sendSenderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="sendFromFIDDisplay">ในนามของ</label>
+                        <input id="sendFromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
+                        <input type="hidden" name="sender_fid" value="<?= h($sender_from_fid > 0 ? (string) $sender_from_fid : '') ?>">
                     </div>
                 </div>
                 <div class="form-group receive" data-recipients-section="">
@@ -4717,12 +4695,13 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" id="modalArchiveForm">
+                <form method="POST" id="modalSendForwardForm">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="inbox_id" id="modalInboxId" value="">
-                    <input type="hidden" name="action" value="<?= h($archived ? 'unarchive' : 'archive') ?>">
+                    <input type="hidden" name="inbox_id" data-send-inbox-id value="">
+                    <input type="hidden" name="circular_id" data-send-circular-id value="">
+                    <input type="hidden" name="action" value="forward">
                     <button type="submit">
-                        <p><?= h($archived ? 'ย้ายกลับ' : 'ส่งต่อ') ?></p>
+                        <p>ส่งต่อ</p>
                     </button>
                 </form>
             </div>
@@ -4771,6 +4750,13 @@ ob_start();
         nonbreaking_force_tab: true,
         promotion: false,
         branding: false,
+        setup: (editor) => {
+            editor.on('init', () => {
+                if (editor.targetElm?.hasAttribute('data-editor-readonly')) {
+                    editor.mode.set('readonly');
+                }
+            });
+        },
     });
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -5418,6 +5404,7 @@ ob_start();
             const recipientTableBody = modalElement.querySelector('.js-recipient-table-body');
             const btnShowRecipients = modalElement.querySelector('.js-btn-show-recipients');
             const closeRecipients = modalElement.querySelector('.js-close-recipient-modal');
+            const categoryGroups = Array.from(modalElement.querySelectorAll('.dropdown-list .category-group'));
 
             const setDropdownVisible = (visible) => {
                 if (dropdown) dropdown.classList.toggle('show', visible);
@@ -5450,30 +5437,114 @@ ob_start();
                 });
             });
 
+            groupChecks.forEach((groupCheck) => {
+                if (!groupCheck.dataset.originalMembers) {
+                    groupCheck.dataset.originalMembers = groupCheck.getAttribute('data-members') || '[]';
+                }
+            });
+
+            const refreshCategoryVisibility = () => {
+                categoryGroups.forEach((categoryGroup) => {
+                    const visibleGroups = Array.from(categoryGroup.querySelectorAll('.item-group')).filter((groupItem) => groupItem.style.display !== 'none');
+                    categoryGroup.style.display = visibleGroups.length > 0 ? '' : 'none';
+                });
+            };
+
+            const applyRecipientAvailability = (blockedPids) => {
+                const blocked = new Set(
+                    Array.from(blockedPids || []).map((value) => String(value || '').trim()).filter((value) => value !== '')
+                );
+
+                memberChecks.forEach((memberCheck) => {
+                    const pid = String(memberCheck.value || '').trim();
+                    const row = memberCheck.closest('li');
+                    const available = pid !== '' && !blocked.has(pid);
+
+                    memberCheck.disabled = !available;
+                    if (!available) {
+                        memberCheck.checked = false;
+                    }
+
+                    if (row) {
+                        row.dataset.recipientAvailable = available ? '1' : '0';
+                        row.style.display = available ? '' : 'none';
+                    }
+                });
+
+                groupChecks.forEach((groupCheck) => {
+                    const groupItem = groupCheck.closest('.item-group');
+                    const subtext = groupItem?.querySelector('.item-subtext');
+                    let originalMembers = [];
+
+                    try {
+                        originalMembers = JSON.parse(groupCheck.dataset.originalMembers || '[]');
+                    } catch (error) {
+                        originalMembers = [];
+                    }
+
+                    const availableMembers = originalMembers.filter((member) => {
+                        const pid = String(member?.pID ?? '').trim();
+                        return pid !== '' && !blocked.has(pid);
+                    });
+
+                    groupCheck.setAttribute('data-members', JSON.stringify(availableMembers));
+                    groupCheck.disabled = availableMembers.length === 0;
+                    groupCheck.checked = false;
+                    groupCheck.indeterminate = false;
+
+                    if (subtext) {
+                        subtext.textContent = `สมาชิกทั้งหมด ${availableMembers.length} คน`;
+                    }
+
+                    if (groupItem) {
+                        groupItem.dataset.recipientAvailable = availableMembers.length > 0 ? '1' : '0';
+                        groupItem.style.display = availableMembers.length > 0 ? '' : 'none';
+
+                        if (availableMembers.length === 0) {
+                            setGroupCollapsed(groupItem, true);
+                        }
+                    }
+                });
+
+                refreshCategoryVisibility();
+                updateSelectAllState();
+            };
+
             searchInput?.addEventListener('input', () => {
                 const query = (searchInput.value || '').trim().toLowerCase();
                 groupItems.forEach((groupItem) => {
                     const titleText = (groupItem.querySelector('.item-title')?.textContent || '').trim().toLowerCase();
                     const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
+                    const availableRows = memberRows.filter((row) => row.dataset.recipientAvailable !== '0');
                     const isGroupMatch = query !== '' && titleText.includes(query);
+                    const isGroupAvailable = groupItem.dataset.recipientAvailable !== '0';
 
                     if (query === '') {
-                        groupItem.style.display = '';
-                        memberRows.forEach((row) => row.style.display = '');
+                        groupItem.style.display = isGroupAvailable ? '' : 'none';
+                        memberRows.forEach((row) => {
+                            row.style.display = row.dataset.recipientAvailable === '0' ? 'none' : '';
+                        });
+                        refreshCategoryVisibility();
                         return;
                     }
 
                     let hasMemberMatch = false;
-                    memberRows.forEach((row) => {
+                    availableRows.forEach((row) => {
                         const matched = isGroupMatch || (row.textContent || '').trim().toLowerCase().includes(query);
                         row.style.display = matched ? '' : 'none';
                         if (matched) hasMemberMatch = true;
                     });
+                    memberRows
+                        .filter((row) => row.dataset.recipientAvailable === '0')
+                        .forEach((row) => {
+                            row.style.display = 'none';
+                        });
 
-                    const isVisible = isGroupMatch || hasMemberMatch;
+                    const isVisible = isGroupAvailable && (isGroupMatch || hasMemberMatch);
                     groupItem.style.display = isVisible ? '' : 'none';
                     if (isVisible) setGroupCollapsed(groupItem, false);
                 });
+                refreshCategoryVisibility();
             });
 
             const getMemberChecksByGroupKey = (groupKey) => memberChecks.filter((el) => (el.dataset.memberGroupKey || '') === String(groupKey));
@@ -5490,14 +5561,15 @@ ob_start();
 
             const updateSelectAllState = () => {
                 if (!selectAll) return;
-                const allChecks = [...groupChecks, ...memberChecks];
+                const allChecks = [...groupChecks, ...memberChecks].filter((el) => !el.disabled);
                 const checked = allChecks.filter((el) => el.checked).length;
                 selectAll.checked = allChecks.length > 0 && checked === allChecks.length;
                 selectAll.indeterminate = checked > 0 && checked < allChecks.length;
 
                 groupChecks.forEach((groupCheck) => {
-                    const members = getMemberChecksByGroupKey(groupCheck.getAttribute('data-group-key') || '');
+                    const members = getMemberChecksByGroupKey(groupCheck.getAttribute('data-group-key') || '').filter((el) => !el.disabled);
                     if (members.length === 0) {
+                        groupCheck.checked = false;
                         groupCheck.indeterminate = false;
                         return;
                     }
@@ -5582,6 +5654,10 @@ ob_start();
             recipientModal?.addEventListener('click', (e) => {
                 if (e.target === recipientModal) recipientModal.classList.remove('active');
             });
+
+            modalElement.__recipientApi = {
+                applyRecipientAvailability,
+            };
         };
 
         document.querySelectorAll('.modal-overlay-circular-notice-index').forEach(setupRecipients);
@@ -5619,10 +5695,175 @@ ob_start();
 
         const sendModal = document.getElementById('modalNoticeSendOverlay');
         const closeSendBtn = document.getElementById('closeModalNoticeSend');
+        const sendIssuedInput = sendModal?.querySelector('[data-send-issued]');
+        const sendFromInput = sendModal?.querySelector('[data-send-from]');
+        const sendSubjectText = sendModal?.querySelector('[data-send-subject-text]');
+        const sendDetailText = sendModal?.querySelector('[data-send-detail-text]');
+        const sendRecipientsSection = sendModal?.querySelector('[data-recipients-section]');
+        const sendReadSection = sendModal?.querySelector('.content-read-sec');
+        const sendFileSection = sendModal?.querySelector('[data-send-file-section]');
+        const sendReadStatsBody = sendModal?.querySelector('[data-send-read-stats-body]');
+        const sendSubjectInput = sendModal?.querySelector('[data-send-subject-input]');
+        const sendDetailEditor = sendModal?.querySelector('[data-send-detail-editor]');
+        const sendForm = document.getElementById('modalSendForwardForm');
+        const sendInboxIdInput = sendForm?.querySelector('[data-send-inbox-id]');
+        const sendCircularIdInput = sendForm?.querySelector('[data-send-circular-id]');
+        const currentPid = '<?= h($current_pid) ?>';
+
+        if (sendRecipientsSection && sendReadSection) {
+            sendRecipientsSection.insertAdjacentElement('afterend', sendReadSection);
+        }
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const renderSendFiles = (files) => {
+            if (!sendFileSection) return;
+
+            if (!Array.isArray(files) || files.length === 0) {
+                sendFileSection.innerHTML = '<p class="enterprise-empty">ไม่มีไฟล์แนบ</p>';
+                return;
+            }
+
+            sendFileSection.innerHTML = files.map((file) => {
+                const fileId = String(file?.fileID ?? '').trim();
+                const fileName = String(file?.fileName ?? '-').trim() || '-';
+                const fileSize = Number(file?.fileSize ?? 0);
+                const mimeType = String(file?.mimeType ?? '').trim();
+                const fileUrl = 'public/api/file-download.php?module=circulars&entity_id=' + encodeURIComponent(String(sendCircularIdInput?.value || '')) + '&file_id=' + encodeURIComponent(fileId);
+                const meta = fileSize > 0 ? `${(fileSize / 1024).toFixed(1)} KB` : (mimeType || '-');
+
+                return `<div class="file-item-wrapper">
+                    <div class="file-banner">
+                        <div class="file-info">
+                            <div class="file-icon"><i class="fa-solid fa-file" aria-hidden="true"></i></div>
+                            <div class="file-text">
+                                <span class="file-name">${escapeHtml(fileName)}</span>
+                                <span class="file-type">${escapeHtml(meta)}</span>
+                            </div>
+                        </div>
+                        <div class="file-actions-group" style="display:flex; gap:10px;">
+                            <div class="file-actions"><a href="${fileUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                            <div class="file-actions"><a href="${fileUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        const renderSendReadStats = (stats) => {
+            if (!sendReadStatsBody) return;
+
+            if (!Array.isArray(stats) || stats.length === 0) {
+                sendReadStatsBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
+                return;
+            }
+
+            sendReadStatsBody.innerHTML = stats.map((entry) => {
+                const isRead = Number(entry?.isRead ?? 0) === 1;
+                const readAt = String(entry?.readAtDisplay ?? entry?.readAt ?? '').trim();
+                return `<tr>
+                    <td>${escapeHtml(String(entry?.fName ?? '-'))}</td>
+                    <td><span class="status-pill ${isRead ? 'approved' : 'pending'}">${isRead ? 'อ่านแล้ว' : 'ยังไม่อ่าน'}</span></td>
+                    <td>${escapeHtml(readAt !== '' ? readAt : '-')}</td>
+                </tr>`;
+            }).join('');
+        };
+
+        const resetSendSelections = () => {
+            if (!sendModal) return;
+            sendModal.querySelectorAll('.group-item-checkbox, .member-checkbox').forEach((checkbox) => {
+                checkbox.checked = false;
+                checkbox.indeterminate = false;
+            });
+            const selectAll = sendModal.querySelector('.js-select-all');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            const searchInput = sendModal.querySelector('.js-main-input');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            sendModal.querySelectorAll('.dropdown-list .item-group').forEach((groupItem) => {
+                groupItem.style.display = groupItem.dataset.recipientAvailable === '0' ? 'none' : '';
+                groupItem.querySelectorAll('.member-sublist li').forEach((row) => {
+                    row.style.display = row.dataset.recipientAvailable === '0' ? 'none' : '';
+                });
+            });
+        };
+
+        const populateSendModal = (button) => {
+            if (!button || !sendModal) return;
+
+            const circularId = String(button.getAttribute('data-circular-id') || '').trim();
+            const inboxId = String(button.getAttribute('data-inbox-id') || '').trim();
+            const subject = String(button.getAttribute('data-subject') || '-');
+            const detail = String(button.getAttribute('data-detail') || '-');
+            const sender = String(button.getAttribute('data-sender') || '-');
+            const dateText = String(button.getAttribute('data-date') || '-');
+            let files = [];
+            let readStats = [];
+
+            try {
+                files = JSON.parse(button.getAttribute('data-files') || '[]');
+            } catch (error) {
+                files = [];
+            }
+
+            try {
+                readStats = JSON.parse(button.getAttribute('data-read-stats') || '[]');
+            } catch (error) {
+                readStats = [];
+            }
+
+            const blockedPids = new Set(
+                readStats.map((entry) => String(entry?.pID ?? '').trim()).filter((value) => value !== '')
+            );
+
+            if (currentPid !== '') {
+                blockedPids.add(currentPid);
+            }
+
+            const sendReadStats = readStats.filter((entry) => {
+                const pid = String(entry?.pID ?? '').trim();
+                return pid !== '' && pid !== currentPid;
+            });
+
+            if (sendInboxIdInput) sendInboxIdInput.value = inboxId;
+            if (sendCircularIdInput) sendCircularIdInput.value = circularId;
+            if (sendIssuedInput) sendIssuedInput.value = dateText || '-';
+            if (sendFromInput) sendFromInput.value = sender || '-';
+            if (sendSubjectText) sendSubjectText.textContent = subject || '-';
+            if (sendDetailText) sendDetailText.innerHTML = escapeHtml(detail || '-').replace(/\n/g, '<br>');
+            if (sendSubjectInput) sendSubjectInput.value = subject || '';
+            if (sendDetailEditor) {
+                sendDetailEditor.value = detail || '';
+                const editorId = sendDetailEditor.id ? tinymce.get(sendDetailEditor.id) : null;
+                if (editorId) {
+                    editorId.setContent(escapeHtml(detail || '').replace(/\n/g, '<br>'));
+                }
+            }
+
+            renderSendFiles(files);
+            renderSendReadStats(sendReadStats);
+            if (sendReadSection) {
+                sendReadSection.style.display = sendReadStats.length > 0 ? '' : 'none';
+            }
+            if (sendModal?.__recipientApi && typeof sendModal.__recipientApi.applyRecipientAvailability === 'function') {
+                sendModal.__recipientApi.applyRecipientAvailability(blockedPids);
+            }
+            resetSendSelections();
+        };
 
         document.querySelectorAll('.js-open-circular-send-modal').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
+                populateSendModal(this);
                 if (sendModal) sendModal.style.display = 'flex';
             });
         });
@@ -5633,6 +5874,55 @@ ob_start();
         sendModal?.addEventListener('click', (e) => {
             if (e.target === sendModal) sendModal.style.display = 'none';
         });
+
+        sendForm?.addEventListener('submit', (event) => {
+            if (!sendModal) return;
+
+            sendForm.querySelectorAll('input[name="faction_ids[]"], input[name="person_ids[]"]').forEach((input) => input.remove());
+
+            const selectedPids = new Set();
+            const appendPersonInput = (pid) => {
+                const normalizedPid = String(pid || '').trim();
+                if (normalizedPid === '' || selectedPids.has(normalizedPid)) {
+                    return;
+                }
+                selectedPids.add(normalizedPid);
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'person_ids[]';
+                hidden.value = normalizedPid;
+                sendForm.appendChild(hidden);
+            };
+
+            sendModal.querySelectorAll('.group-item-checkbox:checked').forEach((checkbox) => {
+                try {
+                    const members = JSON.parse(checkbox.getAttribute('data-members') || '[]');
+                    members.forEach((member) => appendPersonInput(member?.pID));
+                } catch (error) {}
+            });
+
+            sendModal.querySelectorAll('.member-checkbox:checked').forEach((checkbox) => {
+                appendPersonInput(checkbox.value || '');
+            });
+
+            if (selectedPids.size === 0) {
+                event.preventDefault();
+                if (window.AppAlerts && typeof window.AppAlerts.showError === 'function') {
+                    window.AppAlerts.showError('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
+                } else {
+                    alert('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
+                }
+            }
+        });
+
+        const autoOpenInboxId = '<?= h((string) $forward_open_inbox_id) ?>';
+        if (autoOpenInboxId !== '') {
+            const targetButton = document.querySelector(`.js-open-circular-send-modal[data-inbox-id="${autoOpenInboxId}"]`);
+            if (targetButton) {
+                populateSendModal(targetButton);
+                if (sendModal) sendModal.style.display = 'flex';
+            }
+        }
 
         const recipientModal = document.getElementById('recipientModal');
         const recipientTableBody = document.getElementById('recipientTableBody');

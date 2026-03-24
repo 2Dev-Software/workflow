@@ -9,6 +9,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../rbac/roles.php';
 require_once __DIR__ . '/../modules/circulars/repository.php';
+require_once __DIR__ . '/../modules/circulars/service.php';
 require_once __DIR__ . '/../modules/users/lists.php';
 require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../config/constants.php';
@@ -146,7 +147,8 @@ if (!function_exists('circular_notice_index')) {
         $table_status_filter = $table_status_map[$box_key] ?? $table_status_map['default'];
         $table_status_filter = $table_status_filter[$filter_view] ?? [];
 
-        $alert = null;
+        $alert = flash_get('circular_notice_alert');
+        $forward_open_inbox_id = 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
@@ -225,6 +227,81 @@ if (!function_exists('circular_notice_index')) {
                             'title' => 'ย้ายกลับรายการที่เลือกแล้ว',
                             'message' => '',
                         ];
+                    }
+                } elseif ($action === 'forward') {
+                    $circular_id = (int) ($_POST['circular_id'] ?? 0);
+                    $forward_open_inbox_id = $inbox_id;
+                    $selected_factions = array_values(array_filter(array_map('intval', (array) ($_POST['faction_ids'] ?? []))));
+                    $selected_people = array_values(array_filter(array_map(static function ($value): string {
+                        return trim((string) $value);
+                    }, (array) ($_POST['person_ids'] ?? [])), static function (string $value): bool {
+                        return $value !== '';
+                    }));
+
+                    if ($is_outside_view || $archived) {
+                        $alert = [
+                            'type' => 'warning',
+                            'title' => 'ไม่สามารถส่งต่อได้',
+                            'message' => 'หน้านี้ไม่รองรับการส่งต่อหนังสือเวียน',
+                        ];
+                    } else {
+                        $inbox_row = db_fetch_one(
+                            'SELECT inboxID, circularID FROM dh_circular_inboxes WHERE inboxID = ? AND pID = ? AND isArchived = 0 LIMIT 1',
+                            'is',
+                            $inbox_id,
+                            $current_pid
+                        );
+
+                        if (!$inbox_row || (int) ($inbox_row['circularID'] ?? 0) !== $circular_id) {
+                            $alert = [
+                                'type' => 'danger',
+                                'title' => 'ไม่มีสิทธิ์ดำเนินการ',
+                                'message' => 'ไม่พบรายการที่ต้องการส่งต่อ',
+                            ];
+                        } else {
+                            $targets = [];
+
+                            foreach ($selected_factions as $faction_id) {
+                                $targets[] = [
+                                    'targetType' => 'UNIT',
+                                    'fID' => $faction_id,
+                                    'roleID' => null,
+                                    'pID' => null,
+                                    'isCc' => 0,
+                                ];
+                            }
+
+                            foreach ($selected_people as $person_id) {
+                                $targets[] = [
+                                    'targetType' => 'PERSON',
+                                    'fID' => null,
+                                    'roleID' => null,
+                                    'pID' => $person_id,
+                                    'isCc' => 0,
+                                ];
+                            }
+
+                            try {
+                                circular_forward($circular_id, $current_pid, [
+                                    'pids' => circular_resolve_person_ids($selected_factions, [], $selected_people),
+                                    'targets' => $targets,
+                                ]);
+
+                                flash_set('circular_notice_alert', [
+                                    'type' => 'success',
+                                    'title' => 'ส่งต่อเรียบร้อย',
+                                    'message' => '',
+                                ]);
+                                header('Location: ' . (string) ($_SERVER['REQUEST_URI'] ?? 'circular-notice.php'));
+                                exit;
+                            } catch (Throwable $exception) {
+                                $alert = [
+                                    'type' => 'danger',
+                                    'title' => $exception->getMessage(),
+                                    'message' => '',
+                                ];
+                            }
+                        }
                     }
                 }
             }
@@ -503,10 +580,33 @@ if (!function_exists('circular_notice_index')) {
                 $files_json = '[]';
             }
 
+            $read_stats_json = '[]';
+
+            if ($circular_id > 0) {
+                $read_stats = array_map(static function (array $entry) use ($format_thai_date_long, $format_thai_time): array {
+                    $read_at = trim((string) ($entry['readAt'] ?? ''));
+
+                    if ($read_at !== '') {
+                        $entry['readAtDisplay'] = $format_thai_date_long($read_at) . ' ' . $format_thai_time($read_at);
+                    } else {
+                        $entry['readAtDisplay'] = '-';
+                    }
+
+                    return $entry;
+                }, circular_get_read_stats($circular_id));
+                $read_stats_json = json_encode($read_stats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                if ($read_stats_json === false) {
+                    $read_stats_json = '[]';
+                }
+            }
+
             $delivered_at = $item['deliveredAt'] ?? $item['createdAt'] ?? '';
+            $created_at = $item['createdAt'] ?? '';
             $received_date = $format_thai_date($delivered_at);
             $received_date_long = $format_thai_date_long($delivered_at);
             $received_time = $format_thai_time($delivered_at);
+            $created_date_long = $format_thai_date_long($created_at);
             $sender_name = trim((string) ($item['senderName'] ?? ''));
             $sender_faction_name = trim((string) ($item['senderFactionName'] ?? ''));
             $sender_display = '-';
@@ -534,7 +634,9 @@ if (!function_exists('circular_notice_index')) {
                 'delivered_date' => $received_date,
                 'delivered_date_long' => $received_date_long,
                 'delivered_time' => $received_time,
+                'created_date_long' => $created_date_long,
                 'files_json' => $files_json,
+                'read_stats_json' => $read_stats_json,
                 'ext_priority' => $priority,
                 'ext_priority_label' => $priority_label,
                 'urgency_class' => $urgency_class,
@@ -563,6 +665,7 @@ if (!function_exists('circular_notice_index')) {
             'is_registry' => $is_registry,
             'can_manage_external' => $can_manage_external,
             'is_director_box' => $is_director_box,
+            'forward_open_inbox_id' => $forward_open_inbox_id,
             'show_type_filter' => false,
             'show_book_type_column' => false,
             'page_section_label' => $is_outgoing_notice_page ? 'หนังสือเวียนภายนอก' : 'หนังสือเวียน',
