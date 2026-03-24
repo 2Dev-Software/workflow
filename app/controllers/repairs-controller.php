@@ -8,6 +8,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../rbac/roles.php';
 require_once __DIR__ . '/../modules/repairs/repository.php';
+require_once __DIR__ . '/../modules/repairs/service.php';
 require_once __DIR__ . '/../modules/system/system.php';
 require_once __DIR__ . '/../services/uploads.php';
 require_once __DIR__ . '/../db/db.php';
@@ -208,13 +209,8 @@ if (!function_exists('repairs_handle_mode')) {
             return;
         }
 
-        $alert = null;
-        $values = [
-            'subject' => '',
-            'location' => '',
-            'equipment' => '',
-            'detail' => '',
-        ];
+        $alert = flash_get('repairs_alert');
+        $values = repair_form_defaults();
         $view_id = (int) ($_GET['view_id'] ?? 0);
         $edit_id = $mode === 'report' ? (int) ($_GET['edit_id'] ?? 0) : 0;
         $view_item = null;
@@ -289,10 +285,7 @@ if (!function_exists('repairs_handle_mode')) {
             $action = (string) ($_POST['action'] ?? 'create');
             $repair_id = (int) ($_POST['repair_id'] ?? 0);
             $target_status = trim((string) ($_POST['target_status'] ?? ''));
-            $values['subject'] = trim((string) ($_POST['subject'] ?? ''));
-            $values['location'] = trim((string) ($_POST['location'] ?? ''));
-            $values['equipment'] = trim((string) ($_POST['equipment'] ?? ''));
-            $values['detail'] = trim((string) ($_POST['detail'] ?? ''));
+            $values = repair_normalize_form_data($_POST);
 
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -454,44 +447,20 @@ if (!function_exists('repairs_handle_mode')) {
                     'title' => 'ไม่สามารถทำรายการได้',
                     'message' => 'หน้านี้รองรับเฉพาะการดำเนินการตาม workflow',
                 ];
-            } elseif ($values['subject'] === '') {
-                $alert = [
-                    'type' => 'danger',
-                    'title' => 'กรุณากรอกหัวข้อ',
-                    'message' => '',
-                ];
             } else {
-                $repair_id = repair_create_record([
-                    'dh_year' => system_get_dh_year(),
-                    'requesterPID' => $current_pid,
-                    'subject' => $values['subject'],
-                    'detail' => $values['detail'],
-                    'location' => $values['location'],
-                    'equipment' => $values['equipment'],
-                    'status' => REPAIR_STATUS_PENDING,
-                ]);
-
-                if (function_exists('audit_log')) {
-                    audit_log('repairs', 'CREATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
-                }
-
                 try {
-                    if (!empty($_FILES['attachments'])) {
-                        upload_store_files($_FILES['attachments'], REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, (string) $repair_id, $current_pid, [
-                            'max_files' => 0,
-                            'allowed_mimes' => upload_allowed_image_mimes(),
-                        ]);
-                    }
-                    $alert = [
+                    repair_create_request($_POST, $_FILES['attachments'] ?? [], $current_pid);
+                    flash_set('repairs_alert', [
                         'type' => 'success',
                         'title' => 'บันทึกแจ้งซ่อมแล้ว',
                         'message' => '',
-                    ];
-                    $values = ['subject' => '', 'location' => '', 'equipment' => '', 'detail' => ''];
-                } catch (RuntimeException $exception) {
+                    ]);
+                    header('Location: ' . $config['base_url']);
+                    exit;
+                } catch (Throwable $exception) {
                     $alert = [
                         'type' => 'danger',
-                        'title' => 'แนบไฟล์ไม่สำเร็จ',
+                        'title' => $exception->getMessage(),
                         'message' => $exception->getMessage(),
                     ];
                 }
