@@ -1580,17 +1580,16 @@ select {
 
   .sidebar .profile-section {
     width: 90%;
-    height: 125px;
-    background-color: var(--color-neutral-lightest);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
-    padding: 10px;
-    margin: 20px 0 0 0;
+    height: auto;
+    border-radius: 0px;
+    padding: 10px 10px 20px 10px;
+    margin: 20px 0 10px 0;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    box-shadow: 2px 0 12px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    gap: 20px;
     transition: all 0.4s ease;
+    border-bottom: 0.5px solid var(--color-neutral-lightest);
   }
 
   .sidebar .profile-section .profile-image {
@@ -1598,7 +1597,7 @@ select {
     min-height: 100px;
     width: 100px;
     height: 100px;
-    border-radius: 4px;
+    border-radius: 16px;
     background-color: var(--color-neutral-lightest);
     box-shadow: 0 0 6px 0 rgba(var(--rgb-neutral-dark), 0.25);
     display: flex;
@@ -1613,6 +1612,7 @@ select {
     justify-content: center;
     max-width: 60px;
     max-height: 60px;
+    border-bottom: none;
   }
 
   .sidebar.close .profile-image {
@@ -1625,15 +1625,20 @@ select {
 
   .sidebar .profile-section .proflie-text {
     font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-primary-dark);
+    font-weight: normal;
+    color: var(--color-neutral-lightest);
     width: 100%;
-    line-height: 1;
+    line-height: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
     margin: 0 0 0 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0px;
   }
 
   .sidebar.close .profile-section .proflie-text {
@@ -1664,7 +1669,16 @@ select {
     transition: 0.4s;
   }
 
+  .navigation-links li a img {
+    width: 25px;
+    height: 25px;
+    margin: 0 0 0 20px;
+    transition: 0.4s ease;
+  }
+
   .navigation-links li a i {
+    width: 25px;
+    height: 25px;
     color: var(--color-warning);
     margin: 0 0 0 20px;
     transition: 0.4s ease;
@@ -13378,19 +13392,15 @@ select {
     height: 250px;
     background-color: var(--color-neutral-lightest);
     border-radius: 12px;
-    /* box-shadow: 0 0 12px -2px rgba(var(--rgb-primary), 0.2); */
     border: 1px solid var(--color-secondary);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-body-1);
     color: var(--color-secondary);
     transition: 0.3s;
   }
 
   .dashboard-container .dashboard-content .card-shortcut:hover {
     transform: translateY(-5px);
-    box-shadow: 0 0 12px -2px rgba(var(--rgb-primary-dark), 0.5);
-    /* background-color: var(--color-secondary-light); */
-    /* border: 2px solid var(--color-secondary-light); */
-    /* color: var(--color-neutral-lightest); */
+    box-shadow: 0 0 12px -4px rgba(var(--rgb-primary-dark), 0.5);
   }
 
   .dashboard-container .dashboard-content .card-shortcut i {
@@ -15999,16 +16009,16 @@ select {
 
   .sidebar .profile-section {
     width: 90%;
-    height: 65px;
-    background-color: var(--color-neutral-lightest);
-    border-radius: 8px;
-    padding: 8px;
-    margin: 10px 0 0 0;
+    height: auto;
+    border-radius: 0px;
+    padding: 10px 10px 20px 10px;
+    margin: 10px 0 5px 0;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    box-shadow: 2px 0 12px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    justify-content: center;
     transition: all 0.4s ease;
+    border-bottom: 0.5px solid var(--color-neutral-lightest);
   }
 
   .sidebar .profile-section .profile-image {
@@ -16016,7 +16026,7 @@ select {
     min-height: 45px;
     width: 45px;
     height: 45px;
-    border-radius: 4px;
+    border-radius: 12px;
     background-color: var(--color-neutral-lightest);
     box-shadow: 0 0 6px 0 rgba(var(--rgb-neutral-dark), 0.25);
     display: flex;
@@ -16031,6 +16041,7 @@ select {
     justify-content: center;
     max-width: 45px;
     max-height: 45px;
+    border-bottom: none;
   }
 
   .sidebar.close .profile-image {
@@ -16043,14 +16054,17 @@ select {
 
   .sidebar .profile-section .proflie-text {
     font-size: var(--font-size-desc-4);
-    font-weight: bold;
-    color: var(--color-primary-dark);
+    font-weight: normal;
+    color: var(--color-neutral-lightest);
     width: 100%;
-    line-height: 1;
+    line-height: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     margin: 0 0 0 10px;
   }
 
@@ -25757,16 +25771,16 @@ select {
 
   .sidebar .profile-section {
     width: 90%;
-    height: 65px;
-    background-color: var(--color-neutral-lightest);
-    border-radius: 8px;
+    height: auto;
+    border-radius: 0px;
     padding: 8px;
     margin: 10px 0 0 0;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    box-shadow: 2px 0 12px 0 rgba(var(--rgb-neutral-dark), 0.25);
     transition: all 0.4s ease;
+    border-bottom: 0.5px solid var(--color-neutral-lightest);
   }
 
   .sidebar .profile-section .profile-image {
@@ -25774,7 +25788,7 @@ select {
     min-height: 35px;
     width: 35px;
     height: 35px;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: var(--color-neutral-lightest);
     box-shadow: 0 0 6px 0 rgba(var(--rgb-neutral-dark), 0.25);
     display: flex;
@@ -25789,6 +25803,7 @@ select {
     justify-content: center;
     max-width: 35px;
     max-height: 35px;
+    border-bottom: none;
   }
 
   .sidebar.close .profile-image {
@@ -25801,15 +25816,19 @@ select {
 
   .sidebar .profile-section .proflie-text {
     font-size: var(--font-size-desc-4);
-    font-weight: bold;
-    color: var(--color-primary-dark);
+    font-weight:normal;
+    color: var(--color-neutral-lightest);
     width: 100%;
-    line-height: 1;
+    line-height: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
+    display: flex;
     margin: 0 0 0 10px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0px;
   }
 
   .sidebar.close .profile-section .proflie-text {

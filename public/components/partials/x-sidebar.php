@@ -38,7 +38,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/DBHub-logo2.png" alt="db-logo">
+            <img src="assets/img/db-hub-banner.svg" alt="db-logo">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>
@@ -60,7 +60,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             <?php endif; ?>
         </div>
         <div class="proflie-text">
-            <p>ชื่อ : <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+            <p><b>ชื่อ : <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></b></p>
             <p>ตำแหน่ง : <?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
             <p>หน้าที่ : <?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
         </div>
@@ -69,7 +69,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
     <div class="navigation-links">
         <li>
             <a href="dashboard.php">
-                <i class="fa-solid fa-house-chimney"></i>
+                <!-- <i class="fa-solid fa-house-chimney"></i> -->
+                <img src="/public/assets/img/icon/home.png" alt="">
                 <p class="link-name">หน้าหลัก</p>
             </a>
         </li>
@@ -77,7 +78,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <i class="fa-solid fa-book"></i>
+                    <!-- <i class="fa-solid fa-book"></i> -->
+                    <img src="/public/assets/img/icon/envelope.png" alt="">
                     <p class="link-name">หนังสือเวียน</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -92,7 +94,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <i class="fa-solid fa-pen-to-square"></i>
+                    <!-- <i class="fa-solid fa-pen-to-square"></i> -->
+                    <img src="/public/assets/img/icon/memo.png" alt="">
                     <p class="link-name">บันทึกข้อความ</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -107,7 +110,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <i class="fa-solid fa-file"></i>
+                    <!-- <i class="fa-solid fa-file"></i> -->
+                     <img src="/public/assets/img/icon/files.png" alt="">
                     <p class="link-name">คำสั่งราชการ</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -123,7 +127,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
-                        <i class="fa-solid fa-building"></i>
+                        <!-- <i class="fa-solid fa-building"></i> -->
+                         <img src="/public/assets/img/icon/building.png" alt="">
                         <p class="link-name">การจองสถานที่/ห้อง</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
@@ -154,7 +159,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
-                        <i class="fa-solid fa-car"></i>
+                        <!-- <i class="fa-solid fa-car"></i> -->
+                        <img src="/public/assets/img/icon/car.png" alt="">
                         <p class="link-name">การจองยานพาหนะ</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
@@ -176,7 +182,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <i class="fa-solid fa-wrench"></i>
+                    <!-- <i class="fa-solid fa-wrench"></i> -->
+                    <img src="/public/assets/img/icon/repair.png" alt="">
                     <p class="link-name">แจ้งเหตุซ่อมแซม</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -193,7 +200,8 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         </li>
         <li>
             <a href="teacher-phone-directory.php">
-                <i class="fa-solid fa-phone"></i>
+                <!-- <i class="fa-solid fa-phone"></i> -->
+                <img src="/public/assets/img/icon/phone.png" alt="">
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
@@ -214,14 +222,16 @@ $can_access_settings = $is_admin_user || $is_registry_user;
 
         <li>
             <a href="profile.php">
-                <i class="fa-solid fa-user-gear"></i>
+                <!-- <i class="fa-solid fa-user-gear"></i> -->
+                 <img src="/public/assets/img/icon/user.png" alt="">
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
         <?php if ($can_access_settings): ?>
             <li>
                 <a href="setting.php">
-                    <i class="fa-solid fa-gear"></i>
+                    <!-- <i class="fa-solid fa-gear"></i> -->
+                    <img src="/public/assets/img/icon/setting.png" alt="">
                     <p class="link-name">การตั้งค่า</p>
                 </a>
             </li>
