@@ -181,7 +181,7 @@ if (!function_exists('repair_get')) {
             FROM dh_repair_requests AS r
             LEFT JOIN teacher AS requester ON r.requesterPID = requester.pID
             LEFT JOIN teacher AS assigned ON r.assignedToPID = assigned.pID
-            WHERE r.repairID = ?
+            WHERE r.repairID = ? AND r.deletedAt IS NULL
             LIMIT 1';
 
         return db_fetch_one($sql, 'i', $repairID);
