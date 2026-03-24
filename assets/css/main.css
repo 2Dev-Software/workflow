@@ -8950,7 +8950,7 @@ select {
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-file-sec .file-text {
     display: flex;
     flex-direction: column;
-    width: 90%;
+    width: 75%;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-file-sec .file-name {
@@ -9418,7 +9418,7 @@ select {
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group input[disabled],
   .content-circular-notice-index .modal-overlay-circular-notice-index .form-group textarea[disabled] {
     background-color: rgba(var(--rgb-secondary), 0.2);
-    color: var(--color-primary-dark);
+    color: var(--color-secondary);
     font-weight: 600;
     cursor: not-allowed;
     border-color: transparent;
@@ -10016,7 +10016,7 @@ select {
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    width: 80%;
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-file-sec .file-icon {
