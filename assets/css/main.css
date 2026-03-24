@@ -1672,7 +1672,7 @@ select {
   .navigation-links li a img {
     width: 25px;
     height: 25px;
-    margin: 0 0 0 20px;
+    margin: 0 0 0 18px;
     transition: 0.4s ease;
   }
 
