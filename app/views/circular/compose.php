@@ -142,6 +142,32 @@ $format_thai_date_long = static function (?string $date_value) use ($thai_months
     return $day . ' ' . $month_label . ' พ.ศ.' . $year;
 };
 
+$format_thai_datetime_lines = static function (?string $date_value) use ($thai_months_full): array {
+    if ($date_value === null || trim($date_value) === '') {
+        return ['-', '-'];
+    }
+
+    $timestamp = strtotime($date_value);
+
+    if ($timestamp === false) {
+        return [$date_value, '-'];
+    }
+
+    $day = (int) date('j', $timestamp);
+    $month = (int) date('n', $timestamp);
+    $year = (int) date('Y', $timestamp) + 543;
+    $month_label = $thai_months_full[$month] ?? '';
+
+    if ($month_label === '') {
+        return [$date_value, '-'];
+    }
+
+    return [
+        $day . ' ' . $month_label . ' ' . $year,
+        date('H:i', $timestamp) . ' น.',
+    ];
+};
+
 $build_track_url = static function (array $override = []) use ($query_params): string {
     $params = array_merge($query_params, $override);
 
@@ -277,6 +303,29 @@ ob_start();
 </div>
 
 <style>
+    .circular-my-table th.circular-track-sent-date,
+    .circular-my-table td.circular-track-sent-date {
+        text-align: left;
+    }
+
+    .circular-my-table .circular-track-sent-date-display {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        line-height: 1.35;
+    }
+
+    .circular-my-table .circular-track-sent-date-display span {
+        display: block;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .circular-my-table .circular-track-sent-date-display span:last-child {
+        color: #111111;
+    }
+
     @media (max-width: 900px) {
         .container-circular-notice-sending .sender-row {
             grid-template-columns: 1fr;
@@ -1169,7 +1218,7 @@ ob_start();
                         <th>เรื่อง</th>
                         <th>สถานะ</th>
                         <th>อ่านแล้ว/ทั้งหมด</th>
-                        <th>วันที่ส่ง</th>
+                        <th class="circular-track-sent-date">วันที่ส่ง</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
@@ -1189,6 +1238,7 @@ ob_start();
                             $recipient_count = (int) ($item['recipientCount'] ?? 0);
                             $created_at = (string) ($item['createdAt'] ?? '');
                             $date_display = $format_thai_datetime($created_at);
+                            [$date_line_display, $time_line_display] = $format_thai_datetime_lines($created_at);
                             $date_long_display = $format_thai_date_long($created_at);
                             $sender_faction_name = (string) ($item['senderFactionName'] ?? '');
                             $detail_row = (array) ($detail_map[$circular_id] ?? []);
@@ -1241,7 +1291,12 @@ ob_start();
                                     <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
                                 </td>
                                 <td><?= h((string) $read_count) ?>/<?= h((string) $recipient_count) ?></td>
-                                <td><?= h($date_display) ?></td>
+                                <td class="circular-track-sent-date">
+                                    <div class="circular-track-sent-date-display" aria-label="<?= h($date_display) ?>">
+                                        <span><?= h($date_line_display) ?></span>
+                                        <span><?= h($time_line_display) ?></span>
+                                    </div>
+                                </td>
                                 <td>
                                     <div class="circular-my-actions">
                                         <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_SENT && !$has_any_read) : ?>
