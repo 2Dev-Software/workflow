@@ -38,7 +38,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/db-hub-banner.svg" alt="db-logo">
+            <img src="assets/img/DBHub-logo.png" alt="db-logo">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>
