@@ -543,7 +543,7 @@ ob_start();
                             <div class="file-section" id="modalFileSection"></div>
                         </div>
 
-                        <div class="form-group"><br>
+                        <div class="form-group">
                             <label for="edit_linkURL"><b>แนบลิ้งก์</b></label>
                             <input type="text" id="edit_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" disabled />
                         </div>
