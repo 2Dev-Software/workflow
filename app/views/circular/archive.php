@@ -38,7 +38,7 @@ ob_start();
     <header class="header-circular-notice-keep">
         <div class="circular-notice-keep-control">
             <div class="page-selector">
-                <p>แสดงตามประเภทหนังสือ</p>
+                <p>แสดงตามปีสารบรรณ</p>
 
                 <div class="custom-select-wrapper" data-target="filterTypeInput">
                     <div class="custom-select-trigger">
@@ -100,7 +100,6 @@ ob_start();
             <table>
                 <thead>
                     <tr>
-                        <th>ประเภทหนังสือ</th>
                         <th>หัวเรื่อง</th>
                         <th>ผู้ส่ง</th>
                         <th>วันที่ส่ง</th>
@@ -117,7 +116,6 @@ ob_start();
                         <?php foreach ($items as $item) : ?>
                             <?php $file_json = (string) ($item['files_json'] ?? '[]'); ?>
                             <tr>
-                                <td><?= h((string) ($item['type_label'] ?? '')) ?></td>
                                 <td><?= h((string) ($item['subject'] ?? '')) ?></td>
                                 <td><?= h((string) ($item['sender_name'] ?? '-')) ?></td>
                                 <td><?= h((string) ($item['delivered_date'] ?? '-')) ?></td>

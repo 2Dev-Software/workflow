@@ -1309,7 +1309,7 @@ select {
   .modal-title {
     font-size: var(--font-size-body-1);
     font-weight: normal;
-    color: var(--color-neutral-lightest);
+    color: var(--color-secondary);
     display: flex;
     align-items: baseline;
     gap: 24px;
@@ -7767,7 +7767,7 @@ select {
     background: none;
     border: none;
     color: var(--color-danger);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-title);
     cursor: pointer;
     transition: transform 0.2s;
   }
@@ -9024,6 +9024,18 @@ select {
   .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .content-modal p {
     font-size: var(--font-size-body-1);
     color: var(--color-secondary);
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .content-modal .form-group p {
+    color: var(--color-neutral-lightest);
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .content-modal .form-group .upload-box p {
+    color: var(--color-secondary);
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .content-modal .form-group .file-hint p {
+    color: var(--color-danger);
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index.keep-sending .content-modal .content-topic-sec {
