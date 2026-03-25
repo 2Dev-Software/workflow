@@ -69,66 +69,19 @@ ob_start();
     </div> -->
 
     <div class="dashboard-content">
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/member.png" alt="">
-                <p><strong>ลงทะเบียนรับ</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/memo.png" alt="">
-                <p><strong>บันทึกข้อความ</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/envelope.png" alt="">
-                <p><strong>ส่งหนังสือเวียน</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/files.png" alt="">
-                <p><strong>คำสั่งราชการ</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/car.png" alt="">
-                <p><strong>การจองพาหนะ</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/building.png" alt="">
-                <p><strong>การจองสถานที่/ห้อง</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/repair.png" alt="">
-                <p><strong>แจ้งเหตุซ่อมแซม</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/phone.png" alt="">
-                <p><strong>สมุดโทรศัพท์</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/user.png" alt="">
-                <p><strong>โปรไฟล์</strong></p>
-            </div>
-        </a>
-        <a href="#">
-            <div class="card-shortcut">
-                <img src="/public/assets/img/icon/setting.png" alt="">
-                <p><strong>การตั้งค่า</strong></p>
-            </div>
-        </a>
+        <?php foreach ($visible_shortcuts as $shortcut) : ?>
+            <?php
+            $shortcut_href = trim((string) ($shortcut['href'] ?? '#'));
+            $shortcut_label = trim((string) ($shortcut['label'] ?? ''));
+            $shortcut_image = trim((string) ($shortcut['image'] ?? ''));
+            ?>
+            <a href="<?= h($shortcut_href !== '' ? $shortcut_href : '#') ?>">
+                <div class="card-shortcut">
+                    <img src="<?= h($shortcut_image) ?>" alt="">
+                    <p><strong><?= h($shortcut_label) ?></strong></p>
+                </div>
+            </a>
+        <?php endforeach; ?>
     </div>
 
 </div>
