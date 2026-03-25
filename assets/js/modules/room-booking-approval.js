@@ -31,6 +31,18 @@
     ? detailModal.querySelectorAll("[data-approval-submit]")
     : [];
 
+  function setFieldValue(field, value) {
+    if (!field) {
+      return;
+    }
+    var normalized = value && value !== "" ? value : "-";
+    if ("value" in field) {
+      field.value = normalized;
+      return;
+    }
+    field.textContent = normalized;
+  }
+
   function toggleApprovalNoteRequired(isRequired) {
     if (!approvalNoteInput) return;
     if (isRequired) {
@@ -188,35 +200,24 @@
           : "";
     }
 
-    if (detailFields.room)
-      detailFields.room.textContent = button.dataset.approvalRoom || "-";
-    if (detailFields.code)
-      detailFields.code.textContent =
-        "รหัสคำขอ " + (button.dataset.approvalCode || "-");
-    if (detailFields.date)
-      detailFields.date.textContent = button.dataset.approvalDate || "-";
-    if (detailFields.time)
-      detailFields.time.textContent = button.dataset.approvalTime || "-";
-    if (detailFields.requester)
-      detailFields.requester.textContent =
-        button.dataset.approvalRequester || "-";
-    if (detailFields.department)
-      detailFields.department.textContent =
-        button.dataset.approvalDepartment || "-";
-    if (detailFields.contact)
-      detailFields.contact.textContent = button.dataset.approvalContact || "-";
-    if (detailFields.attendees)
-      detailFields.attendees.textContent = button.dataset.approvalAttendees || "-";
-    if (detailFields.topic)
-      detailFields.topic.textContent = button.dataset.approvalTopic || "-";
-    if (detailFields.detail)
-      detailFields.detail.textContent = button.dataset.approvalDetail || "-";
-    if (detailFields.equipment)
-      detailFields.equipment.textContent = button.dataset.approvalEquipment || "-";
-    if (detailFields.created)
-      detailFields.created.textContent = button.dataset.approvalCreated || "-";
-    if (detailFields.updated)
-      detailFields.updated.textContent = button.dataset.approvalUpdated || "-";
+    setFieldValue(detailFields.room, button.dataset.approvalRoom);
+    if (detailFields.code) {
+      setFieldValue(
+        detailFields.code,
+        "รหัสคำขอ " + (button.dataset.approvalCode || "-")
+      );
+    }
+    setFieldValue(detailFields.date, button.dataset.approvalDate);
+    setFieldValue(detailFields.time, button.dataset.approvalTime);
+    setFieldValue(detailFields.requester, button.dataset.approvalRequester);
+    setFieldValue(detailFields.department, button.dataset.approvalDepartment);
+    setFieldValue(detailFields.contact, button.dataset.approvalContact);
+    setFieldValue(detailFields.attendees, button.dataset.approvalAttendees);
+    setFieldValue(detailFields.topic, button.dataset.approvalTopic);
+    setFieldValue(detailFields.detail, button.dataset.approvalDetail);
+    setFieldValue(detailFields.equipment, button.dataset.approvalEquipment);
+    setFieldValue(detailFields.created, button.dataset.approvalCreated);
+    setFieldValue(detailFields.updated, button.dataset.approvalUpdated);
 
     if (detailFields.status) {
       detailFields.status.textContent = statusLabel;
@@ -231,8 +232,8 @@
       if (statusValue !== 0) {
         detailFields.approvalLabel.textContent =
           statusValue === 2 ? "ผู้ไม่อนุมัติ" : "ผู้อนุมัติ";
-        detailFields.approvalName.textContent = approvalName || "-";
-        detailFields.approvalAt.textContent = approvalAt || "-";
+        setFieldValue(detailFields.approvalName, approvalName);
+        setFieldValue(detailFields.approvalAt, approvalAt);
       }
     }
 
