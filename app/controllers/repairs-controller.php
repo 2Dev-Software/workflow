@@ -494,7 +494,15 @@ if (!function_exists('repairs_handle_mode')) {
             $requests = repair_list_filtered_page(null, $statuses, $per_page, $offset);
         }
 
-        view_render('repairs/index', [
+        $view_template = 'repairs/index';
+
+        if ($mode === 'approval') {
+            $view_template = 'repairs/approval';
+        } elseif ($mode === 'manage') {
+            $view_template = 'repairs/manage';
+        }
+
+        view_render($view_template, [
             'alert' => $alert,
             'values' => $values,
             'requests' => $requests,
