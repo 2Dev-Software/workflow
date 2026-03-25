@@ -1,0 +1,73 @@
+name: Discord Push Log
+
+on:
+  push:
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send push log to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          COMPARE_URL: ${{ github.event.compare }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+        run: |
+          if [ -z "${DISCORD_WEBHOOK_URL}" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured. Skipping."
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ["DISCORD_WEBHOOK_URL"].strip()
+          if not webhook:
+              raise SystemExit(0)
+
+          repository = os.environ.get("REPOSITORY", "")
+          branch = os.environ.get("BRANCH", "")
+          actor = os.environ.get("ACTOR", "")
+          sha = os.environ.get("SHA", "")[:7]
+          message = (os.environ.get("COMMIT_MESSAGE", "") or "").strip()
+          compare_url = os.environ.get("COMPARE_URL", "")
+          commit_url = os.environ.get("COMMIT_URL", "")
+
+          lines = [
+              "Git push received",
+              f"Repository: {repository}",
+              f"Branch: {branch}",
+              f"By: {actor}",
+              f"Commit: {sha}",
+          ]
+
+          if message:
+              lines.append(f"Message: {message}")
+          if compare_url:
+              lines.append(f"Compare: {compare_url}")
+          elif commit_url:
+              lines.append(f"Commit URL: {commit_url}")
+
+          payload = {
+              "content": "\n".join(lines)[:1900],
+              "allowed_mentions": {"parse": []},
+          }
+
+          request = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request) as response:
+              if response.status >= 300:
+                  raise RuntimeError(f"Discord webhook failed: {response.status}")
+          PY
