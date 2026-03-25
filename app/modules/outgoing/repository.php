@@ -74,8 +74,8 @@ if (!function_exists('outgoing_list')) {
     {
         $search = trim((string) ($filters['q'] ?? ''));
         $status = strtoupper(trim((string) ($filters['status'] ?? 'all')));
-        $params = [OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME];
-        $types = 'ss';
+        $params = [];
+        $types = '';
 
         $sql = 'SELECT
                 o.outgoingID,
@@ -91,9 +91,9 @@ if (!function_exists('outgoing_list')) {
             FROM dh_outgoing_letters AS o
             LEFT JOIN teacher AS t ON o.createdByPID = t.pID
             LEFT JOIN dh_file_refs AS r
-                ON r.moduleName = ?
-                AND r.entityName = ?
-                AND r.entityID = CAST(o.outgoingID AS CHAR)
+                ON r.moduleName = (\'' . OUTGOING_MODULE_NAME . '\' COLLATE utf8mb4_general_ci)
+                AND r.entityName = (\'' . OUTGOING_ENTITY_NAME . '\' COLLATE utf8mb4_general_ci)
+                AND CAST(r.entityID AS UNSIGNED) = o.outgoingID
             LEFT JOIN dh_files AS f
                 ON r.fileID = f.fileID
                 AND f.deletedAt IS NULL
@@ -166,10 +166,13 @@ if (!function_exists('outgoing_get_attachments')) {
         $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
-            WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
+            WHERE r.moduleName = (\'' . OUTGOING_MODULE_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND r.entityName = (\'' . OUTGOING_ENTITY_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND CAST(r.entityID AS UNSIGNED) = ?
+              AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
 
-        return db_fetch_all($sql, 'sss', OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID);
+        return db_fetch_all($sql, 'i', $outgoingID);
     }
 }
 
@@ -189,19 +192,19 @@ if (!function_exists('outgoing_list_attachments_map')) {
         }
 
         $placeholders = implode(', ', array_fill(0, count($outgoingIDs), '?'));
-        $types = 'ss' . str_repeat('s', count($outgoingIDs));
-        $params = [OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME];
+        $types = str_repeat('i', count($outgoingIDs));
+        $params = [];
 
         foreach ($outgoingIDs as $outgoingID) {
-            $params[] = (string) $outgoingID;
+            $params[] = $outgoingID;
         }
 
         $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
-            WHERE r.moduleName = ?
-              AND r.entityName = ?
-              AND r.entityID IN (' . $placeholders . ')
+            WHERE r.moduleName = (\'' . OUTGOING_MODULE_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND r.entityName = (\'' . OUTGOING_ENTITY_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND CAST(r.entityID AS UNSIGNED) IN (' . $placeholders . ')
               AND f.deletedAt IS NULL
             ORDER BY r.entityID ASC, r.refID ASC';
 
