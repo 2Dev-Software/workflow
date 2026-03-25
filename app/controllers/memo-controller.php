@@ -167,14 +167,29 @@ if (!function_exists('memo_index')) {
 
         $approver_options = memo_build_approver_options($connection);
         $factions = memo_list_sender_factions($connection);
-        $teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid): bool {
+        $executive_position_ids = array_values(array_unique(array_filter(array_merge(
+            [((int) (system_position_executive_id($connection) ?? 0))],
+            system_position_deputy_ids($connection),
+            [5]
+        ))));
+
+        if (empty($executive_position_ids)) {
+            $executive_position_ids = [1, 2, 3, 4, 5];
+        }
+
+        $teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid, $executive_position_ids): bool {
             $pid = trim((string) ($teacher['pID'] ?? ''));
+            $position_id = (int) ($teacher['positionID'] ?? 0);
 
             if ($pid === '' || $pid === $current_pid) {
                 return false;
             }
 
-            return ctype_digit($pid);
+            if (!ctype_digit($pid)) {
+                return false;
+            }
+
+            return in_array($position_id, $executive_position_ids, true);
         }));
 
         if ($values['sender_fid'] === '' && !empty($factions)) {
