@@ -1,101 +1,97 @@
 # Docker Local Workflow
 
-ชุดนี้ทำไว้เพื่อให้เปิดโปรเจกต์บน environment เดียวกันด้วย Docker ทั้ง PHP และ MariaDB
+Last updated: 25 March 2026
 
-## สิ่งที่ได้
+This stack exists so the project can be opened on the same PHP and MariaDB environment across machines.
 
-- PHP + Apache สำหรับรันเว็บ
-- MariaDB พร้อม init จาก dump ปัจจุบันของระบบ
-- app container รอ DB แล้วรัน migrations อัตโนมัติ
+## What the Docker stack provides
+- PHP + Apache application container
+- MariaDB container
+- database initialization from the current baseline SQL dump
+- migration execution after the database is ready
 
-## เริ่มใช้งาน
+## Required files
+Core Docker files in the repo:
+- `docker-compose.yml`
+- `.env.docker.example`
+- `docker/php/Dockerfile`
+- `docker/php/entrypoint.sh`
+- `docker/php/apache-vhost.conf`
+- `docker/php/php.ini`
+- `docker/mysql/initdb/001_deebuk_platform.sql`
 
-1. คัดลอกไฟล์ environment ของ Docker
+## Start the stack
+1. Copy environment file
 
 ```bash
 cp .env.docker.example .env.docker
 ```
 
-2. ถ้าต้องการอัปเดต dump จากฐานข้อมูลปัจจุบันบนเครื่องนี้
-
-```bash
-bash scripts/docker/export-current-db.sh
-```
-
-สคริปต์นี้จะ export ฐานข้อมูลจากเครื่อง local ปัจจุบันของคุณ และล้างไฟล์ `.sql` เก่าใน `docker/mysql/initdb` ให้เหลือ base dump ตัวเดียว
-
-3. ถ้าต้องการให้ environment ตรงกับเครื่องต้นทางจริง รวมไฟล์แนบและรูปโปรไฟล์ด้วย
-
-```bash
-bash scripts/docker/export-runtime-assets.sh
-```
-
-จากนั้นนำไฟล์ `docker/runtime-assets/workflow-runtime-assets.tar.gz` ไปให้เพื่อน แล้วแตกที่ root ของโปรเจกต์ก่อนรัน Docker
-
-```bash
-tar -xzf docker/runtime-assets/workflow-runtime-assets.tar.gz
-```
-
-4. ถ้าต้องการแพ็กส่งต่อให้เพื่อนในคำสั่งเดียว
-
-```bash
-make docker-package
-```
-
-คำสั่งนี้จะ
-
-- export DB ล่าสุดจากเครื่อง local ปัจจุบัน
-- export runtime assets
-- รวมเป็นไฟล์ส่งต่อเดียวที่ `docker/package/workflow-docker-package.tar.gz`
-
-5. สตาร์ทระบบ
-
-```bash
-docker compose --env-file .env.docker up --build
-```
-
-หรือรันแบบ background
+2. Build and start
 
 ```bash
 docker compose --env-file .env.docker up -d --build
 ```
 
-## URL และพอร์ต
-
+Default URLs and ports:
 - Web: `http://127.0.0.1:8000`
-- MariaDB on host: `127.0.0.1:3307`
+- DB on host: `127.0.0.1:3307`
 
-ถ้าพอร์ตชน ให้แก้ใน `.env.docker`
+If ports collide, change `APP_PORT` and `DB_PORT_HOST` in `.env.docker`.
 
-## การ reset DB ให้ import dump ใหม่
+## Refresh the database baseline
+To export the current local database into the Docker seed:
 
-MariaDB จะ import ไฟล์ใน `docker/mysql/initdb` เฉพาะตอน volume ยังว่าง
+```bash
+bash scripts/docker/export-current-db.sh
+```
 
-ถ้าต้องการ reset ให้ใช้
+The script keeps the initdb folder clean so the main SQL seed remains a single base file.
+
+## Runtime assets handoff
+If another machine also needs runtime uploads and profile images, export them separately:
+
+```bash
+bash scripts/docker/export-runtime-assets.sh
+```
+
+This creates:
+- `docker/runtime-assets/workflow-runtime-assets.tar.gz`
+
+To unpack on the target machine:
+
+```bash
+tar -xzf docker/runtime-assets/workflow-runtime-assets.tar.gz
+```
+
+## One-command handoff package
+To build the handoff artifact:
+
+```bash
+make docker-package
+```
+
+That package includes:
+- Docker stack files
+- DB seed
+- runtime assets archive
+- Docker handoff documentation
+
+## Reset the DB volume
+MariaDB imports the init scripts only when the volume is empty.
+
+To force a clean re-import:
 
 ```bash
 docker compose --env-file .env.docker down -v
 docker compose --env-file .env.docker up -d --build
 ```
 
-## Runtime files ที่ไม่อยู่ใน git
+## Git policy reminder
+The Docker stack is source-controlled.
+Runtime data is not.
 
-ตัว app ใช้ไฟล์ runtime บางส่วน เช่น
-
-- `storage/uploads`
-- `assets/img/profile`
-
-ถ้าต้องการ environment ให้ตรงกับเครื่องต้นทางแบบเต็มจริง ๆ ต้องนำโฟลเดอร์เหล่านี้มาด้วย ไม่เช่นนั้น DB จะตรง แต่ไฟล์แนบบางรายการหรือรูปโปรไฟล์บางรายการอาจไม่มีไฟล์จริง
-
-วิธีที่แนะนำคือใช้สคริปต์นี้บนเครื่องต้นทาง
-
-```bash
-make docker-runtime-assets
-```
-
-แล้วนำไฟล์ `docker/runtime-assets/workflow-runtime-assets.tar.gz` ไปแตกบนเครื่องปลายทางที่ root ของโปรเจกต์
-
-## หมายเหตุ
-
-- compose นี้ตั้งค่า app ให้ override DB connection ผ่าน env ของ container โดยไม่ชนกับ `.env` เดิม
-- app container จะรัน `php scripts/migrate.php` ทุกครั้งหลัง DB พร้อม เพื่อให้ schema ตาม migrations ล่าสุด
+Keep out of Git:
+- `storage/uploads/**`
+- `assets/img/profile/**`
+- generated temp output

@@ -1,122 +1,137 @@
-# API Contract (public/api)
+# API and Ajax Contract
 
-This file documents existing public API endpoints. These endpoints must remain stable.
+Last updated: 25 March 2026
 
-## Common Notes
-- All endpoints require an active session (`$_SESSION['pID']`).
-- All responses use UTF-8.
-- CSRF is required for state-changing requests.
+This file documents the stable request contracts used by the current application. It covers both `public/api` endpoints and controller-driven ajax endpoints that the UI depends on.
 
----
+## 1. Common Rules
+- Session authentication is required unless a route is explicitly public.
+- State-changing requests require CSRF.
+- HTML fragment responses must preserve current markup contracts expected by client-side modules.
+- File downloads must authorize access against the module/entity being requested.
 
-## GET /public/api/teacher-directory-api.php
-Fetch teacher directory list with pagination/search.
+## 2. Stable `public/api` Endpoints
+### `GET /public/api/teacher-directory-api.php`
+Purpose:
+- fetch teacher directory results with pagination and search
 
-### Query Params
-- `page` (int, default 1)
-- `per_page` (10|20|50|all, default 10)
-- `q` (string, optional search)
+Expected query params:
+- `page`
+- `per_page`
+- `q`
 
-### Response 200 (JSON)
-```json
-{
-  "data": [
-    {"fName":"...","department_name":"...","telephone":"..."}
-  ],
-  "meta": {
-    "page": 1,
-    "per_page": 10,
-    "total": 100,
-    "total_pages": 10,
-    "query": "..."
-  }
-}
-```
+Response:
+- JSON list plus pagination metadata
 
-### Errors
-- 401 unauthorized
-- 405 method_not_allowed
+### `POST /public/api/room-booking-check.php`
+Purpose:
+- validate room availability against room status and approved booking conflicts
 
----
+Expected payload:
+- `csrf_token`
+- `roomID`
+- `startDate`
+- `endDate`
+- `startTime`
+- `endTime`
+- `attendeeCount`
 
-## POST /public/api/room-booking-check.php
-Validate room availability and booking time window.
+Response:
+- JSON with success flag and rendered alert HTML
 
-### Body (form-encoded)
-- `csrf_token` (string)
-- `dh_year` (int, optional)
-- `roomID` (int)
-- `startDate` (Y-m-d)
-- `endDate` (Y-m-d, optional)
-- `startTime` (H:i)
-- `endTime` (H:i)
-- `attendeeCount` (int, optional)
+### `POST /public/api/room-booking-delete.php`
+Purpose:
+- soft-delete a room booking owned by the current user
 
-### Response (JSON)
-```json
-{
-  "ok": true,
-  "html": "<div>...</div>"
-}
-```
-`html` is rendered from `public/components/x-alert.php`.
+Expected payload:
+- `booking_id`
+- `csrf_token`
 
-### Errors
-- 405 method_not_allowed
-- 200 with ok=false for validation errors
+Response:
+- JSON
 
----
+### `GET /public/api/file-download.php`
+Purpose:
+- secure download gateway for files stored in `dh_files`/`dh_file_refs`
 
-## POST /public/api/room-booking-delete.php
-Soft-delete a room booking owned by the current user.
+Supported module values currently used in the app:
+- `circulars`
+- `orders`
+- `outgoing`
+- `memos`
+- `repairs`
 
-### Body (JSON or form-encoded)
-- `booking_id` (int)
-- `csrf_token` (string)
+Required query params:
+- `module`
+- `entity_id`
+- `file_id`
+- optional `download=1`
 
-### Response 200 (JSON)
-```json
-{"success": true, "reload": true}
-```
+### `GET /public/api/vehicle-booking-file.php`
+Purpose:
+- download vehicle booking attachments tied to a booking record
 
-### Errors (JSON)
-```json
-{"message":"...","html":"<div>...</div>","error":"..."}
-```
-Status codes: 400, 401, 403, 404, 405, 500.
+Required query params:
+- `booking_id`
+- `file_id`
+- optional `download`
 
----
+### `GET /public/api/vehicle-booking-pdf.php`
+Purpose:
+- generate the approved vehicle booking PDF form
 
-## GET /public/api/vehicle-booking-file.php
-Stream an attachment file for a vehicle booking.
+Required query params:
+- `booking_id`
+- optional cache-busting query values
 
-### Query Params
-- `booking_id` (int)
-- `file_id` (int)
-- `download` (0|1, optional)
+Behavior:
+- denies access if the booking is not in an approved/completed state
 
-### Response
-- 200 file stream with `Content-Type` and `Content-Disposition` headers.
+## 3. Controller-Driven Ajax Endpoints
+These are not under `public/api`, but they are still API-like contracts because the frontend depends on partial responses.
 
-### Errors
-- 400, 401, 403, 404, 405
+### `GET /circular-compose.php?tab=track&ajax_filter=1`
+Returns:
+- HTML fragment for the tracking table in the internal circular compose page
 
----
+Client:
+- `assets/js/modules/circular-compose.js`
 
-## GET /public/api/file-download.php
-Secure download for files stored in `dh_files`/`dh_file_refs`.
+### `GET /circular-notice.php?ajax_filter=1`
+Returns:
+- HTML fragment for circular inbox table rows/sections
 
-### Query Params
-- `module` (circulars|orders|outgoing|memos|repairs)
-- `entity_id` (string/int)
-- `file_id` (int)
-- `download` (0|1, optional)
+Client:
+- `assets/js/modules/circular-notice.js`
 
-### Response
-- 200 file stream when authorized.
+### `GET /memo-inbox.php?ajax_filter=1`
+Returns:
+- HTML fragment for memo inbox table content
 
-### Errors
-- 400 invalid params
-- 401 unauthorized (not logged in)
-- 403 forbidden (no access to entity)
-- 404 not found
+Client:
+- shared memo/circular filter behavior
+
+### `GET /memo-archive.php?ajax_filter=1`
+Returns:
+- HTML fragment for memo archive table content
+
+### `GET /room-booking-approval.php?ajax_filter=1`
+Returns:
+- HTML partial rows for the room approval table
+
+### `GET /vehicle-reservation-approval.php?ajax_filter=1`
+Returns:
+- JSON with `rows_html`, `pagination_html`, and paging metadata
+
+## 4. File Download Authorization Contract
+The following must stay true when touching download logic.
+
+- access is evaluated by module and entity ownership or role
+- a matching `dh_file_refs` row is required
+- missing file rows must resolve as 404 or safe failure, never raw warnings
+- the UI may request view mode or forced download mode without changing the route itself
+
+## 5. Backward Compatibility Requirements
+- do not rename these endpoints without providing a compatibility layer
+- do not change response shape for active JS modules without updating both sides together
+- when adding ajax filtering, keep the non-ajax full page render working as the fallback path

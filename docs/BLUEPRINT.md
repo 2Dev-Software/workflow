@@ -1,56 +1,104 @@
-# Blueprint (A-E)
+# Blueprint
 
-## A) โครงสร้างโฟลเดอร์ (Target Architecture)
-```
+Last updated: 25 March 2026
+
+## 1. Current Runtime Architecture
+This project is not a front-controller-only application. It is a route-stable PHP system where root scripts remain public entry points and delegate into application code.
+
+### Request path
+`root route` -> `controller` -> `repository/service` -> `view` -> `shared components/assets`
+
+## 2. Current Directory Blueprint
+```text
 /app
-  /config            # constants, state machine, roles
-  /controllers       # request handlers
-  /middleware        # auth, rbac, csrf
-  /repositories      # db access only
-  /services          # business logic
-  /security          # session, csrf, uploads
-  /views             # templates + components
-  /modules           # legacy modules (keep)
-/public
-  index.php          # front controller (new)
-  /api               # existing API
+  /auth              auth helpers and csrf bridge
+  /config            role and workflow state constants
+  /controllers       page controllers and ajax partial handlers
+  /db                mysqli helper layer
+  /middleware        shared request guards
+  /modules           current domain repositories/services
+  /rbac              current user and role helpers
+  /security          security and session helpers
+  /services          shared document/upload/auth services
+  /views             page templates and app-side components
 /assets
-  /css               # tokens/base/components (new)
-  /js                # app.js + modules
-/storage/uploads     # secure upload storage
-/migrations          # SQL migrations (source of truth)
-/scripts/migrations  # migration mirror per request
+  /css               shared styles
+  /js                global runtime + page modules
+/public
+  /api               stable API and download endpoints
+  /components        shared UI partials used across pages
+/src/Services        legacy but active service layer for room/vehicle/auth/system
+/scripts             CLI scripts, docker helpers, fixtures, smoke checks
+/storage/uploads     runtime uploads (not tracked in git)
+/tmp                 generated temp output only
+/docs                project-authored markdown documentation
 ```
 
-## B) มาตรฐาน naming
-- Files: lowercase kebab-case (เช่น `auth-controller.php`)
-- Functions: lowerCamelCase
-- Classes: PascalCase (ใช้เท่าที่จำเป็น เช่น Router)
-- Constants: UPPER_SNAKE
-- DB tables: `dh_` prefix
-- DB columns: lowerCamelCase (ตามระบบเดิม)
+## 3. Layer Responsibilities
+### Root routes
+Examples:
+- `memo.php`
+- `circular-compose.php`
+- `outgoing.php`
+- `room-booking.php`
+- `vehicle-reservation.php`
 
-## C) มาตรฐาน coding style
-- PHP: `declare(strict_types=1);` เมื่อเหมาะสม
-- DB: mysqli prepared statements เท่านั้น ผ่าน `/app/db/db.php`
-- Error handling: ส่งข้อความไทยให้ผู้ใช้, log อังกฤษ
-- Output: HTML ต้อง escape ด้วย `h()` ทุกจุด
-- JS: โครงสร้าง module ผ่าน `window.App`, no framework
-- CSS: design tokens + component classes, responsive first
+Responsibility:
+- include bootstrap/config
+- call the matching controller function
+- stay thin
 
-## D) Core modules ที่สร้างก่อน
-1) DB layer: `/app/db/db.php`
-2) Auth + Session: `/app/services/auth-service.php`, `/app/security/session.php`
-3) RBAC: `/app/rbac/roles.php` + role assignments (`dh_user_roles`)
-4) CSRF: `/app/security/csrf.php`
-5) Router: `/app/router.php`
-6) View renderer: `/app/views/view.php`
-7) File service: `/app/services/attachment-service.php`
-8) Logger/Audit: `/app/modules/audit/logger.php`
+### Controllers
+Controllers own:
+- session/auth guard
+- role checks
+- query/form normalization
+- CSRF enforcement
+- selection of full page or ajax partial output
 
-## E) กติกา flow ของเอกสาร (state machine)
-ดูรายละเอียดใน `docs/STATE_MACHINE.md`
+### Modules
+`app/modules` is the preferred place for:
+- repositories
+- domain services
+- workflow transitions
+- document numbering
+- audit-aware mutations
 
-## หมายเหตุสำคัญ (ข้อจำกัดจาก System Conventions)
-- DB ต้องใช้ mysqli (ไม่ใช้ PDO ในตอนนี้)
-- Password hashing ยัง “ห้ามเปลี่ยน” จนกว่าจะอนุมัติ (ยังใช้ plaintext แบบเดิม)
+### Legacy services
+`src/Services` remains active for:
+- room booking and room approval
+- vehicle reservation and approval
+- selected auth/system utilities
+
+This is a real part of the runtime today. Documentation and refactors must treat it as live code, not dead code.
+
+### Views and components
+- `app/views` contains page templates
+- `app/views/components` contains page-scoped reusable fragments
+- `public/components` contains shared global partials and assets bootstrap
+
+## 4. Module Ownership Map
+| Module | Current home | Notes |
+|---|---|---|
+| Circulars | `app/controllers/circular-*.php`, `app/modules/circulars/*` | Internal and external flows are already in the app module layer |
+| Memos | `app/controllers/memo-*.php`, `app/modules/memos/*` | Full workflow state machine is in app module layer |
+| Orders | `app/controllers/orders-*.php`, `app/modules/orders/*` | Owner/inbox/archive split is active |
+| Outgoing | `app/controllers/outgoing-*.php`, `app/modules/outgoing/*` | Includes receive flow for external circular intake |
+| Repairs | `app/controllers/repairs-controller.php`, `app/modules/repairs/*` | Report, approval, and management flows share one controller |
+| Room | `app/controllers/room-*.php`, `src/Services/room/*` | Still legacy-heavy but production-active |
+| Vehicle | `app/controllers/vehicle-*.php`, `src/Services/vehicle/*`, `app/modules/vehicle/*` | Hybrid structure; approval and PDF flows remain important |
+| Dashboard / System | `app/controllers/*`, `app/modules/dashboard/*`, `app/modules/system/*`, `src/Services/system/*` | Shared config and duty logic |
+
+## 5. Architectural Guardrails
+- Do not break root URLs.
+- Do not duplicate the same workflow in both `app/modules` and `src/Services`.
+- Prefer extracting legacy logic behind stable controller contracts.
+- Keep business rules out of views.
+- Keep runtime file storage and source-controlled fixtures separate.
+
+## 6. Current Migration Direction
+The safe modernization path is:
+1. keep route contracts stable
+2. move business logic into module/service layers
+3. leave views visually unchanged unless explicitly requested
+4. add regression coverage around critical flows before deeper rewrites
