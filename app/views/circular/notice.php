@@ -350,11 +350,11 @@ ob_start();
     <?php endif; ?>
 </header>
 
-<section class="content-circular-notice-index" data-circular-notice>
+<section class="content-circular-notice-index" data-circular-notice data-ajax-filter="true">
     <div class="search-bar">
         <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย...">
+            <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย..." data-auto-submit="true" data-auto-submit-delay="450" autocomplete="off">
         </div>
     </div>
 
