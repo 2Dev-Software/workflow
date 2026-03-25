@@ -91,6 +91,37 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </ul>
         </li>
 
+        <?php if ($can_access_external_circular_menu): ?>
+            <li class="navigation-links-has-sub">
+                <div class="icon-link">
+                    <a href="#">
+                        <img src="/public/assets/img/icon/files.png" alt="">
+                        <p class="link-name">หนังสือเวียนภายนอก</p>
+                    </a>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+                <ul class="navigation-links-sub-menu">
+                    <?php if ($can_manage_external_circular): ?>
+                        <li><a href="outgoing-receive.php">ลงทะเบียนรับหนังสือเวียน</a></li>
+                        <li><a href="outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1">กล่องกำลังเสนอ</a></li>
+                        <li><a href="outgoing-notice.php?box=clerk_return&type=external&read=all&sort=newest&view=table1">กล่องพิจารณาแล้ว</a></li>
+                    <?php endif; ?>
+                    <?php if ($is_director_or_acting): ?>
+                        <li><a href="outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1">กล่องรอพิจารณา</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
+        <?php endif; ?>
+
+        <?php if ($can_manage_external_circular): ?>
+            <li>
+                <a href="outgoing.php">
+                    <img src="/public/assets/img/icon/files.png" alt="">
+                    <p class="link-name">ออกเลขทะเบียนส่ง</p>
+                </a>
+            </li>
+        <?php endif; ?>
+
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
