@@ -55,8 +55,29 @@ jobs:
           elif commit_url:
               lines.append(f"Commit URL: {commit_url}")
 
+          description = []
+          if message:
+              description.append(f"**Message**\n{message}")
+          if compare_url:
+              description.append(f"**Compare**\n{compare_url}")
+          elif commit_url:
+              description.append(f"**Commit URL**\n{commit_url}")
+
           payload = {
-              "content": "\n".join(lines)[:1900],
+              "content": None,
+              "embeds": [
+                  {
+                      "title": "Git push received",
+                      "color": 3447003,
+                      "fields": [
+                          {"name": "Repository", "value": repository or "-", "inline": True},
+                          {"name": "Branch", "value": branch or "-", "inline": True},
+                          {"name": "By", "value": actor or "-", "inline": True},
+                          {"name": "Commit", "value": sha or "-", "inline": True},
+                      ],
+                      "description": "\n\n".join(description)[:3500] if description else None,
+                  }
+              ],
               "allowed_mentions": {"parse": []},
           }
 
