@@ -1,0 +1,36 @@
+<?php
+$project_root = dirname(__DIR__, 2);
+?>
+<!DOCTYPE html>
+<html lang="th">
+<?php require_once $project_root . '/public/components/x-head.php'; ?>
+
+<body>
+
+    <?php require_once $project_root . '/public/components/layout/preloader.php'; ?>
+
+    <?php require_once $project_root . '/public/components/partials/x-sidebar.php'; ?>
+
+    <section class="main-section">
+
+        <?php require_once $project_root . '/public/components/partials/x-navigation.php'; ?>
+
+        <main class="content-wrapper">
+
+            <div class="content-header">
+                <h1>ยินดีต้อนรับ</h1>
+                <p></p>
+            </div>
+
+        </main>
+
+        <?php require_once $project_root . '/public/components/partials/x-footer.php'; ?>
+
+
+    </section>
+
+
+    <?php require_once $project_root . '/public/components/x-scripts.php'; ?>
+</body>
+
+</html>
