@@ -150,95 +150,106 @@ ob_start();
             </div>
         </header>
 
+        <form method="POST" action="room-booking-approval.php" class="orders-send-form" id="roomBookingApprovalForm" data-approval-form>
+            <?= csrf_field() ?>
+            <input type="hidden" name="room_booking_id" value="">
+            <input type="hidden" name="approval_action" value="">
+            <input type="hidden" name="return_url" value="<?= h($room_booking_approval_return_url) ?>">
 
-        <div class="modal-body booking-detail-body">
+            <div class="modal-body booking-detail-body">
 
-            <div class="booking-detail-row">
-                <div class="booking-detail-content">
-                    <label>หัวข้อการจอง</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-            </div>
-
-            <div class="booking-detail-row">
-                <div class="booking-detail-content">
-                    <label>รายละเอียด/วัตถุประสงค์</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-            </div>
-
-            <div class="booking-detail-row">
-                <div class="booking-detail-content">
-                    <label>อุปกรณ์ที่ต้องการ</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-            </div>
-
-            <div class="booking-detail-row">
-                <div class="booking-detail-content">
-                    <label>ห้อง/สถานที่</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-                <div class="booking-detail-content">
-                    <label>ผู้ขอจอง</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-                <div class="booking-detail-content">
-                    <label>โทรศัพท์</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-                <div class="booking-detail-content">
-                    <label>จำนวนผู้เข้าร่วม</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-            </div>
-
-            <div class="booking-detail-row">
-                <div class="booking-detail-content">
-                    <label>วันที่ใช้</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-                <div class="booking-detail-content">
-                    <label>เวลา</label>
-                    <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                </div>
-            </div>
-
-            <div class="booking-detail-row consider-section">
-                <h1>การพิจารณา</h1>
-                <div class="booking-detail-content">
-                    <label>รายละเอียด</label>
-                    <textarea name="" id="" rows="3"></textarea>
-                </div>
-                <div class="booking-detail-content-group">
+                <div class="booking-detail-row">
                     <div class="booking-detail-content">
-                        <label>สร้างรายการ</label>
-                        <input type="text" data-booking-detail="room" placeholder="-" disabled>
-                    </div>
-                    <div class="booking-detail-content">
-                        <label>อัปเดตล่าสุด</label>
-                        <input type="text" data-booking-detail="room" placeholder="-" disabled>
+                        <label>หัวข้อการจอง</label>
+                        <input type="text" data-approval-detail="topic" placeholder="-" disabled>
                     </div>
                 </div>
+
+                <div class="booking-detail-row">
+                    <div class="booking-detail-content">
+                        <label>รายละเอียด/วัตถุประสงค์</label>
+                        <input type="text" data-approval-detail="detail" placeholder="-" disabled>
+                    </div>
+                </div>
+
+                <div class="booking-detail-row">
+                    <div class="booking-detail-content">
+                        <label>อุปกรณ์ที่ต้องการ</label>
+                        <input type="text" data-approval-detail="equipment" placeholder="-" disabled>
+                    </div>
+                </div>
+
+                <div class="booking-detail-row">
+                    <div class="booking-detail-content">
+                        <label>ห้อง/สถานที่</label>
+                        <input type="text" data-approval-detail="room" placeholder="-" disabled>
+                    </div>
+                    <div class="booking-detail-content">
+                        <label>ผู้ขอจอง</label>
+                        <input type="text" data-approval-detail="requester" placeholder="-" disabled>
+                    </div>
+                    <div class="booking-detail-content">
+                        <label>โทรศัพท์</label>
+                        <input type="text" data-approval-detail="contact" placeholder="-" disabled>
+                    </div>
+                    <div class="booking-detail-content">
+                        <label>จำนวนผู้เข้าร่วม</label>
+                        <input type="text" data-approval-detail="attendees" placeholder="-" disabled>
+                    </div>
+                </div>
+
+                <div class="booking-detail-row">
+                    <div class="booking-detail-content">
+                        <label>วันที่ใช้</label>
+                        <input type="text" data-approval-detail="date" placeholder="-" disabled>
+                    </div>
+                    <div class="booking-detail-content">
+                        <label>เวลา</label>
+                        <input type="text" data-approval-detail="time" placeholder="-" disabled>
+                    </div>
+                </div>
+
+                <div class="booking-detail-row consider-section">
+                    <h1>การพิจารณา</h1>
+                    <div class="booking-detail-content">
+                        <label>รายละเอียด</label>
+                        <textarea name="approvalNote" rows="3"></textarea>
+                    </div>
+                    <div class="booking-detail-content-group hidden" data-approval-detail="approval-item">
+                        <div class="booking-detail-content">
+                            <label data-approval-detail="approval-label">ผู้อนุมัติ</label>
+                            <input type="text" data-approval-detail="approval-name" placeholder="-" disabled>
+                        </div>
+                        <div class="booking-detail-content">
+                            <label>วันที่ดำเนินการ</label>
+                            <input type="text" data-approval-detail="approval-at" placeholder="-" disabled>
+                        </div>
+                    </div>
+                    <div class="booking-detail-content-group">
+                        <div class="booking-detail-content">
+                            <label>สร้างรายการ</label>
+                            <input type="text" data-approval-detail="created" placeholder="-" disabled>
+                        </div>
+                        <div class="booking-detail-content">
+                            <label>อัปเดตล่าสุด</label>
+                            <input type="text" data-approval-detail="updated" placeholder="-" disabled>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-        </div>
 
-
-        <div class="footer-modal operation">
-            <form method="POST" action="orders-create.php" class="orders-send-form" id="modalOrderSendForm">
-
-                <button type="submit" class="btn-outline" form="modalOrderSendForm" data-approval-submit="reject">
+            <div class="footer-modal operation">
+                <button type="submit" class="btn-outline" data-approval-submit="reject">
                     <p>ไม่อนุมัติ</p>
                 </button>
 
-                <button type="submit" form="modalOrderSendForm" data-approval-submit="approve">
+                <button type="submit" data-approval-submit="approve">
                     <p>อนุมัติรายการ</p>
                 </button>
-
-            </form>
-
-        </div>
+            </div>
+        </form>
     </div>
 </div>
 
