@@ -194,7 +194,7 @@ ob_start();
 
     <div class="form-group">
         <label for="">อุปกรณ์</label>
-        <input type="text" name="equipment" value="<?= h($values['equipment']) ?>" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
+        <input type="text" name="equipment" value="<?= h($values['equipment']) ?>" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
     </div>
 
     <div class="form-group">
@@ -403,7 +403,7 @@ ob_start();
 
                     <div class="form-group">
                         <label for="">อุปกรณ์</label>
-                        <input type="text" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
+                        <input type="text" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
                     </div>
 
                     <div class="form-group">
@@ -466,7 +466,7 @@ ob_start();
 
                     <div class="form-group">
                         <label for="">อุปกรณ์</label>
-                        <input type="text" placeholder="เช่่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
+                        <input type="text" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
                     </div>
 
                     <div class="form-group">
