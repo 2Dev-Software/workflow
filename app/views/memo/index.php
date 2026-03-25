@@ -100,25 +100,12 @@ $executive_members = [];
 $subject_head_members = [];
 
 foreach ($teachers as $teacher) {
-    $fid = (int) ($teacher['fID'] ?? 0);
-    $did = (int) ($teacher['dID'] ?? 0);
     $position_id = (int) ($teacher['positionID'] ?? 0);
     $pid = trim((string) ($teacher['pID'] ?? ''));
     $name = trim((string) ($teacher['fName'] ?? ''));
-    $department_name = trim((string) ($teacher['departmentName'] ?? ''));
 
     if ($pid === '' || $name === '') {
         continue;
-    }
-
-    if ($fid > 0) {
-        if (!isset($faction_members[$fid])) {
-            $faction_members[$fid] = [];
-        }
-        $faction_members[$fid][] = [
-            'pID' => $pid,
-            'name' => $name,
-        ];
     }
 
     if (in_array($position_id, [1, 2, 3, 4], true)) {
@@ -134,33 +121,6 @@ foreach ($teachers as $teacher) {
             'name' => $name,
         ];
     }
-
-    $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
-
-    if (
-        $did > 0 &&
-        $department_name !== '' &&
-        strpos((string) $normalized_department_name, 'ผู้บริหาร') === false &&
-        strpos((string) $normalized_department_name, 'ฝ่ายบริหาร') === false
-    ) {
-        if (!isset($department_groups[$did])) {
-            $department_groups[$did] = [
-                'dID' => $did,
-                'name' => $department_name,
-                'members' => [],
-            ];
-        }
-        $department_groups[$did]['members'][] = [
-            'pID' => $pid,
-            'name' => $name,
-        ];
-    }
-}
-
-if (!empty($department_groups)) {
-    uasort($department_groups, static function (array $a, array $b): int {
-        return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
-    });
 }
 
 $executive_members = array_values($executive_members);
@@ -939,177 +899,6 @@ ob_start();
                                     </div>
 
                                     <div class="dropdown-list">
-                                        <?php if (!empty($factions)) : ?>
-                                            <div class="category-group">
-                                                <div class="category-title">
-                                                    <span>หน่วยงาน</span>
-                                                </div>
-                                                <div class="category-items">
-                                                    <?php foreach ($factions as $faction) : ?>
-                                                        <?php
-                                                        $fid = (int) ($faction['fID'] ?? 0);
-
-                                                        if ($fid <= 0) {
-                                                            continue;
-                                                        }
-                                                        $fid_value = (string) $fid;
-                                                        $faction_name = trim((string) ($faction['fname'] ?? ''));
-
-                                                        if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) {
-                                                            continue;
-                                                        }
-                                                        $members = $faction_members[$fid] ?? [];
-                                                        $member_payload = [];
-
-                                                        foreach ($members as $member) {
-                                                            $member_payload[] = [
-                                                                'pID' => (string) ($member['pID'] ?? ''),
-                                                                'name' => (string) ($member['name'] ?? ''),
-                                                                'faction' => $faction_name,
-                                                            ];
-                                                        }
-                                                        $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                                                        if ($member_payload_json === false) {
-                                                            $member_payload_json = '[]';
-                                                        }
-                                                        $member_total = count($members);
-                                                        $has_selected_member = false;
-
-                                                        foreach ($members as $member) {
-                                                            $member_pid = (string) ($member['pID'] ?? '');
-
-                                                            if ($member_pid !== '' && $is_selected($member_pid, $selected_people)) {
-                                                                $has_selected_member = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                        $expanded_by_default = $is_selected($fid_value, $selected_factions) || $has_selected_member;
-                                                        ?>
-                                                        <div class="item item-group<?= $expanded_by_default ? '' : ' is-collapsed' ?>" data-faction-id="<?= h($fid_value) ?>">
-                                                            <div class="group-header">
-                                                                <div class="item-main">
-                                                                    <span class="item-title"><?= h($faction_name) ?></span>
-                                                                    <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
-                                                                </div>
-                                                                <button type="button" class="group-toggle" aria-expanded="<?= $expanded_by_default ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
-                                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                                </button>
-                                                            </div>
-
-                                                            <ol class="member-sublist">
-                                                                <?php if ($member_total === 0) : ?>
-                                                                    <li>
-                                                                        <span class="item-subtext">ไม่มีสมาชิกในฝ่ายนี้</span>
-                                                                    </li>
-                                                                <?php else : ?>
-                                                                    <?php foreach ($members as $member) : ?>
-                                                                        <?php
-                                                                        $member_pid = (string) ($member['pID'] ?? '');
-                                                                        $member_name = (string) ($member['name'] ?? '');
-
-                                                                        if ($member_pid === '' || $member_name === '') {
-                                                                            continue;
-                                                                        }
-                                                                        ?>
-                                                                        <li>
-                                                                            <label class="item member-item">
-                                                                                <input type="radio" class="member-checkbox"
-                                                                                    data-member-group-key="faction-<?= h($fid_value) ?>"
-                                                                                    data-member-name="<?= h($member_name) ?>"
-                                                                                    data-group-label="<?= h($faction_name) ?>"
-                                                                                    name="memo_to_pid" value="<?= h($member_pid) ?>" <?= h($member_pid === $selected_primary_pid ? 'checked' : '') ?>>
-                                                                                <span class="member-name"><?= h($member_name) ?></span>
-                                                                            </label>
-                                                                        </li>
-                                                                    <?php endforeach; ?>
-                                                                <?php endif; ?>
-                                                            </ol>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-
-                                        <?php if (!empty($department_groups)) : ?>
-                                            <div class="category-group">
-                                                <div class="category-title">
-                                                    <span>กลุ่มสาระ</span>
-                                                </div>
-                                                <div class="category-items">
-                                                    <?php foreach ($department_groups as $department_group) : ?>
-                                                        <?php
-                                                        $did = (int) ($department_group['dID'] ?? 0);
-                                                        $department_name = trim((string) ($department_group['name'] ?? ''));
-                                                        $members = (array) ($department_group['members'] ?? []);
-
-                                                        if ($did <= 0 || $department_name === '' || empty($members)) {
-                                                            continue;
-                                                        }
-
-                                                        $member_payload = [];
-                                                        $has_selected_member = false;
-
-                                                        foreach ($members as $member) {
-                                                            $member_pid = (string) ($member['pID'] ?? '');
-                                                            $member_name = (string) ($member['name'] ?? '');
-
-                                                            if ($member_pid === '' || $member_name === '') {
-                                                                continue;
-                                                            }
-
-                                                            if ($is_selected($member_pid, $selected_people)) {
-                                                                $has_selected_member = true;
-                                                            }
-                                                            $member_payload[] = [
-                                                                'pID' => $member_pid,
-                                                                'name' => $member_name,
-                                                                'faction' => $department_name,
-                                                            ];
-                                                        }
-
-                                                        if (empty($member_payload)) {
-                                                            continue;
-                                                        }
-                                                        $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                                                        if ($member_payload_json === false) {
-                                                            $member_payload_json = '[]';
-                                                        }
-                                                        $member_total = count($member_payload);
-                                                        $group_key = 'department-' . $did;
-                                                        ?>
-                                                        <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
-                                                            <div class="group-header">
-                                                                <div class="item-main">
-                                                                    <span class="item-title"><?= h($department_name) ?></span>
-                                                                    <small class="item-subtext">สมาชิกทั้งหมด <?= h((string) $member_total) ?> คน</small>
-                                                                </div>
-                                                                <button type="button" class="group-toggle" aria-expanded="<?= $has_selected_member ? 'true' : 'false' ?>" title="แสดง/ซ่อนรายชื่อสมาชิก">
-                                                                    <i class="fa-solid fa-chevron-down"></i>
-                                                                </button>
-                                                            </div>
-
-                                                            <ol class="member-sublist">
-                                                                <?php foreach ($member_payload as $member) : ?>
-                                                                    <li>
-                                                                        <label class="item member-item">
-                                                                            <input type="radio" class="member-checkbox"
-                                                                                data-member-group-key="<?= h($group_key) ?>"
-                                                                                data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
-                                                                                data-group-label="<?= h($department_name) ?>"
-                                                                                name="memo_to_pid" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h(((string) ($member['pID'] ?? '')) === $selected_primary_pid ? 'checked' : '') ?>>
-                                                                            <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
-                                                                        </label>
-                                                                    </li>
-                                                                <?php endforeach; ?>
-                                                            </ol>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-
                                         <?php if (!empty($special_groups)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
