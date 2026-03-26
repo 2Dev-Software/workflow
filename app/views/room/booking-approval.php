@@ -19,6 +19,13 @@ $alert = $room_booking_approval_alert;
 
 ob_start();
 ?>
+
+<style>
+    .booking-detail-row.consider-section .custom-select-trigger {
+        min-height: 50px;
+    }
+
+</style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
     <p>อนุมัติการจองสถานที่/ห้อง</p>
@@ -211,6 +218,25 @@ ob_start();
 
                 <div class="booking-detail-row consider-section">
                     <h1>การพิจารณา</h1>
+                    <div class="form-group">
+                        <div class="custom-select-wrapper open">
+                            <div class="custom-select-trigger">
+                                <p class="select-value">อนุมัติ</p>
+                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                            </div>
+
+                            <div class="custom-options">
+                                <div class="custom-option selected" data-value="all">อนุมัติ</div>
+                                <div class="custom-option" data-value="pending">ไม่อนุมัติ</div>
+                            </div>
+
+                            <select class="form-input" name="status">
+                                <option value="all">อนุมัติ</option>
+                                <option value="pending">ไม่อนุมัติ</option>
+                            </select>
+
+                        </div>
+                    </div>
                     <div class="booking-detail-content">
                         <label>รายละเอียด</label>
                         <textarea name="approvalNote" rows="3"></textarea>
@@ -241,12 +267,8 @@ ob_start();
 
 
             <div class="footer-modal operation">
-                <button type="submit" class="btn-outline" data-approval-submit="reject">
-                    <p>ไม่อนุมัติ</p>
-                </button>
-
                 <button type="submit" data-approval-submit="approve">
-                    <p>อนุมัติรายการ</p>
+                    <p>บันทึก</p>
                 </button>
             </div>
         </form>
