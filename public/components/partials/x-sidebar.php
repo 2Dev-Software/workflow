@@ -116,7 +116,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
         <?php if ($can_manage_external_circular): ?>
             <li>
                 <a href="outgoing.php">
-                    <img src="/public/assets/img/icon/files.png" alt="">
+                    <img src="/public/assets/img/icon/clipboard.png" alt="">
                     <p class="link-name">ออกเลขทะเบียนส่ง</p>
                 </a>
             </li>
