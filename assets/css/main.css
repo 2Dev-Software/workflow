@@ -1058,7 +1058,6 @@ select {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* justify-content: center; */
     height: auto;
     flex-grow: 1;
   }
@@ -8910,7 +8909,6 @@ select {
     gap: 30px 40px;
     padding: 0 0 40px;
     margin: 20px 0 0 0;
-    /* border-bottom: 1px solid var(--color-secondary); */
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .content-modal .content-file-sec .file-banner {

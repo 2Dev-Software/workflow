@@ -171,9 +171,9 @@ ob_start();
 <div class="tabs-container setting-page">
     <div class="button-container vehicle">
         <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
-            onclick="openTab('repairs', this, event)">แจ้งเหตุซ่อมแซม</button>
+            onclick="openTab('repairs', event)">แจ้งเหตุซ่อมแซม</button>
         <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
-            onclick="openTab('myRepair', this, event)">รายการของฉัน</button>
+            onclick="openTab('myRepair', event)">รายการของฉัน</button>
     </div>
 </div>
 

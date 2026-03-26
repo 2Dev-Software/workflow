@@ -80,83 +80,97 @@ ob_start();
     <p><?= h($page_subtitle) ?></p>
 </div>
 
-<div class="content-area booking-page">
-    <section class="booking-card booking-list-card">
-        <div class="booking-card-header">
-            <div class="booking-card-title-group">
-                <h2 class="booking-card-title"><?= h($list_title) ?></h2>
-                <?php if ($list_subtitle !== '') : ?>
-                    <p class="booking-card-subtitle"><?= h($list_subtitle) ?></p>
-                <?php endif; ?>
-            </div>
+<section class="booking-card booking-list-card room-admin-card">
+    <div class="booking-card-header">
+        <div class="booking-card-title-group">
+            <h2 class="booking-card-title">ทีมผู้ดูแล</h2>
         </div>
+        <div>
+            <div class="room-admin-member-count">ทั้งหมด <? //= h((string) $room_staff_count) 
+                                                            ?> คน</div>
+            <button type="button" class="btn-outline" data-room-modal-open="roomMemberModal">เพิ่มสมาชิก</button>
+        </div>
+    </div>
 
-        <div class="table-responsive">
-            <table class="custom-table booking-table">
-                <thead>
+    <div class="table-responsive">
+        <table class="custom-table booking-table room-admin-member-table">
+            <thead>
+                <tr>
+                    <th>ชื่อ-สกุล</th>
+                    <th>ตำแหน่ง</th>
+                    <th>บทบาท</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <!-- <tbody>
+                <?php if (empty($room_staff_members)) : ?>
                     <tr>
-                        <th>หัวข้อ</th>
-                        <th>สถานที่</th>
-                        <th>อุปกรณ์</th>
-                        <th>ผู้แจ้ง</th>
-                        <th>สถานะ</th>
-                        <th>วันที่แจ้ง</th>
-                        <th>จัดการ</th>
+                        <td colspan="5" class="booking-empty">ยังไม่มีผู้รับผิดชอบห้อง</td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($requests)) : ?>
+                <?php else : ?>
+                    <?php foreach ($room_staff_members as $member) : ?>
+                        <?php
+                        $member_pid = (string) ($member['pID'] ?? '');
+                        $member_name = trim((string) ($member['name'] ?? ''));
+                        $member_position = trim((string) ($member['position_name'] ?? ''));
+                        $member_role = trim((string) ($member['role_name'] ?? ''));
+                        $member_department = trim((string) ($member['department_name'] ?? ''));
+                        ?>
                         <tr>
-                            <td colspan="7">
-                                <div class="empty-state">
-                                    <strong><?= h($empty_title) ?></strong>
-                                    <p><?= h($empty_message) ?></p>
+                            <td><strong><?= h($member_name !== '' ? $member_name : 'ไม่ระบุชื่อ') ?></strong></td>
+                            <td>
+                                <div class="room-admin-member-position"><?= h($member_position !== '' ? $member_position : '-') ?></div>
+                                <?php if ($member_department !== '') : ?>
+                                    <div class="room-admin-member-subtext"><?= h($member_department) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td><span class="room-admin-member-tag"><?= h($member_role !== '' ? $member_role : '-') ?></span></td>
+                            <td><span class="member-status-pill">อยู่ในทีมแล้ว</span></td>
+                            <td>
+                                <div class="booking-action-group">
+                                    <form class="booking-action-form" data-member-remove-form method="POST"
+                                        action="<?= h($room_management_post_action) ?>">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="member_action" value="remove">
+                                        <input type="hidden" name="member_pid" value="<?= h($member_pid) ?>">
+                                        <button type="submit" class="booking-action-btn danger">
+                                            <i class="fa-solid fa-trash"></i>
+                                            <span class="tooltip danger">นำออกจากบทบาท</span>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
-                    <?php else : ?>
-                        <?php foreach ($requests as $request) : ?>
-                            <?php
-                            $repair_id = (int) ($request['repairID'] ?? 0);
-                            $status_key = (string) ($request['status'] ?? REPAIR_STATUS_PENDING);
-                            $status_meta = $status_map[$status_key] ?? ['label' => $status_key, 'variant' => 'pending'];
-                            ?>
-                            <tr>
-                                <td><?= h((string) ($request['subject'] ?? '-')) ?></td>
-                                <td><?= h((string) ($request['location'] ?? '-')) ?></td>
-                                <td><?= h((string) ($request['equipment'] ?? '-')) ?></td>
-                                <td><?= h((string) ($request['requesterName'] ?? '-')) ?></td>
-                                <td>
-                                    <span class="status-pill <?= h((string) ($status_meta['variant'] ?? 'pending')) ?>">
-                                        <?= h((string) ($status_meta['label'] ?? '-')) ?>
-                                    </span>
-                                </td>
-                                <td><?= h($format_thai_datetime((string) ($request['createdAt'] ?? ''))) ?></td>
-                                <td>
-                                    <?php component_render('repairs-action-group', [
-                                        'repair_id' => $repair_id,
-                                        'base_url' => $base_url,
-                                        'view_label' => 'ดูรายละเอียด',
-                                        'can_edit' => false,
-                                        'can_delete' => false,
-                                    ]); ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <?php if ($total_pages > 1) : ?>
-            <?php component_render('pagination', [
-                'page' => $page,
-                'total_pages' => $total_pages,
-                'base_url' => $pagination_base_url,
-            ]); ?>
-        <?php endif; ?>
-    </section>
-</div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody> -->
+            <tbody>
+                <tr>
+                    <td><strong>นางจริยาวดี เวชจันทร์</strong></td>
+                    <td>
+                        <div class="room-admin-member-position">ครู (หัวหน้ากลุ่มสาระ)</div>
+                        <div class="room-admin-member-subtext">กลุ่มสาระฯ การงานอาชีพ</div>
+                    </td>
+                    <td><span class="room-admin-member-tag">เจ้าหน้าที่สถานที่</span></td>
+                    <td><span class="member-status-pill">อยู่ในทีมแล้ว</span></td>
+                    <td>
+                        <div class="booking-action-group">
+                            <form class="booking-action-form" data-member-remove-form="" method="POST" action="room-management.php?q=&amp;status=all&amp;room=all">
+                                <input type="hidden" name="csrf_token" value="346f7456b6559d311989d6a0227ef936da71a0cdfb883a2ff7f0bcaa2d575b43"> <input type="hidden" name="member_action" value="remove">
+                                <input type="hidden" name="member_pid" value="5800900028151">
+                                <button type="submit" class="booking-action-btn danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                    <span class="tooltip danger">นำออกจากบทบาท</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
 
 <?php if ($view_item) : ?>
     <div id="repairManagementDetailModal" class="modal-overlay">
