@@ -46,6 +46,41 @@ if (!function_exists('circular_compose_normalize_search')) {
     }
 }
 
+if (!function_exists('circular_compose_build_track_return_url')) {
+    function circular_compose_build_track_return_url(array $input = []): string
+    {
+        $params = ['tab' => 'track'];
+
+        $query = trim((string) ($input['return_q'] ?? ''));
+        $status = strtoupper(trim((string) ($input['return_status'] ?? 'ALL')));
+        $sort = strtolower(trim((string) ($input['return_sort'] ?? 'newest')));
+        $page = max(1, (int) ($input['return_page'] ?? 1));
+        $per_page = (int) ($input['return_per_page'] ?? 10);
+
+        if ($query !== '') {
+            $params['q'] = $query;
+        }
+
+        if (in_array($status, ['ALL', INTERNAL_STATUS_SENT, INTERNAL_STATUS_RECALLED], true) && $status !== 'ALL') {
+            $params['status'] = strtolower($status);
+        }
+
+        if (in_array($sort, ['newest', 'oldest'], true) && $sort !== 'newest') {
+            $params['sort'] = $sort;
+        }
+
+        if ($page > 1) {
+            $params['page'] = $page;
+        }
+
+        if (in_array($per_page, [10, 20, 50], true) && $per_page !== 10) {
+            $params['per_page'] = $per_page;
+        }
+
+        return '/circular-compose.php?' . http_build_query($params);
+    }
+}
+
 if (!function_exists('circular_compose_index')) {
     function circular_compose_index(): void
     {
@@ -119,10 +154,15 @@ if (!function_exists('circular_compose_index')) {
             'person_ids' => [],
         ];
 
-        $alert = null;
+        $alert = function_exists('flash_get') ? flash_get('circular_compose_alert') : null;
         $is_edit_mode = false;
         $existing_attachments = [];
         $edit_circular_id = (int) ($_POST['edit_circular_id'] ?? 0);
+        $posted_tab = trim((string) ($_POST['tab'] ?? ''));
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($posted_tab === 'track' || $edit_circular_id > 0)) {
+            $active_tab = 'track';
+        }
 
         if ($edit_circular_id > 0) {
             $candidate = circular_get($edit_circular_id);
@@ -302,7 +342,7 @@ if (!function_exists('circular_compose_index')) {
                                 throw new RuntimeException('แนบไฟล์รวมได้สูงสุด 5 ไฟล์');
                             }
 
-                            circular_edit_and_resend_internal(
+                            $edited = circular_edit_and_resend_internal(
                                 $edit_circular_id,
                                 $current_pid,
                                 [
@@ -315,6 +355,36 @@ if (!function_exists('circular_compose_index')) {
                                 (array) $files,
                                 $remove_file_ids
                             );
+
+                            if ($edited !== true) {
+                                throw new RuntimeException('ไม่สามารถบันทึกแก้ไขและส่งใหม่ได้');
+                            }
+
+                            $updated_circular = circular_get($edit_circular_id);
+                            $expected_detail = $values['detail'] !== '' ? $values['detail'] : null;
+                            $expected_link = $values['linkURL'] !== '' ? $values['linkURL'] : null;
+
+                            if (
+                                !$updated_circular ||
+                                (string) ($updated_circular['status'] ?? '') !== INTERNAL_STATUS_SENT ||
+                                trim((string) ($updated_circular['subject'] ?? '')) !== $values['subject'] ||
+                                (($updated_circular['detail'] ?? null) !== $expected_detail) ||
+                                (($updated_circular['linkURL'] ?? null) !== $expected_link)
+                            ) {
+                                throw new RuntimeException('ระบบไม่สามารถยืนยันผลการอัปเดตหนังสือเวียนได้');
+                            }
+
+                            if (function_exists('flash_set')) {
+                                flash_set('circular_compose_alert', [
+                                    'type' => 'success',
+                                    'title' => 'บันทึกแก้ไขและส่งใหม่แล้ว',
+                                    'message' => 'เลขที่รายการ #' . $edit_circular_id,
+                                ]);
+                            }
+
+                            if (function_exists('redirect_to')) {
+                                redirect_to(circular_compose_build_track_return_url($_POST));
+                            }
 
                             $existing_attachments = circular_get_attachments($edit_circular_id);
                             $alert = ['type' => 'success', 'title' => 'บันทึกแก้ไขและส่งใหม่แล้ว', 'message' => 'เลขที่รายการ #' . $edit_circular_id];
@@ -442,12 +512,47 @@ if (!function_exists('circular_compose_index')) {
 
             $circular_row = circular_get($circular_id);
             $attachments = circular_get_attachments($circular_id);
+            $targets = circular_get_recipient_targets($circular_id);
+            $faction_ids = [];
+            $person_ids = [];
+            $role_ids = [];
+
+            foreach ($targets as $target) {
+                $target_type = (string) ($target['targetType'] ?? '');
+
+                if ($target_type === 'UNIT' && !empty($target['fID'])) {
+                    $faction_ids[] = (int) $target['fID'];
+                    continue;
+                }
+
+                if ($target_type === 'PERSON' && !empty($target['pID'])) {
+                    $person_ids[] = (string) $target['pID'];
+                    continue;
+                }
+
+                if ($target_type === 'ROLE' && !empty($target['roleID'])) {
+                    $role_ids[] = (int) $target['roleID'];
+                }
+            }
+
+            if (!empty($role_ids)) {
+                $person_ids = array_merge($person_ids, circular_resolve_person_ids([], $role_ids, []));
+            }
+
             $detail_map[$circular_id] = [
                 'detail' => (string) (($circular_row['detail'] ?? $sent_item['detail'] ?? '')),
                 'linkURL' => (string) (($circular_row['linkURL'] ?? '')),
                 'senderName' => (string) (($circular_row['senderName'] ?? '')),
                 'senderFactionName' => (string) (($circular_row['senderFactionName'] ?? $sent_item['senderFactionName'] ?? '')),
                 'files' => is_array($attachments) ? $attachments : [],
+                'factionIDs' => array_values(array_unique(array_filter(array_map('intval', $faction_ids), static function (int $fid): bool {
+                    return $fid > 0;
+                }))),
+                'personIDs' => array_values(array_unique(array_filter(array_map(static function ($pid): string {
+                    return trim((string) $pid);
+                }, $person_ids), static function (string $pid): bool {
+                    return $pid !== '';
+                }))),
             ];
         }
         $query_params = [
