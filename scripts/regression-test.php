@@ -7,6 +7,10 @@ require_once __DIR__ . '/../app/db/db.php';
 require_once __DIR__ . '/../app/modules/system/system.php';
 require_once __DIR__ . '/../app/modules/outgoing/repository.php';
 require_once __DIR__ . '/../app/modules/circulars/repository.php';
+require_once __DIR__ . '/../app/modules/memos/repository.php';
+require_once __DIR__ . '/../app/modules/memos/service.php';
+require_once __DIR__ . '/../app/modules/orders/repository.php';
+require_once __DIR__ . '/../app/modules/orders/service.php';
 require_once __DIR__ . '/../app/modules/repairs/service.php';
 require_once __DIR__ . '/../app/modules/vehicle/calendar.php';
 require_once __DIR__ . '/../src/Services/room/room-booking-utils.php';
@@ -109,6 +113,88 @@ $runner->run('circular sent listing keeps recipient and read counters consistent
     }
 });
 
+$runner->run('memo repository preserves creator and reviewer visibility rules', static function (BaselineTestRunner $t): void {
+    $allowed_reviewer_statuses = [
+        MEMO_STATUS_SUBMITTED,
+        MEMO_STATUS_IN_REVIEW,
+        MEMO_STATUS_RETURNED,
+        MEMO_STATUS_APPROVED_UNSIGNED,
+        MEMO_STATUS_SIGNED,
+        MEMO_STATUS_REJECTED,
+    ];
+
+    $creator_row = db_fetch_one(
+        'SELECT createdByPID FROM dh_memos WHERE deletedAt IS NULL AND createdByPID IS NOT NULL AND createdByPID <> "" ORDER BY memoID DESC LIMIT 1'
+    );
+
+    if (!$creator_row) {
+        $t->skip('No memo data available');
+    }
+
+    $creator_pid = trim((string) ($creator_row['createdByPID'] ?? ''));
+
+    if ($creator_pid === '') {
+        $t->skip('Memo creator PID is empty');
+    }
+
+    $creator_rows = memo_list_by_creator_page($creator_pid, false, 'all', '', 1000, 0, 'newest', null);
+    $creator_count = memo_count_by_creator($creator_pid, false, 'all', '', null);
+    $t->assertSame($creator_count, count($creator_rows), 'Memo creator count drifted from paged list size');
+
+    foreach (array_slice($creator_rows, 0, 20) as $row) {
+        $t->assertTrue(trim((string) ($row['subject'] ?? '')) !== '', 'Memo creator row is missing subject');
+        $t->assertTrue(trim((string) ($row['status'] ?? '')) !== '', 'Memo creator row is missing status');
+    }
+
+    if ($creator_rows !== []) {
+        $memo_id = (int) ($creator_rows[0]['memoID'] ?? 0);
+
+        if ($memo_id > 0) {
+            $memo = memo_get($memo_id);
+            $t->assertTrue($memo !== null, 'Memo detail lookup failed');
+            $attachments = memo_get_attachments($memo_id);
+            $routes = memo_list_routes($memo_id);
+            $t->assertTrue(is_array($attachments), 'Memo attachments lookup failed');
+            $t->assertTrue(is_array($routes), 'Memo routes lookup failed');
+        }
+    }
+
+    $reviewer_row = db_fetch_one(
+        'SELECT toPID FROM dh_memos WHERE deletedAt IS NULL AND toPID IS NOT NULL AND toPID <> "" ORDER BY memoID DESC LIMIT 1'
+    );
+
+    if (!$reviewer_row) {
+        return;
+    }
+
+    $reviewer_pid = trim((string) ($reviewer_row['toPID'] ?? ''));
+
+    if ($reviewer_pid === '') {
+        return;
+    }
+
+    $reviewer_rows = memo_list_by_reviewer_page($reviewer_pid, 'all', '', 100, 0, null);
+    $reviewer_count = memo_count_by_reviewer($reviewer_pid, 'all', '', null);
+    $t->assertTrue($reviewer_count >= count($reviewer_rows), 'Memo reviewer count is lower than reviewer page size');
+
+    foreach (array_slice($reviewer_rows, 0, 20) as $row) {
+        $memo_id = (int) ($row['memoID'] ?? 0);
+        $memo = $memo_id > 0 ? memo_get($memo_id) : null;
+        $t->assertTrue($memo !== null, 'Memo reviewer detail lookup failed');
+        $t->assertSame($reviewer_pid, trim((string) ($memo['toPID'] ?? '')), 'Memo reviewer row leaked a different reviewer');
+        $t->assertTrue(trim((string) ($memo['createdByPID'] ?? '')) !== $reviewer_pid, 'Memo reviewer inbox exposed self-created memo');
+        $t->assertTrue(in_array((string) ($memo['status'] ?? ''), $allowed_reviewer_statuses, true), 'Memo reviewer inbox exposed an invalid workflow status');
+    }
+
+    foreach (memo_list_creator_years($creator_pid, false) as $year) {
+        $t->assertTrue((int) $year >= 2568, 'Memo creator year list contains an invalid year');
+    }
+
+    foreach (memo_list_reviewer_years($reviewer_pid) as $year) {
+        $t->assertTrue((int) $year >= 2568, 'Memo reviewer year list contains an invalid year');
+    }
+});
+
 $runner->run('room booking uses approved status for conflicts and calendar events only', static function (BaselineTestRunner $t) use ($connection): void {
     $approved = room_booking_status_to_db($connection, 1);
     $conflict = room_booking_get_conflict_status_value($connection);
@@ -203,6 +289,102 @@ $runner->run('repairs validation enforces required production fields', static fu
         'location' => 'อาคาร 1',
         'detail' => 'ตรวจสอบด่วน',
     ]);
+});
+
+$runner->run('orders repository keeps numbering and inbox counters consistent', static function (BaselineTestRunner $t): void {
+    $year = system_get_dh_year();
+    $seq_row = db_fetch_one(
+        'SELECT MAX(orderSeq) AS maxSeq FROM dh_orders WHERE deletedAt IS NULL AND dh_year = ?',
+        'i',
+        $year
+    );
+    $expected_next_seq = ((int) ($seq_row['maxSeq'] ?? 0)) + 1;
+    $t->assertSame($expected_next_seq . '/' . $year, order_preview_number($year), 'Order preview number drifted from current sequence');
+
+    $creator_row = db_fetch_one(
+        'SELECT createdByPID FROM dh_orders WHERE deletedAt IS NULL AND createdByPID IS NOT NULL AND createdByPID <> "" ORDER BY orderID DESC LIMIT 1'
+    );
+
+    if (!$creator_row) {
+        $t->skip('No order data available');
+    }
+
+    $creator_pid = trim((string) ($creator_row['createdByPID'] ?? ''));
+
+    if ($creator_pid === '') {
+        $t->skip('Order creator PID is empty');
+    }
+
+    $draft_filters = [
+        'status' => 'all',
+        'q' => '',
+        'date_from' => '',
+        'date_to' => '',
+        'sort' => 'newest',
+    ];
+    $draft_rows = order_list_drafts_page_filtered($creator_pid, $draft_filters, 1000, 0);
+    $draft_counts = order_count_drafts_by_status($creator_pid, $draft_filters);
+
+    $t->assertSame((int) ($draft_counts['all'] ?? 0), count($draft_rows), 'Order draft totals drifted from draft list size');
+    $t->assertSame(
+        (int) ($draft_counts['all'] ?? 0),
+        (int) (($draft_counts['waiting'] ?? 0) + ($draft_counts['complete'] ?? 0) + ($draft_counts['sent'] ?? 0)),
+        'Order draft status buckets do not add up to the total'
+    );
+
+    foreach (array_slice($draft_rows, 0, 20) as $row) {
+        $recipient_count = (int) ($row['recipientCount'] ?? -1);
+        $read_count = (int) ($row['readCount'] ?? -1);
+
+        $t->assertTrue(trim((string) ($row['subject'] ?? '')) !== '', 'Order draft row is missing subject');
+        $t->assertTrue(in_array((string) ($row['status'] ?? ''), [ORDER_STATUS_WAITING_ATTACHMENT, ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true), 'Order draft row exposed an invalid status');
+        $t->assertTrue($recipient_count >= 0, 'Order recipient count must be non-negative');
+        $t->assertTrue($read_count >= 0, 'Order read count must be non-negative');
+        $t->assertTrue($read_count <= $recipient_count, 'Order read count exceeded recipient count');
+    }
+
+    if ($draft_rows !== []) {
+        $order_id = (int) ($draft_rows[0]['orderID'] ?? 0);
+
+        if ($order_id > 0) {
+            $order = order_get_for_owner($order_id, $creator_pid);
+            $t->assertTrue($order !== null, 'Order owner lookup failed');
+            $attachments = order_get_attachments($order_id);
+            $routes = order_list_routes($order_id);
+            $t->assertTrue(is_array($attachments), 'Order attachments lookup failed');
+            $t->assertTrue(is_array($routes), 'Order routes lookup failed');
+        }
+    }
+
+    $inbox_row = db_fetch_one('SELECT pID FROM dh_order_inboxes ORDER BY inboxID DESC LIMIT 1');
+
+    if (!$inbox_row) {
+        return;
+    }
+
+    $inbox_pid = trim((string) ($inbox_row['pID'] ?? ''));
+
+    if ($inbox_pid === '') {
+        return;
+    }
+
+    $summary = order_inbox_read_summary($inbox_pid, false, '', null);
+    $inbox_count = order_count_inbox_filtered($inbox_pid, false, '', 'all', null);
+    $inbox_rows = order_list_inbox_page_filtered($inbox_pid, false, '', 'all', 100, 0, 'newest', null);
+
+    $t->assertSame($inbox_count, (int) ($summary['total'] ?? -1), 'Order inbox total drifted from read summary');
+    $t->assertSame(
+        (int) ($summary['total'] ?? -1),
+        (int) (($summary['read'] ?? 0) + ($summary['unread'] ?? 0)),
+        'Order inbox read and unread counters do not add up'
+    );
+    $t->assertTrue($inbox_count >= count($inbox_rows), 'Order inbox count is lower than inbox page size');
+
+    foreach (array_slice($inbox_rows, 0, 20) as $row) {
+        $t->assertTrue(((int) ($row['orderID'] ?? 0)) > 0, 'Order inbox row is missing orderID');
+        $t->assertTrue(((int) ($row['inboxID'] ?? 0)) > 0, 'Order inbox row is missing inboxID');
+        $t->assertTrue(trim((string) ($row['subject'] ?? '')) !== '', 'Order inbox row is missing subject');
+    }
 });
 
 $runner->run('vehicle calendar publishes approved bookings only', static function (BaselineTestRunner $t) use ($connection): void {
