@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    bootstrap="tests/bootstrap.php"
+    cacheDirectory=".phpunit.cache"
+    colors="true"
+    failOnRisky="true"
+    failOnWarning="true"
+    beStrictAboutOutputDuringTests="true"
+    beStrictAboutTestsThatDoNotTestAnything="true"
+>
+    <testsuites>
+        <testsuite name="PHPUnit">
+            <directory>tests/PHPUnit</directory>
+        </testsuite>
+        <testsuite name="Pest">
+            <directory suffix=".php">tests/Pest</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>app</directory>
+            <directory>src</directory>
+            <directory>scripts</directory>
+            <file>config/connection.php</file>
+        </include>
+    </source>
+
+    <php>
+        <ini name="date.timezone" value="Asia/Bangkok"/>
+    </php>
+</phpunit>

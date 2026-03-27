@@ -1,0 +1,19 @@
+parameters:
+    level: 0
+    tmpDir: tmp/phpstan
+    paths:
+        - app/db
+        - app/modules/outgoing/repository.php
+        - app/modules/circulars/repository.php
+        - app/modules/memos/repository.php
+        - app/modules/memos/service.php
+        - app/modules/orders/repository.php
+        - app/modules/orders/service.php
+        - app/modules/vehicle/calendar.php
+        - config/connection.php
+        - src/Services/room/room-booking-utils.php
+        - scripts/regression-test.php
+        - scripts/testing/BaselineTestRunner.php
+        - tests
+    bootstrapFiles:
+        - tests/bootstrap.php

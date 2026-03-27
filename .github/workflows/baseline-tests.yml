@@ -1,4 +1,4 @@
-name: Baseline Tests
+name: Quality Gates
 
 on:
   pull_request:
@@ -10,9 +10,25 @@ permissions:
   contents: read
 
 jobs:
-  baseline:
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: baseline
+            command: bash scripts/run-baseline-tests.sh
+          - label: phpunit
+            command: bash scripts/run-phpunit-tests.sh
+          - label: pest
+            command: bash scripts/run-pest-tests.sh
+          - label: static-analysis
+            command: bash scripts/run-static-analysis.sh
+          - label: lint
+            command: bash scripts/run-php-lint.sh
+
+    name: ${{ matrix.label }}
 
     steps:
       - name: Checkout repository
@@ -24,8 +40,8 @@ jobs:
       - name: Build and start stack
         run: docker compose --env-file .env.docker up -d --build
 
-      - name: Run regression baseline
-        run: docker compose --env-file .env.docker exec -T app php scripts/regression-test.php
+      - name: Run ${{ matrix.label }}
+        run: docker compose --env-file .env.docker exec -T app ${{ matrix.command }}
 
       - name: Print Docker logs on failure
         if: failure()

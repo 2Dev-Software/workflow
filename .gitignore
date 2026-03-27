@@ -45,6 +45,7 @@ Thumbs.db
 error_log
 debug.log
 .php-cs-fixer.cache
+.phpunit.cache/
 
 # =========================================
 # 6. LOCAL EXPORTS & TEMP ARTIFACTS
@@ -53,6 +54,7 @@ LINUX*.sql
 LINUX*.csv
 tmp/pdfs/*
 !tmp/pdfs/.gitkeep
+tmp/phpstan/
 tmp/mock-circular-seed/
 docker/package/*
 !docker/package/.gitkeep
