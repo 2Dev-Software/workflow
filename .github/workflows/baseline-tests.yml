@@ -1,0 +1,36 @@
+name: Baseline Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Docker environment
+        run: cp .env.docker.example .env.docker
+
+      - name: Build and start stack
+        run: docker compose --env-file .env.docker up -d --build
+
+      - name: Run regression baseline
+        run: docker compose --env-file .env.docker exec -T app php scripts/regression-test.php
+
+      - name: Print Docker logs on failure
+        if: failure()
+        run: docker compose --env-file .env.docker logs --no-color
+
+      - name: Stop stack
+        if: always()
+        run: docker compose --env-file .env.docker down -v

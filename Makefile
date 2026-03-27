@@ -9,7 +9,7 @@ MIN_TABLES ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env deps db-ready db-import db-status smoke lint-php refactor dev docker-db-dump docker-runtime-assets docker-package docker-up docker-down docker-reset docker-logs
+.PHONY: help env deps db-ready db-import db-status smoke test-baseline lint-php refactor dev docker-db-dump docker-runtime-assets docker-package docker-up docker-down docker-reset docker-logs
 
 help:
 	@echo "Available targets:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make db-import  - Force re-import database dump (drop/create DB)"
 	@echo "  make db-status  - Print database readiness status"
 	@echo "  make smoke      - Run basic runtime checks"
+	@echo "  make test-baseline - Run regression baseline checks against the active runtime"
 	@echo "  make lint-php   - Validate PHP syntax across project"
 	@echo "  make refactor   - Run consistent non-breaking PHP refactor style pass"
 	@echo "  make dev        - Setup everything and start local server"
@@ -57,6 +58,9 @@ db-status:
 
 smoke:
 	@$(PHP) scripts/smoke-test.php
+
+test-baseline:
+	@bash scripts/run-baseline-tests.sh
 
 lint-php:
 	@find . \
