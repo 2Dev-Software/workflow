@@ -9,7 +9,7 @@ MIN_TABLES ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env deps db-ready db-import db-status smoke test-baseline lint-php refactor dev docker-db-dump docker-runtime-assets docker-package docker-up docker-down docker-reset docker-logs
+.PHONY: help env deps db-ready db-import db-status smoke test-baseline test-phpunit test-pest test-static test-all lint lint-php lint-composer refactor dev docker-db-dump docker-runtime-assets docker-package docker-up docker-down docker-reset docker-logs
 
 help:
 	@echo "Available targets:"
@@ -20,7 +20,13 @@ help:
 	@echo "  make db-status  - Print database readiness status"
 	@echo "  make smoke      - Run basic runtime checks"
 	@echo "  make test-baseline - Run regression baseline checks against the active runtime"
+	@echo "  make test-phpunit - Run PHPUnit integration tests"
+	@echo "  make test-pest  - Run Pest integration tests"
+	@echo "  make test-static - Run PHPStan static analysis on critical workflow code"
+	@echo "  make test-all   - Run baseline, PHPUnit, Pest, PHPStan, and lint checks"
+	@echo "  make lint       - Validate composer metadata and PHP syntax"
 	@echo "  make lint-php   - Validate PHP syntax across project"
+	@echo "  make lint-composer - Validate composer.json and composer.lock"
 	@echo "  make refactor   - Run consistent non-breaking PHP refactor style pass"
 	@echo "  make dev        - Setup everything and start local server"
 	@echo "  make docker-db-dump - Export current DB into docker init seed"
@@ -62,14 +68,25 @@ smoke:
 test-baseline:
 	@bash scripts/run-baseline-tests.sh
 
+test-phpunit:
+	@bash scripts/run-phpunit-tests.sh
+
+test-pest:
+	@bash scripts/run-pest-tests.sh
+
+test-static:
+	@bash scripts/run-static-analysis.sh
+
+test-all: test-baseline test-phpunit test-pest test-static lint
+
+lint:
+	@bash scripts/run-php-lint.sh
+
 lint-php:
-	@find . \
-		-path './vendor' -prune -o \
-		-path './storage' -prune -o \
-		-path './tmp' -prune -o \
-		-type f -name '*.php' -print | \
-		xargs -I{} $(PHP) -l "{}" >/dev/null
-	@echo "PHP syntax check passed."
+	@bash scripts/run-php-lint.sh --php-only
+
+lint-composer:
+	@$(COMPOSER) validate --strict
 
 refactor:
 	@./vendor/bin/php-cs-fixer fix --config=php-cs-fixer.dist.php --using-cache=yes --verbose
