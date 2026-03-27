@@ -122,9 +122,7 @@ if (!function_exists('circular_compose_index')) {
         $alert = null;
         $is_edit_mode = false;
         $existing_attachments = [];
-        $edit_circular_id = isset($_GET['edit']) ? (int) $_GET['edit'] : (int) ($_POST['edit_circular_id'] ?? 0);
-
-        $editable_circular = null;
+        $edit_circular_id = (int) ($_POST['edit_circular_id'] ?? 0);
 
         if ($edit_circular_id > 0) {
             $candidate = circular_get($edit_circular_id);
@@ -136,7 +134,6 @@ if (!function_exists('circular_compose_index')) {
                 (string) ($candidate['status'] ?? '') === INTERNAL_STATUS_RECALLED
             ) {
                 $is_edit_mode = true;
-                $editable_circular = $candidate;
                 $existing_attachments = circular_get_attachments($edit_circular_id);
 
                 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -319,7 +316,6 @@ if (!function_exists('circular_compose_index')) {
                                 $remove_file_ids
                             );
 
-                            $editable_circular = circular_get($edit_circular_id);
                             $existing_attachments = circular_get_attachments($edit_circular_id);
                             $alert = ['type' => 'success', 'title' => 'บันทึกแก้ไขและส่งใหม่แล้ว', 'message' => 'เลขที่รายการ #' . $edit_circular_id];
                         } else {
@@ -466,10 +462,6 @@ if (!function_exists('circular_compose_index')) {
             'values' => $values,
             'factions' => $factions,
             'teachers' => $teachers,
-            'is_edit_mode' => $is_edit_mode,
-            'edit_circular_id' => $edit_circular_id,
-            'editable_circular' => $editable_circular,
-            'existing_attachments' => $existing_attachments,
             'sent_items' => $sent_items,
             'receipt_circular_id' => $receipt_circular_id,
             'receipt_subject' => $receipt_subject,

@@ -7,9 +7,6 @@ require_once __DIR__ . '/../../rbac/current_user.php';
 $values = $values ?? [];
 $factions = $factions ?? [];
 $teachers = $teachers ?? [];
-$is_edit_mode = (bool) ($is_edit_mode ?? false);
-$edit_circular_id = (int) ($edit_circular_id ?? 0);
-$existing_attachments = (array) ($existing_attachments ?? []);
 $sent_items = (array) ($sent_items ?? []);
 $filter_query = (string) ($filter_query ?? '');
 $filter_status = (string) ($filter_status ?? 'all');
@@ -299,7 +296,7 @@ ob_start();
 ?>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
-    <p>หนังสือเวียน / <?= h($is_edit_mode ? 'แก้ไขและส่งใหม่' : 'ส่งหนังสือเวียน') ?></p>
+    <p>หนังสือเวียน / ส่งหนังสือเวียน</p>
 </div>
 
 <style>
@@ -718,15 +715,6 @@ ob_start();
 
 <form method="POST" enctype="multipart/form-data" data-validate class="tab-content container-circular-notice-sending <?= $is_track_active ? '' : 'active' ?>" id="circularComposeForm">
     <?= csrf_field() ?>
-    <?php if ($is_edit_mode && $edit_circular_id > 0) : ?>
-        <input type="hidden" name="edit_circular_id" value="<?= h((string) $edit_circular_id) ?>">
-    <?php endif; ?>
-
-    <?php if ($is_edit_mode) : ?>
-        <div class="enterprise-panel">
-            <p><strong>โหมดแก้ไข:</strong> เอกสารถูกดึงกลับแล้ว คุณสามารถแก้ไขเนื้อหาและส่งใหม่ได้</p>
-        </div>
-    <?php endif; ?>
 
     <div class="form-group">
         <label for="subject">หัวเรื่อง</label>
@@ -751,24 +739,6 @@ ob_start();
             <div class="file-list" id="fileListContainer"></div>
         </section>
     </div>
-
-    <?php if ($is_edit_mode && !empty($existing_attachments)) : ?>
-        <div class="form-group">
-            <label>ไฟล์แนบเดิม (เลือกเพื่อลบก่อนส่งใหม่)</label>
-            <div class="enterprise-panel">
-                <?php foreach ($existing_attachments as $attachment) : ?>
-                    <?php
-                    $attachment_file_id = (int) ($attachment['fileID'] ?? 0);
-                    $attachment_name = (string) ($attachment['fileName'] ?? '');
-                    ?>
-                    <label class="enterprise-checkbox-row">
-                        <input type="checkbox" name="remove_file_ids[]" value="<?= h((string) $attachment_file_id) ?>">
-                        <span><?= h($attachment_name !== '' ? $attachment_name : ('ไฟล์ #' . $attachment_file_id)) ?></span>
-                    </label>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    <?php endif; ?>
 
     <div class="row form-group">
         <button class="btn btn-upload-small" type="button" id="btnAddFiles">
@@ -1094,7 +1064,7 @@ ob_start();
     </div>
 
     <button id="btnSendNotice" class="sent-notice-btn" type="submit">
-        <p><?= h($is_edit_mode ? 'บันทึกแก้ไขและส่งใหม่' : 'ส่งหนังสือเวียน') ?></p>
+        <p>ส่งหนังสือเวียน</p>
     </button>
 
     <div id="confirmModal" class="modal-overlay-confirm">
@@ -1105,7 +1075,7 @@ ob_start();
                 </div>
             </div>
             <div class="confirm-body">
-                <h3><?= h($is_edit_mode ? 'ยืนยันการแก้ไขและส่งใหม่' : 'ยืนยันการส่งหนังสือเวียน') ?></h3>
+                <h3>ยืนยันการส่งหนังสือเวียน</h3>
                 <div class="confirm-actions">
                     <button id="btnConfirmYes" class="btn-yes" type="button">ยืนยัน</button>
                     <button id="btnConfirmNo" class="btn-no" type="button">ยกเลิก</button>
@@ -1325,10 +1295,6 @@ ob_start();
                                                     <span class="tooltip">ส่งใหม่</span>
                                                 </button>
                                             </form>
-                                            <a class="c-button c-button--sm booking-action-btn secondary" href="circular-compose.php?edit=<?= h((string) $circular_id) ?>">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                                <span class="tooltip">แก้ไข</span>
-                                            </a>
                                         <?php endif; ?>
 
                                         <button
@@ -1352,15 +1318,17 @@ ob_start();
                                             <i class="fa-solid fa-eye"></i>
                                             <span class="tooltip">ดูรายละเอียด</span>
                                         </button>
-                                        <button
-                                            class="booking-action-btn secondary js-open-edit-modal"
-                                            type="button"
-                                            data-circular-id="<?= h((string) $circular_id) ?>"
-                                            data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
-                                            data-detail="<?= h($detail_text) ?>">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                            <span class="tooltip">แก้ไข</span>
-                                        </button>
+                                        <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_RECALLED) : ?>
+                                            <button
+                                                class="booking-action-btn secondary js-open-edit-modal"
+                                                type="button"
+                                                data-circular-id="<?= h((string) $circular_id) ?>"
+                                                data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
+                                                data-detail="<?= h($detail_text) ?>">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                                <span class="tooltip">แก้ไข</span>
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
