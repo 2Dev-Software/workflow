@@ -675,6 +675,35 @@ ob_start();
         text-align: center;
     }
 
+    .circular-track-modal-host .track-detail-link-display {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 60px;
+        background-color: var(--color-neutral-lightest);
+        border: 1px solid var(--color-primary-dark);
+        border-radius: 8px;
+        outline: none;
+        padding: 8px 20px;
+        margin: 0 0 20px;
+        font-size: var(--font-size-body-1);
+        color: var(--color-secondary);
+        text-decoration: none;
+        transition: 0.4s;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        cursor: default;
+    }
+
+    .circular-track-modal-host .track-detail-link-display.is-clickable {
+        cursor: pointer;
+    }
+
+    .circular-track-modal-host .track-detail-link-display.is-clickable:hover,
+    .circular-track-modal-host .track-detail-link-display.is-clickable:focus-visible {
+        text-decoration: underline;
+    }
+
     .delete-btn {
         font-size: var(--font-size-title);
     }
@@ -1221,10 +1250,20 @@ ob_start();
                             $detail_sender_name = trim((string) ($detail_row['senderName'] ?? ''));
                             $detail_sender_faction = trim((string) ($detail_row['senderFactionName'] ?? $sender_faction_name));
                             $attachments = (array) ($detail_row['files'] ?? []);
+                            $detail_faction_ids = (array) ($detail_row['factionIDs'] ?? []);
+                            $detail_person_ids = (array) ($detail_row['personIDs'] ?? []);
                             $files_json = json_encode($attachments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                            $faction_ids_json = json_encode($detail_faction_ids, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                            $person_ids_json = json_encode($detail_person_ids, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
                             if ($files_json === false) {
                                 $files_json = '[]';
+                            }
+                            if ($faction_ids_json === false) {
+                                $faction_ids_json = '[]';
+                            }
+                            if ($person_ids_json === false) {
+                                $person_ids_json = '[]';
                             }
                             $consider_class = 'considering';
 
@@ -1328,7 +1367,11 @@ ob_start();
                                                 type="button"
                                                 data-circular-id="<?= h((string) $circular_id) ?>"
                                                 data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
-                                                data-detail="<?= h($detail_text) ?>">
+                                                data-detail="<?= h($detail_text) ?>"
+                                                data-link="<?= h($detail_link) ?>"
+                                                data-files="<?= h($files_json) ?>"
+                                                data-faction-ids="<?= h($faction_ids_json) ?>"
+                                                data-person-ids="<?= h($person_ids_json) ?>">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                                 <span class="tooltip">แก้ไข</span>
                                             </button>
@@ -1378,7 +1421,7 @@ ob_start();
 
                     <div class="form-group"><br>
                         <label for="track_detail_linkURL"><b>แนบลิ้งก์</b></label>
-                        <input type="text" id="track_detail_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" disabled />
+                        <a id="track_detail_linkURL" class="track-detail-link-display" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">-</a>
                     </div>
 
                     <div class="sender-row">
@@ -1434,7 +1477,13 @@ ob_start();
             <div class="content-modal">
                 <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularEditForm" style="box-shadow:none; padding: 0;">
                     <?= csrf_field() ?>
+                    <input type="hidden" name="tab" value="track">
                     <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+                    <input type="hidden" name="return_q" value="<?= h($filter_query) ?>">
+                    <input type="hidden" name="return_status" value="<?= h(strtolower($filter_status)) ?>">
+                    <input type="hidden" name="return_sort" value="<?= h($filter_sort) ?>">
+                    <input type="hidden" name="return_page" value="<?= h((string) $page) ?>">
+                    <input type="hidden" name="return_per_page" value="<?= h((string) $per_page) ?>">
 
                     <div class="form-group">
                         <label for="edit_subject"><b>หัวเรื่อง</b></label>
@@ -1791,14 +1840,9 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" id="modalArchiveForm">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="inbox_id" id="modalInboxId" value="">
-                    <input type="hidden" name="action" value="<?= h($archived ? 'unarchive' : 'archive') ?>">
-                    <button type="submit">
-                        <p>ยืนยัน</p>
-                    </button>
-                </form>
+                <button id="edit_btnSendNotice" type="button">
+                    <p>ยืนยัน</p>
+                </button>
             </div>
 
         </div>
@@ -1825,65 +1869,167 @@ ob_start();
             const fileList = document.getElementById(prefix + 'fileListContainer');
             const dropzone = document.getElementById(prefix + 'dropzone');
             const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
+            const removedFilesContainer = form.querySelector('[data-remove-file-inputs]') || document.createElement('div');
 
             const maxFiles = 5;
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
             let selectedFiles = [];
+            let existingFiles = [];
+            let existingEntityId = '';
+            let removedExistingFileIds = [];
 
-            const renderFiles = () => {
-                if (!fileList) return;
-                fileList.innerHTML = '';
-                selectedFiles.forEach((file, index) => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'file-item-wrapper';
+            if (!removedFilesContainer.parentNode) {
+                removedFilesContainer.setAttribute('data-remove-file-inputs', 'true');
+                removedFilesContainer.style.display = 'none';
+                form.appendChild(removedFilesContainer);
+            }
 
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.type = 'button';
-                    deleteBtn.className = 'delete-btn';
-                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                    deleteBtn.addEventListener('click', () => {
-                        selectedFiles = selectedFiles.filter((_, i) => i !== index);
-                        syncFiles();
-                        renderFiles();
-                    });
+            const syncRemovedFileInputs = () => {
+                removedFilesContainer.innerHTML = '';
+                removedExistingFileIds.forEach((fileId) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'remove_file_ids[]';
+                    input.value = String(fileId);
+                    removedFilesContainer.appendChild(input);
+                });
+            };
 
-                    const banner = document.createElement('div');
-                    banner.className = 'file-banner';
+            const buildFileIconMarkup = (mimeType) => {
+                const normalizedMime = String(mimeType || '').toLowerCase();
+                return normalizedMime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-image"></i>';
+            };
 
-                    const info = document.createElement('div');
-                    info.className = 'file-info';
+            const buildExistingFileUrl = (file) => {
+                const fileId = String(file?.fileID || '').trim();
 
-                    const icon = document.createElement('div');
-                    icon.className = 'file-icon';
-                    icon.innerHTML = file.type === 'application/pdf' ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-image"></i>';
+                if (existingEntityId === '' || fileId === '') {
+                    return '';
+                }
 
-                    const text = document.createElement('div');
-                    text.className = 'file-text';
-                    text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'}</div>`;
+                return `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(fileId)}`;
+            };
 
-                    info.appendChild(icon);
-                    info.appendChild(text);
+            const appendSelectedFileItem = (file, index) => {
+                if (!fileList) {
+                    return;
+                }
 
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                deleteBtn.addEventListener('click', () => {
+                    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+                    syncFiles();
+                    renderFiles();
+                });
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = buildFileIconMarkup(file.type);
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'}</div>`;
+
+                info.appendChild(icon);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions';
+
+                const view = document.createElement('a');
+                view.href = '#';
+                view.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                view.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = URL.createObjectURL(file);
+                    window.open(url, '_blank', 'noopener');
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                });
+
+                actions.appendChild(view);
+                banner.appendChild(info);
+                banner.appendChild(actions);
+                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(banner);
+                fileList.appendChild(wrapper);
+            };
+
+            const appendExistingFileItem = (file) => {
+                if (!fileList) {
+                    return;
+                }
+
+                const fileId = String(file?.fileID || '').trim();
+                const fileUrl = buildExistingFileUrl(file);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                deleteBtn.addEventListener('click', () => {
+                    if (fileId !== '' && !removedExistingFileIds.includes(fileId)) {
+                        removedExistingFileIds.push(fileId);
+                    }
+                    existingFiles = existingFiles.filter((existingFile) => String(existingFile?.fileID || '').trim() !== fileId);
+                    syncRemovedFileInputs();
+                    renderFiles();
+                });
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = buildFileIconMarkup(file?.mimeType);
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<div class="file-name">${String(file?.fileName || '-')}</div><div class="file-type">${String(file?.mimeType || 'ไฟล์แนบ')}</div>`;
+
+                info.appendChild(icon);
+                info.appendChild(text);
+                banner.appendChild(info);
+
+                if (fileUrl !== '') {
                     const actions = document.createElement('div');
                     actions.className = 'file-actions';
 
                     const view = document.createElement('a');
-                    view.href = '#';
+                    view.href = fileUrl;
+                    view.target = '_blank';
+                    view.rel = 'noopener';
                     view.innerHTML = '<i class="fa-solid fa-eye"></i>';
-                    view.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const url = URL.createObjectURL(file);
-                        window.open(url, '_blank', 'noopener');
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    });
-
                     actions.appendChild(view);
-                    banner.appendChild(info);
                     banner.appendChild(actions);
-                    wrapper.appendChild(deleteBtn);
-                    wrapper.appendChild(banner);
-                    fileList.appendChild(wrapper);
-                });
+                }
+
+                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(banner);
+                fileList.appendChild(wrapper);
+            };
+
+            const renderFiles = () => {
+                if (!fileList) return;
+                fileList.innerHTML = '';
+                existingFiles.forEach((file) => appendExistingFileItem(file));
+                selectedFiles.forEach((file, index) => appendSelectedFileItem(file, index));
             };
 
             const syncFiles = () => {
@@ -1898,11 +2044,21 @@ ob_start();
                 const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
                 Array.from(files).forEach((file) => {
                     const key = `${file.name}-${file.size}-${file.lastModified}`;
-                    if (!existing.has(key) && allowedTypes.includes(file.type) && selectedFiles.length < maxFiles) {
+                    if (!existing.has(key) && allowedTypes.includes(file.type) && (existingFiles.length + selectedFiles.length) < maxFiles) {
                         selectedFiles.push(file);
                         existing.add(key);
                     }
                 });
+                syncFiles();
+                renderFiles();
+            };
+
+            const setExistingFiles = (files, entityId) => {
+                existingFiles = Array.isArray(files) ? files : [];
+                existingEntityId = String(entityId || '').trim();
+                selectedFiles = [];
+                removedExistingFileIds = [];
+                syncRemovedFileInputs();
                 syncFiles();
                 renderFiles();
             };
@@ -2094,6 +2250,66 @@ ob_start();
                 });
             };
 
+            const setSelectedRecipients = (factionIds, personIds) => {
+                const factionSet = new Set((Array.isArray(factionIds) ? factionIds : []).map((value) => String(value).trim()).filter((value) => value !== ''));
+                const personSet = new Set((Array.isArray(personIds) ? personIds : []).map((value) => String(value).trim()).filter((value) => value !== ''));
+
+                recipientSearchRequestNo++;
+                if (recipientSearchTimer) {
+                    clearTimeout(recipientSearchTimer);
+                }
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                filterRecipientDropdown('');
+
+                groupChecks.forEach((groupCheck) => {
+                    groupCheck.checked = false;
+                    groupCheck.indeterminate = false;
+                });
+                memberChecks.forEach((memberCheck) => {
+                    memberCheck.checked = false;
+                });
+
+                groupChecks.forEach((groupCheck) => {
+                    const groupValue = String(groupCheck.value || '').trim();
+
+                    if (groupValue === '' || !factionSet.has(groupValue)) {
+                        return;
+                    }
+
+                    groupCheck.checked = true;
+                    const groupKey = groupCheck.getAttribute('data-group-key') || '';
+                    const members = getMemberChecksByGroupKey(groupKey);
+                    members.forEach((memberCheck) => {
+                        if (!memberCheck.disabled) {
+                            memberCheck.checked = true;
+                            syncMemberByPid(memberCheck.value || '', true, memberCheck);
+                        }
+                    });
+                    setGroupCollapsed(groupCheck.closest('.item-group'), false);
+                });
+
+                memberChecks.forEach((memberCheck) => {
+                    const memberPid = String(memberCheck.value || '').trim();
+
+                    if (memberPid === '' || !personSet.has(memberPid)) {
+                        return;
+                    }
+
+                    memberCheck.checked = true;
+                    syncMemberByPid(memberPid, true, memberCheck);
+                    setGroupCollapsed(memberCheck.closest('.item-group'), false);
+                });
+
+                groupItems.forEach((groupItem) => {
+                    const hasCheckedRecipient = groupItem.querySelector('.group-item-checkbox:checked, .member-checkbox:checked') !== null;
+                    setGroupCollapsed(groupItem, !hasCheckedRecipient);
+                });
+
+                updateSelectAllState();
+            };
+
             selectAll?.addEventListener('change', () => {
                 const checked = selectAll.checked;
                 [...groupChecks, ...memberChecks].forEach((el) => {
@@ -2135,21 +2351,52 @@ ob_start();
                 });
             });
             updateSelectAllState();
+            form.__circularFormApi = {
+                setExistingFiles,
+                setSelectedRecipients,
+            };
 
             const btnSend = document.getElementById(prefix + 'btnSendNotice');
             const confirmModal = document.getElementById(prefix + 'confirmModal');
             const confirmYes = document.getElementById(prefix + 'btnConfirmYes');
             const confirmNo = document.getElementById(prefix + 'btnConfirmNo');
+            const requestFormSubmit = () => {
+                if (!form) {
+                    return;
+                }
+
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+
+                form.submit();
+            };
 
             btnSend?.addEventListener('click', (e) => {
                 e.preventDefault();
+
+                if (prefix === '' && window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+                    window.AppAlerts.confirm('', {
+                        title: 'ยืนยันการส่งหนังสือเวียน',
+                        type: 'warning',
+                        confirmButtonText: 'ยืนยัน',
+                        cancelButtonText: 'ยกเลิก',
+                    }).then((approved) => {
+                        if (approved) {
+                            requestFormSubmit();
+                        }
+                    });
+                    return;
+                }
+
                 confirmModal?.classList.add('active');
             });
             confirmNo?.addEventListener('click', () => confirmModal?.classList.remove('active'));
             confirmModal?.addEventListener('click', (e) => {
                 if (e.target === confirmModal) confirmModal.classList.remove('active');
             });
-            confirmYes?.addEventListener('click', () => form?.submit());
+            confirmYes?.addEventListener('click', () => requestFormSubmit());
 
             const recipientModal = document.getElementById(prefix + 'recipientModal');
             const recipientTableBody = document.getElementById(prefix + 'recipientTableBody');
@@ -2215,7 +2462,7 @@ ob_start();
         const closeDetailModalBtn = document.getElementById('closeTrackDetailModal');
         const modalSubjectInput = detailModal ? detailModal.querySelector('input[name="subject"]') : null;
         const modalDetailInput = detailModal ? detailModal.querySelector('textarea[name="detail"]') : null;
-        const modalLinkInput = detailModal ? detailModal.querySelector('input[name="linkURL"]') : null;
+        const modalLinkInput = detailModal ? detailModal.querySelector('#track_detail_linkURL') : null;
         const modalSenderInput = detailModal ? detailModal.querySelector('#track_detail_senderDisplay') : null;
         const modalSenderFactionInput = detailModal ? detailModal.querySelector('#track_detail_fromFIDDisplay') : null;
         const modalFileSection = detailModal ? detailModal.querySelector('#trackModalFileSection') : null;
@@ -2329,6 +2576,28 @@ ob_start();
             });
         };
 
+        const buildModalLinkHref = (rawValue) => {
+            const value = String(rawValue || '').trim();
+
+            if (value === '' || value === '-') {
+                return '';
+            }
+
+            if (/^https?:\/\//i.test(value)) {
+                return value;
+            }
+
+            if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+                return value;
+            }
+
+            if (/\s/.test(value)) {
+                return '';
+            }
+
+            return `https://${value}`;
+        };
+
         const openTrackDetailModal = (btn) => {
             if (!detailModal || !btn) {
                 return;
@@ -2357,7 +2626,21 @@ ob_start();
                 modalDetailInput.value = btn.getAttribute('data-detail') || '-';
             }
             if (modalLinkInput) {
-                modalLinkInput.value = btn.getAttribute('data-link') || '-';
+                const rawLink = String(btn.getAttribute('data-link') || '').trim();
+                const displayLink = rawLink !== '' ? rawLink : '-';
+                const hrefLink = buildModalLinkHref(rawLink);
+                modalLinkInput.textContent = displayLink;
+                modalLinkInput.setAttribute('title', displayLink);
+
+                if (hrefLink !== '') {
+                    modalLinkInput.href = hrefLink;
+                    modalLinkInput.classList.add('is-clickable');
+                    modalLinkInput.removeAttribute('aria-disabled');
+                } else {
+                    modalLinkInput.href = '#';
+                    modalLinkInput.classList.remove('is-clickable');
+                    modalLinkInput.setAttribute('aria-disabled', 'true');
+                }
             }
             if (modalSenderInput) {
                 modalSenderInput.value = btn.getAttribute('data-sender-name') || '-';
@@ -2373,6 +2656,7 @@ ob_start();
 
         const editModal = document.getElementById('modalEditOverlay');
         const closeEditModalBtn = document.getElementById('closeModalEdit');
+        const editForm = document.getElementById('circularEditForm');
         const editTargetInput = document.getElementById('editTargetCircularId');
 
         const openTrackEditModal = (btn) => {
@@ -2385,9 +2669,41 @@ ob_start();
 
             const subjectInput = editModal.querySelector('input[name="subject"]');
             const detailInput = editModal.querySelector('textarea[name="detail"]');
+            const linkInput = editModal.querySelector('#edit_linkURL');
+            const editFormApi = editForm && typeof editForm.__circularFormApi === 'object' ? editForm.__circularFormApi : null;
+            let factionIds = [];
+            let personIds = [];
+            let files = [];
+
+            try {
+                factionIds = JSON.parse(String(btn.getAttribute('data-faction-ids') || '[]'));
+            } catch (e) {
+                factionIds = [];
+            }
+
+            try {
+                personIds = JSON.parse(String(btn.getAttribute('data-person-ids') || '[]'));
+            } catch (e) {
+                personIds = [];
+            }
+
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (e) {
+                files = [];
+            }
 
             if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
             if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+            if (linkInput) linkInput.value = String(btn.getAttribute('data-link') || '').trim();
+
+            if (editFormApi?.setSelectedRecipients) {
+                editFormApi.setSelectedRecipients(factionIds, personIds);
+            }
+
+            if (editFormApi?.setExistingFiles) {
+                editFormApi.setExistingFiles(files, circularId);
+            }
 
             editModal.style.display = 'flex';
         };
@@ -2412,6 +2728,11 @@ ob_start();
         });
         detailModal?.addEventListener('click', (event) => {
             if (event.target === detailModal) detailModal.style.display = 'none';
+        });
+        modalLinkInput?.addEventListener('click', (event) => {
+            if (modalLinkInput.getAttribute('aria-disabled') === 'true') {
+                event.preventDefault();
+            }
         });
 
         closeEditModalBtn?.addEventListener('click', () => {
