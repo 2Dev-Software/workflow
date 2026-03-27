@@ -444,6 +444,7 @@ if (!function_exists('circular_compose_index')) {
             $attachments = circular_get_attachments($circular_id);
             $detail_map[$circular_id] = [
                 'detail' => (string) (($circular_row['detail'] ?? $sent_item['detail'] ?? '')),
+                'linkURL' => (string) (($circular_row['linkURL'] ?? '')),
                 'senderName' => (string) (($circular_row['senderName'] ?? '')),
                 'senderFactionName' => (string) (($circular_row['senderFactionName'] ?? $sent_item['senderFactionName'] ?? '')),
                 'files' => is_array($attachments) ? $attachments : [],

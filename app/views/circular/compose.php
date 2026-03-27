@@ -1217,6 +1217,7 @@ ob_start();
                             $sender_faction_name = (string) ($item['senderFactionName'] ?? '');
                             $detail_row = (array) ($detail_map[$circular_id] ?? []);
                             $detail_text = trim((string) ($detail_row['detail'] ?? ''));
+                            $detail_link = trim((string) ($detail_row['linkURL'] ?? ''));
                             $detail_sender_name = trim((string) ($detail_row['senderName'] ?? ''));
                             $detail_sender_faction = trim((string) ($detail_row['senderFactionName'] ?? $sender_faction_name));
                             $attachments = (array) ($detail_row['files'] ?? []);
@@ -1305,6 +1306,7 @@ ob_start();
                                                 data-type="<?= h($item_type) ?>"
                                                 data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
                                                 data-detail="<?= h($detail_text) ?>"
+                                                data-link="<?= h($detail_link) ?>"
                                                 data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
                                                 data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
                                                 data-bookno="<?= h('#' . (string) $circular_id) ?>"
@@ -1343,50 +1345,50 @@ ob_start();
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">
-    <div class="modal-overlay-circular-notice-index outside-person" id="modalNoticeKeepOverlay">
+    <div class="modal-overlay-circular-notice-index outside-person" id="trackDetailModalOverlay">
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
                     <p>รายละเอียดของหนังสือเวียน</p>
                 </div>
                 <div class="sec-header">
-                    <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
+                    <i class="fa-solid fa-xmark" id="closeTrackDetailModal"></i>
                 </div>
             </div>
 
             <div class="content-modal">
                 <form method="" enctype="" data-validate class="container-circular-notice-sending" id="" style="box-shadow:none; padding: 0;">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+                    <input type="hidden" name="edit_circular_id" id="trackDetailCircularId" value="">
 
                     <div class="form-group">
-                        <label for="edit_subject"><b>หัวเรื่อง</b></label>
-                        <input type="text" name="subject" id="edit_subject" placeholder="กรุณากรอกหัวเรื่อง" disabled>
+                        <label for="track_detail_subject"><b>หัวเรื่อง</b></label>
+                        <input type="text" name="subject" id="track_detail_subject" placeholder="กรุณากรอกหัวเรื่อง" disabled>
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_detail"><b>รายละเอียด</b></label>
-                        <textarea name="detail" id="edit_detail" rows="4" placeholder="กรุณากรอกรายละเอียด" disabled></textarea>
+                        <label for="track_detail_detail"><b>รายละเอียด</b></label>
+                        <textarea name="detail" id="track_detail_detail" rows="4" placeholder="กรุณากรอกรายละเอียด" disabled></textarea>
                     </div>
 
                     <div class="content-file-sec">
                         <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                        <div class="file-section" id="modalFileSection"></div>
+                        <div class="file-section" id="trackModalFileSection"></div>
                     </div>
 
                     <div class="form-group"><br>
-                        <label for="edit_linkURL"><b>แนบลิ้งก์</b></label>
-                        <input type="text" id="edit_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" disabled />
+                        <label for="track_detail_linkURL"><b>แนบลิ้งก์</b></label>
+                        <input type="text" id="track_detail_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" disabled />
                     </div>
 
                     <div class="sender-row">
                         <div class="form-group sender-field">
-                            <label for="edit_senderDisplay"><b>ผู้ส่ง</b></label>
-                            <input id="edit_senderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
+                            <label for="track_detail_senderDisplay"><b>ผู้ส่ง</b></label>
+                            <input id="track_detail_senderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
                         </div>
                         <div class="form-group">
-                            <label for="edit_fromFIDDisplay"><b>ในนามของ</b></label>
-                            <input id="edit_fromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
+                            <label for="track_detail_fromFIDDisplay"><b>ในนามของ</b></label>
+                            <input id="track_detail_fromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
                             <input type="hidden" name="fromFID" value="<?= h($sender_from_fid > 0 ? (string) $sender_from_fid : '') ?>">
                         </div>
                     </div>
@@ -1402,7 +1404,7 @@ ob_start();
                                         <th>เวลาอ่านล่าสุด</th>
                                     </tr>
                                 </thead>
-                                <tbody id="receiptStatusTableBody">
+                                <tbody id="trackReceiptStatusTableBody">
                                     <tr>
                                         <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
                                     </tr>
@@ -2209,20 +2211,15 @@ ob_start();
         setupCircularForm('', 'circularComposeForm');
         setupCircularForm('edit_', 'circularEditForm');
 
-        const detailModal = document.getElementById('modalNoticeKeepOverlay');
-        const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
-        const modalUrgency = document.getElementById('modalUrgency');
-        const modalBookNo = document.getElementById('modalBookNo');
-        const modalIssuedDate = document.getElementById('modalIssuedDate');
-        const modalFromText = document.getElementById('modalFromText');
-        const modalToText = document.getElementById('modalToText');
-        const modalSubject = document.getElementById('modalSubject');
-        const modalDetail = document.getElementById('modalDetail');
-        const modalFileSection = document.getElementById('modalFileSection');
-        const modalReceivedTime = document.getElementById('modalReceivedTime');
-        const modalStatus = document.getElementById('modalStatus');
-        const modalConsiderStatus = document.getElementById('modalConsiderStatus');
-        const receiptStatusTableBody = document.getElementById('receiptStatusTableBody');
+        const detailModal = document.getElementById('trackDetailModalOverlay');
+        const closeDetailModalBtn = document.getElementById('closeTrackDetailModal');
+        const modalSubjectInput = detailModal ? detailModal.querySelector('input[name="subject"]') : null;
+        const modalDetailInput = detailModal ? detailModal.querySelector('textarea[name="detail"]') : null;
+        const modalLinkInput = detailModal ? detailModal.querySelector('input[name="linkURL"]') : null;
+        const modalSenderInput = detailModal ? detailModal.querySelector('#track_detail_senderDisplay') : null;
+        const modalSenderFactionInput = detailModal ? detailModal.querySelector('#track_detail_fromFIDDisplay') : null;
+        const modalFileSection = detailModal ? detailModal.querySelector('#trackModalFileSection') : null;
+        const receiptStatusTableBody = detailModal ? detailModal.querySelector('#trackReceiptStatusTableBody') : null;
 
         const buildModalFileItem = (file, entityId) => {
             const container = document.createElement('div');
@@ -2238,7 +2235,16 @@ ob_start();
 
             const text = document.createElement('div');
             text.className = 'file-text';
-            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${file?.mimeType || ''}</span>`;
+            const fileName = document.createElement('span');
+            fileName.className = 'file-name';
+            fileName.textContent = file?.fileName || '-';
+
+            const fileType = document.createElement('span');
+            fileType.className = 'file-type';
+            fileType.textContent = file?.mimeType || '';
+
+            text.appendChild(fileName);
+            text.appendChild(fileType);
 
             info.appendChild(iconWrap);
             info.appendChild(text);
@@ -2304,125 +2310,115 @@ ob_start();
             }
             stats.forEach((item) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td>${item?.name || '-'}</td><td><span class="status-pill ${item?.pill || 'pending'}">${item?.status || 'ยังไม่อ่าน'}</span></td><td>${item?.readAt || '-'}</td>`;
+                const nameCell = document.createElement('td');
+                nameCell.textContent = item?.name || '-';
+
+                const statusCell = document.createElement('td');
+                const statusPill = document.createElement('span');
+                statusPill.className = `status-pill ${item?.pill || 'pending'}`;
+                statusPill.textContent = item?.status || 'ยังไม่อ่าน';
+                statusCell.appendChild(statusPill);
+
+                const readAtCell = document.createElement('td');
+                readAtCell.textContent = item?.readAt || '-';
+
+                row.appendChild(nameCell);
+                row.appendChild(statusCell);
+                row.appendChild(readAtCell);
                 receiptStatusTableBody.appendChild(row);
             });
         };
 
-        const openDetailBtns = document.querySelectorAll('.js-open-circular-modal');
-        const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
+        const openTrackDetailModal = (btn) => {
+            if (!detailModal || !btn) {
+                return;
+            }
 
-        openDetailBtns.forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
-                let stats = [];
-                let files = [];
-                try {
-                    stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
-                } catch (e) {}
-                try {
-                    files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
-                } catch (e) {}
+            const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+            let stats = [];
+            let files = [];
 
-                if (modalUrgency) {
-                    modalUrgency.className = 'urgency-status normal';
-                    const urgencyLabel = modalUrgency.querySelector('p');
-                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
-                }
-                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
-                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
-                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
-                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
-                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
-                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
-                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
-                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
-                if (modalConsiderStatus) {
-                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
-                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
-                }
+            try {
+                stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
+            } catch (e) {
+                stats = [];
+            }
 
-                renderModalFiles(files, circularId);
-                renderReceiptRows(stats);
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (e) {
+                files = [];
+            }
 
-                try {
-                    stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
-                } catch (e) {
-                    stats = [];
-                }
-                try {
-                    files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
-                } catch (e) {
-                    files = [];
-                }
+            if (modalSubjectInput) {
+                modalSubjectInput.value = btn.getAttribute('data-subject') || '-';
+            }
+            if (modalDetailInput) {
+                modalDetailInput.value = btn.getAttribute('data-detail') || '-';
+            }
+            if (modalLinkInput) {
+                modalLinkInput.value = btn.getAttribute('data-link') || '-';
+            }
+            if (modalSenderInput) {
+                modalSenderInput.value = btn.getAttribute('data-sender-name') || '-';
+            }
+            if (modalSenderFactionInput) {
+                modalSenderFactionInput.value = btn.getAttribute('data-sender-faction') || '-';
+            }
 
-                if (modalUrgency) {
-                    modalUrgency.className = 'urgency-status normal';
-                    const urgencyLabel = modalUrgency.querySelector('p');
-                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
-                }
-                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
-                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
-                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
-                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
-                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
-                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
-                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
-                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
-                if (modalConsiderStatus) {
-                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
-                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
-                }
+            renderModalFiles(files, circularId);
+            renderReceiptRows(stats);
+            detailModal.style.display = 'flex';
+        };
 
-                renderModalFiles(files, circularId);
-                renderReceiptRows(stats);
+        const editModal = document.getElementById('modalEditOverlay');
+        const closeEditModalBtn = document.getElementById('closeModalEdit');
+        const editTargetInput = document.getElementById('editTargetCircularId');
 
-                if (detailModal) detailModal.style.display = 'flex';
-            });
+        const openTrackEditModal = (btn) => {
+            if (!editModal || !btn) {
+                return;
+            }
 
-            document.addEventListener('click', (event) => {
-                const detailTrigger = event.target.closest('.js-open-circular-modal');
-                if (!detailTrigger) {
-                    return;
-                }
+            const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+            if (editTargetInput) editTargetInput.value = circularId;
 
+            const subjectInput = editModal.querySelector('input[name="subject"]');
+            const detailInput = editModal.querySelector('textarea[name="detail"]');
+
+            if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
+            if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+
+            editModal.style.display = 'flex';
+        };
+
+        document.addEventListener('click', (event) => {
+            const detailTrigger = event.target.closest('.js-open-circular-modal');
+            if (detailTrigger) {
                 event.preventDefault();
                 openTrackDetailModal(detailTrigger);
-            });
+                return;
+            }
 
-            closeDetailModalBtn?.addEventListener('click', () => {
-                if (detailModal) detailModal.style.display = 'none';
-            });
-            detailModal?.addEventListener('click', (event) => {
-                if (event.target === detailModal) detailModal.style.display = 'none';
-            });
+            const editTrigger = event.target.closest('.js-open-edit-modal');
+            if (editTrigger) {
+                event.preventDefault();
+                openTrackEditModal(editTrigger);
+            }
+        });
 
-            const editModal = document.getElementById('modalEditOverlay');
-            const closeEditModalBtn = document.getElementById('closeModalEdit');
-            const editTargetInput = document.getElementById('editTargetCircularId');
+        closeDetailModalBtn?.addEventListener('click', () => {
+            if (detailModal) detailModal.style.display = 'none';
+        });
+        detailModal?.addEventListener('click', (event) => {
+            if (event.target === detailModal) detailModal.style.display = 'none';
+        });
 
-            openEditBtns.forEach((btn) => {
-                btn.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
-                    if (editTargetInput) editTargetInput.value = circularId;
-
-                    const subjectInput = document.getElementById('edit_subject');
-                    const detailInput = document.getElementById('edit_detail');
-                    if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
-                    if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
-
-                    if (editModal) editModal.style.display = 'flex';
-                });
-            });
-
-            closeEditModalBtn?.addEventListener('click', () => {
-                if (editModal) editModal.style.display = 'none';
-            });
-            editModal?.addEventListener('click', (event) => {
-                if (event.target === editModal) editModal.style.display = 'none';
-            });
+        closeEditModalBtn?.addEventListener('click', () => {
+            if (editModal) editModal.style.display = 'none';
+        });
+        editModal?.addEventListener('click', (event) => {
+            if (event.target === editModal) editModal.style.display = 'none';
         });
 
     });
