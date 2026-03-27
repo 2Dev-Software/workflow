@@ -13,6 +13,7 @@ services:
       DB_USER: ${WORKFLOW_DB_USER:-workflow_user}
       DB_PASS: ${WORKFLOW_DB_PASSWORD:-workflow_pass}
       DB_CHARSET: utf8mb4
+      DB_COLLATION: ${DB_COLLATION:-utf8mb4_general_ci}
       DB_PORT: 3306
       TZ: Asia/Bangkok
     ports:
