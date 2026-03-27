@@ -50,6 +50,20 @@ $runner->run('runtime: database and critical tables are available', static funct
     foreach (['mysqli', 'openssl', 'mbstring', 'json', 'fileinfo'] as $extension) {
         $t->assertTrue(extension_loaded($extension), 'Missing PHP extension ' . $extension);
     }
+
+    $session_expectations = [
+        'character_set_connection' => 'utf8mb4',
+        'character_set_results' => 'utf8mb4',
+        'character_set_client' => 'utf8mb4',
+        'collation_connection' => 'utf8mb4_general_ci',
+    ];
+
+    foreach ($session_expectations as $name => $expected) {
+        $result = mysqli_query($connection, 'SHOW VARIABLES LIKE "' . $name . '"');
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+        $actual = trim((string) ($row['Value'] ?? ''));
+        $t->assertSame($expected, $actual, 'Database session variable drifted for ' . $name);
+    }
 });
 
 $runner->run('workflow state machine keeps required transitions intact', static function (BaselineTestRunner $t): void {

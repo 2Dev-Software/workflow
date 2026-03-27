@@ -36,8 +36,17 @@ $db_name = (string) $env('DB_NAME', 'deebuk_platform');
 $db_user = (string) $env('DB_USER', 'root');
 $db_pass = (string) $env('DB_PASS', '');
 $db_charset = (string) $env('DB_CHARSET', 'utf8mb4');
+$db_collation = (string) $env('DB_COLLATION', 'utf8mb4_general_ci');
 $db_port = (int) $env('DB_PORT', '3306');
 $app_env = strtolower((string) $env('APP_ENV', 'production'));
+
+if (!preg_match('/^[a-zA-Z0-9_]+$/', $db_charset)) {
+    $db_charset = 'utf8mb4';
+}
+
+if (!preg_match('/^[a-zA-Z0-9_]+$/', $db_collation)) {
+    $db_collation = 'utf8mb4_general_ci';
+}
 
 if (in_array($app_env, ['local', 'development', 'dev', 'staging'], true)) {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -50,6 +59,7 @@ $required = [
     'DB_NAME' => $db_name,
     'DB_USER' => $db_user,
     'DB_CHARSET' => $db_charset,
+    'DB_COLLATION' => $db_collation,
 ];
 
 $missing_keys = [];
@@ -88,4 +98,14 @@ if (!$connection) {
 if (!@mysqli_set_charset($connection, $db_charset)) {
     error_log('MySQL Charset Error: ' . mysqli_error($connection));
     @mysqli_set_charset($connection, 'utf8mb4');
+}
+
+$set_names_sql = sprintf('SET NAMES %s COLLATE %s', $db_charset, $db_collation);
+
+if (!@mysqli_query($connection, $set_names_sql)) {
+    error_log('MySQL Collation Error: ' . mysqli_error($connection));
+
+    if ($db_charset !== 'utf8mb4' || $db_collation !== 'utf8mb4_general_ci') {
+        @mysqli_query($connection, 'SET NAMES utf8mb4 COLLATE utf8mb4_general_ci');
+    }
 }
