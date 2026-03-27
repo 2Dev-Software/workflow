@@ -177,7 +177,11 @@ jobs:
               req = urllib.request.Request(
                   webhook,
                   data=json.dumps(payload).encode("utf-8"),
-                  headers={"Content-Type": "application/json"},
+                  headers={
+                      "Content-Type": "application/json",
+                      "Accept": "application/json",
+                      "User-Agent": "GitHubActions-DiscordNotifier/1.0",
+                  },
                   method="POST",
               )
               with urllib.request.urlopen(req) as response:
