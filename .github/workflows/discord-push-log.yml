@@ -63,6 +63,7 @@ jobs:
           repo_url = f"{server_url}/{repository}" if repository else server_url
 
           messages = []
+          repo_short = repository.split("/")[-1].strip() if repository else "repository"
 
           def trim(text, limit):
               text = (text or "").strip()
@@ -70,22 +71,26 @@ jobs:
                   return text
               return text[: limit - 3].rstrip() + "..."
 
-          def send_embed(description, *, title=None, url=None, color=0x2F6FEB, fields=None):
+          def join_body(*parts):
+              lines = [trim(part, 1500) for part in parts if (part or "").strip()]
+              return "\n\n".join(lines)
+
+          def send_embed(headline, *, body="", url=None, color=0x2F6FEB, timestamp=None):
               embed = {
                   "color": color,
-                  "description": trim(description, 3500),
+                  "title": trim(headline, 256),
                   "author": {
                       "name": sender_name,
                       "icon_url": sender_avatar,
                       "url": repo_url,
                   },
               }
-              if title:
-                  embed["title"] = trim(title, 256)
+              if body:
+                  embed["description"] = trim(body, 3500)
               if url:
                   embed["url"] = url
-              if fields:
-                  embed["fields"] = fields[:10]
+              if timestamp:
+                  embed["timestamp"] = timestamp
 
               messages.append(
                   {
@@ -101,13 +106,15 @@ jobs:
               compare_url = event.get("compare") or repo_url
               commits = event.get("commits") or []
               distinct_commits = [commit for commit in commits if not commit.get("distinct") is False]
+              push_timestamp = ((event.get("head_commit") or {}).get("timestamp") or "").strip() or None
 
               if event.get("created") and branch_name:
                   send_embed(
-                      f"[{repository}] New branch created: `{branch_name}`",
-                      title="Branch activity",
+                      f"[{repository}] New branch created: {branch_name}",
+                      body="Branch creation event received from GitHub.",
                       url=compare_url,
-                      color=0x238636,
+                      color=0x57606A,
+                      timestamp=push_timestamp,
                   )
 
               if distinct_commits:
@@ -127,10 +134,11 @@ jobs:
 
                   noun = "commit" if len(distinct_commits) == 1 else "commits"
                   send_embed(
-                      f"[{repository}:{branch_name}] {len(distinct_commits)} new {noun}\n\n" + "\n".join(lines),
-                      title="Push activity",
+                      f"[{repo_short}:{branch_name}] {len(distinct_commits)} new {noun}",
+                      body="\n".join(lines),
                       url=compare_url,
                       color=0x2F81F7,
+                      timestamp=push_timestamp,
                   )
 
           elif event_name in {"pull_request", "pull_request_target"}:
@@ -142,35 +150,25 @@ jobs:
               head_ref = ((pr.get("head") or {}).get("ref") or "").strip()
               base_ref = ((pr.get("base") or {}).get("ref") or "").strip()
               summary = trim((pr.get("body") or "").replace("\r\n", "\n").replace("\r", "\n"), 800)
+              pr_title = trim(title or "-", 1024)
 
               if action in {"opened", "reopened"}:
-                  description = f"[{repository}] Pull request opened: #{number} `{head_ref}`"
-                  fields = [
-                      {"name": "Title", "value": trim(title or "-", 1024), "inline": False},
-                  ]
-                  if summary:
-                      fields.append({"name": "Summary", "value": summary, "inline": False})
                   send_embed(
-                      description,
-                      title="Pull request activity",
+                      f"[{repository}] Pull request opened: #{number} {head_ref}",
+                      body=join_body(pr_title, summary),
                       url=html_url,
-                      color=0x8250DF,
-                      fields=fields,
+                      color=0x1F8B4C,
+                      timestamp=(pr.get("created_at") or "").strip() or None,
                   )
 
               elif action == "closed" and pr.get("merged"):
                   merged_by = ((pr.get("merged_by") or {}).get("login") or sender_name).strip()
-                  description = f"[{repository}] Pull request merged: #{number} `{head_ref}` → `{base_ref}`"
-                  fields = [
-                      {"name": "Title", "value": trim(title or "-", 1024), "inline": False},
-                      {"name": "Merged by", "value": trim(merged_by or "-", 1024), "inline": True},
-                  ]
                   send_embed(
-                      description,
-                      title="Pull request activity",
+                      f"[{repository}] Pull request merged: #{number} {head_ref} -> {base_ref}",
+                      body=join_body(pr_title, f"Merged by {merged_by}" if merged_by else ""),
                       url=html_url,
-                      color=0x8957E5,
-                      fields=fields,
+                      color=0x8250DF,
+                      timestamp=(pr.get("merged_at") or pr.get("closed_at") or "").strip() or None,
                   )
 
           for payload in messages:
