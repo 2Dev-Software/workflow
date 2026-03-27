@@ -1297,27 +1297,29 @@ ob_start();
                                             </form>
                                         <?php endif; ?>
 
-                                        <button
-                                            class="booking-action-btn secondary js-open-circular-modal"
-                                            type="button"
-                                            data-circular-id="<?= h((string) $circular_id) ?>"
-                                            data-type="<?= h($item_type) ?>"
-                                            data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
-                                            data-detail="<?= h($detail_text) ?>"
-                                            data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
-                                            data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
-                                            data-bookno="<?= h('#' . (string) $circular_id) ?>"
-                                            data-issued="<?= h($date_long_display) ?>"
-                                            data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
-                                            data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
-                                            data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
-                                            data-consider="<?= h($consider_class) ?>"
-                                            data-received-time="<?= h($date_display) ?>"
-                                            data-files="<?= h($files_json) ?>"
-                                            data-read-stats="<?= h($stats_json) ?>">
-                                            <i class="fa-solid fa-eye"></i>
-                                            <span class="tooltip">ดูรายละเอียด</span>
-                                        </button>
+                                        <?php if (!($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_RECALLED)) : ?>
+                                            <button
+                                                class="booking-action-btn secondary js-open-circular-modal"
+                                                type="button"
+                                                data-circular-id="<?= h((string) $circular_id) ?>"
+                                                data-type="<?= h($item_type) ?>"
+                                                data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
+                                                data-detail="<?= h($detail_text) ?>"
+                                                data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
+                                                data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
+                                                data-bookno="<?= h('#' . (string) $circular_id) ?>"
+                                                data-issued="<?= h($date_long_display) ?>"
+                                                data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
+                                                data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
+                                                data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
+                                                data-consider="<?= h($consider_class) ?>"
+                                                data-received-time="<?= h($date_display) ?>"
+                                                data-files="<?= h($files_json) ?>"
+                                                data-read-stats="<?= h($stats_json) ?>">
+                                                <i class="fa-solid fa-eye"></i>
+                                                <span class="tooltip">ดูรายละเอียด</span>
+                                            </button>
+                                        <?php endif; ?>
                                         <?php if ($item_type === 'INTERNAL' && $status_key === INTERNAL_STATUS_RECALLED) : ?>
                                             <button
                                                 class="booking-action-btn secondary js-open-edit-modal"
