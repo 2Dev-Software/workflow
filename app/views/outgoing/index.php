@@ -6,6 +6,7 @@ $items = (array) ($items ?? []);
 $can_manage = (bool) ($can_manage ?? ($is_registry ?? false));
 $search = trim((string) ($search ?? ''));
 $status_filter = strtoupper(trim((string) ($status_filter ?? 'ALL')));
+$filter_status = strtolower($status_filter);
 $summary_counts = (array) ($summary_counts ?? []);
 $attachments_map = (array) ($attachments_map ?? []);
 $preview_outgoing_no = trim((string) ($preview_outgoing_no ?? ''));
@@ -20,6 +21,7 @@ $filter_sort = trim((string) ($filter_sort ?? 'newest'));
 $is_track_active = (bool) ($is_track_active ?? false);
 $track_status_map = (array) ($track_status_map ?? []);
 $send_modal_payload_map = (array) ($send_modal_payload_map ?? []);
+$selected_priority = trim((string) ($form_values['priority'] ?? 'normal'));
 $selected_person_ids = array_values(array_unique(array_filter(array_map(static function ($value): string {
     return trim((string) $value);
 }, (array) ($form_values['person_ids'] ?? [])), static function (string $value): bool {
@@ -413,6 +415,34 @@ ob_start();
     .content-order .form-group.last {
         margin: 0;
     }
+
+    #modalOrderEditOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-edit-urgent="normal"],
+    #modalOrderViewOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-view-urgent="normal"] {
+        background-color: #00ae2c !important;
+        border-color: #00ae2c !important;
+        box-shadow: inset 0 0 0 1px white, inset 0 0 0 3px #00ae2c !important;
+    }
+
+    #modalOrderEditOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-edit-urgent="urgent"],
+    #modalOrderViewOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-view-urgent="urgent"] {
+        background-color: #9a00af !important;
+        border-color: #9a00af !important;
+        box-shadow: inset 0 0 0 1px white, inset 0 0 0 3px #9a00af !important;
+    }
+
+    #modalOrderEditOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-edit-urgent="high"],
+    #modalOrderViewOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-view-urgent="high"] {
+        background-color: #ce6203 !important;
+        border-color: #ce6203 !important;
+        box-shadow: inset 0 0 0 1px white, inset 0 0 0 3px #ce6203 !important;
+    }
+
+    #modalOrderEditOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-edit-urgent="highest"],
+    #modalOrderViewOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-view-urgent="highest"] {
+        background-color: #bd0000 !important;
+        border-color: #bd0000 !important;
+        box-shadow: inset 0 0 0 1px white, inset 0 0 0 3px #bd0000 !important;
+    }
 </style>
 
 <div class="content-header">
@@ -435,10 +465,10 @@ ob_start();
         <div class="type-urgent">
             <p>ประเภท</p>
             <div class="radio-group-urgent">
-                <input type="radio" name="urgent" id=""><label for="">ปกติ</label>
-                <input type="radio" name="urgent" id=""><label for="">ด่วน</label>
-                <input type="radio" name="urgent" id=""><label for="">ด่วนมาก</label>
-                <input type="radio" name="urgent" id=""><label for="">ด่วนที่สุด</label>
+                <input type="radio" name="priority" value="normal" <?= $selected_priority === 'normal' ? 'checked' : '' ?> id="outgoingPriorityNormal"><label for="outgoingPriorityNormal">ปกติ</label>
+                <input type="radio" name="priority" value="urgent" <?= $selected_priority === 'urgent' ? 'checked' : '' ?> id="outgoingPriorityUrgent"><label for="outgoingPriorityUrgent">ด่วน</label>
+                <input type="radio" name="priority" value="high" <?= $selected_priority === 'high' ? 'checked' : '' ?> id="outgoingPriorityHigh"><label for="outgoingPriorityHigh">ด่วนมาก</label>
+                <input type="radio" name="priority" value="highest" <?= $selected_priority === 'highest' ? 'checked' : '' ?> id="outgoingPriorityHighest"><label for="outgoingPriorityHighest">ด่วนที่สุด</label>
             </div>
         </div>
 
@@ -2603,44 +2633,49 @@ ob_start();
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p id="modalOrderSendTitle">ส่งคำสั่งราชการต่อ</p>
+                    <p id="modalOutgoingEditTitle">แนบไฟล์เอกสารออกเลขทะเบียนส่ง</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="closeModalOrderSend"></i>
                 </div>
             </div>
 
+            <form method="POST" id="modalOutgoingAttachForm" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="attach">
+                <input type="hidden" name="outgoing_id" id="modalOutgoingEditOutgoingId" value="">
+
             <div class="content-modal">
 
                 <div class="type-urgent">
                     <p>ประเภท</p>
                     <div class="radio-group-urgent">
-                        <input type="radio" name="urgent" id=""><label for="">ปกติ</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วน</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วนมาก</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วนที่สุด</label>
+                        <input type="radio" name="outgoingEditUrgent" data-outgoing-edit-urgent="normal" checked id="modalOutgoingEditUrgentNormal"><label for="modalOutgoingEditUrgentNormal">ปกติ</label>
+                        <input type="radio" name="outgoingEditUrgent" data-outgoing-edit-urgent="urgent" id="modalOutgoingEditUrgentUrgent"><label for="modalOutgoingEditUrgentUrgent">ด่วน</label>
+                        <input type="radio" name="outgoingEditUrgent" data-outgoing-edit-urgent="high" id="modalOutgoingEditUrgentHigh"><label for="modalOutgoingEditUrgentHigh">ด่วนมาก</label>
+                        <input type="radio" name="outgoingEditUrgent" data-outgoing-edit-urgent="highest" id="modalOutgoingEditUrgentHighest"><label for="modalOutgoingEditUrgentHighest">ด่วนที่สุด</label>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>เลขทะเบียน</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-">
+                        <input type="text" id="modalOutgoingEditNo" class="order-no-display" value="-">
                     </div>
                     <div class="more-details">
                         <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-">
+                        <input type="text" id="modalOutgoingEditSubject" class="order-no-display" value="-">
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ลงวันที่</strong></p>
-                        <input type="date" id="" class="order-no-display" value="-">
+                        <input type="date" id="modalOutgoingEditEffectiveDate" class="order-no-display" value="">
                     </div>
                     <div class="more-details">
                         <p><strong>ผู้ออกเลข</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-">
+                        <input type="text" id="modalOutgoingEditIssuer" class="order-no-display" value="-">
                     </div>
                 </div>
 
@@ -4625,11 +4660,12 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <button type="button" id="modalOrderViewCloseBtn">
+                <button type="submit" id="modalOrderEditSaveBtn">
                     <p>บันทึก</p>
                 </button>
 
             </div>
+            </form>
         </div>
     </div>
 </div>
@@ -4639,7 +4675,7 @@ ob_start();
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p id="modalOrderSendTitle">รายละเอียดออกเลขทะเบียนส่ง</p>
+                    <p id="modalOutgoingViewTitle">ดูรายละเอียดออกเลขทะเบียนส่ง</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="modalOrderViewCloseBtn"></i>
@@ -4650,130 +4686,53 @@ ob_start();
                 <div class="type-urgent">
                     <p>ประเภท</p>
                     <div class="radio-group-urgent">
-                        <input type="radio" name="urgent" checked id=""><label for="">ปกติ</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วน</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วนมาก</label>
-                        <input type="radio" name="urgent" id=""><label for="">ด่วนที่สุด</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="normal" checked id="modalOutgoingViewUrgentNormal"><label for="modalOutgoingViewUrgentNormal">ปกติ</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="urgent" id="modalOutgoingViewUrgentUrgent"><label for="modalOutgoingViewUrgentUrgent">ด่วน</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="high" id="modalOutgoingViewUrgentHigh"><label for="modalOutgoingViewUrgentHigh">ด่วนมาก</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="highest" id="modalOutgoingViewUrgentHighest"><label for="modalOutgoingViewUrgentHighest">ด่วนที่สุด</label>
                     </div>
                 </div>
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>เลขทะเบียน</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ลงวันที่</strong></p>
-                        <input type="date" id="" class="order-no-display" value="" disabled>
+                        <input type="date" id="modalOutgoingViewEffectiveDate" class="order-no-display" value="" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>ผู้ออกเลข</strong></p>
-                        <input type="text" id="" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewIssuer" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
-                <div class="file-section" id="modalOrderSendFileSection">
+                <div class="file-section" id="modalOutgoingViewFileSection" style="display: none;">
                     <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon"><i class="fa-solid fa-image" aria-hidden="true"></i></div>
-                            <div class="file-text">
-                                <span class="file-name">Screenshot 2569-03-14 at 21.38.40.png</span>
-                                <span class="file-type">image/png</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="public/api/file-download.php?module=orders&amp;entity_id=100&amp;file_id=168" target="_blank" rel="noopener">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon"><i class="fa-solid fa-image" aria-hidden="true"></i></div>
-                            <div class="file-text">
-                                <span class="file-name">Screenshot 2569-03-15 at 11.53.58 (2).png</span>
-                                <span class="file-type">image/png</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="public/api/file-download.php?module=orders&amp;entity_id=100&amp;file_id=169" target="_blank" rel="noopener">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon"><i class="fa-solid fa-image" aria-hidden="true"></i></div>
-                            <div class="file-text">
-                                <span class="file-name">Screenshot 2569-03-15 at 11.53.58.png</span>
-                                <span class="file-type">image/png</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="public/api/file-download.php?module=orders&amp;entity_id=100&amp;file_id=170" target="_blank" rel="noopener">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon"><i class="fa-solid fa-image" aria-hidden="true"></i></div>
-                            <div class="file-text">
-                                <span class="file-name">Screenshot 2569-03-15 at 11.44.27.png</span>
-                                <span class="file-type">image/png</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="public/api/file-download.php?module=orders&amp;entity_id=100&amp;file_id=171" target="_blank" rel="noopener">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="file-banner">
-                        <div class="file-info">
-                            <div class="file-icon"><i class="fa-solid fa-image" aria-hidden="true"></i></div>
-                            <div class="file-text">
-                                <span class="file-name">Screenshot 2569-03-15 at 00.58.38.png</span>
-                                <span class="file-type">image/png</span>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <a href="public/api/file-download.php?module=orders&amp;entity_id=100&amp;file_id=172" target="_blank" rel="noopener">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="orders-send-modal-shell orders-send-card">
 
-                    <div id="modalOrderTrackSection">
+                    <div id="modalOutgoingViewOwnerSection">
                         <div class="table-responsive">
                             <table class="custom-table orders-send-track-table">
                                 <thead>
                                     <tr>
-                                        <th>ชื่อผู้รับ</th>
-                                        <th>สถานะ</th>
-                                        <th>เวลาอ่านล่าสุด</th>
+                                        <th>ชื่อเจ้าของเรื่อง</th>
+                                        <th>สถานะเอกสาร</th>
+                                        <th>หมายเหตุ</th>
                                     </tr>
                                 </thead>
-                                <tbody id="modalOrderTrackBody">
+                                <tbody id="modalOutgoingViewOwnerBody">
                                     <tr>
-                                        <td>นายธันวิน ณ นคร</td>
-                                        <td><span class="status-pill pending">ยังไม่อ่าน</span></td>
-                                        <td>-</td>
-                                    </tr>
-                                    <tr>
-                                        <td>นายบพิธ มังคะลา</td>
-                                        <td><span class="status-pill pending">ยังไม่อ่าน</span></td>
-                                        <td>-</td>
+                                        <td colspan="3" class="orders-send-track-empty">ไม่พบข้อมูลเจ้าของเรื่อง</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -4824,34 +4783,431 @@ ob_start();
     document.addEventListener('DOMContentLoaded', () => {
         const editModal = document.getElementById('modalOrderEditOverlay');
         const viewModal = document.getElementById('modalOrderViewOverlay');
+        const modalOutgoingEditTitle = document.getElementById('modalOutgoingEditTitle');
+        const modalOutgoingEditOutgoingId = document.getElementById('modalOutgoingEditOutgoingId');
+        const modalOutgoingEditNo = document.getElementById('modalOutgoingEditNo');
+        const modalOutgoingEditSubject = document.getElementById('modalOutgoingEditSubject');
+        const modalOutgoingEditEffectiveDate = document.getElementById('modalOutgoingEditEffectiveDate');
+        const modalOutgoingEditIssuer = document.getElementById('modalOutgoingEditIssuer');
+        const modalOutgoingEditFileList = document.getElementById('existingFileListContainer_modal');
+        const modalOutgoingEditOwnerSection = editModal?.querySelector('[data-recipients-section][data-owner-flat-list="true"]') ?? null;
+        const modalOutgoingEditUrgentRadios = editModal ? Array.from(editModal.querySelectorAll('[data-outgoing-edit-urgent]')) : [];
+        const modalOutgoingViewTitle = document.getElementById('modalOutgoingViewTitle');
+        const modalOutgoingViewNo = document.getElementById('modalOutgoingViewNo');
+        const modalOutgoingViewSubject = document.getElementById('modalOutgoingViewSubject');
+        const modalOutgoingViewEffectiveDate = document.getElementById('modalOutgoingViewEffectiveDate');
+        const modalOutgoingViewIssuer = document.getElementById('modalOutgoingViewIssuer');
+        const modalOutgoingViewFileSection = document.getElementById('modalOutgoingViewFileSection');
+        const modalOutgoingViewOwnerBody = document.getElementById('modalOutgoingViewOwnerBody');
+        const modalOutgoingViewUrgentRadios = viewModal ? Array.from(viewModal.querySelectorAll('[data-outgoing-view-urgent]')) : [];
+        let outgoingEditModalData = {};
+        let outgoingViewModalData = {};
+
+        const syncOutgoingEditModalData = () => {
+            const mapElement = document.querySelector('#outgoingMine .js-order-send-map');
+            if (!mapElement) {
+                outgoingEditModalData = {};
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(mapElement.textContent || '{}');
+                outgoingEditModalData = parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                console.error('Invalid outgoing edit modal data', error);
+                outgoingEditModalData = {};
+            }
+        };
+
+        const syncOutgoingViewModalData = () => {
+            const mapElement = document.querySelector('#outgoingMine .js-order-send-map');
+            if (!mapElement) {
+                outgoingViewModalData = {};
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(mapElement.textContent || '{}');
+                outgoingViewModalData = parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                console.error('Invalid outgoing view modal data', error);
+                outgoingViewModalData = {};
+            }
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const normalizeOutgoingPriorityKey = (value) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (['normal', 'urgent', 'high', 'highest'].includes(normalized)) {
+                return normalized;
+            }
+            return 'normal';
+        };
+
+        const syncOutgoingPriorityVisualState = (radios) => {
+            const palette = {
+                normal: {
+                    borderColor: '#00ae2c',
+                    activeColor: '#00ae2c',
+                },
+                urgent: {
+                    borderColor: '#9a00af',
+                    activeColor: '#9a00af',
+                },
+                high: {
+                    borderColor: '#ce6203',
+                    activeColor: '#ce6203',
+                },
+                highest: {
+                    borderColor: '#bd0000',
+                    activeColor: '#bd0000',
+                },
+            };
+
+            (Array.isArray(radios) ? radios : []).forEach((radio) => {
+                if (!(radio instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const radioKey = normalizeOutgoingPriorityKey(radio.getAttribute('data-outgoing-edit-urgent') || radio.getAttribute('data-outgoing-view-urgent') || '');
+                const colors = palette[radioKey] || palette.normal;
+                const label = radio.nextElementSibling instanceof HTMLLabelElement ? radio.nextElementSibling : null;
+
+                radio.classList.toggle('is-active', radio.checked);
+                radio.style.backgroundColor = radio.checked ? colors.activeColor : 'transparent';
+                radio.style.borderColor = colors.borderColor;
+                radio.style.boxShadow = radio.checked
+                    ? `inset 0 0 0 1px white, inset 0 0 0 3px ${colors.activeColor}`
+                    : 'none';
+
+                if (label) {
+                    label.classList.toggle('is-active', radio.checked);
+                }
+            });
+        };
+
+        const setOutgoingPriorityRadio = (radios, priorityKey) => {
+            const normalizedKey = normalizeOutgoingPriorityKey(priorityKey);
+            const radioList = Array.isArray(radios) ? radios.filter((radio) => radio instanceof HTMLInputElement) : [];
+            let matchedRadio = null;
+
+            radioList.forEach((radio) => {
+                if (!(radio instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const radioKey = normalizeOutgoingPriorityKey(radio.getAttribute('data-outgoing-edit-urgent') || radio.getAttribute('data-outgoing-view-urgent') || '');
+                radio.checked = false;
+                radio.defaultChecked = false;
+                radio.removeAttribute('checked');
+
+                if (radioKey === normalizedKey && matchedRadio === null) {
+                    matchedRadio = radio;
+                }
+            });
+
+            if (!(matchedRadio instanceof HTMLInputElement)) {
+                matchedRadio = radioList[0] ?? null;
+            }
+
+            if (matchedRadio instanceof HTMLInputElement) {
+                matchedRadio.checked = true;
+                matchedRadio.defaultChecked = true;
+                matchedRadio.setAttribute('checked', 'checked');
+            }
+
+            syncOutgoingPriorityVisualState(radioList);
+        };
+
+        const scheduleOutgoingPrioritySync = (radios, priorityKey) => {
+            setOutgoingPriorityRadio(radios, priorityKey);
+
+            if (typeof window.requestAnimationFrame === 'function') {
+                window.requestAnimationFrame(() => setOutgoingPriorityRadio(radios, priorityKey));
+                return;
+            }
+
+            window.setTimeout(() => setOutgoingPriorityRadio(radios, priorityKey), 0);
+        };
+
+        const renderOutgoingEditFiles = (outgoingId, files) => {
+            if (!modalOutgoingEditFileList) {
+                return;
+            }
+
+            if (!Array.isArray(files) || files.length === 0) {
+                modalOutgoingEditFileList.innerHTML = '<p class="existing-file-empty">ยังไม่มีไฟล์แนบ</p>';
+                return;
+            }
+
+            const safeOutgoingId = encodeURIComponent(String(outgoingId || '').trim());
+            const html = files.map((file) => {
+                const fileId = encodeURIComponent(String(file?.fileID || ''));
+                const fileName = escapeHtml(String(file?.fileName || '-'));
+                const mimeType = escapeHtml(String(file?.mimeType || 'ไฟล์แนบ'));
+                const viewHref = `public/api/file-download.php?module=outgoing&entity_id=${safeOutgoingId}&file_id=${fileId}`;
+                const iconHtml = String(file?.mimeType || '').toLowerCase() === 'application/pdf'
+                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                    : '<i class="fa-solid fa-file-image" aria-hidden="true"></i>';
+
+                return `<div class="file-item-wrapper">
+                    <div class="file-banner">
+                        <div class="file-info">
+                            <div class="file-icon">${iconHtml}</div>
+                            <div class="file-text">
+                                <span class="file-name">${fileName}</span>
+                                <span class="file-type">${mimeType}</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="${viewHref}" target="_blank" rel="noopener" class="action-btn" title="ดูตัวอย่าง">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            modalOutgoingEditFileList.innerHTML = html;
+        };
+
+        const resetOutgoingEditModal = () => {
+            if (modalOutgoingEditTitle) {
+                modalOutgoingEditTitle.textContent = 'แนบไฟล์เอกสารออกเลขทะเบียนส่ง';
+            }
+            if (modalOutgoingEditOutgoingId) {
+                modalOutgoingEditOutgoingId.value = '';
+            }
+            if (modalOutgoingEditNo) {
+                modalOutgoingEditNo.value = '-';
+            }
+            if (modalOutgoingEditSubject) {
+                modalOutgoingEditSubject.value = '-';
+            }
+            if (modalOutgoingEditEffectiveDate) {
+                modalOutgoingEditEffectiveDate.value = '';
+            }
+            if (modalOutgoingEditIssuer) {
+                modalOutgoingEditIssuer.value = '-';
+            }
+
+            setOutgoingPriorityRadio(modalOutgoingEditUrgentRadios, 'normal');
+
+            if (window.__outgoingModalAttachmentUpload && typeof window.__outgoingModalAttachmentUpload.reset === 'function') {
+                window.__outgoingModalAttachmentUpload.reset();
+            } else {
+                renderOutgoingEditFiles('', []);
+            }
+
+            if (modalOutgoingEditOwnerSection && modalOutgoingEditOwnerSection.__recipientSelectorApi && typeof modalOutgoingEditOwnerSection.__recipientSelectorApi.setSelectedMembersByNames === 'function') {
+                modalOutgoingEditOwnerSection.__recipientSelectorApi.setSelectedMembersByNames([]);
+            }
+        };
+
+        const openOutgoingEditModal = (outgoingIdRaw) => {
+            if (!editModal) {
+                return;
+            }
+
+            syncOutgoingEditModalData();
+
+            const outgoingId = String(outgoingIdRaw || '').trim();
+            const payload = outgoingEditModalData[outgoingId];
+
+            resetOutgoingEditModal();
+
+            if (payload && typeof payload === 'object') {
+                if (modalOutgoingEditOutgoingId) {
+                    modalOutgoingEditOutgoingId.value = outgoingId;
+                }
+                if (modalOutgoingEditNo) {
+                    modalOutgoingEditNo.value = String(payload.outgoingNo || '').trim() || '-';
+                }
+                if (modalOutgoingEditSubject) {
+                    modalOutgoingEditSubject.value = String(payload.subject || '').trim() || '-';
+                }
+                if (modalOutgoingEditEffectiveDate) {
+                    const effectiveDate = String(payload.effectiveDate || '').trim();
+                    modalOutgoingEditEffectiveDate.value = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '';
+                }
+                if (modalOutgoingEditIssuer) {
+                    modalOutgoingEditIssuer.value = String(payload.issuerName || '').trim() || '-';
+                }
+
+                renderOutgoingEditFiles(outgoingId, Array.isArray(payload.attachments) ? payload.attachments : []);
+
+                if (modalOutgoingEditOwnerSection && modalOutgoingEditOwnerSection.__recipientSelectorApi && typeof modalOutgoingEditOwnerSection.__recipientSelectorApi.setSelectedMembersByNames === 'function') {
+                    modalOutgoingEditOwnerSection.__recipientSelectorApi.setSelectedMembersByNames(payload.ownerNames);
+                }
+            }
+
+            editModal.style.display = 'flex';
+            scheduleOutgoingPrioritySync(modalOutgoingEditUrgentRadios, payload && typeof payload === 'object' ? payload.priorityKey : 'normal');
+        };
+
+        const renderOutgoingViewFiles = (outgoingId, files) => {
+            if (!modalOutgoingViewFileSection) {
+                return;
+            }
+
+            if (!Array.isArray(files) || files.length === 0) {
+                modalOutgoingViewFileSection.style.display = 'none';
+                modalOutgoingViewFileSection.innerHTML = '<p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>';
+                return;
+            }
+
+            modalOutgoingViewFileSection.style.display = '';
+            const safeOutgoingId = encodeURIComponent(String(outgoingId || '').trim());
+            const fileRowsHtml = files.map((file) => {
+                const fileId = encodeURIComponent(String(file?.fileID || ''));
+                const fileName = escapeHtml(String(file?.fileName || '-'));
+                const mimeType = escapeHtml(String(file?.mimeType || 'ไฟล์แนบ'));
+                const viewHref = `public/api/file-download.php?module=outgoing&entity_id=${safeOutgoingId}&file_id=${fileId}`;
+                const iconHtml = String(file?.mimeType || '').toLowerCase() === 'application/pdf'
+                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                    : '<i class="fa-solid fa-file-image" aria-hidden="true"></i>';
+
+                return `<div class="file-banner">
+                    <div class="file-info">
+                        <div class="file-icon">${iconHtml}</div>
+                        <div class="file-text">
+                            <span class="file-name">${fileName}</span>
+                            <span class="file-type">${mimeType}</span>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="${viewHref}" target="_blank" rel="noopener">
+                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+
+            modalOutgoingViewFileSection.innerHTML = `<p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>${fileRowsHtml}`;
+        };
+
+        const renderOutgoingViewOwners = (ownerNames, statusLabel, statusPill) => {
+            if (!modalOutgoingViewOwnerBody) {
+                return;
+            }
+
+            const owners = Array.from(new Set((Array.isArray(ownerNames) ? ownerNames : [])
+                .map((name) => String(name || '').trim())
+                .filter((name) => name !== '')));
+
+            if (owners.length === 0) {
+                modalOutgoingViewOwnerBody.innerHTML = '<tr><td colspan="3" class="orders-send-track-empty">ไม่พบข้อมูลเจ้าของเรื่อง</td></tr>';
+                return;
+            }
+
+            const safeStatusLabel = escapeHtml(String(statusLabel || '-'));
+            const safeStatusPill = escapeHtml(String(statusPill || 'pending'));
+            modalOutgoingViewOwnerBody.innerHTML = owners.map((name) => `<tr>
+                <td>${escapeHtml(name)}</td>
+                <td><span class="status-pill ${safeStatusPill}">${safeStatusLabel}</span></td>
+                <td>เจ้าของเรื่อง</td>
+            </tr>`).join('');
+        };
+
+        const resetOutgoingViewModal = () => {
+            if (modalOutgoingViewTitle) {
+                modalOutgoingViewTitle.textContent = 'ดูรายละเอียดออกเลขทะเบียนส่ง';
+            }
+            if (modalOutgoingViewNo) {
+                modalOutgoingViewNo.value = '-';
+            }
+            if (modalOutgoingViewSubject) {
+                modalOutgoingViewSubject.value = '-';
+            }
+            if (modalOutgoingViewEffectiveDate) {
+                modalOutgoingViewEffectiveDate.value = '';
+            }
+            if (modalOutgoingViewIssuer) {
+                modalOutgoingViewIssuer.value = '-';
+            }
+
+            setOutgoingPriorityRadio(modalOutgoingViewUrgentRadios, 'normal');
+
+            renderOutgoingViewFiles('', []);
+            renderOutgoingViewOwners([], '', 'pending');
+        };
+
+        const openOutgoingViewModal = (outgoingIdRaw) => {
+            if (!viewModal) {
+                return;
+            }
+
+            syncOutgoingViewModalData();
+
+            const outgoingId = String(outgoingIdRaw || '').trim();
+            const payload = outgoingViewModalData[outgoingId];
+
+            resetOutgoingViewModal();
+
+            if (payload && typeof payload === 'object') {
+                if (modalOutgoingViewNo) {
+                    modalOutgoingViewNo.value = String(payload.outgoingNo || '').trim() || '-';
+                }
+                if (modalOutgoingViewSubject) {
+                    modalOutgoingViewSubject.value = String(payload.subject || '').trim() || '-';
+                }
+                if (modalOutgoingViewEffectiveDate) {
+                    const effectiveDate = String(payload.effectiveDate || '').trim();
+                    modalOutgoingViewEffectiveDate.value = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '';
+                }
+                if (modalOutgoingViewIssuer) {
+                    modalOutgoingViewIssuer.value = String(payload.issuerName || '').trim() || '-';
+                }
+
+                renderOutgoingViewFiles(outgoingId, Array.isArray(payload.attachments) ? payload.attachments : []);
+                renderOutgoingViewOwners(payload.ownerNames, payload.statusLabel, payload.statusPill);
+            }
+
+            viewModal.style.display = 'flex';
+            scheduleOutgoingPrioritySync(modalOutgoingViewUrgentRadios, payload && typeof payload === 'object' ? payload.priorityKey : 'normal');
+        };
+
+        modalOutgoingEditUrgentRadios.forEach((radio) => {
+            radio.addEventListener('change', () => syncOutgoingPriorityVisualState(modalOutgoingEditUrgentRadios));
+        });
+
+        modalOutgoingViewUrgentRadios.forEach((radio) => {
+            radio.addEventListener('change', () => syncOutgoingPriorityVisualState(modalOutgoingViewUrgentRadios));
+        });
 
         document.addEventListener('click', (event) => {
             const targetBtn = event.target.closest('button');
             if (!targetBtn) return;
 
-            if (targetBtn.classList.contains('js-open-order-edit-modal') && editModal) {
-                editModal.style.display = 'flex';
+            if (targetBtn.classList.contains('js-open-order-edit-modal')) {
+                openOutgoingEditModal(targetBtn.getAttribute('data-outgoing-id'));
             }
 
-            if (targetBtn.classList.contains('js-open-order-view-modal') && viewModal) {
-                viewModal.style.display = 'flex';
+            if (targetBtn.classList.contains('js-open-order-view-modal')) {
+                openOutgoingViewModal(targetBtn.getAttribute('data-outgoing-id'));
             }
         });
 
-        const closeActions = [{
-                btnId: 'closeModalOrderSend',
-                modal: editModal
+        const closeActions = [
+            {
+                btn: editModal?.querySelector('#closeModalOrderSend') ?? null,
+                modal: editModal,
             },
             {
-                btnId: 'modalOrderViewCloseBtn',
-                modal: viewModal
+                btn: viewModal?.querySelector('#modalOrderViewCloseBtn') ?? null,
+                modal: viewModal,
             }
         ];
 
         closeActions.forEach(action => {
-            const btn = document.getElementById(action.btnId);
-            if (btn && action.modal) {
-                btn.addEventListener('click', () => {
+            if (action.btn && action.modal) {
+                action.btn.addEventListener('click', () => {
                     action.modal.style.display = 'none';
                 });
             }
@@ -5446,6 +5802,48 @@ ob_start();
                 });
             };
 
+            const normalizeMemberName = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+
+            const setSelectedMembersByNames = (names) => {
+                const normalizedNames = new Set((Array.isArray(names) ? names : [])
+                    .map((name) => normalizeMemberName(name))
+                    .filter((name) => name !== ''));
+
+                groupChecks.forEach((item) => {
+                    if (!item.disabled) {
+                        item.checked = false;
+                        item.indeterminate = false;
+                    }
+                });
+
+                memberChecks.forEach((item) => {
+                    if (item.disabled) {
+                        return;
+                    }
+
+                    const memberName = normalizeMemberName(item.getAttribute('data-member-name'));
+                    const isChecked = normalizedNames.has(memberName);
+                    item.checked = isChecked;
+                    syncMemberByPid(item.value || '', isChecked, item);
+
+                    if (isChecked) {
+                        setGroupCollapsed(item.closest('.item-group'), false);
+                    }
+                });
+
+                if (selectAll) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+
+                updateSelectAllState();
+            };
+
+            section.__recipientSelectorApi = {
+                setSelectedMembersByNames,
+                renderRecipients,
+            };
+
             btnShowRecipients?.addEventListener('click', () => {
                 renderRecipients();
                 recipientModal?.classList.add('active');
@@ -5679,7 +6077,7 @@ ob_start();
         };
     }
 
-    const modalAttachmentUpload = setupFileUpload(
+    window.__outgoingModalAttachmentUpload = setupFileUpload(
         "fileInput_modal",
         "existingFileListContainer_modal",
         5,

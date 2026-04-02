@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../rbac/roles.php';
+require_once __DIR__ . '/../modules/audit/logger.php';
 require_once __DIR__ . '/../modules/outgoing/service.php';
 require_once __DIR__ . '/../modules/outgoing/repository.php';
 require_once __DIR__ . '/../modules/users/lists.php';
@@ -16,6 +17,44 @@ if (!function_exists('outgoing_issue_valid_date')) {
     function outgoing_issue_valid_date(string $value): bool
     {
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
+    }
+}
+
+if (!function_exists('outgoing_priority_options')) {
+    function outgoing_priority_options(): array
+    {
+        return [
+            'normal' => 'ปกติ',
+            'urgent' => 'ด่วน',
+            'high' => 'ด่วนมาก',
+            'highest' => 'ด่วนที่สุด',
+        ];
+    }
+}
+
+if (!function_exists('outgoing_normalize_priority_key')) {
+    function outgoing_normalize_priority_key(?string $value): string
+    {
+        $value = strtolower(trim((string) $value));
+        $options = outgoing_priority_options();
+
+        if (isset($options[$value])) {
+            return $value;
+        }
+
+        $matched_key = array_search(trim((string) $value), $options, true);
+
+        return is_string($matched_key) ? $matched_key : 'normal';
+    }
+}
+
+if (!function_exists('outgoing_priority_label_from_key')) {
+    function outgoing_priority_label_from_key(?string $key): string
+    {
+        $normalized_key = outgoing_normalize_priority_key($key);
+        $options = outgoing_priority_options();
+
+        return $options[$normalized_key] ?? $options['normal'];
     }
 }
 
@@ -73,15 +112,157 @@ if (!function_exists('outgoing_resolve_owner_names')) {
 }
 
 if (!function_exists('outgoing_build_detail')) {
-    function outgoing_build_detail(string $effective_date, string $issuer_name, array $owner_names): string
+    function outgoing_build_detail(string $effective_date, string $issuer_name, array $owner_names, ?string $priority_key = null): string
     {
         $lines = [
+            'ประเภท: ' . outgoing_priority_label_from_key($priority_key),
             'ลงวันที่: ' . $effective_date,
             'ผู้ออกเลข: ' . ($issuer_name !== '' ? $issuer_name : '-'),
             'เจ้าของเรื่อง: ' . (!empty($owner_names) ? implode(', ', $owner_names) : '-'),
         ];
 
         return implode("\n", $lines);
+    }
+}
+
+if (!function_exists('outgoing_split_owner_names')) {
+    function outgoing_split_owner_names(string $value): array
+    {
+        $names = preg_split('/\s*,\s*/u', trim($value)) ?: [];
+
+        return array_values(array_filter(array_map(static function ($name): string {
+            return trim((string) $name);
+        }, $names), static function (string $name): bool {
+            return $name !== '';
+        }));
+    }
+}
+
+if (!function_exists('outgoing_parse_detail_meta')) {
+    function outgoing_parse_detail_meta(?string $detail): array
+    {
+        $meta = [
+            'priority_label' => outgoing_priority_label_from_key('normal'),
+            'priority_key' => 'normal',
+            'effective_date' => '',
+            'issuer_name' => '',
+            'owner_names' => [],
+        ];
+        $priority_found = false;
+
+        $detail = trim((string) $detail);
+
+        if ($detail === '') {
+            return $meta;
+        }
+
+        $lines = preg_split('/\R/u', $detail) ?: [];
+
+        foreach ($lines as $line) {
+            $line = trim((string) $line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            if (preg_match('/^ประเภท:\s*(.+)$/u', $line, $matches) === 1) {
+                $priority_key = outgoing_normalize_priority_key((string) ($matches[1] ?? ''));
+                $meta['priority_key'] = $priority_key;
+                $meta['priority_label'] = outgoing_priority_label_from_key($priority_key);
+                $priority_found = true;
+                continue;
+            }
+
+            if (preg_match('/^ลงวันที่:\s*(.+)$/u', $line, $matches) === 1) {
+                $meta['effective_date'] = trim((string) ($matches[1] ?? ''));
+                continue;
+            }
+
+            if (preg_match('/^ผู้ออกเลข:\s*(.+)$/u', $line, $matches) === 1) {
+                $meta['issuer_name'] = trim((string) ($matches[1] ?? ''));
+                continue;
+            }
+
+            if (preg_match('/^เจ้าของเรื่อง:\s*(.+)$/u', $line, $matches) === 1) {
+                $meta['owner_names'] = outgoing_split_owner_names((string) ($matches[1] ?? ''));
+            }
+        }
+
+        if (!$priority_found) {
+            $legacy_priority_labels = [
+                'highest' => 'ด่วนที่สุด',
+                'high' => 'ด่วนมาก',
+                'urgent' => 'ด่วน',
+                'normal' => 'ปกติ',
+            ];
+
+            foreach ($legacy_priority_labels as $priority_key => $priority_label) {
+                if (mb_stripos($detail, $priority_label) !== false) {
+                    $meta['priority_key'] = $priority_key;
+                    $meta['priority_label'] = outgoing_priority_label_from_key($priority_key);
+                    break;
+                }
+            }
+        }
+
+        return $meta;
+    }
+}
+
+if (!function_exists('outgoing_build_view_modal_payload_map')) {
+    function outgoing_build_view_modal_payload_map(array $items, array $attachments_map, array $track_status_map): array
+    {
+        $payload_map = [];
+
+        foreach ($items as $item) {
+            $outgoing_id = (int) ($item['outgoingID'] ?? 0);
+
+            if ($outgoing_id <= 0) {
+                continue;
+            }
+
+            $full_item = outgoing_get($outgoing_id) ?? $item;
+            $detail_meta = outgoing_parse_detail_meta((string) ($full_item['detail'] ?? ''));
+            $created_at = trim((string) ($full_item['createdAt'] ?? $item['createdAt'] ?? ''));
+            $status_key = strtoupper(trim((string) ($full_item['status'] ?? $item['status'] ?? '')));
+            $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
+            $effective_date = trim((string) ($detail_meta['effective_date'] ?? ''));
+
+            if ($effective_date === '' && preg_match('/^\d{4}-\d{2}-\d{2}/', $created_at, $matches) === 1) {
+                $effective_date = (string) ($matches[0] ?? '');
+            }
+
+            $issuer_name = trim((string) ($detail_meta['issuer_name'] ?? ''));
+            if ($issuer_name === '') {
+                $issuer_name = trim((string) ($full_item['creatorName'] ?? $item['creatorName'] ?? ''));
+            }
+
+            $attachments = array_map(static function (array $file): array {
+                return [
+                    'fileID' => (int) ($file['fileID'] ?? 0),
+                    'fileName' => trim((string) ($file['fileName'] ?? '')),
+                    'mimeType' => trim((string) ($file['mimeType'] ?? '')),
+                    'fileSize' => (int) ($file['fileSize'] ?? 0),
+                ];
+            }, (array) ($attachments_map[(string) $outgoing_id] ?? []));
+
+            $payload_map[(string) $outgoing_id] = [
+                'outgoingID' => $outgoing_id,
+                'outgoingNo' => trim((string) ($full_item['outgoingNo'] ?? $item['outgoingNo'] ?? '')),
+                'subject' => trim((string) ($full_item['subject'] ?? $item['subject'] ?? '')),
+                'priorityKey' => trim((string) ($detail_meta['priority_key'] ?? 'normal')),
+                'priorityLabel' => trim((string) ($detail_meta['priority_label'] ?? outgoing_priority_label_from_key('normal'))),
+                'effectiveDate' => $effective_date,
+                'issuerName' => $issuer_name,
+                'ownerNames' => array_values((array) ($detail_meta['owner_names'] ?? [])),
+                'status' => $status_key,
+                'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
+                'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
+                'attachments' => $attachments,
+            ];
+        }
+
+        return $payload_map;
     }
 }
 
@@ -116,7 +297,38 @@ if (!function_exists('outgoing_index')) {
             $filter_sort = 'newest';
         }
 
+        $is_filtered_track_request = $search !== '' || $filter_status !== 'all' || $filter_sort !== 'newest';
+        $build_audit_payload = static function (array $extra = []) use ($active_tab, $is_track_active, $has_track_filters, $search, $filter_status, $filter_sort): array {
+            $payload = [
+                'tab' => $active_tab !== '' ? $active_tab : 'compose',
+                'trackTab' => $is_track_active,
+                'hasTrackFilters' => $has_track_filters,
+                'query' => $search !== '' ? $search : null,
+                'statusFilter' => $filter_status,
+                'sort' => $filter_sort,
+            ];
+
+            foreach ($extra as $key => $value) {
+                $payload[$key] = $value;
+            }
+
+            return array_filter($payload, static function ($value): bool {
+                return $value !== null && $value !== '' && $value !== [];
+            });
+        };
+
+        $audit_fail = static function (string $action, string $reason, ?int $entity_id = null, array $payload = []) use ($build_audit_payload): void {
+            if (!function_exists('audit_log')) {
+                return;
+            }
+
+            audit_log('outgoing', $action, 'FAIL', 'dh_outgoing_letters', $entity_id, $reason, $build_audit_payload($payload));
+        };
+
         if (!$can_manage) {
+            if (function_exists('audit_log')) {
+                audit_log('outgoing', 'ACCESS', 'DENY', null, null, 'outgoing_access_denied', $build_audit_payload(), null, 403);
+            }
             http_response_code(403);
             require __DIR__ . '/../views/errors/403.php';
 
@@ -126,6 +338,7 @@ if (!function_exists('outgoing_index')) {
         $alert = null;
         $form_values = [
             'subject' => '',
+            'priority' => 'normal',
             'effective_date' => date('Y-m-d'),
             'person_ids' => [],
         ];
@@ -142,11 +355,27 @@ if (!function_exists('outgoing_index')) {
 
             if ($is_create_request) {
                 $form_values['subject'] = trim((string) ($_POST['subject'] ?? ''));
+                $form_values['priority'] = outgoing_normalize_priority_key((string) ($_POST['priority'] ?? 'normal'));
                 $form_values['effective_date'] = trim((string) ($_POST['effective_date'] ?? ''));
                 $form_values['person_ids'] = outgoing_normalize_person_ids((array) ($_POST['person_ids'] ?? []));
             }
 
+            $post_audit_payload = [
+                'requestedAction' => $action !== '' ? $action : ($is_create_request ? 'create' : 'unknown'),
+                'outgoingID' => $outgoing_id > 0 ? $outgoing_id : null,
+            ];
+
+            if ($is_create_request) {
+                $post_audit_payload['subject'] = $form_values['subject'] !== '' ? $form_values['subject'] : null;
+                $post_audit_payload['priority'] = $form_values['priority'];
+                $post_audit_payload['effectiveDate'] = $form_values['effective_date'] !== '' ? $form_values['effective_date'] : null;
+                $post_audit_payload['ownerCount'] = count($form_values['person_ids']);
+            }
+
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
+                if (function_exists('audit_log')) {
+                    audit_log('security', 'CSRF_FAIL', 'DENY', 'dh_outgoing_letters', $outgoing_id > 0 ? $outgoing_id : null, 'outgoing_controller', $build_audit_payload($post_audit_payload));
+                }
                 $alert = [
                     'type' => 'danger',
                     'title' => 'ไม่สามารถยืนยันความปลอดภัย',
@@ -155,18 +384,21 @@ if (!function_exists('outgoing_index')) {
             } else {
                 if ($is_create_request) {
                     if ($form_values['subject'] === '') {
+                        $audit_fail('CREATE', 'missing_subject', null, $post_audit_payload);
                         $alert = [
                             'type' => 'danger',
                             'title' => 'กรุณากรอกเรื่อง',
                             'message' => '',
                         ];
                     } elseif (!outgoing_issue_valid_date($form_values['effective_date'])) {
+                        $audit_fail('CREATE', 'invalid_effective_date', null, $post_audit_payload);
                         $alert = [
                             'type' => 'danger',
                             'title' => 'วันที่ไม่ถูกต้อง',
                             'message' => 'กรุณาเลือกวันที่ให้ถูกต้อง',
                         ];
                     } elseif ($form_values['person_ids'] === []) {
+                        $audit_fail('CREATE', 'missing_owner', null, $post_audit_payload);
                         $alert = [
                             'type' => 'danger',
                             'title' => 'กรุณาเลือกเจ้าของเรื่อง',
@@ -178,7 +410,7 @@ if (!function_exists('outgoing_index')) {
                             $outgoing_id = outgoing_create_draft([
                                 'dh_year' => system_get_dh_year(),
                                 'subject' => $form_values['subject'],
-                                'detail' => outgoing_build_detail($form_values['effective_date'], $issuer_name, $owner_names),
+                                'detail' => outgoing_build_detail($form_values['effective_date'], $issuer_name, $owner_names, (string) ($form_values['priority'] ?? 'normal')),
                                 'status' => OUTGOING_STATUS_WAITING_ATTACHMENT,
                                 'createdByPID' => $current_pid,
                             ]);
@@ -194,6 +426,7 @@ if (!function_exists('outgoing_index')) {
 
                             $form_values = [
                                 'subject' => '',
+                                'priority' => 'normal',
                                 'effective_date' => date('Y-m-d'),
                                 'person_ids' => [],
                             ];
@@ -205,21 +438,37 @@ if (!function_exists('outgoing_index')) {
                             ];
                         }
                     }
-                } elseif ($action === 'attach' && $outgoing_id > 0) {
-                    try {
-                        outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? []);
-                        $alert = [
-                            'type' => 'success',
-                            'title' => 'แนบไฟล์เรียบร้อย',
-                            'message' => '',
-                        ];
-                    } catch (Throwable $e) {
+                } elseif ($action === 'attach') {
+                    if ($outgoing_id <= 0) {
+                        $audit_fail('ATTACH', 'invalid_outgoing_id', null, $post_audit_payload);
                         $alert = [
                             'type' => 'danger',
-                            'title' => 'เกิดข้อผิดพลาด',
-                            'message' => $e->getMessage(),
+                            'title' => 'ข้อมูลไม่ถูกต้อง',
+                            'message' => 'ไม่พบรายการที่ต้องการแนบไฟล์',
                         ];
+                    } else {
+                        try {
+                            outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? []);
+                            $alert = [
+                                'type' => 'success',
+                                'title' => 'แนบไฟล์เรียบร้อย',
+                                'message' => '',
+                            ];
+                        } catch (Throwable $e) {
+                            $alert = [
+                                'type' => 'danger',
+                                'title' => 'เกิดข้อผิดพลาด',
+                                'message' => $e->getMessage(),
+                            ];
+                        }
                     }
+                } elseif ($action !== '') {
+                    $audit_fail('ACTION', 'invalid_action', $outgoing_id > 0 ? $outgoing_id : null, $post_audit_payload);
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'ข้อมูลไม่ถูกต้อง',
+                        'message' => 'ไม่พบคำสั่งที่ต้องการ',
+                    ];
                 }
             }
         }
@@ -246,6 +495,26 @@ if (!function_exists('outgoing_index')) {
             return (int) ($item['outgoingID'] ?? 0);
         }, $outgoing_items);
         $attachments_map = outgoing_list_attachments_map($outgoing_ids);
+        $send_modal_payload_map = outgoing_build_view_modal_payload_map($outgoing_items, $attachments_map, $track_status_map);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && function_exists('audit_log')) {
+            audit_log(
+                'outgoing',
+                $is_filtered_track_request ? 'SEARCH' : 'VIEW',
+                'SUCCESS',
+                null,
+                null,
+                null,
+                $build_audit_payload([
+                    'resultCount' => count($outgoing_items),
+                    'activeDhYear' => $active_dh_year,
+                    'summaryWaiting' => (int) ($summary_counts[OUTGOING_STATUS_WAITING_ATTACHMENT] ?? 0),
+                    'summaryComplete' => (int) ($summary_counts[OUTGOING_STATUS_COMPLETE] ?? 0),
+                ]),
+                'GET',
+                200
+            );
+        }
 
         view_render('outgoing/index', [
             'alert' => $alert,
@@ -261,7 +530,7 @@ if (!function_exists('outgoing_index')) {
             'issuer_name' => $issuer_name,
             'form_values' => $form_values,
             'track_status_map' => $track_status_map,
-            'send_modal_payload_map' => [],
+            'send_modal_payload_map' => $send_modal_payload_map,
             'summary_counts' => $summary_counts,
             'attachments_map' => $attachments_map,
         ]);

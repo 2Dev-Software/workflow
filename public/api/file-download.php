@@ -4,25 +4,51 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['pID'])) {
-    http_response_code(401);
-    exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    http_response_code(405);
-    exit();
-}
+require_once __DIR__ . '/../../app/modules/audit/logger.php';
 
 $module = trim((string) ($_GET['module'] ?? ''));
 $entity_id = trim((string) ($_GET['entity_id'] ?? ''));
 $file_id = filter_input(INPUT_GET, 'file_id', FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
+$download = isset($_GET['download']) && $_GET['download'] === '1';
+$is_outgoing_module = $module === 'outgoing';
+$outgoing_entity_id = ctype_digit($entity_id) ? (int) $entity_id : null;
+$outgoing_audit_action = $download ? 'ATTACHMENT_DOWNLOAD' : 'ATTACHMENT_VIEW';
+$outgoing_abort = static function (int $http_status, string $audit_status, string $message, array $payload = [], ?string $http_method = null) use ($is_outgoing_module, $outgoing_audit_action, $outgoing_entity_id, $file_id): void {
+    if ($is_outgoing_module && function_exists('audit_log')) {
+        audit_log('outgoing', $outgoing_audit_action, $audit_status, 'dh_outgoing_letters', $outgoing_entity_id, $message, array_filter(array_merge([
+            'fileID' => $file_id ?: null,
+        ], $payload), static function ($value): bool {
+            return $value !== null && $value !== '' && $value !== [];
+        }), $http_method ?? (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $http_status);
+    }
+    http_response_code($http_status);
+    exit();
+};
+
+if (empty($_SESSION['pID'])) {
+    if ($is_outgoing_module && function_exists('audit_log')) {
+        audit_log('security', 'AUTH_REQUIRED', 'DENY', 'dh_outgoing_letters', $outgoing_entity_id, 'outgoing_file_download', array_filter([
+            'fileID' => $file_id ?: null,
+            'download' => $download,
+        ], static function ($value): bool {
+            return $value !== null && $value !== '' && $value !== [];
+        }), 'GET', 401);
+    }
+    http_response_code(401);
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    $outgoing_abort(405, 'FAIL', 'invalid_method');
+}
 
 if ($module === '' || $entity_id === '' || !$file_id) {
-    http_response_code(400);
-    exit();
+    $outgoing_abort(400, 'FAIL', 'invalid_params', [
+        'module' => $module !== '' ? $module : null,
+        'rawEntityID' => $entity_id !== '' ? $entity_id : null,
+    ], 'GET');
 }
 
 require_once __DIR__ . '/../../config/connection.php';
@@ -32,8 +58,9 @@ require_once __DIR__ . '/../../app/rbac/roles.php';
 $allowed_modules = ['circulars', 'orders', 'outgoing', 'memos', 'repairs'];
 
 if (!in_array($module, $allowed_modules, true)) {
-    http_response_code(400);
-    exit();
+    $outgoing_abort(400, 'FAIL', 'invalid_module', [
+        'module' => $module,
+    ], 'GET');
 }
 
 $file_sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.moduleName, r.entityName, r.entityID
@@ -45,8 +72,7 @@ $stmt = mysqli_prepare($connection, $file_sql);
 
 if ($stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    http_response_code(500);
-    exit();
+    $outgoing_abort(500, 'FAIL', 'file_lookup_prepare_failed', [], 'GET');
 }
 
 mysqli_stmt_bind_param($stmt, 'ssi', $module, $entity_id, $file_id);
@@ -56,8 +82,7 @@ $file_row = $result ? mysqli_fetch_assoc($result) : null;
 mysqli_stmt_close($stmt);
 
 if (!$file_row) {
-    http_response_code(404);
-    exit();
+    $outgoing_abort(404, 'FAIL', 'file_reference_not_found', [], 'GET');
 }
 
 $current_pid = (string) $_SESSION['pID'];
@@ -203,15 +228,13 @@ if ($module === 'circulars') {
 }
 
 if (!$authorized) {
-    http_response_code(403);
-    exit();
+    $outgoing_abort(403, 'DENY', 'not_authorized', [], 'GET');
 }
 
 $file_path = (string) ($file_row['filePath'] ?? '');
 
 if ($file_path === '') {
-    http_response_code(404);
-    exit();
+    $outgoing_abort(404, 'FAIL', 'file_path_missing', [], 'GET');
 }
 
 $base_storage = realpath(__DIR__ . '/../../storage/uploads');
@@ -229,13 +252,20 @@ if ($target_path && $base_assets && strpos($target_path, $base_assets) === 0) {
 }
 
 if (!$valid || !is_file($target_path)) {
-    http_response_code(404);
-    exit();
+    $outgoing_abort(404, !$valid ? 'DENY' : 'FAIL', !$valid ? 'invalid_file_path' : 'file_missing_on_disk', [], 'GET');
 }
 
 $file_name = (string) ($file_row['fileName'] ?? 'attachment');
 $mime_type = (string) ($file_row['mimeType'] ?? 'application/octet-stream');
-$download = isset($_GET['download']) && $_GET['download'] === '1';
+
+if ($is_outgoing_module && function_exists('audit_log')) {
+    audit_log('outgoing', $outgoing_audit_action, 'SUCCESS', 'dh_outgoing_letters', $outgoing_entity_id, null, [
+        'fileID' => (int) ($file_row['fileID'] ?? $file_id),
+        'mimeType' => $mime_type,
+        'fileSize' => (int) ($file_row['fileSize'] ?? 0),
+        'download' => $download,
+    ], 'GET', 200);
+}
 
 header('Content-Type: ' . $mime_type);
 header('Content-Length: ' . (string) filesize($target_path));
