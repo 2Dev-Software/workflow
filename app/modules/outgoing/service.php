@@ -75,12 +75,20 @@ if (!function_exists('outgoing_sync_document')) {
 if (!function_exists('outgoing_prefix')) {
     function outgoing_prefix(): string
     {
-        $prefix = $_ENV['OUTGOING_PREFIX'] ?? 'ศธ.';
-        $code = $_ENV['OUTGOING_CODE'] ?? '01234';
+        $prefix = $_ENV['OUTGOING_PREFIX'] ?? 'ศธ';
+        $code = $_ENV['OUTGOING_CODE'] ?? '04320.05';
         $prefix = trim((string) $prefix);
         $code = trim((string) $code);
 
-        return $code !== '' ? $prefix . $code : $prefix;
+        if ($prefix === '') {
+            return $code;
+        }
+
+        if ($code === '') {
+            return $prefix;
+        }
+
+        return $prefix . ' ' . $code;
     }
 }
 
@@ -89,9 +97,20 @@ if (!function_exists('outgoing_generate_number')) {
     {
         $row = db_fetch_one('SELECT outgoingSeq FROM dh_outgoing_letters WHERE dh_year = ? ORDER BY outgoingSeq DESC LIMIT 1 FOR UPDATE', 'i', $year);
         $seq = $row ? ((int) $row['outgoingSeq'] + 1) : 1;
-        $number = outgoing_prefix() . '/' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        $number = outgoing_prefix() . '/' . $seq;
 
         return [$number, $seq];
+    }
+}
+
+if (!function_exists('outgoing_preview_number')) {
+    function outgoing_preview_number(int $year): string
+    {
+        $row = db_fetch_one('SELECT outgoingSeq FROM dh_outgoing_letters WHERE dh_year = ? ORDER BY outgoingSeq DESC LIMIT 1', 'i', $year);
+        $seq = $row ? ((int) $row['outgoingSeq'] + 1) : 1;
+        $number = outgoing_prefix() . '/' . $seq;
+
+        return $number;
     }
 }
 

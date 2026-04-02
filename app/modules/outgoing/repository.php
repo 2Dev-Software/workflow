@@ -74,6 +74,8 @@ if (!function_exists('outgoing_list')) {
     {
         $search = trim((string) ($filters['q'] ?? ''));
         $status = strtoupper(trim((string) ($filters['status'] ?? 'all')));
+        $created_by_pid = trim((string) ($filters['created_by_pid'] ?? ''));
+        $sort = strtolower(trim((string) ($filters['sort'] ?? 'newest')));
         $params = [];
         $types = '';
 
@@ -113,6 +115,14 @@ if (!function_exists('outgoing_list')) {
             $params[] = $status;
         }
 
+        if ($created_by_pid !== '') {
+            $sql .= ' AND o.createdByPID = ?';
+            $types .= 's';
+            $params[] = $created_by_pid;
+        }
+
+        $sort_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
+
         $sql .= ' GROUP BY
                 o.outgoingID,
                 o.dh_year,
@@ -123,7 +133,7 @@ if (!function_exists('outgoing_list')) {
                 o.createdAt,
                 o.updatedAt,
                 t.fName
-            ORDER BY o.createdAt DESC, o.outgoingID DESC';
+            ORDER BY o.createdAt ' . $sort_direction . ', o.outgoingID ' . $sort_direction;
 
         return db_fetch_all($sql, $types, ...$params);
     }
