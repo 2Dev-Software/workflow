@@ -159,6 +159,33 @@
   }
 
   function bindConfirmHandlers() {
+    function resolveAssociatedForm(trigger) {
+      if (!trigger) {
+        return null;
+      }
+
+      if (trigger.form instanceof HTMLFormElement) {
+        return trigger.form;
+      }
+
+      var closestForm = trigger.closest ? trigger.closest("form") : null;
+      if (closestForm instanceof HTMLFormElement) {
+        return closestForm;
+      }
+
+      if (!trigger.getAttribute) {
+        return null;
+      }
+
+      var formId = String(trigger.getAttribute("form") || "").trim();
+      if (formId === "") {
+        return null;
+      }
+
+      var linkedForm = document.getElementById(formId);
+      return linkedForm instanceof HTMLFormElement ? linkedForm : null;
+    }
+
     document.addEventListener(
       "click",
       function (event) {
@@ -197,7 +224,7 @@
             return;
           }
 
-          var form = trigger.closest("form");
+          var form = resolveAssociatedForm(trigger);
           if (!form) {
             return;
           }
