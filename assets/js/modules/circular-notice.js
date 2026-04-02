@@ -448,11 +448,16 @@
 
   function renderFiles(files, entityId) {
     if (!fileSection) return;
+    var fileSectionWrapper = fileSection.closest(".content-file-sec");
     fileSection.innerHTML = "";
     if (!files || files.length === 0) {
-      fileSection.innerHTML =
-        '<div class="file-banner"><div class="file-info"><div class="file-text"><span class="file-name">ไม่มีไฟล์แนบ</span></div></div></div>';
+      if (fileSectionWrapper) {
+        fileSectionWrapper.style.display = "none";
+      }
       return;
+    }
+    if (fileSectionWrapper) {
+      fileSectionWrapper.style.display = "";
     }
     files.forEach(function (file) {
       fileSection.appendChild(buildFileItem(file, entityId));
@@ -553,22 +558,74 @@
     modalOverlay.style.display = "none";
   }
 
-  function markRead(inboxId, row) {
+  function updateRowAsRead(row, button) {
+    if (row) {
+      var badge = row.querySelector(".status-badge");
+      if (badge) {
+        badge.classList.remove("unread");
+        badge.classList.add("read");
+        badge.textContent = "อ่านแล้ว";
+      }
+    }
+
+    if (button && button.setAttribute) {
+      button.setAttribute("data-read-state", "read");
+    }
+  }
+
+  function shouldRefreshUnreadFilterAfterRead() {
+    var filterReadInput = document.getElementById("filterReadInput");
+    return !!filterReadInput && String(filterReadInput.value || "") === "unread";
+  }
+
+  function parseResponsePayload(text) {
+    var normalizedText = String(text || "").trim();
+
+    if (normalizedText === "") {
+      return null;
+    }
+
+    try {
+      return JSON.parse(normalizedText);
+    } catch (error) {}
+
+    var jsonStart = normalizedText.indexOf("{");
+    var jsonEnd = normalizedText.lastIndexOf("}");
+
+    if (jsonStart === -1 || jsonEnd <= jsonStart) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(normalizedText.slice(jsonStart, jsonEnd + 1));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function markRead(inboxId, row, button) {
     if (!inboxId || !csrfToken) {
       return;
     }
 
+    var rowLoadingTarget =
+      (row &&
+        (row.closest(".table-circular-notice-index") ||
+          row.closest(".table-circular-notice-keep") ||
+          row.closest(".table-circular-notice-archive"))) ||
+      getCircularListLoadingTarget();
+
     if (loadingApi) {
-      var rowLoadingTarget =
-        (row && row.closest(".table-circular-notice-index")) ||
-        circularListLoadingTarget;
       loadingApi.startComponent(rowLoadingTarget);
     }
 
     fetch("public/api/circular-read.php", {
       method: "POST",
+      credentials: "same-origin",
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest",
       },
       body:
         "inbox_id=" +
@@ -577,26 +634,31 @@
         encodeURIComponent(csrfToken),
     })
       .then(function (response) {
-        return response.json();
+        return response.text().then(function (text) {
+          return {
+            ok: response.ok,
+            payload: parseResponsePayload(text),
+          };
+        });
       })
-      .then(function (data) {
-        if (!data || data.success === false) {
+      .then(function (result) {
+        if (!result || result.ok !== true) {
           return;
         }
-        if (!row) return;
-        var badge = row.querySelector(".status-badge");
-        if (badge) {
-          badge.classList.remove("unread");
-          badge.classList.add("read");
-          badge.textContent = "อ่านแล้ว";
+
+        if (result.payload && result.payload.success === false) {
+          return;
+        }
+
+        updateRowAsRead(row, button);
+
+        if (shouldRefreshUnreadFilterAfterRead()) {
+          requestFilterUpdate();
         }
       })
       .catch(function () {})
       .finally(function () {
         if (loadingApi) {
-          var rowLoadingTarget =
-            (row && row.closest(".table-circular-notice-index")) ||
-            circularListLoadingTarget;
           loadingApi.stopComponent(rowLoadingTarget);
         }
       });
@@ -622,6 +684,11 @@
     var entityId = button.getAttribute("data-circular-id") || "";
     var inboxId = button.getAttribute("data-inbox-id") || "";
     var row = button.closest("tr");
+    var statusBadge = row ? row.querySelector(".status-badge") : null;
+    var shouldMarkRead =
+      !!inboxId &&
+      !!statusBadge &&
+      statusBadge.classList.contains("unread");
     var files = button.getAttribute("data-files");
     var parsedFiles = [];
     try {
@@ -632,7 +699,9 @@
 
     if (modalTypeLabel) {
       modalTypeLabel.textContent =
-        button.getAttribute("data-type") || "ประเภทหนังสือ";
+        button.getAttribute("data-modal-title") ||
+        button.getAttribute("data-type") ||
+        "ประเภทหนังสือ";
     }
     setModalFieldValue(modalSubject, button.getAttribute("data-subject") || "-");
     setModalFieldValue(
@@ -695,8 +764,8 @@
     renderFiles(parsedFiles, entityId);
     renderReceiptStatuses(button.getAttribute("data-read-stats") || "[]");
     openModal();
-    if (inboxId) {
-      markRead(inboxId, row);
+    if (shouldMarkRead) {
+      markRead(inboxId, row, button);
     }
   };
 
