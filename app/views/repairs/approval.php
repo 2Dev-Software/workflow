@@ -57,13 +57,13 @@ $format_thai_datetime = static function (?string $datetime) use ($thai_months): 
     return trim($day . ' ' . $month_label . ' ' . $year . ' เวลา ' . $date_obj->format('H:i') . ' น.');
 };
 
-$status_map = [
-    REPAIR_STATUS_PENDING => ['label' => 'รอดำเนินการ', 'variant' => 'pending'],
+$status_map = (array) ($status_map ?? [
+    REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
     REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
     REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
-    REPAIR_STATUS_REJECTED => ['label' => 'ไม่อนุมัติ', 'variant' => 'rejected'],
-    REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิก', 'variant' => 'rejected'],
-];
+    REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+    REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+]);
 
 $detail_status_key = (string) ($view_item['status'] ?? REPAIR_STATUS_PENDING);
 $detail_status = $status_map[$detail_status_key] ?? ['label' => $detail_status_key, 'variant' => 'pending'];
