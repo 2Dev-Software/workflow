@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
 
 $requests = (array) ($requests ?? []);
+$request_attachments_map = (array) ($request_attachments_map ?? []);
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
 $total_count = (int) ($total_count ?? 0);
@@ -16,6 +17,18 @@ $list_subtitle = (string) ($list_subtitle ?? '');
 $empty_title = (string) ($empty_title ?? 'ยังไม่มีรายการรออนุมัติ');
 $empty_message = (string) ($empty_message ?? '');
 $transition_actions = (array) ($transition_actions ?? []);
+$filter_query = (string) ($filter_query ?? '');
+$filter_status = (string) ($filter_status ?? 'pending');
+$filter_sort = (string) ($filter_sort ?? 'newest');
+$status_filter_options = (array) ($status_filter_options ?? [
+    'all' => 'ทั้งหมด',
+    'pending' => 'ส่งคำร้องสำเร็จ',
+    'in_progress' => 'กำลังดำเนินการ',
+    'completed' => 'เสร็จสิ้น',
+    'cancelled' => 'ยกเลิกคำร้อง',
+]);
+
+$json_flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP;
 
 $thai_months = [
     1 => 'มกราคม',
@@ -55,6 +68,73 @@ $format_thai_datetime = static function (?string $datetime) use ($thai_months): 
     $month_label = $thai_months[$month] ?? '';
 
     return trim($day . ' ' . $month_label . ' ' . $year . ' เวลา ' . $date_obj->format('H:i') . ' น.');
+};
+
+$format_thai_date_line = static function (?string $datetime) use ($thai_months): string {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || $datetime === '0000-00-00 00:00:00') {
+        return '-';
+    }
+
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
+    }
+
+    if ($date_obj === false) {
+        return $datetime;
+    }
+
+    $day = (int) $date_obj->format('j');
+    $month = (int) $date_obj->format('n');
+    $year = (int) $date_obj->format('Y') + 543;
+    $month_label = $thai_months[$month] ?? '';
+
+    return trim($day . ' ' . $month_label . ' ' . $year);
+};
+
+$format_thai_time_line = static function (?string $datetime): string {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || $datetime === '0000-00-00 00:00:00') {
+        return '-';
+    }
+
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
+    }
+
+    if ($date_obj === false) {
+        return '-';
+    }
+
+    return 'เวลา ' . $date_obj->format('H:i') . ' น.';
+};
+
+$truncate_detail = static function (?string $detail, int $limit = 80): string {
+    $detail = preg_replace('/\s+/u', ' ', trim((string) $detail));
+
+    if ($detail === null || $detail === '') {
+        return '-';
+    }
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($detail, 'UTF-8') <= $limit) {
+            return $detail;
+        }
+
+        return rtrim(mb_substr($detail, 0, $limit, 'UTF-8')) . '...';
+    }
+
+    if (strlen($detail) <= $limit) {
+        return $detail;
+    }
+
+    return rtrim(substr($detail, 0, $limit)) . '...';
 };
 
 $status_map = (array) ($status_map ?? [
@@ -103,6 +183,34 @@ ob_start();
         top: 100px;
         transform: translateY(-70px);
     }
+
+    .booking-table.approval-table td:nth-child(4),
+    .booking-table.approval-table td:nth-child(5) {
+        text-align: center;
+        min-width: auto;
+        white-space: nowrap;
+    }
+
+    .booking-table.approval-table td:nth-child(3) {
+        text-align: left;
+        white-space: normal;
+    }
+
+    .approval-table .approval-date-time {
+        display: block;
+        text-align: left;
+    }
+
+    .booking-table.approval-table td:nth-child(4) .status-pill {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .booking-table.approval-table td:nth-child(5) .booking-action-group {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+    }
 </style>
 
 <div class="content-header">
@@ -118,107 +226,60 @@ ob_start();
             </div>
         </div>
 
-        <form class="approval-toolbar" method="get" action="vehicle-reservation-approval.php"
-            data-approval-filter-form id="vehicleApprovalFilterForm">
+        <form class="approval-toolbar" method="get" action="<?= h($base_url) ?>" id="repairApprovalFilterForm">
             <div class="approval-filter-group">
                 <div class="room-admin-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input class="form-input" type="search" name="q"
-                        value="<? //= htmlspecialchars($vehicle_approval_query, ENT_QUOTES, 'UTF-8') 
-                                ?>"
-                        placeholder="ค้นหาผู้ขอจอง/รถ/ทะเบียน" autocomplete="off">
+                    <input
+                        class="form-input"
+                        type="search"
+                        name="q"
+                        value="<?= h($filter_query) ?>"
+                        placeholder="ค้นหาหัวข้อ รายละเอียด วันที่แจ้ง"
+                        autocomplete="off">
                 </div>
                 <div class="room-admin-filter">
-
                     <div class="custom-select-wrapper">
                         <div class="custom-select-trigger">
-                            <p class="select-value">ทั้งหมด</p>
+                            <p class="select-value"><?= h((string) ($status_filter_options[$filter_status] ?? $status_filter_options['pending'] ?? 'ส่งคำร้องสำเร็จ')) ?></p>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
 
                         <div class="custom-options">
-                            <div class="custom-option" data-value="all">ทุกสถานะ</div>
-                            <div class="custom-option" data-value="pending">รออนุมัติ</div>
-                            <div class="custom-option" data-value="approved">อนุมัติแล้ว</div>
-                            <!-- <?php if ($show_rejected_filter) : ?>
-                                <div class="custom-option" data-value="rejected"><?= htmlspecialchars($rejected_filter_label, ENT_QUOTES, 'UTF-8') ?></div>
-                            <?php endif; ?> -->
+                            <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                                <div class="custom-option<?= $filter_status === (string) $status_value ? ' selected' : '' ?>" data-value="<?= h((string) $status_value) ?>">
+                                    <?= h((string) $status_label) ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
 
                         <select class="form-input" name="status">
-                            <option value="all">ทุกสถานะ</option>
-                            <option value="pending" <?= $vehicle_approval_status === 'pending' ? 'selected' : '' ?>>รออนุมัติ</option>
-                            <option value="approved" <?= $vehicle_approval_status === 'approved' ? 'selected' : '' ?>>อนุมัติแล้ว</option>
-                            <?php if ($show_rejected_filter) : ?>
-                                <option value="rejected" <?= $vehicle_approval_status === 'rejected' ? 'selected' : '' ?>><?= htmlspecialchars($rejected_filter_label, ENT_QUOTES, 'UTF-8') ?></option>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-
-                </div>
-                <div class="room-admin-filter">
-                    <div class="custom-select-wrapper">
-                        <div class="custom-select-trigger">
-                            <p class="select-value">ทั้งหมด</p>
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </div>
-
-                        <div class="custom-options">
-                            <div class="custom-option" data-value="all">ทุกยานพาหนะ</div>
-                            <!-- <?php foreach ($vehicle_list as $vehicle_item): ?>
-                                <?php
-                                        $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
-
-                                        if ($vehicle_id === '') {
-                                            continue;
-                                        }
-                                        $plate = trim((string) ($vehicle_item['vehiclePlate'] ?? ''));
-                                        $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
-                                        $model = trim((string) ($vehicle_item['vehicleModel'] ?? ''));
-                                        $label = $plate !== '' ? $plate : $type;
-
-                                        if ($label === '') {
-                                            $label = $vehicle_id;
-                                        }
-                                        $detail = trim($type . ' ' . $model);
-
-                                        if ($detail !== '') {
-                                            $label .= ' - ' . $detail;
-                                        }
-                                ?>
-                                <div class="custom-option" data-value="<?= htmlspecialchars($vehicle_id, ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
-                                </div>
-                            <?php endforeach; ?> -->
-                        </div>
-
-                        <select class="form-input" name="vehicle">
-                            <option value="all">ทุกยานพาหนะ</option>
-                            <?php foreach ($vehicle_list as $vehicle_item): ?>
-                                <?php
-                                $vehicle_id = (string) ($vehicle_item['vehicleID'] ?? '');
-
-                                if ($vehicle_id === '') {
-                                    continue;
-                                }
-                                $plate = trim((string) ($vehicle_item['vehiclePlate'] ?? ''));
-                                $type = trim((string) ($vehicle_item['vehicleType'] ?? ''));
-                                $label = $plate !== '' ? $plate : $type;
-
-                                if ($label === '') {
-                                    $label = $vehicle_id;
-                                }
-                                ?>
-                                <option value="<?= htmlspecialchars($vehicle_id, ENT_QUOTES, 'UTF-8') ?>"
-                                    <?= $vehicle_approval_vehicle === $vehicle_id ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+                            <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                                <option value="<?= h((string) $status_value) ?>" <?= $filter_status === (string) $status_value ? 'selected' : '' ?>>
+                                    <?= h((string) $status_label) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                 </div>
+                <div class="room-admin-filter">
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
 
+                        <div class="custom-options">
+                            <div class="custom-option<?= $filter_sort === 'newest' ? ' selected' : '' ?>" data-value="newest">ใหม่ไปเก่า</div>
+                            <div class="custom-option<?= $filter_sort === 'oldest' ? ' selected' : '' ?>" data-value="oldest">เก่าไปใหม่</div>
+                        </div>
+
+                        <select class="form-input" name="sort">
+                            <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
+                            <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </form>
     </section>
@@ -226,7 +287,10 @@ ob_start();
     <section class="booking-card booking-list-card booking-list-row approval-table-card">
         <div class="booking-card-header">
             <div class="booking-card-title-group">
-                <h2 class="booking-card-title">รายการคำขอจองรถ</h2>
+                <h2 class="booking-card-title"><?= h($list_title) ?></h2>
+                <?php if ($list_subtitle !== '') : ?>
+                    <p class="booking-card-subtitle"><?= h($list_subtitle) ?></p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -235,54 +299,234 @@ ob_start();
                 <thead>
                     <tr>
                         <th>หัวข้อ</th>
-                        <th>สถานที่</th>
-                        <th>อุปกรณ์</th>
-                        <th>ผู้แจ้ง</th>
-                        <th>สถานะ</th>
+                        <th>รายละเอียด</th>
                         <th>วันที่แจ้ง</th>
+                        <th>สถานะ</th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>
-                <!-- <tbody>
-                    <? //php require __DIR__ . '/../../../public/components/partials/vehicle-reservation-approval-table-rows.php'; 
-                    ?>
-                </tbody> -->
-
                 <tbody>
-                    <tr class="approval-row pending">
-                        <td>
-                            Lorem ipsum dolor sit.
-                        </td>
-                        <td>
-                            หกฟหกดหกดหกดหกดห
-                        </td>
-                        <td>
-                            -
-                        </td>
-                        <td>
-                            นางสาวทิพยรัตน์ บุญมณี
-                        </td>
-                        <td>
-                            <span class="status-pill pending">รอดำเนินการ</span>
-                        </td>
-                        <td>
-                            29 มกราคม 2569 เวลา 13:17น.
-                        </td>
-                        <td class="booking-action-cell">
-                            <div class="booking-action-group">
-                                <button type="button" class="booking-action-btn secondary" data-vehicle-approval-action="detail" data-approval-id="29" data-approval-code="29" data-approval-vehicle-id="" data-approval-vehicle="-" data-approval-driver-id="" data-approval-driver-name="" data-approval-driver-tel="" data-approval-date="15-16 มีนาคม 2569" data-approval-time="13:49-17:49" data-approval-requester="นางสาวทิพยรัตน์ บุญมณี" data-approval-department="กลุ่มธุรการ" data-approval-contact="0882747041" data-approval-purpose="dfasfdssdfdsf" data-approval-location="dsfdsfsdf" data-approval-passengers="5" data-approval-driver="-" data-approval-status="PENDING" data-approval-status-label="ส่งเอกสารแล้ว" data-approval-status-class="pending" data-approval-name="รอการอนุมัติ" data-approval-at="-" data-approval-created="15 มีนาคม 2569 เวลา 11:49" data-approval-updated="15 มีนาคม 2569 เวลา 11:49" data-approval-assigned-note="" data-approval-approval-note="" data-approval-attachments="[{&quot;fileID&quot;:160,&quot;fileName&quot;:&quot;Screenshot 2569-03-14 at 16.18.17 (2).png&quot;,&quot;filePath&quot;:&quot;assets/uploads/vehicle-bookings/vehicle_booking_20260315_114959_c34fd5d75ef1.png&quot;,&quot;mimeType&quot;:&quot;image/png&quot;,&quot;fileSize&quot;:1681069},{&quot;fileID&quot;:161,&quot;fileName&quot;:&quot;Screenshot 2569-03-14 at 17.14.58.png&quot;,&quot;filePath&quot;:&quot;assets/uploads/vehicle-bookings/vehicle_booking_20260315_114959_30fe750e2f29.png&quot;,&quot;mimeType&quot;:&quot;image/png&quot;,&quot;fileSize&quot;:192064}]">
-                                    <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                    <span class="tooltip">ดูรายละเอียด</span>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+                    <?php if (empty($requests)) : ?>
+                        <tr>
+                            <td colspan="5" class="booking-empty"><?= h($empty_message !== '' ? $empty_message : $empty_title) ?></td>
+                        </tr>
+                    <?php else : ?>
+                        <?php foreach ($requests as $req) : ?>
+                            <?php
+                            $repair_id = (int) ($req['repairID'] ?? 0);
+                            $status_key = (string) ($req['status'] ?? REPAIR_STATUS_PENDING);
+                            $row_status = $status_map[$status_key] ?? ['label' => $status_key !== '' ? $status_key : '-', 'variant' => 'pending'];
+                            $detail_preview = $truncate_detail((string) ($req['detail'] ?? ''), 80);
+                            $created_date_line = $format_thai_date_line((string) ($req['createdAt'] ?? ''));
+                            $created_time_line = $format_thai_time_line((string) ($req['createdAt'] ?? ''));
+                            $attachment_payload = [];
+
+                            foreach ((array) ($request_attachments_map[$repair_id] ?? []) as $file) {
+                                $attachment_payload[] = [
+                                    'fileID' => (int) ($file['fileID'] ?? 0),
+                                    'fileName' => (string) ($file['fileName'] ?? ''),
+                                    'mimeType' => (string) ($file['mimeType'] ?? ''),
+                                    'fileSize' => (int) ($file['fileSize'] ?? 0),
+                                ];
+                            }
+
+                            $attachment_json = json_encode($attachment_payload, $json_flags);
+
+                            if (!is_string($attachment_json)) {
+                                $attachment_json = '[]';
+                            }
+                            ?>
+                            <tr class="approval-row <?= h((string) ($row_status['variant'] ?? 'pending')) ?>">
+                                <td><?= h((string) ($req['subject'] ?? '-')) ?></td>
+                                <td><?= h($detail_preview) ?></td>
+                                <td>
+                                    <span class="approval-date-time">
+                                        <?= h($created_date_line) ?>
+                                        <span class="detail-subtext"><?= h($created_time_line) ?></span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-pill <?= h((string) ($row_status['variant'] ?? 'pending')) ?>">
+                                        <?= h((string) ($row_status['label'] ?? '-')) ?>
+                                    </span>
+                                </td>
+                                <td class="booking-action-cell">
+                                    <div class="booking-action-group">
+                                        <button
+                                            type="button"
+                                            class="booking-action-btn secondary js-open-repair-approval-detail-modal"
+                                            data-vehicle-approval-action="detail"
+                                            data-repair-id="<?= h((string) $repair_id) ?>"
+                                            data-subject="<?= h((string) ($req['subject'] ?? '-')) ?>"
+                                            data-detail="<?= h((string) ($req['detail'] ?? '')) ?>"
+                                            data-location="<?= h((string) ($req['location'] ?? '-')) ?>"
+                                            data-equipment="<?= h((string) ($req['equipment'] ?? '-')) ?>"
+                                            data-created-at="<?= h($format_thai_datetime((string) ($req['createdAt'] ?? ''))) ?>"
+                                            data-updated-at="<?= h($format_thai_datetime((string) ($req['updatedAt'] ?? ''))) ?>"
+                                            data-resolved-at="<?= h($format_thai_datetime((string) ($req['resolvedAt'] ?? ''))) ?>"
+                                            data-requester-name="<?= h((string) ($req['requesterName'] ?? '-')) ?>"
+                                            data-assigned-to-name="<?= h((string) ($req['assignedToName'] ?? '-')) ?>"
+                                            data-status-key="<?= h($status_key) ?>"
+                                            data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
+                                            data-files="<?= h($attachment_json) ?>">
+                                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
     </section>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let approvalTableCard = document.querySelector('.approval-table-card');
+        const approvalFilterForm = document.getElementById('repairApprovalFilterForm');
+        const approvalQueryInput = approvalFilterForm ? approvalFilterForm.querySelector('input[name="q"]') : null;
+        const approvalStatusInput = approvalFilterForm ? approvalFilterForm.querySelector('select[name="status"]') : null;
+        const approvalSortInput = approvalFilterForm ? approvalFilterForm.querySelector('select[name="sort"]') : null;
+        let approvalSearchTimer = null;
+        let approvalSearchIsComposing = false;
+        let approvalFilterController = null;
+        let approvalFilterRequestId = 0;
+
+        const buildApprovalFilterUrl = () => {
+            if (!approvalFilterForm) {
+                return '';
+            }
+
+            const action = String(approvalFilterForm.getAttribute('action') || '').trim() || window.location.pathname;
+            const params = new URLSearchParams(new FormData(approvalFilterForm));
+            const query = params.toString();
+
+            return query !== '' ? `${action}?${query}` : action;
+        };
+
+        const refreshApprovalTable = (delayMs = 0) => {
+            if (!approvalFilterForm || typeof window.fetch !== 'function' || typeof window.DOMParser !== 'function') {
+                return;
+            }
+
+            window.clearTimeout(approvalSearchTimer);
+
+            approvalSearchTimer = window.setTimeout(async () => {
+                const requestUrl = buildApprovalFilterUrl();
+
+                if (requestUrl === '') {
+                    return;
+                }
+
+                if (!approvalTableCard) {
+                    approvalTableCard = document.querySelector('.approval-table-card');
+                }
+
+                if (!approvalTableCard) {
+                    return;
+                }
+
+                if (approvalFilterController) {
+                    approvalFilterController.abort();
+                }
+
+                const controller = new AbortController();
+                approvalFilterController = controller;
+                const requestId = ++approvalFilterRequestId;
+
+                approvalTableCard.style.opacity = '0.55';
+                approvalTableCard.style.pointerEvents = 'none';
+
+                try {
+                    const response = await fetch(requestUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                        signal: controller.signal,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const html = await response.text();
+
+                    if (requestId !== approvalFilterRequestId) {
+                        return;
+                    }
+
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const nextApprovalTableCard = doc.querySelector('.approval-table-card');
+
+                    if (!nextApprovalTableCard) {
+                        throw new Error('Unable to locate refreshed approval table');
+                    }
+
+                    approvalTableCard.outerHTML = nextApprovalTableCard.outerHTML;
+                    approvalTableCard = document.querySelector('.approval-table-card');
+                    window.history.replaceState({}, '', requestUrl);
+                } catch (error) {
+                    if (!error || error.name !== 'AbortError') {
+                        window.console && console.error && console.error(error);
+                    }
+                } finally {
+                    if (requestId === approvalFilterRequestId) {
+                        approvalFilterController = null;
+                    }
+
+                    if (approvalTableCard) {
+                        approvalTableCard.style.opacity = '';
+                        approvalTableCard.style.pointerEvents = '';
+                    }
+                }
+            }, delayMs);
+        };
+
+        approvalFilterForm?.addEventListener('submit', function(event) {
+            event.preventDefault();
+            refreshApprovalTable(0);
+        });
+
+        approvalQueryInput?.addEventListener('keydown', function(event) {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            event.preventDefault();
+            refreshApprovalTable(0);
+        });
+
+        approvalQueryInput?.addEventListener('compositionstart', function() {
+            approvalSearchIsComposing = true;
+        });
+
+        approvalQueryInput?.addEventListener('compositionend', function() {
+            approvalSearchIsComposing = false;
+            refreshApprovalTable(450);
+        });
+
+        approvalQueryInput?.addEventListener('input', function() {
+            if (approvalSearchIsComposing) {
+                return;
+            }
+
+            refreshApprovalTable(450);
+        });
+
+        [approvalStatusInput, approvalSortInput].forEach((input) => {
+            input?.addEventListener('change', function() {
+                refreshApprovalTable(0);
+            });
+        });
+
+    });
+</script>
 
 <? //php if ($view_item) : 
 ?>
@@ -293,10 +537,10 @@ ob_start();
 
             <div class="header-modal">
                 <div class="first-header">
-                    <p>แสดงข้อความรายละเอียดแจ้งเหตุซ่อมแซม</p>
+                    <p>รายละเอียดแจ้งเหตุซ่อมแซม</p>
                 </div>
                 <div class="sec-header close-modal-btn">
-                    <i class="fa-solid fa-xmark" id=""></i>
+                    <i class="fa-solid fa-xmark" id="closeVehicleApprovalDetailModal" style="cursor: pointer;"></i>
                 </div>
             </div>
 
@@ -307,51 +551,39 @@ ob_start();
                     <div class="sender-row">
                         <div class="form-group">
                             <label for="">หัวข้อ</label>
-                            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
+                            <input type="text" id="repairApprovalDetailSubject" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
                         </div>
                         <div class="form-group">
                             <label for="">สถานที่</label>
-                            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
+                            <input type="text" id="repairApprovalDetailLocation" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="">อุปกรณ์</label>
-                        <input type="text" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
+                        <input type="text" id="repairApprovalDetailEquipment" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
                     </div>
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
-                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ" disabled></textarea>
+                        <textarea id="repairApprovalDetailText" name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ" disabled></textarea>
                     </div>
 
                     <div class="form-group">
                         <label>อัปโหลดไฟล์เอกสาร</label>
                         <section class="upload-layout">
-                            <div class="file-list" id="fileListContainer">
-                                <div class="file-item-wrapper">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">Screenshot_20260221_224247.png</span><span class="file-type">981.3 KB</span></div>
-                                        </div>
-                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
-                                            <div class="file-actions"><a href="#" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="file-list" id="repairApprovalDetailFileList"></div>
                         </section>
                     </div>
 
                     <div class="sender-row">
                         <div class="form-group">
                             <label for="">ผู้ส่ง</label>
-                            <input type="text" placeholder="นางสาวทิพยรัตน์ บุญมณี" disabled>
+                            <input type="text" id="repairApprovalDetailRequester" placeholder="นางสาวทิพยรัตน์ บุญมณี" disabled>
                         </div>
                         <div class="form-group">
                             <label for="">วันที่แจ้ง</label>
-                            <input type="text" placeholder="29 มกราคม 2569 เวลา 13:17น." disabled>
+                            <input type="text" id="repairApprovalDetailCreatedAt" placeholder="29 มกราคม 2569 เวลา 13:17น." disabled>
                         </div>
                     </div>
 
@@ -364,20 +596,22 @@ ob_start();
                     <div class="form-group">
                         <div class="custom-select-wrapper open">
                             <div class="custom-select-trigger">
-                                <p class="select-value">ทุกสถานะ</p>
+                                <p class="select-value" id="repairApprovalDetailStatusValue">ส่งคำร้องสำเร็จ</p>
                                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                             </div>
 
                             <div class="custom-options">
-                                <div class="custom-option selected" data-value="all">ทุกสถานะ</div>
-                                <div class="custom-option" data-value="pending">รออนุมัติ</div>
-                                <div class="custom-option" data-value="approved">อนุมัติแล้ว</div>
+                                <div class="custom-option selected" data-value="pending">ส่งคำร้องสำเร็จ</div>
+                                <div class="custom-option" data-value="in_progress">กำลังดำเนินการ</div>
+                                <div class="custom-option" data-value="completed">เสร็จสิ้น</div>
+                                <div class="custom-option" data-value="cancelled">ยกเลิกคำร้อง</div>
                             </div>
 
-                            <select class="form-input" name="status">
-                                <option value="all">ทุกสถานะ</option>
-                                <option value="pending">รออนุมัติ</option>
-                                <option value="approved">อนุมัติแล้ว</option>
+                            <select class="form-input" id="repairApprovalDetailStatusSelect" name="status">
+                                <option value="pending">ส่งคำร้องสำเร็จ</option>
+                                <option value="in_progress">กำลังดำเนินการ</option>
+                                <option value="completed">เสร็จสิ้น</option>
+                                <option value="cancelled">ยกเลิกคำร้อง</option>
                             </select>
 
                         </div>
@@ -385,7 +619,7 @@ ob_start();
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
-                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
+                        <textarea id="repairApprovalDecisionSummary" name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
                     </div>
 
                 </form>
@@ -393,7 +627,7 @@ ob_start();
 
             <div class="footer-modal">
                 <form method="POST" id="">
-                    <button>
+                    <button type="button">
                         <p>บันทึก</p>
                     </button>
                 </form>
@@ -406,12 +640,176 @@ ob_start();
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('vehicleApprovalDetailModal');
+        const closeBtn = document.getElementById('closeVehicleApprovalDetailModal');
+        const subjectInput = document.getElementById('repairApprovalDetailSubject');
+        const locationInput = document.getElementById('repairApprovalDetailLocation');
+        const equipmentInput = document.getElementById('repairApprovalDetailEquipment');
+        const detailTextarea = document.getElementById('repairApprovalDetailText');
+        const requesterInput = document.getElementById('repairApprovalDetailRequester');
+        const createdAtInput = document.getElementById('repairApprovalDetailCreatedAt');
+        const statusValue = document.getElementById('repairApprovalDetailStatusValue');
+        const statusSelect = document.getElementById('repairApprovalDetailStatusSelect');
+        const statusOptions = modal ? Array.from(modal.querySelectorAll('.custom-options .custom-option')) : [];
+        const fileList = document.getElementById('repairApprovalDetailFileList');
+        const decisionSummary = document.getElementById('repairApprovalDecisionSummary');
 
-        const openBtns = document.querySelectorAll('[data-vehicle-approval-action="detail"]');
-        const closeBtns = document.querySelectorAll('[data-vehicle-approval-close]');
+        if (!modal) {
+            return;
+        }
 
-        const openModal = (e) => {
-            e.preventDefault();
+        const formatFileSize = (size) => {
+            const bytes = Number(size || 0);
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '';
+            }
+
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        };
+
+        const buildModalFileItem = (file, repairId) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-item-wrapper';
+
+            const banner = document.createElement('div');
+            banner.className = 'file-banner';
+
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'file-icon';
+            const mime = String(file?.mimeType || '').toLowerCase();
+            iconWrap.innerHTML = mime.includes('pdf')
+                ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                : mime.includes('image')
+                    ? '<i class="fa-solid fa-file-image" aria-hidden="true"></i>'
+                    : '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+            const text = document.createElement('div');
+            text.className = 'file-text';
+            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
+
+            info.appendChild(iconWrap);
+            info.appendChild(text);
+
+            const fileUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const actions = document.createElement('div');
+            actions.className = 'file-actions-group';
+            actions.style.display = 'flex';
+            actions.style.gap = '10px';
+
+            const viewAction = document.createElement('div');
+            viewAction.className = 'file-actions';
+            viewAction.innerHTML = `<a href="${fileUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
+
+            const downloadAction = document.createElement('div');
+            downloadAction.className = 'file-actions';
+            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
+
+            actions.appendChild(viewAction);
+            actions.appendChild(downloadAction);
+            banner.appendChild(info);
+            banner.appendChild(actions);
+            wrapper.appendChild(banner);
+
+            return wrapper;
+        };
+
+        const renderModalFiles = (files, repairId) => {
+            if (!fileList) {
+                return;
+            }
+
+            fileList.innerHTML = '';
+
+            if (!Array.isArray(files) || files.length === 0) {
+                fileList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
+                return;
+            }
+
+            files.forEach((file) => {
+                fileList.appendChild(buildModalFileItem(file, repairId));
+            });
+        };
+
+        const syncStatusDisplay = (statusKey, statusLabel) => {
+            if (statusSelect) {
+                statusSelect.value = statusKey || 'pending';
+            }
+
+            if (statusValue) {
+                statusValue.textContent = statusLabel || 'ส่งคำร้องสำเร็จ';
+            }
+
+            statusOptions.forEach((option) => {
+                option.classList.toggle('selected', option.dataset.value === statusKey);
+            });
+        };
+
+        const buildDecisionSummary = (button) => {
+            const lines = [];
+            const assignedTo = String(button.getAttribute('data-assigned-to-name') || '').trim();
+            const updatedAt = String(button.getAttribute('data-updated-at') || '').trim();
+            const resolvedAt = String(button.getAttribute('data-resolved-at') || '').trim();
+
+            if (assignedTo !== '' && assignedTo !== '-') {
+                lines.push(`ผู้รับผิดชอบ: ${assignedTo}`);
+            }
+
+            if (updatedAt !== '' && updatedAt !== '-') {
+                lines.push(`อัปเดตล่าสุด: ${updatedAt}`);
+            }
+
+            if (resolvedAt !== '' && resolvedAt !== '-') {
+                lines.push(`ปิดงานเมื่อ: ${resolvedAt}`);
+            }
+
+            return lines.length > 0 ? lines.join('\n') : '-';
+        };
+
+        const openModal = (button) => {
+            let files = [];
+
+            try {
+                files = JSON.parse(String(button.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                files = [];
+            }
+
+            if (subjectInput) {
+                subjectInput.value = button.getAttribute('data-subject') || '-';
+            }
+
+            if (locationInput) {
+                locationInput.value = button.getAttribute('data-location') || '-';
+            }
+
+            if (equipmentInput) {
+                equipmentInput.value = button.getAttribute('data-equipment') || '-';
+            }
+
+            if (detailTextarea) {
+                detailTextarea.value = button.getAttribute('data-detail') || '-';
+            }
+
+            if (requesterInput) {
+                requesterInput.value = button.getAttribute('data-requester-name') || '-';
+            }
+
+            if (createdAtInput) {
+                createdAtInput.value = button.getAttribute('data-created-at') || '-';
+            }
+
+            syncStatusDisplay(
+                String(button.getAttribute('data-status-key') || 'pending').trim(),
+                String(button.getAttribute('data-status-label') || 'ส่งคำร้องสำเร็จ').trim()
+            );
+
+            if (decisionSummary) {
+                decisionSummary.value = buildDecisionSummary(button);
+            }
+
+            renderModalFiles(files, String(button.getAttribute('data-repair-id') || '').trim());
             modal.classList.remove('hidden');
             modal.style.display = 'flex';
         };
@@ -421,12 +819,34 @@ ob_start();
             modal.style.display = 'none';
         };
 
-        openBtns.forEach(btn => btn.addEventListener('click', openModal));
+        document.addEventListener('click', function(event) {
+            const openBtn = event.target.closest('.js-open-repair-approval-detail-modal, [data-vehicle-approval-action="detail"]');
 
-        closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
+            if (openBtn) {
+                event.preventDefault();
+                openModal(openBtn);
+                return;
+            }
 
-        window.addEventListener('click', (event) => {
+            if (event.target.closest('#closeVehicleApprovalDetailModal')) {
+                event.preventDefault();
+                closeModal();
+            }
+        });
+
+        closeBtn?.addEventListener('click', function(event) {
+            event.preventDefault();
+            closeModal();
+        });
+
+        window.addEventListener('click', function(event) {
             if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && modal.style.display === 'flex') {
                 closeModal();
             }
         });

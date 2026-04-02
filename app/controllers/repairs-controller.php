@@ -38,8 +38,8 @@ if (!function_exists('repairs_mode_config')) {
                 'subtitle' => 'แจ้งเหตุซ่อมแซม / อนุมัติการซ่อมแซม',
                 'form_title' => '',
                 'form_subtitle' => '',
-                'list_title' => 'รายการรออนุมัติการซ่อมแซม',
-                'list_subtitle' => 'คำขอซ่อมที่รอเจ้าหน้าที่สถานที่ตรวจสอบ',
+                'list_title' => 'รายการแจ้งเหตุซ่อมแซม',
+                'list_subtitle' => '',
                 'empty_title' => 'ยังไม่มีรายการรออนุมัติ',
                 'empty_message' => 'เมื่อมีคำขอซ่อมใหม่ รายการจะปรากฏที่หน้านี้',
                 'show_form' => false,
@@ -325,9 +325,9 @@ if (!function_exists('repairs_handle_mode')) {
         $edit_id = $mode === 'report' ? (int) ($_GET['edit_id'] ?? 0) : 0;
         $requested_tab = trim((string) ($_REQUEST['tab'] ?? ''));
         $is_track_active = $mode === 'report' && ($requested_tab === 'track' || $view_id > 0 || $edit_id > 0);
-        $filter_query = trim((string) ($_GET['q'] ?? ''));
-        $filter_status = strtolower(trim((string) ($_GET['status'] ?? 'all')));
-        $filter_sort = strtolower(trim((string) ($_GET['sort'] ?? 'newest')));
+        $filter_query = trim((string) ($_REQUEST['q'] ?? ''));
+        $filter_status = strtolower(trim((string) ($_REQUEST['status'] ?? 'all')));
+        $filter_sort = strtolower(trim((string) ($_REQUEST['sort'] ?? 'newest')));
         $status_map = repairs_status_map();
         $status_filter_options = repairs_track_status_filters();
         $view_item = null;
@@ -335,8 +335,12 @@ if (!function_exists('repairs_handle_mode')) {
         $edit_item = null;
         $edit_attachments = [];
 
+        if ($mode === 'approval' && !array_key_exists('status', $_REQUEST)) {
+            $filter_status = 'pending';
+        }
+
         if (!isset($status_filter_options[$filter_status])) {
-            $filter_status = 'all';
+            $filter_status = $mode === 'approval' ? 'pending' : 'all';
         }
 
         if (!in_array($filter_sort, ['newest', 'oldest'], true)) {
@@ -667,7 +671,7 @@ if (!function_exists('repairs_handle_mode')) {
             $alert = system_not_ready_alert('ยังไม่พบโครงสร้าง repairs ล่าสุด กรุณารัน migrations/019_add_repair_equipment_column.sql');
         }
 
-        $page = (int) ($_GET['page'] ?? 1);
+        $page = (int) ($_REQUEST['page'] ?? 1);
         $page = $page > 0 ? $page : 1;
         $per_page = 10;
         $total_pages = 1;
@@ -683,6 +687,13 @@ if (!function_exists('repairs_handle_mode')) {
             $page = min($page, $total_pages);
             $offset = ($page - 1) * $per_page;
             $requests = repair_list_filtered_page($current_pid, $filter_statuses, $per_page, $offset, $filter_query, $filter_sort, true);
+        } elseif ($mode === 'approval') {
+            $filter_statuses = repairs_resolve_filter_statuses($filter_status);
+            $total_count = repair_count_filtered(null, $filter_statuses, $filter_query);
+            $total_pages = max(1, (int) ceil($total_count / $per_page));
+            $page = min($page, $total_pages);
+            $offset = ($page - 1) * $per_page;
+            $requests = repair_list_filtered_page(null, $filter_statuses, $per_page, $offset, $filter_query, $filter_sort);
         } else {
             $total_count = repair_count_filtered(null, $statuses);
             $total_pages = max(1, (int) ceil($total_count / $per_page));
@@ -698,8 +709,9 @@ if (!function_exists('repairs_handle_mode')) {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $default_filter_status = $mode === 'approval' ? 'pending' : 'all';
             $is_filtered_request = $filter_query !== ''
-                || $filter_status !== 'all'
+                || $filter_status !== $default_filter_status
                 || $filter_sort !== 'newest'
                 || $page > 1;
             repairs_controller_audit_log(
