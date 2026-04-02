@@ -133,6 +133,7 @@ ob_start();
                                         type="button"
                                         data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
                                         data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
+                                        data-modal-title="ดูรายละเอียด"
                                         data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
                                         data-sender="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
                                         data-date="<?= h((string) ($item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
@@ -154,7 +155,7 @@ ob_start();
         <div class="modal-overlay-circular-notice-keep" id="modalNoticeKeepOverlay">
             <div class="modal-content">
                 <div class="header-modal">
-                    <p id="modalTypeLabel">ประเภทหนังสือ</p>
+                    <p id="modalTypeLabel">ดูรายละเอียด</p>
                     <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
                 </div>
 
@@ -187,22 +188,17 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- <div class="footer-modal">
-                    <form method="POST" id="modalArchiveForm">
-                        <?php //csrf_field()?>
-                        <input type="hidden" name="inbox_id" id="modalInboxId" value="">
-                        <input type="hidden" name="action" value="unarchive">
-                        <button type="submit" class="">
-                            <p>ย้ายกลับ</p>
-                        </button>
-                    </form>
-                </div> -->
-
                 <div class="footer-modal">
                     <form method="POST" id="modalArchiveForm">
-                        <input type="hidden" name="csrf_token" value="3ece51cef25df8dcbb025b7f59af78f9d7fa9c90963b44be41d39e6d5152a6ac">                        <input type="hidden" name="inbox_id" id="modalInboxId" value="370">
-                        <input type="hidden" name="action" value="archive">
-                        <button type="submit">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="inbox_id" id="modalInboxId" value="">
+                        <input type="hidden" name="action" value="unarchive">
+                        <button
+                            type="submit"
+                            data-confirm="ยืนยันการย้ายกลับรายการนี้หรือไม่"
+                            data-confirm-title="ยืนยันการย้ายกลับ"
+                            data-confirm-ok="ยืนยัน"
+                            data-confirm-cancel="ยกเลิก">
                             <p>ย้ายกลับ</p>
                         </button>
                     </form>
@@ -413,7 +409,14 @@ ob_start();
     </div>
 
     <div class="button-circular-notice-archive outside-person">
-        <button class="button-keep" type="submit" form="bulkActionForm">
+        <button
+            class="button-keep"
+            type="submit"
+            form="bulkActionForm"
+            data-confirm="ยืนยันการย้ายกลับรายการที่เลือกหรือไม่"
+            data-confirm-title="ยืนยันการย้ายกลับ"
+            data-confirm-ok="ยืนยัน"
+            data-confirm-cancel="ยกเลิก">
             <i class="fa-solid fa-file-import"></i>
             <p>ย้ายกลับ</p>
         </button>
