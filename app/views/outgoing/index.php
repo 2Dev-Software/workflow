@@ -2576,6 +2576,8 @@ ob_start();
                         $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
                         $date_display_parts = $format_thai_datetime_parts((string) ($item['createdAt'] ?? ''));
                         $attachment_count = max(0, (int) ($item['attachmentCount'] ?? 0));
+                        $modal_payload = (array) ($send_modal_payload_map[(string) $outgoing_id] ?? []);
+                        $modal_priority_key = outgoing_normalize_priority_key((string) ($modal_payload['priorityKey'] ?? 'normal'));
                         ?>
                         <tr>
                             <td>
@@ -2602,6 +2604,7 @@ ob_start();
                                         class="booking-action-btn secondary js-open-order-edit-modal"
                                         type="button"
                                         data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                        data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
                                         title="ดู/แนบไฟล์"
                                         aria-label="ดู/แนบไฟล์">
                                         <i class="fa-solid fa-pen-to-square"></i>
@@ -2612,6 +2615,7 @@ ob_start();
                                         class="booking-action-btn secondary js-open-order-view-modal"
                                         type="button"
                                         data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                        data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
                                         title="ดูรายละเอียด"
                                         aria-label="ดูรายละเอียด">
                                         <i class="fa-solid fa-eye"></i>
@@ -5010,7 +5014,15 @@ ob_start();
             }
         };
 
-        const openOutgoingEditModal = (outgoingIdRaw) => {
+        const resolveOutgoingPriorityKey = (payload, fallbackPriorityKey = 'normal') => {
+            if (payload && typeof payload === 'object' && typeof payload.priorityKey === 'string' && payload.priorityKey.trim() !== '') {
+                return normalizeOutgoingPriorityKey(payload.priorityKey);
+            }
+
+            return normalizeOutgoingPriorityKey(fallbackPriorityKey);
+        };
+
+        const openOutgoingEditModal = (outgoingIdRaw, fallbackPriorityKey = 'normal') => {
             if (!editModal) {
                 return;
             }
@@ -5048,7 +5060,7 @@ ob_start();
             }
 
             editModal.style.display = 'flex';
-            scheduleOutgoingPrioritySync(modalOutgoingEditUrgentRadios, payload && typeof payload === 'object' ? payload.priorityKey : 'normal');
+            scheduleOutgoingPrioritySync(modalOutgoingEditUrgentRadios, resolveOutgoingPriorityKey(payload, fallbackPriorityKey));
         };
 
         const renderOutgoingViewFiles = (outgoingId, files) => {
@@ -5138,7 +5150,7 @@ ob_start();
             renderOutgoingViewOwners([], '', 'pending');
         };
 
-        const openOutgoingViewModal = (outgoingIdRaw) => {
+        const openOutgoingViewModal = (outgoingIdRaw, fallbackPriorityKey = 'normal') => {
             if (!viewModal) {
                 return;
             }
@@ -5170,7 +5182,7 @@ ob_start();
             }
 
             viewModal.style.display = 'flex';
-            scheduleOutgoingPrioritySync(modalOutgoingViewUrgentRadios, payload && typeof payload === 'object' ? payload.priorityKey : 'normal');
+            scheduleOutgoingPrioritySync(modalOutgoingViewUrgentRadios, resolveOutgoingPriorityKey(payload, fallbackPriorityKey));
         };
 
         modalOutgoingEditUrgentRadios.forEach((radio) => {
@@ -5186,11 +5198,17 @@ ob_start();
             if (!targetBtn) return;
 
             if (targetBtn.classList.contains('js-open-order-edit-modal')) {
-                openOutgoingEditModal(targetBtn.getAttribute('data-outgoing-id'));
+                openOutgoingEditModal(
+                    targetBtn.getAttribute('data-outgoing-id'),
+                    targetBtn.getAttribute('data-outgoing-priority-key') || 'normal'
+                );
             }
 
             if (targetBtn.classList.contains('js-open-order-view-modal')) {
-                openOutgoingViewModal(targetBtn.getAttribute('data-outgoing-id'));
+                openOutgoingViewModal(
+                    targetBtn.getAttribute('data-outgoing-id'),
+                    targetBtn.getAttribute('data-outgoing-priority-key') || 'normal'
+                );
             }
         });
 

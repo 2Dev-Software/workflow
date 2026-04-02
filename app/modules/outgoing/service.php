@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/constants.php';
+require_once __DIR__ . '/priority.php';
 require_once __DIR__ . '/repository.php';
 require_once __DIR__ . '/../system/system.php';
 require_once __DIR__ . '/../audit/logger.php';
@@ -256,6 +257,136 @@ if (!function_exists('outgoing_attach_files')) {
             db_rollback();
             error_log('Outgoing attach failed: ' . $e->getMessage());
             audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, $e->getMessage(), $audit_payload);
+            throw $e;
+        }
+    }
+}
+
+if (!function_exists('outgoing_backfill_priority_metadata')) {
+    function outgoing_backfill_priority_metadata(): array
+    {
+        $rows = db_fetch_all(
+            'SELECT
+                o.outgoingID,
+                o.outgoingNo,
+                o.subject,
+                o.detail,
+                d.id AS documentID,
+                d.subject AS documentSubject,
+                d.content AS documentContent
+             FROM dh_outgoing_letters AS o
+             LEFT JOIN dh_documents AS d
+                ON d.documentType = ?
+               AND d.documentNumber = o.outgoingNo
+             WHERE o.deletedAt IS NULL
+             ORDER BY o.outgoingID ASC',
+            's',
+            'OUTGOING'
+        );
+        $summary = [
+            'scanned' => count($rows),
+            'updatedOutgoingRows' => 0,
+            'updatedDocumentRows' => 0,
+            'priorityBreakdown' => [
+                'normal' => 0,
+                'urgent' => 0,
+                'high' => 0,
+                'highest' => 0,
+            ],
+            'changedOutgoingIds' => [],
+            'changedDocumentIds' => [],
+        ];
+
+        if ($rows === []) {
+            return $summary;
+        }
+
+        db_begin();
+
+        try {
+            foreach ($rows as $row) {
+                $outgoing_id = (int) ($row['outgoingID'] ?? 0);
+                $document_id = (int) ($row['documentID'] ?? 0);
+                $outgoing_detail = trim((string) ($row['detail'] ?? ''));
+                $document_content = trim((string) ($row['documentContent'] ?? ''));
+                $priority_meta = outgoing_resolve_priority_meta(
+                    $outgoing_detail,
+                    (string) ($row['subject'] ?? ''),
+                    $document_content,
+                    (string) ($row['documentSubject'] ?? '')
+                );
+                $priority_key = outgoing_normalize_priority_key((string) ($priority_meta['priority_key'] ?? 'normal'));
+                $base_outgoing_detail = $outgoing_detail !== '' ? $outgoing_detail : $document_content;
+                $base_document_content = $document_content !== '' ? $document_content : $outgoing_detail;
+                $normalized_outgoing_detail = outgoing_apply_priority_to_detail($base_outgoing_detail, $priority_key);
+                $normalized_document_content = outgoing_apply_priority_to_detail($base_document_content, $priority_key);
+
+                $summary['priorityBreakdown'][$priority_key] = ($summary['priorityBreakdown'][$priority_key] ?? 0) + 1;
+
+                if ($outgoing_id > 0 && $normalized_outgoing_detail !== $outgoing_detail) {
+                    db_query(
+                        'UPDATE dh_outgoing_letters SET detail = ? WHERE outgoingID = ?',
+                        'si',
+                        $normalized_outgoing_detail,
+                        $outgoing_id
+                    );
+                    $summary['updatedOutgoingRows']++;
+                    $summary['changedOutgoingIds'][] = $outgoing_id;
+                }
+
+                if ($document_id > 0 && $normalized_document_content !== $document_content) {
+                    db_query(
+                        'UPDATE dh_documents SET content = ? WHERE id = ?',
+                        'si',
+                        $normalized_document_content,
+                        $document_id
+                    );
+                    $summary['updatedDocumentRows']++;
+                    $summary['changedDocumentIds'][] = $document_id;
+                }
+            }
+
+            db_commit();
+
+            audit_log(
+                'outgoing',
+                'BACKFILL_PRIORITY',
+                'SUCCESS',
+                'dh_outgoing_letters',
+                null,
+                null,
+                outgoing_audit_payload([
+                    'scanned' => $summary['scanned'],
+                    'updatedOutgoingRows' => $summary['updatedOutgoingRows'],
+                    'updatedDocumentRows' => $summary['updatedDocumentRows'],
+                    'priorityBreakdown' => $summary['priorityBreakdown'],
+                    'changedOutgoingIds' => $summary['changedOutgoingIds'],
+                    'changedDocumentIds' => $summary['changedDocumentIds'],
+                ]),
+                'CLI',
+                200
+            );
+
+            return $summary;
+        } catch (Throwable $e) {
+            db_rollback();
+
+            audit_log(
+                'outgoing',
+                'BACKFILL_PRIORITY',
+                'FAIL',
+                'dh_outgoing_letters',
+                null,
+                $e->getMessage(),
+                outgoing_audit_payload([
+                    'scanned' => $summary['scanned'],
+                    'updatedOutgoingRows' => $summary['updatedOutgoingRows'],
+                    'updatedDocumentRows' => $summary['updatedDocumentRows'],
+                ]),
+                'CLI',
+                500
+            );
+
             throw $e;
         }
     }
