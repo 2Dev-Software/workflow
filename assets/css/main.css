@@ -1358,6 +1358,14 @@ select {
     box-shadow: 0 2px 5px rgba(var(--rgb-neutral-dark), 0.05);
   }
 
+  .table-responsive caption {
+    font-size: var(--font-size-title);
+    font-weight: bold;
+    color: var(--color-secondary);
+    text-align: start;
+    margin: 0 0 10px 0;
+  }
+
   .table-responsive th {
     font-size: var(--font-size-body-1);
     font-weight: bold;
