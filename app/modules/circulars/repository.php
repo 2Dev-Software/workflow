@@ -322,10 +322,11 @@ if (!function_exists('circular_list_sent')) {
 if (!function_exists('circular_get_read_stats')) {
     function circular_get_read_stats(int $circularID): array
     {
-        $sql = 'SELECT i.pID, i.isRead, i.readAt, t.fName
+        $sql = 'SELECT i.pID, MAX(i.isRead) AS isRead, MAX(i.readAt) AS readAt, t.fName
             FROM dh_circular_inboxes AS i
             INNER JOIN teacher AS t ON i.pID = t.pID
             WHERE i.circularID = ?
+            GROUP BY i.pID, t.fName
             ORDER BY t.fName ASC';
 
         return db_fetch_all($sql, 'i', $circularID);

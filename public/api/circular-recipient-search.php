@@ -43,11 +43,14 @@ if ($current_pid === '') {
 
 $query = trim((string) ($_GET['q'] ?? ''));
 $normalized_query = circular_recipient_search_normalize($query);
+$exclude_pid = trim((string) ($_GET['exclude_pid'] ?? ''));
 
-$teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($current_pid): bool {
+$effective_exclude_pid = $exclude_pid !== '' ? $exclude_pid : $current_pid;
+
+$teachers = array_values(array_filter(user_list_teachers(), static function (array $teacher) use ($effective_exclude_pid): bool {
     $pid = trim((string) ($teacher['pID'] ?? ''));
 
-    if ($pid === '' || $pid === $current_pid) {
+    if ($pid === '' || ($effective_exclude_pid !== '' && $pid === $effective_exclude_pid)) {
         return false;
     }
 

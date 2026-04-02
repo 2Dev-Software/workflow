@@ -4,6 +4,11 @@ require_once __DIR__ . '/../../auth/csrf.php';
 
 $items = (array) ($items ?? []);
 $box_key = (string) ($box_key ?? 'normal');
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? 0);
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : 'ทั้งหมด';
 $filter_type = (string) ($filter_type ?? 'all');
 $filter_read = (string) ($filter_read ?? 'all');
 $filter_sort = (string) ($filter_sort ?? 'newest');
@@ -27,6 +32,7 @@ ob_start();
 <form id="circularFilterForm" method="GET">
     <input type="hidden" name="box" value="<?= h($box_key) ?>">
     <input type="hidden" name="archived" value="1">
+    <input type="hidden" name="dh_year" id="filterYearInput" value="<?= h((string) $selected_dh_year) ?>">
     <input type="hidden" name="type" id="filterTypeInput" value="<?= h($filter_type) ?>">
     <input type="hidden" name="read" id="filterReadInput" value="<?= h($filter_read) ?>">
     <input type="hidden" name="sort" id="filterSortInput" value="<?= h($filter_sort) ?>">
@@ -40,16 +46,17 @@ ob_start();
             <div class="page-selector">
                 <p>แสดงตามปีสารบรรณ</p>
 
-                <div class="custom-select-wrapper" data-target="filterTypeInput">
+                <div class="custom-select-wrapper" data-target="filterYearInput">
                     <div class="custom-select-trigger">
-                        <p class="select-value"><?= h($filter_type === 'internal' ? 'ภายใน' : ($filter_type === 'external' ? 'ภายนอก' : 'ทั้งหมด')) ?></p>
+                        <p class="select-value"><?= h($dh_year_label) ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option<?= h($filter_type === 'external' ? ' selected' : '') ?>" data-value="external">ภายนอก</div>
-                        <div class="custom-option<?= h($filter_type === 'internal' ? ' selected' : '') ?>" data-value="internal">ภายใน</div>
-                        <div class="custom-option<?= h($filter_type === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                        <div class="custom-option<?= $selected_dh_year <= 0 ? ' selected' : '' ?>" data-value="0">ทั้งหมด</div>
+                        <?php foreach ($dh_year_options as $year_option) : ?>
+                            <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -88,11 +95,11 @@ ob_start();
         </div>
     </header>
 
-    <section class="content-circular-notice-keep" data-circular-notice>
+    <section class="content-circular-notice-keep" data-circular-notice data-ajax-filter="true" data-ajax-target=".table-circular-notice-keep">
         <div class="search-bar">
             <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย...">
+                <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย..." data-auto-submit="true" data-auto-submit-delay="450" autocomplete="off">
             </div>
         </div>
 
@@ -268,7 +275,7 @@ ob_start();
             <div class="search-bar">
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย...">
+                    <input type="text" id="search-input" name="q" form="circularFilterForm" value="<?= h($filter_search) ?>" placeholder="ค้นหาข้อความด้วย..." data-auto-submit="true" data-auto-submit-delay="450" autocomplete="off">
                 </div>
             </div>
 

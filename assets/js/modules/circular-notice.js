@@ -32,6 +32,32 @@
       params.set(key, String(value));
     });
 
+    if (filterForm.id) {
+      document
+        .querySelectorAll('[form="' + filterForm.id + '"][name]')
+        .forEach(function (control) {
+          if (!control || control.disabled) {
+            return;
+          }
+
+          var name = control.getAttribute("name") || "";
+          if (name === "") {
+            return;
+          }
+
+          var type = String(control.type || "").toLowerCase();
+          if ((type === "checkbox" || type === "radio") && !control.checked) {
+            return;
+          }
+
+          if (type === "file") {
+            return;
+          }
+
+          params.set(name, String(control.value || ""));
+        });
+    }
+
     var action = filterForm.getAttribute("action") || "";
     var baseUrl = action !== "" ? action : window.location.pathname;
     var query = params.toString();
@@ -59,13 +85,19 @@
     var nextDocument = parser.parseFromString(htmlText, "text/html");
     var currentBulkForm = document.getElementById("bulkActionForm");
     var nextBulkForm = nextDocument.getElementById("bulkActionForm");
+    var currentAjaxTarget =
+      root.querySelector(ajaxTargetSelector) ||
+      document.querySelector(ajaxTargetSelector);
+    var nextAjaxTarget = nextDocument.querySelector(ajaxTargetSelector);
 
-    if (!currentBulkForm || !nextBulkForm) {
+    if (currentBulkForm && nextBulkForm) {
+      currentBulkForm.replaceWith(nextBulkForm);
+    } else if (currentAjaxTarget && nextAjaxTarget) {
+      currentAjaxTarget.replaceWith(nextAjaxTarget);
+    } else {
       window.location.assign(requestUrl);
       return;
     }
-
-    currentBulkForm.replaceWith(nextBulkForm);
 
     var currentPagination = document.querySelector(".c-pagination");
     var nextPagination = nextDocument.querySelector(".c-pagination");
@@ -319,13 +351,23 @@
   var modalOverlay = document.getElementById("modalNoticeKeepOverlay");
   var modalClose = document.getElementById("closeModalNoticeKeep");
   var fileSection = document.getElementById("modalFileSection");
-  var modalLink = document.getElementById("modalLink");
+  var modalLink =
+    document.getElementById("modalLink") ||
+    document.getElementById("edit_linkURL");
   var modalArchiveId = document.getElementById("modalInboxId");
   var modalTypeLabel = document.getElementById("modalTypeLabel");
-  var modalSubject = document.getElementById("modalSubject");
-  var modalSender = document.getElementById("modalSender");
+  var modalSubject =
+    document.getElementById("modalSubject") ||
+    document.getElementById("edit_subject");
+  var modalSender =
+    document.getElementById("modalSender") ||
+    document.getElementById("edit_senderDisplay");
+  var modalSenderFaction = document.getElementById("edit_fromFIDDisplay");
   var modalDate = document.getElementById("modalDate");
-  var modalDetail = document.getElementById("modalDetail");
+  var modalDetail =
+    document.getElementById("modalDetail") ||
+    document.getElementById("edit_detail");
+  var receiptStatusTableBody = document.getElementById("receiptStatusTableBody");
 
   var modalUrgency = document.getElementById("modalUrgency");
   var modalBookNo = document.getElementById("modalBookNo");
@@ -417,6 +459,90 @@
     });
   }
 
+  function setModalFieldValue(field, value) {
+    if (!field) {
+      return;
+    }
+
+    var normalizedValue = String(value || "").trim();
+    if (normalizedValue === "") {
+      normalizedValue = "-";
+    }
+
+    var tagName = (field.tagName || "").toUpperCase();
+    if (tagName === "INPUT" || tagName === "TEXTAREA") {
+      field.value = normalizedValue;
+      return;
+    }
+
+    field.textContent = normalizedValue;
+  }
+
+  function setModalLinkValue(field, value) {
+    if (!field) {
+      return;
+    }
+
+    var normalizedValue = String(value || "").trim();
+    var displayValue = normalizedValue !== "" ? normalizedValue : "-";
+    var tagName = (field.tagName || "").toUpperCase();
+
+    if (tagName === "A") {
+      field.textContent = displayValue;
+      field.href = normalizedValue !== "" ? normalizedValue : "#";
+      return;
+    }
+
+    if (tagName === "INPUT" || tagName === "TEXTAREA") {
+      field.value = displayValue;
+      return;
+    }
+
+    field.textContent = displayValue;
+  }
+
+  function renderReceiptStatuses(rawStats) {
+    if (!receiptStatusTableBody) {
+      return;
+    }
+
+    var parsedStats = [];
+    try {
+      parsedStats = rawStats ? JSON.parse(rawStats) : [];
+    } catch (error) {
+      parsedStats = [];
+    }
+
+    if (!Array.isArray(parsedStats) || parsedStats.length === 0) {
+      receiptStatusTableBody.innerHTML =
+        '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
+      return;
+    }
+
+    receiptStatusTableBody.innerHTML = "";
+
+    parsedStats.forEach(function (entry) {
+      var row = document.createElement("tr");
+      var nameCell = document.createElement("td");
+      var statusCell = document.createElement("td");
+      var readAtCell = document.createElement("td");
+      var statusPill = document.createElement("span");
+      var isRead = Number(entry && entry.isRead) === 1;
+
+      nameCell.textContent = String((entry && entry.fName) || "-").trim() || "-";
+      statusPill.className = "status-pill " + (isRead ? "approved" : "pending");
+      statusPill.textContent = isRead ? "อ่านแล้ว" : "ยังไม่อ่าน";
+      statusCell.appendChild(statusPill);
+      readAtCell.textContent =
+        String((entry && entry.readAtDisplay) || "-").trim() || "-";
+
+      row.appendChild(nameCell);
+      row.appendChild(statusCell);
+      row.appendChild(readAtCell);
+      receiptStatusTableBody.appendChild(row);
+    });
+  }
+
   function openModal() {
     if (!modalOverlay) return;
     modalOverlay.style.display = "flex";
@@ -488,96 +614,100 @@
     });
   }
 
-  document.querySelectorAll(".js-open-circular-modal").forEach(function (button) {
-    button.addEventListener("click", function () {
-      var entityId = button.getAttribute("data-circular-id") || "";
-      var inboxId = button.getAttribute("data-inbox-id") || "";
-      var row = button.closest("tr");
-      var files = button.getAttribute("data-files");
-      var parsedFiles = [];
-      try {
-        parsedFiles = files ? JSON.parse(files) : [];
-      } catch (e) {
-        parsedFiles = [];
-      }
+  var handleOpenCircularModal = function (button) {
+    if (!button) {
+      return;
+    }
 
-      if (modalTypeLabel) {
-        modalTypeLabel.textContent =
-          button.getAttribute("data-type") || "ประเภทหนังสือ";
-      }
-      if (modalSubject) {
-        var subjectValue = button.getAttribute("data-subject") || "-";
-        if (
-          modalSubject.tagName === "INPUT" ||
-          modalSubject.tagName === "TEXTAREA"
-        ) {
-          modalSubject.value = subjectValue;
-        } else {
-          modalSubject.textContent = subjectValue;
-        }
-      }
-      if (modalSender) {
-        modalSender.textContent = button.getAttribute("data-sender") || "-";
-      }
-      if (modalDate) {
-        modalDate.textContent = button.getAttribute("data-date") || "-";
-      }
-      if (modalDetail) {
-        modalDetail.textContent = button.getAttribute("data-detail") || "-";
-      }
-      if (modalLink) {
-        var linkValue = button.getAttribute("data-link") || "";
-        modalLink.textContent = linkValue !== "" ? linkValue : "-";
-        modalLink.href = linkValue !== "" ? linkValue : "#";
-      }
-      if (modalArchiveId) {
-        modalArchiveId.value = inboxId;
-      }
+    var entityId = button.getAttribute("data-circular-id") || "";
+    var inboxId = button.getAttribute("data-inbox-id") || "";
+    var row = button.closest("tr");
+    var files = button.getAttribute("data-files");
+    var parsedFiles = [];
+    try {
+      parsedFiles = files ? JSON.parse(files) : [];
+    } catch (e) {
+      parsedFiles = [];
+    }
 
-      if (modalUrgency) {
-        var urgency = button.getAttribute("data-urgency") || "ปกติ";
-        var urgencyClass =
-          button.getAttribute("data-urgency-class") || "normal";
-        modalUrgency.className =
-          ("urgency-status " + urgencyClass).trim();
-        var urgencyText = modalUrgency.querySelector("p");
-        if (urgencyText) {
-          urgencyText.textContent = urgency;
-        }
-      }
-      if (modalBookNo) {
-        modalBookNo.value = button.getAttribute("data-bookno") || "-";
-      }
-      if (modalIssuedDate) {
-        modalIssuedDate.value = button.getAttribute("data-issued") || "-";
-      }
-      if (modalFromText) {
-        modalFromText.value = button.getAttribute("data-from") || "-";
-      }
-      if (modalToText) {
-        modalToText.value = button.getAttribute("data-to") || "-";
-      }
-      if (modalStatus) {
-        modalStatus.value = button.getAttribute("data-status") || "-";
-      }
-      if (modalReceivedTime) {
-        modalReceivedTime.value =
-          button.getAttribute("data-received-time") || "-";
-      }
-      if (modalConsiderStatus) {
-        var statusClass = button.getAttribute("data-consider") || "considering";
-        modalConsiderStatus.className =
-          ("consider-status " + statusClass).trim();
-        modalConsiderStatus.textContent =
-          button.getAttribute("data-status") || "กำลังเสนอ";
-      }
+    if (modalTypeLabel) {
+      modalTypeLabel.textContent =
+        button.getAttribute("data-type") || "ประเภทหนังสือ";
+    }
+    setModalFieldValue(modalSubject, button.getAttribute("data-subject") || "-");
+    setModalFieldValue(
+      modalSender,
+      button.getAttribute("data-sender-name") ||
+        button.getAttribute("data-sender") ||
+        "-"
+    );
+    setModalFieldValue(
+      modalSenderFaction,
+      button.getAttribute("data-sender-faction") || "-"
+    );
+    if (modalDate) {
+      modalDate.textContent = button.getAttribute("data-date") || "-";
+    }
+    setModalFieldValue(modalDetail, button.getAttribute("data-detail") || "-");
+    setModalLinkValue(modalLink, button.getAttribute("data-link") || "");
+    if (modalArchiveId) {
+      modalArchiveId.value = inboxId;
+    }
 
-      renderFiles(parsedFiles, entityId);
-      openModal();
-      if (inboxId) {
-        markRead(inboxId, row);
+    if (modalUrgency) {
+      var urgency = button.getAttribute("data-urgency") || "ปกติ";
+      var urgencyClass =
+        button.getAttribute("data-urgency-class") || "normal";
+      modalUrgency.className =
+        ("urgency-status " + urgencyClass).trim();
+      var urgencyText = modalUrgency.querySelector("p");
+      if (urgencyText) {
+        urgencyText.textContent = urgency;
       }
-    });
+    }
+    if (modalBookNo) {
+      modalBookNo.value = button.getAttribute("data-bookno") || "-";
+    }
+    if (modalIssuedDate) {
+      modalIssuedDate.value = button.getAttribute("data-issued") || "-";
+    }
+    if (modalFromText) {
+      modalFromText.value = button.getAttribute("data-from") || "-";
+    }
+    if (modalToText) {
+      modalToText.value = button.getAttribute("data-to") || "-";
+    }
+    if (modalStatus) {
+      modalStatus.value = button.getAttribute("data-status") || "-";
+    }
+    if (modalReceivedTime) {
+      modalReceivedTime.value =
+        button.getAttribute("data-received-time") || "-";
+    }
+    if (modalConsiderStatus) {
+      var statusClass = button.getAttribute("data-consider") || "considering";
+      modalConsiderStatus.className =
+        ("consider-status " + statusClass).trim();
+      modalConsiderStatus.textContent =
+        button.getAttribute("data-status") || "กำลังเสนอ";
+    }
+
+    renderFiles(parsedFiles, entityId);
+    renderReceiptStatuses(button.getAttribute("data-read-stats") || "[]");
+    openModal();
+    if (inboxId) {
+      markRead(inboxId, row);
+    }
+  };
+
+  root.addEventListener("click", function (event) {
+    var button = event.target.closest(".js-open-circular-modal");
+
+    if (!button || !root.contains(button)) {
+      return;
+    }
+
+    handleOpenCircularModal(button);
   });
 
   document.addEventListener("keydown", function (event) {

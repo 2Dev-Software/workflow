@@ -6,8 +6,12 @@ require_once __DIR__ . '/../view.php';
 $items = (array) ($items ?? []);
 $box_key = (string) ($box_key ?? 'normal');
 $archived = (bool) ($archived ?? false);
+$dh_year_options = array_values(array_filter(array_map('intval', (array) ($dh_year_options ?? [])), static function (int $year): bool {
+    return $year > 0;
+}));
+$selected_dh_year = (int) ($selected_dh_year ?? 0);
+$dh_year_label = $selected_dh_year > 0 ? (string) $selected_dh_year : 'ทั้งหมด';
 $filter_type = (string) ($filter_type ?? 'all');
-$filter_read = (string) ($filter_read ?? 'all');
 $filter_sort = (string) ($filter_sort ?? 'newest');
 $filter_view = (string) ($filter_view ?? 'table1');
 $filter_search = (string) ($filter_search ?? '');
@@ -113,14 +117,7 @@ foreach ($teachers as $teacher) {
         ];
     }
 
-    $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
-
-    if (
-        $did > 0 &&
-        $department_name !== '' &&
-        strpos((string) $normalized_department_name, 'ผู้บริหาร') === false &&
-        strpos((string) $normalized_department_name, 'ฝ่ายบริหาร') === false
-    ) {
+    if ($did > 0 && $department_name !== '') {
         if (!isset($department_groups[$did])) {
             $department_groups[$did] = [
                 'dID' => $did,
@@ -271,8 +268,8 @@ ob_start();
     <?php if ($archived) : ?>
         <input type="hidden" name="archived" value="1">
     <?php endif; ?>
+    <input type="hidden" name="dh_year" id="filterYearInput" value="<?= h((string) $selected_dh_year) ?>">
     <input type="hidden" name="type" id="filterTypeInput" value="<?= h($filter_type) ?>">
-    <input type="hidden" name="read" id="filterReadInput" value="<?= h($filter_read) ?>">
     <input type="hidden" name="sort" id="filterSortInput" value="<?= h($filter_sort) ?>">
     <input type="hidden" name="view" id="filterViewInput" value="<?= h($filter_view) ?>">
 </form>
@@ -301,16 +298,17 @@ ob_start();
         <div class="page-selector">
             <p>แสดงตามปีสารบรรณ</p>
 
-            <div class="custom-select-wrapper" data-target="filterReadInput">
+            <div class="custom-select-wrapper" data-target="filterYearInput">
                 <div class="custom-select-trigger">
-                    <p class="select-value"><?= h($filter_read === 'read' ? 'อ่านแล้ว' : ($filter_read === 'unread' ? 'ยังไม่อ่าน' : 'ทั้งหมด')) ?></p>
+                    <p class="select-value"><?= h($dh_year_label) ?></p>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
 
                 <div class="custom-options">
-                    <div class="custom-option<?= h($filter_read === 'read' ? ' selected' : '') ?>" data-value="read">อ่านแล้ว</div>
-                    <div class="custom-option<?= h($filter_read === 'unread' ? ' selected' : '') ?>" data-value="unread">ยังไม่อ่าน</div>
-                    <div class="custom-option<?= h($filter_read === 'all' ? ' selected' : '') ?>" data-value="all">ทั้งหมด</div>
+                    <div class="custom-option<?= $selected_dh_year <= 0 ? ' selected' : '' ?>" data-value="0">ทั้งหมด</div>
+                    <?php foreach ($dh_year_options as $year_option) : ?>
+                        <div class="custom-option<?= $selected_dh_year === (int) $year_option ? ' selected' : '' ?>" data-value="<?= h((string) $year_option) ?>"><?= h((string) $year_option) ?></div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -416,6 +414,8 @@ ob_start();
                                                 data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
                                                 data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
                                                 data-sender="<?= h($sender_modal_text) ?>"
+                                                data-sender-name="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
+                                                data-sender-faction="<?= h((string) ($item['sender_faction_name'] ?? '')) ?>"
                                                 data-date="<?= h((string) ($item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
                                                 data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
                                                 data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
@@ -433,10 +433,13 @@ ob_start();
                                                 data-sender="<?= h($sender_modal_text) ?>"
                                                 data-date="<?= h((string) ($item['created_date_long'] ?? $item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
                                                 data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
+                                                data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
+                                                data-owner-pid="<?= h((string) ($item['owner_pid'] ?? '')) ?>"
                                                 data-files="<?= h($file_json) ?>"
+                                                data-forwarded-pids="<?= h((string) ($item['forwarded_recipient_pids_json'] ?? '[]')) ?>"
                                                 data-read-stats="<?= h($read_stats_json) ?>">
                                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                                                <span class="tooltip">จัดเก็บ</span>
+                                                <span class="tooltip">ส่งหนังสือต่อ</span>
                                             </button>
                                         </div>
                                     </td>
@@ -498,6 +501,9 @@ ob_start();
                                             data-to="<?= h($director_label) ?>"
                                             data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
                                             data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
+                                            data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
+                                            data-sender-name="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
+                                            data-sender-faction="<?= h((string) ($item['sender_faction_name'] ?? '')) ?>"
                                             data-status="<?= h((string) ($item['status_label'] ?? '-')) ?>"
                                             data-consider="<?= h((string) ($item['consider_class'] ?? 'considering')) ?>"
                                             data-files="<?= h($file_json) ?>"
@@ -519,7 +525,7 @@ ob_start();
         <div class="modal-overlay-circular-notice-index keep-sending" id="modalNoticeKeepOverlay">
             <div class="modal-content">
                 <div class="header-modal">
-                    <p id="">ส่งหนังสือเวียนต่อ</p>
+                    <p id="">ดูรายละเอียด</p>
                     <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
                 </div>
 
@@ -560,25 +566,6 @@ ob_start();
                             </div>
                         </div>
 
-                        <div class="content-read-sec">
-                            <p><strong>สถานะการอ่านรายบุคคล</strong></p>
-                            <div class="table-responsive">
-                                <table class="custom-table">
-                                    <thead>
-                                        <tr>
-                                            <th>ชื่อผู้รับ</th>
-                                            <th>สถานะ</th>
-                                            <th>เวลาอ่านล่าสุด</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="receiptStatusTableBody">
-                                        <tr>
-                                            <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </form>
                 </div>
 
@@ -611,8 +598,11 @@ ob_start();
 
                 <div class="content-modal">
                     <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularEditForm" style="box-shadow:none; padding: 0;">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="inbox_id" data-send-inbox-id value="">
+                    <input type="hidden" name="circular_id" data-send-circular-id value="">
+                    <input type="hidden" name="action" value="forward">
+                    <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
 
                         <div class="form-group">
                             <label for="edit_subject"><b>หัวเรื่อง</b></label>
@@ -692,7 +682,7 @@ ob_start();
                                                         $fid_value = (string) $fid;
                                                         $faction_name = trim((string) ($faction['fName'] ?? ''));
 
-                                                        if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) continue;
+                                                        if ($faction_name === '') continue;
 
                                                         $members = $faction_members[$fid] ?? [];
                                                         $member_payload = [];
@@ -983,54 +973,41 @@ ob_start();
             </div>
 
             <div class="content-modal">
-                <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularEditForm" style="box-shadow:none; padding: 0;">
+                <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularForwardForm" style="box-shadow:none; padding: 0;">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+                    <input type="hidden" name="inbox_id" data-send-inbox-id value="">
+                    <input type="hidden" name="circular_id" data-send-circular-id value="">
+                    <input type="hidden" name="action" value="forward">
+                    <input type="hidden" name="edit_circular_id" id="forwardTargetCircularId" value="">
 
                     <div class="form-group">
-                        <label for="edit_subject"><b>หัวเรื่อง</b></label>
-                        <input type="text" name="subject" id="edit_subject" placeholder="กรุณากรอกหัวเรื่อง" required>
+                        <label for="forward_subject"><b>หัวเรื่อง</b></label>
+                        <input type="text" name="subject" id="forward_subject" placeholder="กรุณากรอกหัวเรื่อง" disabled>
                     </div>
 
                     <div class="form-group">
-                        <label for="edit_detail"><b>รายละเอียด</b></label>
-                        <textarea name="detail" id="edit_detail" rows="4" placeholder="กรุณากรอกรายละเอียด"></textarea>
+                        <label for="forward_detail"><b>รายละเอียด</b></label>
+                        <textarea name="detail" id="forward_detail" rows="4" placeholder="กรุณากรอกรายละเอียด" disabled></textarea>
+                    </div>
+
+                    <div class="content-file-sec">
+                        <p><strong>ไฟล์แนบจากต้นฉบับ</strong></p>
+                        <div class="file-section" id="forwardModalFileSection"></div>
                     </div>
 
                     <div class="form-group">
-                        <label><b>อัปโหลดไฟล์เอกสารใหม่</b></label>
-                        <section class="upload-layout">
-                            <input type="file" id="edit_fileInput" name="attachments[]" multiple accept="application/pdf,image/png,image/jpeg" style="display: none;" />
-                            <div class="upload-box" id="edit_dropzone">
-                                <i class="fa-solid fa-upload"></i>
-                                <p>ลากไฟล์มาวางที่นี่</p>
-                            </div>
-                            <div class="file-list" id="edit_fileListContainer"></div>
-                        </section>
-                    </div>
-
-                    <div class="row form-group">
-                        <button class="btn btn-upload-small" type="button" id="edit_btnAddFiles">
-                            <p>เพิ่มไฟล์</p>
-                        </button>
-                        <div class="file-hint">
-                            <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) *</p>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="edit_linkURL"><b>แนบลิ้งก์</b></label>
-                        <input type="text" id="edit_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" />
+                        <label for="forward_linkURL"><b>แนบลิ้งก์</b></label>
+                        <input type="text" id="forward_linkURL" name="linkURL" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง" disabled />
                     </div>
 
                     <div class="sender-row">
                         <div class="form-group sender-field">
-                            <label for="edit_senderDisplay"><b>ผู้ส่ง</b></label>
-                            <input id="edit_senderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
+                            <label for="forward_senderDisplay"><b>ผู้ส่ง</b></label>
+                            <input id="forward_senderDisplay" type="text" value="<?= h($sender_name) ?>" disabled>
                         </div>
                         <div class="form-group">
-                            <label for="edit_fromFIDDisplay"><b>ในนามของ</b></label>
-                            <input id="edit_fromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
+                            <label for="forward_fromFIDDisplay"><b>ในนามของ</b></label>
+                            <input id="forward_fromFIDDisplay" type="text" value="<?= h($sender_faction_display) ?>" disabled>
                             <input type="hidden" name="fromFID" value="<?= h($sender_from_fid > 0 ? (string) $sender_from_fid : '') ?>">
                         </div>
                     </div>
@@ -1038,15 +1015,15 @@ ob_start();
                     <div class="form-group receive" data-recipients-section>
                         <label><b>ส่งถึง :</b></label>
                         <div class="dropdown-container">
-                            <div class="search-input-wrapper" id="edit_recipientToggle">
-                                <input type="text" id="edit_mainInput" class="search-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                            <div class="search-input-wrapper" id="forward_recipientToggle">
+                                <input type="text" id="forward_mainInput" class="search-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
                                 <i class="fa-solid fa-chevron-down"></i>
                             </div>
 
-                            <div class="dropdown-content" id="edit_dropdownContent">
+                            <div class="dropdown-content" id="forward_dropdownContent">
                                 <div class="dropdown-header">
-                                    <label class="select-all-box" for="edit_selectAll">
-                                        <input type="checkbox" id="edit_selectAll">เลือกทั้งหมด
+                                    <label class="select-all-box" for="forward_selectAll">
+                                        <input type="checkbox" id="forward_selectAll">เลือกทั้งหมด
                                     </label>
                                 </div>
 
@@ -1065,7 +1042,7 @@ ob_start();
                                                     $fid_value = (string) $fid;
                                                     $faction_name = trim((string) ($faction['fName'] ?? ''));
 
-                                                    if ($faction_name === '' || strpos($faction_name, 'ฝ่ายบริหาร') !== false) continue;
+                                                    if ($faction_name === '') continue;
 
                                                     $members = $faction_members[$fid] ?? [];
                                                     $member_payload = [];
@@ -1091,13 +1068,13 @@ ob_start();
                                                     $expanded_by_default = $is_selected($fid_value, $selected_factions) || $has_selected_member;
 
                                                     // สร้าง key พิเศษสำหรับ edit
-                                                    $edit_group_key = 'edit-faction-' . $fid_value;
+                                                    $forward_group_key = 'forward-faction-' . $fid_value;
                                                     ?>
                                                     <div class="item item-group<?= $expanded_by_default ? '' : ' is-collapsed' ?>" data-faction-id="<?= h($fid_value) ?>">
                                                         <div class="group-header">
-                                                            <label class="item-main" for="edit_group_faction_<?= h($fid_value) ?>">
-                                                                <input type="checkbox" id="edit_group_faction_<?= h($fid_value) ?>" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction"
-                                                                    data-group-key="<?= h($edit_group_key) ?>"
+                                                            <label class="item-main" for="forward_group_faction_<?= h($fid_value) ?>">
+                                                                <input type="checkbox" id="forward_group_faction_<?= h($fid_value) ?>" class="item-checkbox group-item-checkbox faction-item-checkbox" data-group="faction"
+                                                                    data-group-key="<?= h($forward_group_key) ?>"
                                                                     data-group-label="<?= h($faction_name) ?>"
                                                                     data-members="<?= h($member_payload_json) ?>"
                                                                     name="faction_ids[]" value="<?= h($fid_value) ?>" <?= h($is_selected($fid_value, $selected_factions) ? 'checked' : '') ?>>
@@ -1120,9 +1097,9 @@ ob_start();
                                                                     if ($member_pid === '' || $member_name === '') continue;
                                                                     ?>
                                                                     <li>
-                                                                        <label class="item member-item" for="edit_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>">
-                                                                            <input type="checkbox" id="edit_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>" class="member-checkbox"
-                                                                                data-member-group-key="<?= h($edit_group_key) ?>"
+                                                                        <label class="item member-item" for="forward_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>">
+                                                                            <input type="checkbox" id="forward_member_faction_<?= h($fid_value) ?>_<?= h($member_pid) ?>" class="member-checkbox"
+                                                                                data-member-group-key="<?= h($forward_group_key) ?>"
                                                                                 data-member-name="<?= h($member_name) ?>"
                                                                                 data-group-label="<?= h($faction_name) ?>"
                                                                                 name="person_ids[]" value="<?= h($member_pid) ?>" <?= h($is_selected($member_pid, $selected_people) ? 'checked' : '') ?>>
@@ -1177,13 +1154,13 @@ ob_start();
 
                                                     $group_key = 'department-' . $did;
                                                     // สร้าง key พิเศษสำหรับ edit
-                                                    $edit_group_key = 'edit-department-' . $did;
+                                                    $forward_group_key = 'forward-department-' . $did;
                                                     ?>
                                                     <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
                                                         <div class="group-header">
-                                                            <label class="item-main" for="edit_group_dept_<?= h($did) ?>">
-                                                                <input type="checkbox" id="edit_group_dept_<?= h($did) ?>" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department"
-                                                                    data-group-key="<?= h($edit_group_key) ?>"
+                                                            <label class="item-main" for="forward_group_dept_<?= h($did) ?>">
+                                                                <input type="checkbox" id="forward_group_dept_<?= h($did) ?>" class="item-checkbox group-item-checkbox department-item-checkbox" data-group="department"
+                                                                    data-group-key="<?= h($forward_group_key) ?>"
                                                                     data-group-label="<?= h($department_name) ?>"
                                                                     data-members="<?= h($member_payload_json) ?>"
                                                                     value="<?= h($group_key) ?>">
@@ -1198,9 +1175,9 @@ ob_start();
                                                         <ol class="member-sublist">
                                                             <?php foreach ($member_payload as $member) : ?>
                                                                 <li>
-                                                                    <label class="item member-item" for="edit_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
-                                                                        <input type="checkbox" id="edit_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
-                                                                            data-member-group-key="<?= h($edit_group_key) ?>"
+                                                                    <label class="item member-item" for="forward_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
+                                                                        <input type="checkbox" id="forward_member_dept_<?= h($did) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
+                                                                            data-member-group-key="<?= h($forward_group_key) ?>"
                                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                                             data-group-label="<?= h($department_name) ?>"
                                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
@@ -1253,13 +1230,13 @@ ob_start();
                                                     $member_total = count($member_payload);
 
                                                     // สร้าง key พิเศษสำหรับ edit
-                                                    $edit_group_key = 'edit-special-' . $group_key;
+                                                    $forward_group_key = 'forward-special-' . $group_key;
                                                     ?>
                                                     <div class="item item-group<?= $has_selected_member ? '' : ' is-collapsed' ?>">
                                                         <div class="group-header">
-                                                            <label class="item-main" for="edit_group_special_<?= h($group_key) ?>">
-                                                                <input type="checkbox" id="edit_group_special_<?= h($group_key) ?>" class="item-checkbox group-item-checkbox" data-group="special"
-                                                                    data-group-key="<?= h($edit_group_key) ?>"
+                                                            <label class="item-main" for="forward_group_special_<?= h($group_key) ?>">
+                                                                <input type="checkbox" id="forward_group_special_<?= h($group_key) ?>" class="item-checkbox group-item-checkbox" data-group="special"
+                                                                    data-group-key="<?= h($forward_group_key) ?>"
                                                                     data-group-label="<?= h($group_name) ?>"
                                                                     data-members="<?= h($member_payload_json) ?>"
                                                                     value="<?= h($group_key) ?>">
@@ -1274,9 +1251,9 @@ ob_start();
                                                         <ol class="member-sublist">
                                                             <?php foreach ($member_payload as $member) : ?>
                                                                 <li>
-                                                                    <label class="item member-item" for="edit_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
-                                                                        <input type="checkbox" id="edit_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
-                                                                            data-member-group-key="<?= h($edit_group_key) ?>"
+                                                                    <label class="item member-item" for="forward_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>">
+                                                                        <input type="checkbox" id="forward_member_special_<?= h($group_key) ?>_<?= h((string) ($member['pID'] ?? '')) ?>" class="member-checkbox"
+                                                                            data-member-group-key="<?= h($forward_group_key) ?>"
                                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                                             data-group-label="<?= h($group_name) ?>"
                                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
@@ -1297,34 +1274,54 @@ ob_start();
 
                         </div>
                         <div class="sent-notice-selected">
-                            <button id="edit_btnShowRecipients" type="button">
+                            <button id="forward_btnShowRecipients" type="button">
                                 <p>แสดงผู้รับทั้งหมด</p>
                             </button>
                         </div>
                     </div>
 
-                    <div id="edit_confirmModal" class="modal-overlay-confirm">
+                    <div class="content-read-sec" id="forwardReceiptStatusSection" style="display:none;">
+                        <p><strong>สถานะการอ่านรายบุคคล</strong></p>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>ชื่อผู้รับ</th>
+                                        <th>สถานะ</th>
+                                        <th>เวลาอ่านล่าสุด</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forwardReceiptStatusTableBody">
+                                    <tr>
+                                        <td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="forward_confirmModal" class="modal-overlay-confirm">
                         <div class="confirm-box">
                             <div class="confirm-header">
                                 <div class="icon-circle"><i class="fa-solid fa-triangle-exclamation"></i></div>
                             </div>
                             <div class="confirm-body">
-                                <h3>ยืนยันการแก้ไขและส่งใหม่</h3>
+                                <h3>ยืนยันการส่งหนังสือต่อ</h3>
                                 <div class="confirm-actions">
-                                    <button id="edit_btnConfirmYes" class="btn-yes" type="button">ยืนยัน</button>
-                                    <button id="edit_btnConfirmNo" class="btn-no" type="button">ยกเลิก</button>
+                                    <button id="forward_btnConfirmYes" class="btn-yes" type="button">ยืนยัน</button>
+                                    <button id="forward_btnConfirmNo" class="btn-no" type="button">ยกเลิก</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="edit_recipientModal" class="modal-overlay-recipient">
+                    <div id="forward_recipientModal" class="modal-overlay-recipient">
                         <div class="modal-container">
                             <div class="modal-header">
                                 <div class="modal-title">
                                     <i class="fa-solid fa-users"></i><span>รายชื่อผู้รับหนังสือเวียน</span>
                                 </div>
-                                <button class="modal-close" id="edit_closeModalBtn" type="button"><i class="fa-solid fa-xmark"></i></button>
+                                <button class="modal-close" id="forward_closeModalBtn" type="button"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                             <div class="modal-body">
                                 <table class="recipient-table">
@@ -1335,7 +1332,7 @@ ob_start();
                                             <th>กลุ่ม/ฝ่าย</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="edit_recipientTableBody"></tbody>
+                                    <tbody id="forward_recipientTableBody"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -1344,13 +1341,9 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" id="modalSendForwardForm">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="inbox_id" data-send-inbox-id value="">
-                    <input type="hidden" name="circular_id" data-send-circular-id value="">
-                    <input type="hidden" name="action" value="forward">
-                    <button type="submit">
-                        <p>จัดเก็บ</p>
+                <form id="modalSendForwardForm">
+                    <button type="button" id="forward_btnSendNotice" form="circularForwardForm" data-confirm-title="ยืนยันการส่งหนังสือต่อ">
+                        <p>ส่งหนังสือต่อ</p>
                     </button>
                 </form>
             </div>
@@ -1400,6 +1393,7 @@ ob_start();
     });
 
     document.addEventListener("DOMContentLoaded", function() {
+        const forwardOpenInboxId = <?= json_encode($forward_open_inbox_id, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
         function setupCircularForm(prefix, formId) {
             const form = document.getElementById(formId);
@@ -1531,6 +1525,8 @@ ob_start();
             const toggle = document.getElementById(prefix + 'recipientToggle');
             const searchInput = document.getElementById(prefix + 'mainInput');
             const selectAll = document.getElementById(prefix + 'selectAll');
+            const receiptStatusSection = form.querySelector('#sendReceiptStatusSection, #forwardReceiptStatusSection');
+            const receiptStatusTableBody = form.querySelector('#sendReceiptStatusTableBody, #forwardReceiptStatusTableBody');
 
             const groupChecks = Array.from(form.querySelectorAll('.group-item-checkbox'));
             const memberChecks = Array.from(form.querySelectorAll('.member-checkbox'));
@@ -1578,17 +1574,28 @@ ob_start();
                     const titleEl = groupItem.querySelector('.item-title');
                     const titleText = normalizeSearchText(titleEl?.textContent || '');
                     const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
+                    const availableMemberRows = memberRows.filter((row) => {
+                        const memberCheckbox = row.querySelector('.member-checkbox');
+                        return !!memberCheckbox && !memberCheckbox.disabled;
+                    });
                     const isGroupMatch = query !== '' && titleText.includes(query);
 
                     if (query === '') {
-                        groupItem.style.display = '';
-                        memberRows.forEach((row) => row.style.display = '');
+                        groupItem.style.display = availableMemberRows.length > 0 ? '' : 'none';
+                        memberRows.forEach((row) => {
+                            const memberCheckbox = row.querySelector('.member-checkbox');
+                            row.style.display = memberCheckbox && !memberCheckbox.disabled ? '' : 'none';
+                        });
                         return;
                     }
 
                     let hasMemberMatch = false;
                     memberRows.forEach((row) => {
                         const memberCheckbox = row.querySelector('.member-checkbox');
+                        if (!memberCheckbox || memberCheckbox.disabled) {
+                            row.style.display = 'none';
+                            return;
+                        }
                         const memberPid = String(memberCheckbox?.value || '').trim();
                         const isRemoteMatched = remoteMatchedPids instanceof Set ? remoteMatchedPids.has(memberPid) : null;
                         const rowText = normalizeSearchText(row.textContent || '');
@@ -1598,7 +1605,7 @@ ob_start();
                         if (matched) hasMemberMatch = true;
                     });
 
-                    const isVisible = isGroupMatch || hasMemberMatch;
+                    const isVisible = availableMemberRows.length > 0 && (isGroupMatch || hasMemberMatch);
                     groupItem.style.display = isVisible ? '' : 'none';
                     if (isVisible) setGroupCollapsed(groupItem, false);
                 });
@@ -1615,7 +1622,8 @@ ob_start();
 
             const requestRecipientSearch = (query) => {
                 const requestNo = ++recipientSearchRequestNo;
-                const url = `${recipientSearchEndpoint}?q=${encodeURIComponent(query)}`;
+                const excludePid = String(form.dataset.excludePid || '').trim();
+                const url = `${recipientSearchEndpoint}?q=${encodeURIComponent(query)}${excludePid !== '' ? `&exclude_pid=${encodeURIComponent(excludePid)}` : ''}`;
                 fetch(url, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -1668,15 +1676,16 @@ ob_start();
 
             const updateSelectAllState = () => {
                 if (!selectAll) return;
-                const allChecks = [...groupChecks, ...memberChecks];
+                const allChecks = [...groupChecks, ...memberChecks].filter((el) => !el.disabled);
                 const checked = allChecks.filter((el) => el.checked).length;
                 selectAll.checked = allChecks.length > 0 && checked === allChecks.length;
                 selectAll.indeterminate = checked > 0 && checked < allChecks.length;
 
                 groupChecks.forEach((groupCheck) => {
                     const groupKey = groupCheck.getAttribute('data-group-key') || '';
-                    const members = getMemberChecksByGroupKey(groupKey);
+                    const members = getMemberChecksByGroupKey(groupKey).filter((el) => !el.disabled);
                     if (members.length === 0) {
+                        groupCheck.checked = false;
                         groupCheck.indeterminate = false;
                         return;
                     }
@@ -1696,12 +1705,93 @@ ob_start();
                 });
             };
 
+            const getCurrentReadStats = () => {
+                try {
+                    const parsed = JSON.parse(String(form.dataset.readStats || '[]'));
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (error) {
+                    return [];
+                }
+            };
+
+            const renderSelectedRecipientStatuses = () => {
+                if (!receiptStatusSection || !receiptStatusTableBody) {
+                    return;
+                }
+
+                const checkedMembers = memberChecks.filter((item) => item.checked && !item.disabled);
+
+                if (checkedMembers.length === 0) {
+                    receiptStatusSection.style.display = 'none';
+                    receiptStatusTableBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
+                    return;
+                }
+
+                const readStatsMap = new Map();
+                getCurrentReadStats().forEach((item) => {
+                    const pid = String(item?.pID || '').trim();
+                    if (pid !== '') {
+                        readStatsMap.set(pid, item);
+                    }
+                });
+
+                const recipientsMap = new Map();
+                const addRecipient = (pid, name, faction) => {
+                    const key = String(pid || '').trim();
+                    if (key === '' || recipientsMap.has(key)) return;
+                    recipientsMap.set(key, {
+                        pid: key,
+                        name: String(name || '-').trim() || '-',
+                        faction: String(faction || '-').trim() || '-',
+                    });
+                };
+
+                checkedMembers.forEach((item) => {
+                    addRecipient(item.value, item.getAttribute('data-member-name'), item.getAttribute('data-group-label'));
+                });
+
+                const recipients = Array.from(recipientsMap.values()).sort((a, b) => {
+                    if (a.faction === b.faction) {
+                        return a.name.localeCompare(b.name, 'th');
+                    }
+                    return a.faction.localeCompare(b.faction, 'th');
+                });
+
+                receiptStatusSection.style.display = '';
+                receiptStatusTableBody.innerHTML = '';
+
+                recipients.forEach((recipient) => {
+                    const stat = readStatsMap.get(recipient.pid) || null;
+                    const isRead = Number(stat?.isRead || 0) === 1;
+
+                    const row = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = recipient.name;
+
+                    const statusCell = document.createElement('td');
+                    const statusPill = document.createElement('span');
+                    statusPill.className = `status-pill ${isRead ? 'approved' : 'pending'}`;
+                    statusPill.textContent = isRead ? 'อ่านแล้ว' : 'ยังไม่อ่าน';
+                    statusCell.appendChild(statusPill);
+
+                    const readAtCell = document.createElement('td');
+                    readAtCell.textContent = String(stat?.readAtDisplay || '-').trim() || '-';
+
+                    row.appendChild(nameCell);
+                    row.appendChild(statusCell);
+                    row.appendChild(readAtCell);
+                    receiptStatusTableBody.appendChild(row);
+                });
+            };
+
             selectAll?.addEventListener('change', () => {
                 const checked = selectAll.checked;
                 [...groupChecks, ...memberChecks].forEach((el) => {
                     if (!el.disabled) el.checked = checked;
                 });
                 updateSelectAllState();
+                renderSelectedRecipientStatuses();
             });
 
             groupChecks.forEach((item) => {
@@ -1717,6 +1807,7 @@ ob_start();
                     if (item.checked) setGroupCollapsed(item.closest('.item-group'), false);
                     item.indeterminate = false;
                     updateSelectAllState();
+                    renderSelectedRecipientStatuses();
                 });
             });
 
@@ -1724,6 +1815,7 @@ ob_start();
                 item.addEventListener('change', () => {
                     syncMemberByPid(item.value || '', item.checked, item);
                     updateSelectAllState();
+                    renderSelectedRecipientStatuses();
                 });
             });
 
@@ -1732,26 +1824,157 @@ ob_start();
                 const groupKey = item.getAttribute('data-group-key') || '';
                 const members = getMemberChecksByGroupKey(groupKey);
                 members.forEach((member) => {
+                    if (member.disabled) return;
                     member.checked = true;
                     syncMemberByPid(member.value || '', true, member);
                 });
             });
             updateSelectAllState();
+            renderSelectedRecipientStatuses();
+
+            form.resetCircularFormState = () => {
+                selectedFiles = [];
+                syncFiles();
+                renderFiles();
+                form.reset();
+                delete form.dataset.excludePid;
+                const sourceFileSection = form.querySelector('#sendModalFileSection, #forwardModalFileSection');
+                if (sourceFileSection) sourceFileSection.innerHTML = '';
+                const sendReceiptStatusSection = form.querySelector('#sendReceiptStatusSection, #forwardReceiptStatusSection');
+                const sendReceiptStatusTableBody = form.querySelector('#sendReceiptStatusTableBody, #forwardReceiptStatusTableBody');
+                if (sendReceiptStatusSection) sendReceiptStatusSection.style.display = 'none';
+                if (sendReceiptStatusTableBody) {
+                    sendReceiptStatusTableBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
+                }
+                delete form.dataset.readStats;
+                if (searchInput) searchInput.value = '';
+                recipientSearchRequestNo++;
+                filterRecipientDropdown('');
+                [...groupChecks, ...memberChecks].forEach((item) => {
+                    item.indeterminate = false;
+                });
+                updateSelectAllState();
+                setDropdownVisible(false);
+            };
+
+            form.applyRecipientOwnerFilter = (ownerPid) => {
+                const excludedPid = String(ownerPid || '').trim();
+                if (excludedPid !== '') {
+                    form.dataset.excludePid = excludedPid;
+                } else {
+                    delete form.dataset.excludePid;
+                }
+
+                memberChecks.forEach((item) => {
+                    const isExcluded = excludedPid !== '' && String(item.value || '').trim() === excludedPid;
+                    const row = item.closest('li');
+
+                    item.checked = isExcluded ? false : item.checked;
+                    item.disabled = isExcluded;
+                    item.dataset.ownerExcluded = isExcluded ? '1' : '0';
+
+                    if (row) {
+                        row.style.display = isExcluded ? 'none' : '';
+                    }
+                });
+
+                groupChecks.forEach((groupCheck) => {
+                    const groupKey = groupCheck.getAttribute('data-group-key') || '';
+                    const members = getMemberChecksByGroupKey(groupKey).filter((el) => !el.disabled);
+                    const groupItem = groupCheck.closest('.item-group');
+
+                    groupCheck.checked = false;
+                    groupCheck.indeterminate = false;
+                    groupCheck.disabled = members.length === 0;
+
+                    if (groupItem) {
+                        groupItem.style.display = members.length === 0 ? 'none' : '';
+                    }
+                });
+
+                if (selectAll) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+
+                recipientSearchRequestNo++;
+                filterRecipientDropdown('');
+                updateSelectAllState();
+                renderSelectedRecipientStatuses();
+            };
+
+            form.applyRecipientSelection = (selectedPids) => {
+                const selectedSet = new Set(
+                    Array.isArray(selectedPids)
+                        ? selectedPids
+                              .map((value) => String(value || '').trim())
+                              .filter((value) => value !== '')
+                        : []
+                );
+
+                memberChecks.forEach((item) => {
+                    if (item.disabled) {
+                        item.checked = false;
+                        return;
+                    }
+
+                    item.checked = selectedSet.has(String(item.value || '').trim());
+                });
+
+                updateSelectAllState();
+                renderSelectedRecipientStatuses();
+            };
+
+            form.setReadStats = (rawStats) => {
+                form.dataset.readStats = String(rawStats || '[]');
+                renderSelectedRecipientStatuses();
+            };
+
+            const requestFormSubmit = () => {
+                if (!form) return;
+
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+
+                form.submit();
+            };
 
             const btnSend = document.getElementById(prefix + 'btnSendNotice');
             const confirmModal = document.getElementById(prefix + 'confirmModal');
             const confirmYes = document.getElementById(prefix + 'btnConfirmYes');
             const confirmNo = document.getElementById(prefix + 'btnConfirmNo');
+            const confirmTitle = String(btnSend?.getAttribute('data-confirm-title') || '').trim() || 'ยืนยันการทำรายการ';
 
             btnSend?.addEventListener('click', (e) => {
                 e.preventDefault();
+
+                if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+                    window.AppAlerts.confirm('', {
+                        title: confirmTitle,
+                        type: 'warning',
+                        confirmButtonText: 'ยืนยัน',
+                        cancelButtonText: 'ยกเลิก',
+                    }).then((approved) => {
+                        if (approved) {
+                            requestFormSubmit();
+                        }
+                    });
+                    return;
+                }
+
                 confirmModal?.classList.add('active');
             });
             confirmNo?.addEventListener('click', () => confirmModal?.classList.remove('active'));
             confirmModal?.addEventListener('click', (e) => {
                 if (e.target === confirmModal) confirmModal.classList.remove('active');
             });
-            confirmYes?.addEventListener('click', () => form?.submit());
+            confirmYes?.addEventListener('click', () => requestFormSubmit());
 
             const recipientModal = document.getElementById(prefix + 'recipientModal');
             const recipientTableBody = document.getElementById(prefix + 'recipientTableBody');
@@ -1761,9 +1984,8 @@ ob_start();
             const renderRecipients = () => {
                 if (!recipientTableBody) return;
                 recipientTableBody.innerHTML = '';
-                const checkedGroups = groupChecks.filter((item) => item.checked);
-                const checkedMembers = memberChecks.filter((item) => item.checked);
-                if (checkedGroups.length === 0 && checkedMembers.length === 0) {
+                const checkedMembers = memberChecks.filter((item) => item.checked && !item.disabled);
+                if (checkedMembers.length === 0) {
                     recipientTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 16px;">ไม่มีผู้รับที่เลือก</td></tr>';
                     return;
                 }
@@ -1778,15 +2000,6 @@ ob_start();
                         faction: (faction || '-').trim() || '-'
                     });
                 };
-
-                checkedGroups.forEach((item) => {
-                    let members = [];
-                    try {
-                        members = JSON.parse(item.getAttribute('data-members') || '[]');
-                    } catch (e) {}
-                    if (!Array.isArray(members)) return;
-                    members.forEach((member) => addRecipient(member?.pID, member?.name, item.getAttribute('data-group-label')));
-                });
 
                 checkedMembers.forEach((item) => addRecipient(item.value, item.getAttribute('data-member-name'), item.getAttribute('data-group-label')));
 
@@ -1867,12 +2080,168 @@ ob_start();
             if (e.target === detailModalExt) detailModalExt.style.display = 'none';
         });
 
+        const modalArchiveForm = document.getElementById('modalArchiveForm');
+        modalArchiveForm?.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const actionValue = String(modalArchiveForm.querySelector('input[name="action"]')?.value || '').trim();
+            const confirmTitle = actionValue === 'unarchive' ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ';
+
+            if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+                window.AppAlerts.confirm('', {
+                    title: confirmTitle,
+                    type: 'warning',
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                }).then((approved) => {
+                    if (approved) {
+                        modalArchiveForm.submit();
+                    }
+                });
+                return;
+            }
+
+            if (window.confirm(confirmTitle)) {
+                modalArchiveForm.submit();
+            }
+        });
+
+        setupCircularForm('forward_', 'circularForwardForm');
+
         const sendModal = document.getElementById('modalNoticeSendOverlay');
         const closeSendBtn = document.getElementById('closeModalNoticeSend');
-        document.querySelectorAll('.js-open-circular-send-modal').forEach(btn => {
+        const sendForm = sendModal?.querySelector('#circularForwardForm');
+
+        const renderSendModalFiles = (circularId, rawFiles) => {
+            if (!sendModal) return;
+            const fileSection = sendModal.querySelector('#forwardModalFileSection');
+            if (!fileSection) return;
+
+            fileSection.innerHTML = '';
+
+            let files = [];
+            try {
+                files = JSON.parse(String(rawFiles || '[]'));
+            } catch (error) {
+                files = [];
+            }
+
+            if (!Array.isArray(files) || files.length === 0) {
+                const emptyBanner = document.createElement('div');
+                emptyBanner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = '<div class="file-name">ไม่มีไฟล์แนบ</div>';
+
+                info.appendChild(text);
+                emptyBanner.appendChild(info);
+                fileSection.appendChild(emptyBanner);
+                return;
+            }
+
+            files.forEach((file) => {
+                const fileId = String(file?.fileID || '').trim();
+                const fileName = String(file?.fileName || 'ไฟล์แนบ').trim() || 'ไฟล์แนบ';
+                const mimeType = String(file?.mimeType || 'ไฟล์แนบ').trim() || 'ไฟล์แนบ';
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = mimeType === 'application/pdf' ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-image"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<div class="file-name">${fileName}</div><div class="file-type">${mimeType}</div>`;
+
+                info.appendChild(icon);
+                info.appendChild(text);
+
+                banner.appendChild(info);
+
+                if (fileId !== '' && String(circularId || '').trim() !== '') {
+                    const actions = document.createElement('div');
+                    actions.className = 'file-actions';
+
+                    const viewLink = document.createElement('a');
+                    viewLink.href = `public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(String(circularId || '').trim())}&file_id=${encodeURIComponent(fileId)}`;
+                    viewLink.target = '_blank';
+                    viewLink.rel = 'noopener';
+                    viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+
+                    actions.appendChild(viewLink);
+                    banner.appendChild(actions);
+                }
+
+                fileSection.appendChild(banner);
+            });
+        };
+
+        const openSendModal = (button, options = {}) => {
+            if (!sendModal || !button) return;
+
+            if (sendForm && typeof sendForm.resetCircularFormState === 'function') {
+                sendForm.resetCircularFormState();
+            }
+
+            const circularId = String(button.getAttribute('data-circular-id') || '').trim();
+            const inboxId = String(button.getAttribute('data-inbox-id') || '').trim();
+            const subject = String(button.getAttribute('data-subject') || '').trim();
+            const detail = String(button.getAttribute('data-detail') || '').trim();
+            const linkUrl = String(button.getAttribute('data-link') || '').trim();
+            const ownerPid = String(button.getAttribute('data-owner-pid') || '').trim();
+            const rawFiles = button.getAttribute('data-files') || '[]';
+            const rawReadStats = button.getAttribute('data-read-stats') || '[]';
+            const rawForwardedPids = button.getAttribute('data-forwarded-pids') || '[]';
+
+            const targetInput = sendModal.querySelector('#forwardTargetCircularId');
+            const inboxInput = sendModal.querySelector('[data-send-inbox-id]');
+            const circularInput = sendModal.querySelector('[data-send-circular-id]');
+            const subjectInput = sendModal.querySelector('input[name="subject"]');
+            const detailInput = sendModal.querySelector('textarea[name="detail"]');
+            const linkInput = sendModal.querySelector('input[name="linkURL"]');
+
+            if (targetInput) targetInput.value = circularId;
+            if (inboxInput) inboxInput.value = inboxId;
+            if (circularInput) circularInput.value = circularId;
+            if (subjectInput) subjectInput.value = subject;
+            if (detailInput) detailInput.value = detail;
+            if (linkInput) linkInput.value = linkUrl !== '' ? linkUrl : '-';
+
+            renderSendModalFiles(circularId, rawFiles);
+            if (sendForm && typeof sendForm.setReadStats === 'function') {
+                sendForm.setReadStats(rawReadStats);
+            }
+
+            if (sendForm && typeof sendForm.applyRecipientOwnerFilter === 'function') {
+                sendForm.applyRecipientOwnerFilter(ownerPid);
+            }
+
+            if (sendForm && typeof sendForm.applyRecipientSelection === 'function') {
+                let forwardedPids = [];
+                try {
+                    forwardedPids = JSON.parse(String(rawForwardedPids || '[]'));
+                } catch (error) {
+                    forwardedPids = [];
+                }
+                sendForm.applyRecipientSelection(forwardedPids);
+            }
+
+            sendModal.style.display = 'flex';
+        };
+
+        document.querySelectorAll('.js-open-circular-send-modal').forEach((btn) => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (sendModal) sendModal.style.display = 'flex';
+                openSendModal(this);
             });
         });
         closeSendBtn?.addEventListener('click', () => {
@@ -1881,6 +2250,16 @@ ob_start();
         sendModal?.addEventListener('click', (e) => {
             if (e.target === sendModal) sendModal.style.display = 'none';
         });
+
+        if (forwardOpenInboxId > 0) {
+            const reopenTarget = Array.from(document.querySelectorAll('.js-open-circular-send-modal')).find((button) => {
+                return String(button.getAttribute('data-inbox-id') || '').trim() === String(forwardOpenInboxId);
+            });
+
+            if (reopenTarget) {
+                openSendModal(reopenTarget);
+            }
+        }
 
     });
 </script>

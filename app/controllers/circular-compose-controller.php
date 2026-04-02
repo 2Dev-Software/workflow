@@ -47,15 +47,15 @@ if (!function_exists('circular_compose_normalize_search')) {
 }
 
 if (!function_exists('circular_compose_build_track_return_url')) {
-    function circular_compose_build_track_return_url(array $input = []): string
+    function circular_compose_build_track_return_url(array $input = [], array $fallback = []): string
     {
         $params = ['tab' => 'track'];
 
-        $query = trim((string) ($input['return_q'] ?? ''));
-        $status = strtoupper(trim((string) ($input['return_status'] ?? 'ALL')));
-        $sort = strtolower(trim((string) ($input['return_sort'] ?? 'newest')));
-        $page = max(1, (int) ($input['return_page'] ?? 1));
-        $per_page = (int) ($input['return_per_page'] ?? 10);
+        $query = trim((string) ($input['return_q'] ?? $fallback['q'] ?? ''));
+        $status = strtoupper(trim((string) ($input['return_status'] ?? $fallback['status'] ?? 'ALL')));
+        $sort = strtolower(trim((string) ($input['return_sort'] ?? $fallback['sort'] ?? 'newest')));
+        $page = max(1, (int) ($input['return_page'] ?? $fallback['page'] ?? 1));
+        $per_page = (int) ($input['return_per_page'] ?? $fallback['per_page'] ?? 10);
 
         if ($query !== '') {
             $params['q'] = $query;
@@ -78,6 +78,13 @@ if (!function_exists('circular_compose_build_track_return_url')) {
         }
 
         return '/circular-compose.php?' . http_build_query($params);
+    }
+}
+
+if (!function_exists('circular_compose_build_compose_return_url')) {
+    function circular_compose_build_compose_return_url(): string
+    {
+        return '/circular-compose.php';
     }
 }
 
@@ -239,11 +246,31 @@ if (!function_exists('circular_compose_index')) {
 
                     if ($post_action === 'recall' && $circular_id > 0) {
                         $ok = circular_recall_internal($circular_id, $current_pid);
+                        if ($ok) {
+                            if (function_exists('flash_set')) {
+                                flash_set('circular_compose_alert', ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => '']);
+                            }
+
+                            if (function_exists('redirect_to')) {
+                                redirect_to(circular_compose_build_track_return_url($_POST, $_GET));
+                            }
+                        }
+
                         $alert = $ok
                             ? ['type' => 'success', 'title' => 'ดึงหนังสือกลับแล้ว', 'message' => '']
                             : ['type' => 'warning', 'title' => 'ไม่สามารถดึงกลับได้', 'message' => 'มีผู้รับอ่านแล้ว'];
                     } elseif ($post_action === 'resend' && $circular_id > 0) {
                         $ok = circular_resend_internal($circular_id, $current_pid);
+                        if ($ok) {
+                            if (function_exists('flash_set')) {
+                                flash_set('circular_compose_alert', ['type' => 'success', 'title' => 'ส่งใหม่เรียบร้อย', 'message' => '']);
+                            }
+
+                            if (function_exists('redirect_to')) {
+                                redirect_to(circular_compose_build_track_return_url($_POST, $_GET));
+                            }
+                        }
+
                         $alert = $ok
                             ? ['type' => 'success', 'title' => 'ส่งใหม่เรียบร้อย', 'message' => '']
                             : ['type' => 'warning', 'title' => 'ไม่สามารถส่งใหม่ได้', 'message' => ''];
@@ -399,6 +426,18 @@ if (!function_exists('circular_compose_index')) {
                                 'status' => INTERNAL_STATUS_SENT,
                                 'createdByPID' => $current_pid,
                             ], ['pids' => $pids, 'targets' => $targets], (array) $files);
+
+                            if (function_exists('flash_set')) {
+                                flash_set('circular_compose_alert', [
+                                    'type' => 'success',
+                                    'title' => 'ส่งหนังสือเวียนแล้ว',
+                                    'message' => 'เลขที่รายการ #' . $circularID,
+                                ]);
+                            }
+
+                            if (function_exists('redirect_to')) {
+                                redirect_to(circular_compose_build_compose_return_url());
+                            }
 
                             $alert = ['type' => 'success', 'title' => 'ส่งหนังสือเวียนแล้ว', 'message' => 'เลขที่รายการ #' . $circularID];
 

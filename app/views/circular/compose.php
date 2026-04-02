@@ -2360,6 +2360,7 @@ ob_start();
             const confirmModal = document.getElementById(prefix + 'confirmModal');
             const confirmYes = document.getElementById(prefix + 'btnConfirmYes');
             const confirmNo = document.getElementById(prefix + 'btnConfirmNo');
+            const confirmTitle = prefix === 'edit_' ? 'ยืนยันการแก้ไขและส่งใหม่' : 'ยืนยันการส่งหนังสือเวียน';
             const requestFormSubmit = () => {
                 if (!form) {
                     return;
@@ -2376,9 +2377,9 @@ ob_start();
             btnSend?.addEventListener('click', (e) => {
                 e.preventDefault();
 
-                if (prefix === '' && window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+                if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
                     window.AppAlerts.confirm('', {
-                        title: 'ยืนยันการส่งหนังสือเวียน',
+                        title: confirmTitle,
                         type: 'warning',
                         confirmButtonText: 'ยืนยัน',
                         cancelButtonText: 'ยกเลิก',

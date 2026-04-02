@@ -49,6 +49,7 @@ if (!function_exists('circular_archive_index')) {
         $filter_sort = (string) ($_GET['sort'] ?? 'newest');
         $filter_view = (string) ($_GET['view'] ?? 'table1');
         $filter_search = trim((string) ($_GET['q'] ?? ''));
+        $selected_dh_year = (int) ($_GET['dh_year'] ?? 0);
 
         $allowed_types = ['all', 'internal', 'external'];
         $allowed_reads = ['all', 'read', 'unread'];
@@ -133,7 +134,7 @@ if (!function_exists('circular_archive_index')) {
         if (!empty($circular_ids)) {
             $placeholders = implode(', ', array_fill(0, count($circular_ids), '?'));
             $types = str_repeat('i', count($circular_ids));
-            $sql = 'SELECT circularID, circularType, subject, detail, linkURL, extPriority, extBookNo, extIssuedDate, extFromText, extGroupFID, status, createdAt
+            $sql = 'SELECT circularID, dh_year, circularType, subject, detail, linkURL, extPriority, extBookNo, extIssuedDate, extFromText, extGroupFID, status, createdAt
                 FROM dh_circulars
                 WHERE circularID IN (' . $placeholders . ')';
             $rows = db_fetch_all($sql, $types, ...$circular_ids);
@@ -155,11 +156,39 @@ if (!function_exists('circular_archive_index')) {
             $item['extIssuedDate'] = $detail['extIssuedDate'] ?? '';
             $item['extFromText'] = $detail['extFromText'] ?? '';
             $item['extGroupFID'] = $detail['extGroupFID'] ?? '';
+            $item['dh_year'] = $detail['dh_year'] ?? ($item['dh_year'] ?? null);
             $item['status'] = $detail['status'] ?? ($item['status'] ?? '');
             $items[] = $item;
         }
 
-        $items = array_values(array_filter($items, static function (array $item) use ($filter_type, $filter_read, $filter_search): bool {
+        $dh_year_options = [];
+
+        foreach ($items as $item) {
+            $type = strtoupper((string) ($item['circularType'] ?? ''));
+
+            if ($filter_type === 'internal' && $type !== 'INTERNAL') {
+                continue;
+            }
+
+            if ($filter_type === 'external' && $type !== 'EXTERNAL') {
+                continue;
+            }
+
+            $year = (int) ($item['dh_year'] ?? 0);
+
+            if ($year > 0) {
+                $dh_year_options[$year] = true;
+            }
+        }
+
+        $dh_year_options = array_keys($dh_year_options);
+        rsort($dh_year_options);
+
+        if ($selected_dh_year > 0 && !in_array($selected_dh_year, $dh_year_options, true)) {
+            $selected_dh_year = 0;
+        }
+
+        $items = array_values(array_filter($items, static function (array $item) use ($filter_type, $filter_read, $filter_search, $selected_dh_year): bool {
             $type = strtoupper((string) ($item['circularType'] ?? ''));
             $is_read = (int) ($item['isRead'] ?? 0) === 1;
 
@@ -176,6 +205,10 @@ if (!function_exists('circular_archive_index')) {
             }
 
             if ($filter_read === 'unread' && $is_read) {
+                return false;
+            }
+
+            if ($selected_dh_year > 0 && (int) ($item['dh_year'] ?? 0) !== $selected_dh_year) {
                 return false;
             }
 
@@ -399,6 +432,7 @@ if (!function_exists('circular_archive_index')) {
                 'is_read' => (int) ($item['isRead'] ?? 0) === 1,
                 'type' => strtoupper((string) ($item['circularType'] ?? '')),
                 'type_label' => strtoupper((string) ($item['circularType'] ?? '')) === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน',
+                'dh_year' => (int) ($item['dh_year'] ?? 0),
                 'subject' => (string) ($item['subject'] ?? ''),
                 'sender_name' => (string) ($item['senderName'] ?? '-'),
                 'detail' => (string) ($item['detail'] ?? ''),
@@ -423,6 +457,8 @@ if (!function_exists('circular_archive_index')) {
             'alert' => $alert,
             'items' => $display_items,
             'box_key' => $box_key,
+            'dh_year_options' => $dh_year_options,
+            'selected_dh_year' => $selected_dh_year,
             'filter_type' => $filter_type,
             'filter_read' => $filter_read,
             'filter_sort' => $filter_sort,
