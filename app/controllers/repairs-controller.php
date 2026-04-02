@@ -77,6 +77,112 @@ if (!function_exists('repair_can_transition')) {
     }
 }
 
+if (!function_exists('repairs_status_map')) {
+    function repairs_status_map(): array
+    {
+        return [
+            REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
+            REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
+            REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
+            REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+            REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+        ];
+    }
+}
+
+if (!function_exists('repairs_status_label')) {
+    function repairs_status_label(string $status): string
+    {
+        $status_map = repairs_status_map();
+
+        return (string) ($status_map[$status]['label'] ?? $status);
+    }
+}
+
+if (!function_exists('repairs_track_status_filters')) {
+    function repairs_track_status_filters(): array
+    {
+        return [
+            'all' => 'ทั้งหมด',
+            'pending' => repairs_status_label(REPAIR_STATUS_PENDING),
+            'in_progress' => repairs_status_label(REPAIR_STATUS_IN_PROGRESS),
+            'completed' => repairs_status_label(REPAIR_STATUS_COMPLETED),
+            'cancelled' => repairs_status_label(REPAIR_STATUS_CANCELLED),
+        ];
+    }
+}
+
+if (!function_exists('repairs_resolve_filter_statuses')) {
+    function repairs_resolve_filter_statuses(string $filter_status): array
+    {
+        switch ($filter_status) {
+            case 'pending':
+                return [REPAIR_STATUS_PENDING];
+            case 'in_progress':
+                return [REPAIR_STATUS_IN_PROGRESS];
+            case 'completed':
+                return [REPAIR_STATUS_COMPLETED];
+            case 'cancelled':
+                return [REPAIR_STATUS_CANCELLED, REPAIR_STATUS_REJECTED];
+            default:
+                return [];
+        }
+    }
+}
+
+if (!function_exists('repairs_controller_audit_payload')) {
+    function repairs_controller_audit_payload(string $mode, array $payload = []): array
+    {
+        $view_id = (int) ($_GET['view_id'] ?? 0);
+        $edit_id = (int) ($_GET['edit_id'] ?? 0);
+        $page = (int) ($_GET['page'] ?? 1);
+        $base_payload = [
+            'mode' => $mode,
+            'tab' => trim((string) ($_REQUEST['tab'] ?? '')) ?: null,
+            'page' => $page > 0 ? $page : 1,
+            'query' => trim((string) ($_GET['q'] ?? '')) ?: null,
+            'statusFilter' => trim((string) ($_GET['status'] ?? '')) ?: null,
+            'sort' => trim((string) ($_GET['sort'] ?? '')) ?: null,
+            'viewID' => $view_id > 0 ? $view_id : null,
+            'editID' => $edit_id > 0 ? $edit_id : null,
+            'requestedAction' => trim((string) ($_POST['action'] ?? '')) ?: null,
+        ];
+
+        return array_filter(array_merge($base_payload, $payload), static function ($value): bool {
+            return $value !== null && $value !== '' && $value !== [];
+        });
+    }
+}
+
+if (!function_exists('repairs_controller_audit_log')) {
+    function repairs_controller_audit_log(
+        string $mode,
+        string $action,
+        string $status = 'SUCCESS',
+        ?int $entity_id = null,
+        ?string $message = null,
+        array $payload = [],
+        ?int $http_status = null,
+        ?string $http_method = null
+    ): void {
+        if (!function_exists('audit_log')) {
+            return;
+        }
+
+        audit_log(
+            'repairs',
+            $action,
+            $status,
+            REPAIR_ENTITY_NAME,
+            $entity_id,
+            $message,
+            repairs_controller_audit_payload($mode, $payload),
+            $http_method,
+            $http_status
+        );
+    }
+}
+
 if (!function_exists('repairs_transition_actions')) {
     function repairs_transition_actions(string $mode, ?array $repair): array
     {
@@ -94,17 +200,17 @@ if (!function_exists('repairs_transition_actions')) {
             return [
                 [
                     'target_status' => REPAIR_STATUS_IN_PROGRESS,
-                    'label' => 'อนุมัติการซ่อมแซม',
+                    'label' => 'กำลังดำเนินการ',
                     'variant' => 'primary',
-                    'confirm' => 'ยืนยันการอนุมัติคำขอซ่อมนี้ใช่หรือไม่?',
-                    'confirm_title' => 'ยืนยันการอนุมัติ',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นกำลังดำเนินการใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการรับคำร้อง',
                 ],
                 [
-                    'target_status' => REPAIR_STATUS_REJECTED,
-                    'label' => 'ไม่อนุมัติ',
+                    'target_status' => REPAIR_STATUS_CANCELLED,
+                    'label' => 'ยกเลิกคำร้อง',
                     'variant' => 'danger',
-                    'confirm' => 'ยืนยันการไม่อนุมัติคำขอซ่อมนี้ใช่หรือไม่?',
-                    'confirm_title' => 'ยืนยันการไม่อนุมัติ',
+                    'confirm' => 'ยืนยันการยกเลิกคำร้องนี้ใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการยกเลิกคำร้อง',
                 ],
             ];
         }
@@ -115,39 +221,32 @@ if (!function_exists('repairs_transition_actions')) {
             if ($current_status === REPAIR_STATUS_PENDING) {
                 $actions[] = [
                     'target_status' => REPAIR_STATUS_IN_PROGRESS,
-                    'label' => 'รับดำเนินการ',
+                    'label' => 'กำลังดำเนินการ',
                     'variant' => 'primary',
-                    'confirm' => 'ยืนยันการรับดำเนินการรายการนี้ใช่หรือไม่?',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นกำลังดำเนินการใช่หรือไม่?',
                     'confirm_title' => 'ยืนยันการรับงาน',
                 ];
                 $actions[] = [
-                    'target_status' => REPAIR_STATUS_REJECTED,
-                    'label' => 'ไม่อนุมัติ',
-                    'variant' => 'danger',
-                    'confirm' => 'ยืนยันการไม่อนุมัติรายการนี้ใช่หรือไม่?',
-                    'confirm_title' => 'ยืนยันการไม่อนุมัติ',
-                ];
-                $actions[] = [
                     'target_status' => REPAIR_STATUS_CANCELLED,
-                    'label' => 'ยกเลิกรายการ',
+                    'label' => 'ยกเลิกคำร้อง',
                     'variant' => 'secondary',
-                    'confirm' => 'ยืนยันการยกเลิกรายการนี้ใช่หรือไม่?',
-                    'confirm_title' => 'ยืนยันการยกเลิก',
+                    'confirm' => 'ยืนยันการยกเลิกคำร้องนี้ใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการยกเลิกคำร้อง',
                 ];
             } elseif ($current_status === REPAIR_STATUS_IN_PROGRESS) {
                 $actions[] = [
                     'target_status' => REPAIR_STATUS_COMPLETED,
-                    'label' => 'ปิดงานซ่อม',
+                    'label' => 'เสร็จสิ้น',
                     'variant' => 'primary',
-                    'confirm' => 'ยืนยันการปิดงานซ่อมรายการนี้ใช่หรือไม่?',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นเสร็จสิ้นใช่หรือไม่?',
                     'confirm_title' => 'ยืนยันการปิดงาน',
                 ];
                 $actions[] = [
                     'target_status' => REPAIR_STATUS_CANCELLED,
-                    'label' => 'ยกเลิกรายการ',
+                    'label' => 'ยกเลิกคำร้อง',
                     'variant' => 'secondary',
-                    'confirm' => 'ยืนยันการยกเลิกรายการนี้ใช่หรือไม่?',
-                    'confirm_title' => 'ยืนยันการยกเลิก',
+                    'confirm' => 'ยืนยันการยกเลิกคำร้องนี้ใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการยกเลิกคำร้อง',
                 ];
             }
 
@@ -203,7 +302,18 @@ if (!function_exists('repairs_handle_mode')) {
             || rbac_user_has_role($connection, $current_pid, ROLE_FACILITY)
             || (int) ($current_user['roleID'] ?? 0) === 5;
 
+        $audit_request_payload = static function (array $payload = []) use ($mode, $current_pid, $is_admin, $is_facility): array {
+            return repairs_controller_audit_payload($mode, array_merge([
+                'actorPID' => $current_pid !== '' ? $current_pid : null,
+                'isAdmin' => $is_admin,
+                'isFacility' => $is_facility,
+            ], $payload));
+        };
+
         if (($mode === 'approval' && !$is_facility) || ($mode === 'manage' && !$is_admin)) {
+            repairs_controller_audit_log($mode, 'ACCESS', 'DENY', null, 'repairs_access_denied', [
+                'requiredRole' => $mode === 'approval' ? ROLE_FACILITY : ROLE_ADMIN,
+            ], 403);
             repairs_render_forbidden();
 
             return;
@@ -213,10 +323,25 @@ if (!function_exists('repairs_handle_mode')) {
         $values = repair_form_defaults();
         $view_id = (int) ($_GET['view_id'] ?? 0);
         $edit_id = $mode === 'report' ? (int) ($_GET['edit_id'] ?? 0) : 0;
+        $requested_tab = trim((string) ($_REQUEST['tab'] ?? ''));
+        $is_track_active = $mode === 'report' && ($requested_tab === 'track' || $view_id > 0 || $edit_id > 0);
+        $filter_query = trim((string) ($_GET['q'] ?? ''));
+        $filter_status = strtolower(trim((string) ($_GET['status'] ?? 'all')));
+        $filter_sort = strtolower(trim((string) ($_GET['sort'] ?? 'newest')));
+        $status_map = repairs_status_map();
+        $status_filter_options = repairs_track_status_filters();
         $view_item = null;
         $view_attachments = [];
         $edit_item = null;
         $edit_attachments = [];
+
+        if (!isset($status_filter_options[$filter_status])) {
+            $filter_status = 'all';
+        }
+
+        if (!in_array($filter_sort, ['newest', 'oldest'], true)) {
+            $filter_sort = 'newest';
+        }
 
         if ($edit_id > 0) {
             $view_id = 0;
@@ -241,7 +366,10 @@ if (!function_exists('repairs_handle_mode')) {
         if ($view_id > 0 && $has_table) {
             $view_item = repair_get($view_id);
 
-            if (!$can_access_repair($view_item)) {
+            if (!$view_item) {
+                repairs_controller_audit_log($mode, 'DETAIL_VIEW', 'FAIL', $view_id, 'not_found', [], null, 'GET');
+            } elseif (!$can_access_repair($view_item)) {
+                repairs_controller_audit_log($mode, 'DETAIL_VIEW', 'DENY', $view_id, 'not_authorized', [], null, 'GET');
                 $alert = [
                     'type' => 'danger',
                     'title' => 'ไม่มีสิทธิ์เข้าถึง',
@@ -250,13 +378,20 @@ if (!function_exists('repairs_handle_mode')) {
                 $view_item = null;
             } else {
                 $view_attachments = repair_get_attachments($view_id);
+                repairs_controller_audit_log($mode, 'DETAIL_VIEW', 'SUCCESS', $view_id, null, [
+                    'status' => (string) ($view_item['status'] ?? ''),
+                    'attachmentCount' => count($view_attachments),
+                ], 200, 'GET');
             }
         }
 
         if ($edit_id > 0 && $has_table) {
             $edit_item = repair_get($edit_id);
 
-            if (!$can_access_repair($edit_item)) {
+            if (!$edit_item) {
+                repairs_controller_audit_log($mode, 'EDIT_VIEW', 'FAIL', $edit_id, 'not_found', [], null, 'GET');
+            } elseif (!$can_access_repair($edit_item)) {
+                repairs_controller_audit_log($mode, 'EDIT_VIEW', 'DENY', $edit_id, 'not_authorized', [], null, 'GET');
                 $alert = [
                     'type' => 'danger',
                     'title' => 'ไม่มีสิทธิ์แก้ไข',
@@ -264,10 +399,13 @@ if (!function_exists('repairs_handle_mode')) {
                 ];
                 $edit_item = null;
             } elseif ((string) ($edit_item['status'] ?? '') !== REPAIR_STATUS_PENDING) {
+                repairs_controller_audit_log($mode, 'EDIT_VIEW', 'FAIL', $edit_id, 'invalid_status_for_edit', [
+                    'status' => (string) ($edit_item['status'] ?? ''),
+                    ], null, 'GET');
                 $alert = [
                     'type' => 'warning',
                     'title' => 'ไม่สามารถแก้ไขได้',
-                    'message' => 'แก้ไขได้เฉพาะรายการที่มีสถานะรอดำเนินการเท่านั้น',
+                    'message' => 'แก้ไขได้เฉพาะรายการที่มีสถานะ ' . repairs_status_label(REPAIR_STATUS_PENDING) . ' เท่านั้น',
                 ];
                 $edit_item = null;
             } else {
@@ -278,6 +416,10 @@ if (!function_exists('repairs_handle_mode')) {
                     'detail' => (string) ($edit_item['detail'] ?? ''),
                 ];
                 $edit_attachments = repair_get_attachments($edit_id);
+                repairs_controller_audit_log($mode, 'EDIT_VIEW', 'SUCCESS', $edit_id, null, [
+                    'status' => (string) ($edit_item['status'] ?? ''),
+                    'attachmentCount' => count($edit_attachments),
+                ], 200, 'GET');
             }
         }
 
@@ -286,6 +428,18 @@ if (!function_exists('repairs_handle_mode')) {
             $repair_id = (int) ($_POST['repair_id'] ?? 0);
             $target_status = trim((string) ($_POST['target_status'] ?? ''));
             $values = repair_normalize_form_data($_POST);
+            $post_audit_payload = [
+                'repairID' => $repair_id > 0 ? $repair_id : null,
+                'targetStatus' => $target_status !== '' ? $target_status : null,
+                'subject' => $values['subject'] !== '' ? $values['subject'] : null,
+                'location' => $values['location'] !== '' ? $values['location'] : null,
+                'equipment' => $values['equipment'] !== '' ? $values['equipment'] : null,
+                'detailLength' => function_exists('mb_strlen')
+                    ? mb_strlen((string) ($values['detail'] ?? ''), 'UTF-8')
+                    : strlen((string) ($values['detail'] ?? '')),
+                'hasAttachments' => !empty($_FILES['attachments']) && repair_has_uploads((array) $_FILES['attachments']),
+                'attachmentCount' => !empty($_FILES['attachments']) ? repair_count_uploads((array) $_FILES['attachments']) : 0,
+            ];
 
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -293,32 +447,46 @@ if (!function_exists('repairs_handle_mode')) {
                     'title' => 'ไม่สามารถยืนยันความปลอดภัย',
                     'message' => 'กรุณาลองใหม่อีกครั้ง',
                 ];
+                audit_log('security', 'CSRF_FAIL', 'DENY', REPAIR_ENTITY_NAME, $repair_id > 0 ? $repair_id : null, 'repairs_controller', $audit_request_payload($post_audit_payload));
             } elseif (!$has_table || !$has_equipment_column) {
+                repairs_controller_audit_log($mode, strtoupper($action !== '' ? $action : 'ACTION'), 'FAIL', $repair_id > 0 ? $repair_id : null, 'schema_not_ready', $post_audit_payload);
                 $alert = system_not_ready_alert('ยังไม่พบโครงสร้าง repairs ล่าสุด กรุณารัน migrations/019_add_repair_equipment_column.sql');
             } elseif ($action === 'delete') {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
 
-                if (!$can_access_repair($target)) {
+                if (!$target) {
+                    repairs_controller_audit_log($mode, 'DELETE', 'FAIL', $repair_id > 0 ? $repair_id : null, 'not_found', $post_audit_payload);
                     $alert = [
                         'type' => 'danger',
-                        'title' => 'ไม่มีสิทธิ์ลบ',
-                        'message' => 'คุณไม่มีสิทธิ์ลบรายการนี้',
+                        'title' => 'ไม่พบรายการ',
+                        'message' => 'ไม่พบคำร้องที่ต้องการลบ',
+                    ];
+                } elseif (!$can_access_repair($target)) {
+                    repairs_controller_audit_log($mode, 'DELETE', 'DENY', $repair_id, 'not_authorized', $post_audit_payload);
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'ไม่มีสิทธิ์ลบคำร้อง',
+                        'message' => 'คุณไม่มีสิทธิ์ลบคำร้องนี้',
                     ];
                 } elseif ((string) ($target['status'] ?? '') !== REPAIR_STATUS_PENDING) {
+                    repairs_controller_audit_log($mode, 'DELETE', 'FAIL', $repair_id, 'invalid_status_for_delete', array_merge($post_audit_payload, [
+                        'status' => (string) ($target['status'] ?? ''),
+                        'deleteStrategy' => 'soft_delete',
+                    ]));
                     $alert = [
                         'type' => 'warning',
-                        'title' => 'ไม่สามารถลบได้',
-                        'message' => 'ลบได้เฉพาะรายการที่มีสถานะรอดำเนินการเท่านั้น',
+                        'title' => 'ไม่สามารถลบคำร้องได้',
+                        'message' => 'ลบคำร้องได้เฉพาะรายการที่มีสถานะ ' . repairs_status_label(REPAIR_STATUS_PENDING) . ' เท่านั้น',
                     ];
                 } else {
-                    repair_delete_record($repair_id);
-
-                    if (function_exists('audit_log')) {
-                        audit_log('repairs', 'DELETE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
-                    }
+                    repair_soft_delete_record($repair_id);
+                    repairs_controller_audit_log($mode, 'DELETE', 'SUCCESS', $repair_id, null, array_merge($post_audit_payload, [
+                        'status' => (string) ($target['status'] ?? ''),
+                        'deleteStrategy' => 'soft_delete',
+                    ]));
                     $alert = [
                         'type' => 'success',
-                        'title' => 'ลบรายการแล้ว',
+                        'title' => 'ลบคำร้องสำเร็จ',
                         'message' => '',
                     ];
                     $view_id = 0;
@@ -329,19 +497,31 @@ if (!function_exists('repairs_handle_mode')) {
             } elseif ($action === 'update') {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
 
-                if (!$can_access_repair($target)) {
+                if (!$target) {
+                    repairs_controller_audit_log($mode, 'UPDATE', 'FAIL', $repair_id > 0 ? $repair_id : null, 'not_found', $post_audit_payload);
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'ไม่พบรายการ',
+                        'message' => 'ไม่พบคำร้องที่ต้องการแก้ไข',
+                    ];
+                } elseif (!$can_access_repair($target)) {
+                    repairs_controller_audit_log($mode, 'UPDATE', 'DENY', $repair_id, 'not_authorized', $post_audit_payload);
                     $alert = [
                         'type' => 'danger',
                         'title' => 'ไม่มีสิทธิ์แก้ไข',
                         'message' => 'คุณไม่มีสิทธิ์แก้ไขรายการนี้',
                     ];
                 } elseif ((string) ($target['status'] ?? '') !== REPAIR_STATUS_PENDING) {
+                    repairs_controller_audit_log($mode, 'UPDATE', 'FAIL', $repair_id, 'invalid_status_for_update', array_merge($post_audit_payload, [
+                        'status' => (string) ($target['status'] ?? ''),
+                    ]));
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถแก้ไขได้',
-                        'message' => 'แก้ไขได้เฉพาะรายการที่มีสถานะรอดำเนินการเท่านั้น',
+                        'message' => 'แก้ไขได้เฉพาะรายการที่มีสถานะ ' . repairs_status_label(REPAIR_STATUS_PENDING) . ' เท่านั้น',
                     ];
                 } elseif ($values['subject'] === '') {
+                    repairs_controller_audit_log($mode, 'UPDATE', 'FAIL', $repair_id, 'missing_subject', $post_audit_payload);
                     $alert = [
                         'type' => 'danger',
                         'title' => 'กรุณากรอกหัวข้อ',
@@ -354,19 +534,20 @@ if (!function_exists('repairs_handle_mode')) {
                         'location' => $values['location'],
                         'equipment' => $values['equipment'],
                     ]);
-
-                    if (function_exists('audit_log')) {
-                        audit_log('repairs', 'UPDATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id);
-                    }
+                    repairs_controller_audit_log($mode, 'UPDATE', 'SUCCESS', $repair_id, null, array_merge($post_audit_payload, [
+                        'status' => (string) ($target['status'] ?? ''),
+                    ]));
 
                     try {
-                        if (!empty($_FILES['attachments'])) {
+                        if (!empty($_FILES['attachments']) && repair_has_uploads((array) $_FILES['attachments'])) {
                             upload_store_files($_FILES['attachments'], REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, (string) $repair_id, $current_pid, [
                                 'max_files' => 0,
                                 'allowed_mimes' => upload_allowed_image_mimes(),
                             ]);
+                            repairs_controller_audit_log($mode, 'ATTACH', 'SUCCESS', $repair_id, null, $post_audit_payload);
                         }
                     } catch (RuntimeException $exception) {
+                        repairs_controller_audit_log($mode, 'ATTACH', 'FAIL', $repair_id, $exception->getMessage(), $post_audit_payload);
                         $alert = [
                             'type' => 'danger',
                             'title' => 'แนบไฟล์ไม่สำเร็จ',
@@ -388,23 +569,37 @@ if (!function_exists('repairs_handle_mode')) {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
                 $current_status = (string) ($target['status'] ?? '');
 
-                if (!$can_access_repair($target)) {
+                if (!$target) {
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id > 0 ? $repair_id : null, 'not_found', $post_audit_payload);
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'ไม่พบรายการ',
+                        'message' => 'ไม่พบคำร้องที่ต้องการเปลี่ยนสถานะ',
+                    ];
+                } elseif (!$can_access_repair($target)) {
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'DENY', $repair_id, 'not_authorized', $post_audit_payload);
                     $alert = [
                         'type' => 'danger',
                         'title' => 'ไม่มีสิทธิ์ดำเนินการ',
                         'message' => 'คุณไม่มีสิทธิ์เปลี่ยนสถานะรายการนี้',
                     ];
                 } elseif ($target_status === '' || !repair_can_transition($current_status, $target_status)) {
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'invalid_transition', array_merge($post_audit_payload, [
+                        'currentStatus' => $current_status !== '' ? $current_status : null,
+                    ]));
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถเปลี่ยนสถานะได้',
                         'message' => 'สถานะที่เลือกไม่ถูกต้องสำหรับรายการนี้',
                     ];
-                } elseif ($mode === 'approval' && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_REJECTED], true)) {
+                } elseif ($mode === 'approval' && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED], true)) {
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'invalid_approval_transition', array_merge($post_audit_payload, [
+                        'currentStatus' => $current_status !== '' ? $current_status : null,
+                    ]));
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถดำเนินการได้',
-                        'message' => 'หน้าอนุมัติการซ่อมแซมรองรับเฉพาะการอนุมัติหรือไม่อนุมัติเท่านั้น',
+                        'message' => 'หน้าเจ้าหน้าที่รองรับเฉพาะการเปลี่ยนเป็นกำลังดำเนินการหรือยกเลิกคำร้องเท่านั้น',
                     ];
                 } else {
                     $update_data = [
@@ -420,10 +615,10 @@ if (!function_exists('repairs_handle_mode')) {
                     }
 
                     repair_update_record($repair_id, $update_data);
-
-                    if (function_exists('audit_log')) {
-                        audit_log('repairs', 'TRANSITION', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id, $target_status);
-                    }
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'SUCCESS', $repair_id, $target_status, array_merge($post_audit_payload, [
+                        'fromStatus' => $current_status !== '' ? $current_status : null,
+                        'toStatus' => $target_status,
+                    ]));
 
                     $alert = [
                         'type' => 'success',
@@ -442,6 +637,7 @@ if (!function_exists('repairs_handle_mode')) {
                     }
                 }
             } elseif ($mode !== 'report') {
+                repairs_controller_audit_log($mode, 'ACTION', 'FAIL', $repair_id > 0 ? $repair_id : null, 'invalid_action_for_mode', $post_audit_payload);
                 $alert = [
                     'type' => 'warning',
                     'title' => 'ไม่สามารถทำรายการได้',
@@ -452,7 +648,7 @@ if (!function_exists('repairs_handle_mode')) {
                     repair_create_request($_POST, $_FILES['attachments'] ?? [], $current_pid);
                     flash_set('repairs_alert', [
                         'type' => 'success',
-                        'title' => 'บันทึกแจ้งซ่อมแล้ว',
+                        'title' => repairs_status_label(REPAIR_STATUS_PENDING),
                         'message' => '',
                     ]);
                     header('Location: ' . $config['base_url']);
@@ -481,17 +677,46 @@ if (!function_exists('repairs_handle_mode')) {
         if (!$has_table || !$has_equipment_column) {
             $requests = [];
         } elseif ($mode === 'report') {
-            $total_count = repair_count_filtered($current_pid, []);
+            $filter_statuses = repairs_resolve_filter_statuses($filter_status);
+            $total_count = repair_count_filtered($current_pid, $filter_statuses, $filter_query, true);
             $total_pages = max(1, (int) ceil($total_count / $per_page));
             $page = min($page, $total_pages);
             $offset = ($page - 1) * $per_page;
-            $requests = repair_list_filtered_page($current_pid, [], $per_page, $offset);
+            $requests = repair_list_filtered_page($current_pid, $filter_statuses, $per_page, $offset, $filter_query, $filter_sort, true);
         } else {
             $total_count = repair_count_filtered(null, $statuses);
             $total_pages = max(1, (int) ceil($total_count / $per_page));
             $page = min($page, $total_pages);
             $offset = ($page - 1) * $per_page;
             $requests = repair_list_filtered_page(null, $statuses, $per_page, $offset);
+        }
+
+        $request_attachments_map = [];
+
+        if (!empty($requests)) {
+            $request_attachments_map = repair_get_attachments_map(array_column($requests, 'repairID'));
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $is_filtered_request = $filter_query !== ''
+                || $filter_status !== 'all'
+                || $filter_sort !== 'newest'
+                || $page > 1;
+            repairs_controller_audit_log(
+                $mode,
+                $is_filtered_request ? 'SEARCH' : 'VIEW',
+                'SUCCESS',
+                null,
+                null,
+                [
+                    'resultCount' => count($requests),
+                    'totalCount' => $total_count,
+                    'totalPages' => $total_pages,
+                    'activeTab' => $is_track_active ? 'track' : 'form',
+                ],
+                200,
+                'GET'
+            );
         }
 
         $view_template = 'repairs/index';
@@ -506,6 +731,7 @@ if (!function_exists('repairs_handle_mode')) {
             'alert' => $alert,
             'values' => $values,
             'requests' => $requests,
+            'request_attachments_map' => $request_attachments_map,
             'current_pid' => $current_pid,
             'view_item' => $view_item,
             'view_attachments' => $view_attachments,
@@ -527,6 +753,12 @@ if (!function_exists('repairs_handle_mode')) {
             'show_form' => (bool) $config['show_form'],
             'show_requester_column' => (bool) $config['show_requester_column'],
             'transition_actions' => repairs_transition_actions($mode, $view_item),
+            'is_track_active' => $is_track_active,
+            'filter_query' => $filter_query,
+            'filter_status' => $filter_status,
+            'filter_sort' => $filter_sort,
+            'status_map' => $status_map,
+            'status_filter_options' => $status_filter_options,
         ]);
     }
 }

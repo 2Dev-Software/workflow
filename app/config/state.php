@@ -37,8 +37,8 @@ const INBOX_TYPE_ACTING_PRINCIPAL = 'acting_principal_inbox';
 const REPAIR_STATUS_PENDING = 'PENDING';
 const REPAIR_STATUS_IN_PROGRESS = 'IN_PROGRESS';
 const REPAIR_STATUS_COMPLETED = 'COMPLETED';
-const REPAIR_STATUS_REJECTED = 'REJECTED';
 const REPAIR_STATUS_CANCELLED = 'CANCELLED';
+const REPAIR_STATUS_REJECTED = 'REJECTED';
 
 // Memos (internal request + approval/signature workflow)
 const MEMO_STATUS_DRAFT = 'DRAFT';
@@ -76,11 +76,11 @@ if (!function_exists('workflow_state_machine')) {
                 ORDER_STATUS_SENT => [],
             ],
             'repairs' => [
-                REPAIR_STATUS_PENDING => [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_REJECTED, REPAIR_STATUS_CANCELLED],
+                REPAIR_STATUS_PENDING => [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED],
                 REPAIR_STATUS_IN_PROGRESS => [REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
                 REPAIR_STATUS_COMPLETED => [],
-                REPAIR_STATUS_REJECTED => [],
                 REPAIR_STATUS_CANCELLED => [],
+                REPAIR_STATUS_REJECTED => [],
             ],
             'memos' => [
                 MEMO_STATUS_DRAFT => [MEMO_STATUS_SUBMITTED, MEMO_STATUS_CANCELLED],

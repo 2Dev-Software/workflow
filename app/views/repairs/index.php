@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../auth/csrf.php';
 
 $values = (array) ($values ?? []);
 $requests = (array) ($requests ?? []);
+$request_attachments_map = (array) ($request_attachments_map ?? []);
 $current_pid = (string) ($current_pid ?? '');
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
@@ -27,6 +28,7 @@ $empty_message = (string) ($empty_message ?? 'เมื่อมีการแ�
 $show_form = (bool) ($show_form ?? false);
 $show_requester_column = (bool) ($show_requester_column ?? false);
 $transition_actions = (array) ($transition_actions ?? []);
+$filter_query = (string) ($filter_query ?? '');
 $filter_status = (string) ($filter_status ?? 'all');
 $filter_sort = (string) ($filter_sort ?? 'newest');
 $is_track_active = (bool) ($is_track_active ?? false);
@@ -53,13 +55,115 @@ $values = array_merge([
     'detail' => '',
 ], $values);
 
-$status_map = [
-    REPAIR_STATUS_PENDING => ['label' => 'รอดำเนินการ', 'variant' => 'pending'],
+$status_map = (array) ($status_map ?? [
+    REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
     REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
     REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
-    REPAIR_STATUS_REJECTED => ['label' => 'ไม่อนุมัติ', 'variant' => 'rejected'],
-    REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิก', 'variant' => 'rejected'],
+    REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+    REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
+]);
+$status_filter_options = (array) ($status_filter_options ?? [
+    'all' => 'ทั้งหมด',
+    'pending' => 'ส่งคำร้องสำเร็จ',
+    'in_progress' => 'กำลังดำเนินการ',
+    'completed' => 'เสร็จสิ้น',
+    'cancelled' => 'ยกเลิกคำร้อง',
+]);
+
+$thai_months = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
 ];
+
+$format_thai_datetime_parts = static function (?string $datetime) use ($thai_months): array {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || $datetime === '0000-00-00 00:00:00') {
+        return [
+            'date' => '-',
+            'time' => '-',
+            'full' => '-',
+        ];
+    }
+
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
+    }
+
+    if ($date_obj === false) {
+        return [
+            'date' => $datetime,
+            'time' => '-',
+            'full' => $datetime,
+        ];
+    }
+
+    $day = (int) $date_obj->format('j');
+    $month = (int) $date_obj->format('n');
+    $year = (int) $date_obj->format('Y') + 543;
+    $month_label = $thai_months[$month] ?? '';
+    $date_line = trim($day . ' ' . $month_label . ' ' . $year);
+    $time_line = 'เวลา ' . $date_obj->format('H:i') . ' น.';
+
+    return [
+        'date' => $date_line,
+        'time' => $time_line,
+        'full' => trim($date_line . ' ' . $time_line),
+    ];
+};
+
+$truncate_repair_detail = static function (?string $text, int $limit = 80): string {
+    $value = trim((string) $text);
+
+    if ($value === '') {
+        return '';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    $limit = max(1, $limit);
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($value, 'UTF-8') <= $limit) {
+            return $value;
+        }
+
+        return rtrim(mb_substr($value, 0, $limit, 'UTF-8')) . '...';
+    }
+
+    if (strlen($value) <= $limit) {
+        return $value;
+    }
+
+    return rtrim(substr($value, 0, $limit)) . '...';
+};
+
+$json_flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+$resolve_repair_status = static function (array $repair) use ($status_map): array {
+    $deleted_at = trim((string) ($repair['deletedAt'] ?? ''));
+
+    if ($deleted_at !== '' && $deleted_at !== '0000-00-00 00:00:00') {
+        return [
+            'label' => 'ลบคำร้องสำเร็จ',
+            'variant' => 'rejected',
+        ];
+    }
+
+    $status_key = (string) ($repair['status'] ?? REPAIR_STATUS_PENDING);
+
+    return $status_map[$status_key] ?? ['label' => $status_key !== '' ? $status_key : '-', 'variant' => 'pending'];
+};
 
 $headers = $show_requester_column
     ? ['หัวข้อ', 'สถานที่', 'อุปกรณ์', 'สถานะ', 'ผู้แจ้ง', 'วันที่แจ้ง', 'จัดการ']
@@ -69,9 +173,10 @@ $rows = [];
 
 foreach ($requests as $req) {
     $status_key = (string) ($req['status'] ?? REPAIR_STATUS_PENDING);
-    $status = $status_map[$status_key] ?? ['label' => $status_key, 'variant' => 'pending'];
+    $is_soft_deleted = trim((string) ($req['deletedAt'] ?? '')) !== '' && (string) ($req['deletedAt'] ?? '') !== '0000-00-00 00:00:00';
+    $status = $resolve_repair_status($req);
     $is_owner = (string) ($req['requesterPID'] ?? '') === $current_pid;
-    $can_edit = $mode === 'report' && $status_key === REPAIR_STATUS_PENDING && $is_owner;
+    $can_edit = $mode === 'report' && !$is_soft_deleted && $status_key === REPAIR_STATUS_PENDING && $is_owner;
 
     $row = [
         (string) ($req['subject'] ?? ''),
@@ -144,13 +249,56 @@ ob_start();
         vertical-align: top;
     }
 
-    .circular-my-table td:nth-child(n+2) {
+    .circular-my-table td:nth-child(3),
+    .circular-my-table td:nth-child(4),
+    .circular-my-table td:nth-child(5) {
         vertical-align: middle;
         text-align: center;
     }
 
-    .circular-my-table th:nth-child(n+5) {
+    .circular-my-table td:nth-child(3) {
+        text-align: left;
+    }
+
+    .circular-my-table th:nth-child(3),
+    .circular-my-table th:nth-child(4),
+    .circular-my-table th:nth-child(5) {
         text-align: center;
+    }
+
+    .repair-detail-preview {
+        font-size: var(--font-size-body-2);
+        color: var(--color-secondary);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+        white-space: normal;
+    }
+
+    .repair-date-stack {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        font-size: var(--font-size-body-2);
+        text-align: left;
+    }
+
+    .repair-date-stack .time {
+        color: #000;
+        font-size: var(--font-size-desc-2);
+        line-height: 1.35;
+    }
+
+    .circular-my-table .circular-my-subject {
+        font-size: var(--font-size-body-2);
+    }
+
+    .repairs-inline-action-form {
+        margin: 0;
+        display: inline-flex;
     }
 
     .content-modal .container-circular-notice-sending {
@@ -177,7 +325,7 @@ ob_start();
     </div>
 </div>
 
-<form method="POST" enctype="multipart/form-data" class="tab-content container-circular-notice-sending active" id="repairs">
+<form method="POST" enctype="multipart/form-data" class="tab-content container-circular-notice-sending <?= $is_track_active ? '' : 'active' ?>" id="repairs">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="create">
 
@@ -224,7 +372,13 @@ ob_start();
 
     <div class="form-group button">
         <div class="input-group">
-            <button class="submit" type="submit">
+            <button
+                class="submit"
+                type="submit"
+                data-confirm="ยืนยันการส่งแจ้งซ่อมใช่หรือไม่?"
+                data-confirm-title="ยืนยันการส่งแจ้งซ่อม"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">
                 <p>ส่งแจ้งซ่อม</p>
             </button>
         </div>
@@ -232,49 +386,38 @@ ob_start();
 
 </form>
 
-<section class="tab-content enterprise-card" id="myRepair">
+<section class="tab-content enterprise-card <?= $is_track_active ? 'active' : '' ?>" id="myRepair">
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
             <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
         </div>
     </div>
 
-    <form method="GET" class="circular-my-filter-grid">
+    <form method="GET" action="<?= h($base_url) ?>" class="circular-my-filter-grid" id="repairTrackFilterForm">
         <input type="hidden" name="tab" value="track">
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value=""
-                    placeholder="ค้นหาชื่อผู้จอง/ห้อง/หัวข้อ" autocomplete="off">
+                <input class="form-input" type="search" name="q" value="<?= h($filter_query) ?>"
+                    placeholder="ค้นหาหัวข้อ รายละเอียด" autocomplete="off">
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
                     <div class="custom-select-trigger">
-                        <p class="select-value">
-                            <?php
-                            $status_label = 'ทั้งหมด';
-
-                            if ($filter_status === strtolower(INTERNAL_STATUS_SENT)) {
-                                $status_label = 'ส่งแล้ว';
-                            } elseif ($filter_status === strtolower(INTERNAL_STATUS_RECALLED)) {
-                                $status_label = 'ดึงกลับ';
-                            }
-                            echo h($status_label);
-                            ?>
-                        </p>
+                        <p class="select-value"><?= h((string) ($status_filter_options[$filter_status] ?? $status_filter_options['all'] ?? 'ทั้งหมด')) ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option" data-value="all">ทั้งหมด</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>">ส่งแล้ว</div>
-                        <div class="custom-option" data-value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>">ดึงกลับ</div>
+                        <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                            <div class="custom-option" data-value="<?= h((string) $status_value) ?>"><?= h((string) $status_label) ?></div>
+                        <?php endforeach; ?>
                     </div>
 
                     <select class="form-input" name="status">
-                        <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
-                        <option value="<?= h(strtolower(INTERNAL_STATUS_SENT)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_SENT) ? 'selected' : '' ?>>ส่งแล้ว</option>
-                        <option value="<?= h(strtolower(INTERNAL_STATUS_RECALLED)) ?>" <?= $filter_status === strtolower(INTERNAL_STATUS_RECALLED) ? 'selected' : '' ?>>ดึงกลับ</option>
+                        <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                            <option value="<?= h((string) $status_value) ?>" <?= $filter_status === (string) $status_value ? 'selected' : '' ?>><?= h((string) $status_label) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -301,7 +444,7 @@ ob_start();
 
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการหนังสือเวียนของฉัน</h2>
+            <h2 class="enterprise-card-title">รายการแจ้งซ่อมของฉัน</h2>
         </div>
     </div>
 
@@ -310,64 +453,127 @@ ob_start();
             <thead>
                 <tr>
                     <th>หัวข้อ</th>
-                    <th>สถานที่</th>
-                    <th>สถานะ</th>
+                    <th>รายละเอียด</th>
                     <th>วันที่แจ้ง</th>
+                    <th>สถานะ</th>
                     <th>จัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div class="circular-my-subject">sgfdsdfsdfsd</div>
-                        <div class="circular-my-meta">ในนาม กลุ่มบริหารงานทั่วไป</div>
-                    </td>
+                <?php if (empty($requests)) : ?>
+                    <tr>
+                        <td colspan="5" class="booking-empty"><?= h($empty_message !== '' ? $empty_message : 'ยังไม่มีรายการแจ้งซ่อม') ?></td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ($requests as $req) : ?>
+                        <?php
+                        $repair_id = (int) ($req['repairID'] ?? 0);
+                        $status_key = (string) ($req['status'] ?? REPAIR_STATUS_PENDING);
+                        $is_soft_deleted = trim((string) ($req['deletedAt'] ?? '')) !== '' && (string) ($req['deletedAt'] ?? '') !== '0000-00-00 00:00:00';
+                        $row_status = $resolve_repair_status($req);
+                        $is_owner = (string) ($req['requesterPID'] ?? '') === $current_pid;
+                        $can_edit_row = $mode === 'report' && !$is_soft_deleted && $status_key === REPAIR_STATUS_PENDING && $is_owner;
+                        $can_delete_row = $can_edit_row;
+                        $date_parts = $format_thai_datetime_parts((string) ($req['createdAt'] ?? ''));
+                        $detail_preview = $truncate_repair_detail((string) ($req['detail'] ?? ''), 80);
+                        $attachment_payload = [];
 
-                    <td>หอประชุมการประเรียน</td>
+                        foreach ((array) ($request_attachments_map[$repair_id] ?? []) as $file) {
+                            $attachment_payload[] = [
+                                'fileID' => (int) ($file['fileID'] ?? 0),
+                                'fileName' => (string) ($file['fileName'] ?? 'ไฟล์แนบ'),
+                                'mimeType' => (string) ($file['mimeType'] ?? ''),
+                                'fileSize' => (int) ($file['fileSize'] ?? 0),
+                            ];
+                        }
 
-                    <td>
-                        <span class="status-pill rejected">ดึงกลับ</span>
-                    </td>
+                        $attachment_json = json_encode($attachment_payload, $json_flags);
 
-                    <td>15 มี.ค. 2569 14:16 น.</td>
+                        if (!is_string($attachment_json)) {
+                            $attachment_json = '[]';
+                        }
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="circular-my-subject"><?= h((string) ($req['subject'] ?? '-')) ?></div>
+                            </td>
 
-                    <td>
-                        <div class="circular-my-actions">
-                            <button
-                                class="booking-action-btn secondary js-open-circular-modal"
-                                type="button"
-                                data-circular-id="<?= h((string) $circular_id) ?>"
-                                data-type="<?= h($item_type) ?>"
-                                data-subject="<?= h((string) ($item['subject'] ?? '-')) ?>"
-                                data-detail="<?= h($detail_text) ?>"
-                                data-sender-name="<?= h($detail_sender_name !== '' ? $detail_sender_name : $sender_name) ?>"
-                                data-sender-faction="<?= h($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) ?>"
-                                data-bookno="<?= h('#' . (string) $circular_id) ?>"
-                                data-issued="<?= h($date_long_display) ?>"
-                                data-from="<?= h(($detail_sender_name !== '' ? $detail_sender_name : $sender_name) . (($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display) !== '' ? (' / ' . ($detail_sender_faction !== '' ? $detail_sender_faction : $sender_faction_display)) : '')) ?>"
-                                data-to="<?= h('ผู้รับทั้งหมด ' . (string) $recipient_count . ' คน') ?>"
-                                data-status="<?= h((string) ($status_meta['label'] ?? '-')) ?>"
-                                data-consider="<?= h($consider_class) ?>"
-                                data-received-time="<?= h($date_display) ?>"
-                                data-files="<?= h($files_json) ?>"
-                                data-read-stats="<?= h($stats_json) ?>">
-                                <i class="fa-solid fa-eye"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                            <button
-                                class="booking-action-btn secondary js-open-edit-modal"
-                                type="button"
-                                data-circular-id="<?= h((string) $circular_id) ?>">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                <span class="tooltip">แก้ไข</span>
-                            </button>
-                            <button type="submit" class="booking-action-btn danger" data-confirm="ยืนยันการลบข้อมูลรายการนี้ใช่หรือไม่" data-confirm-title="ยืนยันการลบข้อมูล" data-confirm-ok="ยืนยัน" data-confirm-cancel="ยกเลิก">
-                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                <span class="tooltip danger">ลบข้อมูล</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                            <td>
+                                <div class="repair-detail-preview"><?= h($detail_preview !== '' ? $detail_preview : '-') ?></div>
+                            </td>
+
+                            <td>
+                                <div class="repair-date-stack">
+                                    <div><?= h($date_parts['date']) ?></div>
+                                    <div class="time"><?= h($date_parts['time']) ?></div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="status-pill <?= h((string) ($row_status['variant'] ?? 'pending')) ?>">
+                                    <?= h((string) ($row_status['label'] ?? '-')) ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="circular-my-actions">
+                                    <?php if ($can_edit_row) : ?>
+                                        <button
+                                            class="booking-action-btn secondary js-open-repair-edit-modal"
+                                            type="button"
+                                            data-repair-id="<?= h((string) $repair_id) ?>"
+                                            data-subject="<?= h((string) ($req['subject'] ?? '')) ?>"
+                                            data-detail="<?= h((string) ($req['detail'] ?? '')) ?>"
+                                            data-location="<?= h((string) ($req['location'] ?? '')) ?>"
+                                            data-equipment="<?= h((string) ($req['equipment'] ?? '')) ?>"
+                                            data-files="<?= h($attachment_json) ?>">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">แก้ไข</span>
+                                        </button>
+                                    <?php endif; ?>
+
+                                    <?php if ($can_delete_row) : ?>
+                                        <form method="POST" action="<?= h($base_url) ?>" class="repairs-inline-action-form">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="repair_id" value="<?= h((string) $repair_id) ?>">
+                                            <input type="hidden" name="tab" value="track">
+                                            <button
+                                                type="submit"
+                                                class="booking-action-btn danger"
+                                                data-confirm="ยืนยันการลบคำร้องนี้ใช่หรือไม่"
+                                                data-confirm-title="ยืนยันการลบคำร้อง"
+                                                data-confirm-ok="ยืนยัน"
+                                                data-confirm-cancel="ยกเลิก">
+                                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                                <span class="tooltip danger">ลบคำร้อง</span>
+                                            </button>
+                                        </form>
+                                    <?php else : ?>
+                                        <button
+                                            class="booking-action-btn secondary js-open-repair-detail-modal"
+                                            type="button"
+                                            data-repair-id="<?= h((string) $repair_id) ?>"
+                                            data-subject="<?= h((string) ($req['subject'] ?? '-')) ?>"
+                                            data-detail="<?= h((string) ($req['detail'] ?? '')) ?>"
+                                            data-location="<?= h((string) ($req['location'] ?? '-')) ?>"
+                                            data-equipment="<?= h((string) ($req['equipment'] ?? '-')) ?>"
+                                            data-created-at="<?= h($date_parts['full']) ?>"
+                                            data-updated-at="<?= h($format_thai_datetime_parts((string) ($req['updatedAt'] ?? ''))['full']) ?>"
+                                            data-requester-name="<?= h((string) ($req['requesterName'] ?? '-')) ?>"
+                                            data-assigned-to-name="<?= h((string) ($req['assignedToName'] ?? '-')) ?>"
+                                            data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
+                                            data-status-pill="<?= h((string) ($row_status['variant'] ?? 'pending')) ?>"
+                                            data-files="<?= h($attachment_json) ?>">
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -379,7 +585,7 @@ ob_start();
 
             <div class="header-modal">
                 <div class="first-header">
-                    <p>แสดงข้อความรายละเอียดหนังสือเวียน</p>
+                    <p>รายละเอียดการแจ้งซ่อมของฉัน</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
@@ -393,40 +599,56 @@ ob_start();
                     <div class="sender-row">
                         <div class="form-group">
                             <label for="">หัวข้อ</label>
-                            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
+                            <input type="text" id="repairDetailSubject" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
                         </div>
                         <div class="form-group">
-                            <label for="">สถานที่</label>
-                            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
+                            <label for="">สถานะ</label>
+                            <input type="text" id="repairDetailStatus" placeholder="สถานะการแจ้งซ่อม" disabled>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="">อุปกรณ์</label>
-                        <input type="text" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">ผู้แจ้ง</label>
+                            <input type="text" id="repairDetailRequester" placeholder="ชื่อผู้แจ้งซ่อม" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="">ผู้รับผิดชอบ</label>
+                            <input type="text" id="repairDetailAssignedTo" placeholder="ชื่อผู้รับผิดชอบ" disabled>
+                        </div>
+                    </div>
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">วันที่แจ้ง</label>
+                            <input type="text" id="repairDetailCreatedAt" placeholder="วันที่แจ้งซ่อม" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="">อัปเดตล่าสุด</label>
+                            <input type="text" id="repairDetailUpdatedAt" placeholder="วันที่อัปเดตล่าสุด" disabled>
+                        </div>
+                    </div>
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">สถานที่</label>
+                            <input type="text" id="repairDetailLocation" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="">อุปกรณ์</label>
+                            <input type="text" id="repairDetailEquipment" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
-                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ" disabled></textarea>
+                        <textarea id="repairDetailText" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ" disabled></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>อัปโหลดไฟล์เอกสาร</label>
+                        <label>ไฟล์แนบ</label>
                         <section class="upload-layout">
-                            <div class="file-list" id="fileListContainer">
-                                <div class="file-item-wrapper">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">Screenshot_20260221_224247.png</span><span class="file-type">981.3 KB</span></div>
-                                        </div>
-                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
-                                            <div class="file-actions"><a href="#" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="file-list" id="repairDetailFileList"></div>
                         </section>
                     </div>
 
@@ -442,7 +664,7 @@ ob_start();
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p>แก้ไขหนังสือเวียน</p>
+                    <p>แก้ไขการแจ้งเหตุซ่อมแซมของฉัน</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="closeModalEdit" style="cursor: pointer;"></i>
@@ -451,27 +673,31 @@ ob_start();
 
             <div class="content-modal">
 
-                <form method="POST" class="container-circular-notice-sending" id="repairs">
+                <form method="POST" enctype="multipart/form-data" class="container-circular-notice-sending" id="repairEditForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="repair_id" id="repairEditId" value="">
+                    <input type="hidden" name="tab" value="track">
 
                     <div class="sender-row">
                         <div class="form-group">
                             <label for="">หัวข้อ</label>
-                            <input type="text" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม">
+                            <input type="text" id="edit_subject" name="subject" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม">
                         </div>
                         <div class="form-group">
                             <label for="">สถานที่</label>
-                            <input type="text" placeholder="เช่น อาคาร 1 ห้อง 205">
+                            <input type="text" id="edit_location" name="location" placeholder="เช่น อาคาร 1 ห้อง 205">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="">อุปกรณ์</label>
-                        <input type="text" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
+                        <input type="text" id="edit_equipment" name="equipment" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ">
                     </div>
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
-                        <textarea name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
+                        <textarea id="edit_detail" name="detail" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -499,8 +725,8 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" id="">
-                    <button>
+                <form method="POST">
+                    <button type="submit" form="repairEditForm">
                         <p>ยืนยัน</p>
                     </button>
                 </form>
@@ -511,6 +737,8 @@ ob_start();
 </div>
 
 <script>
+    let repairEditUploadApi = null;
+
     function openTab(tabId, btnElement, event) {
         event.preventDefault();
 
@@ -529,15 +757,71 @@ ob_start();
         const dropzone = document.getElementById(prefix + 'dropzone');
         const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
 
-        if (!fileInput) return;
+        if (!fileInput) return null;
 
         const maxFiles = 999;
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         let selectedFiles = [];
+        let existingFiles = [];
+        let existingEntityId = '';
+
+        const formatFileSize = (size) => {
+            const bytes = Number(size || 0);
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '';
+            }
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        };
 
         const renderFiles = () => {
             if (!fileList) return;
             fileList.innerHTML = '';
+
+            existingFiles.forEach((file) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const container = document.createElement('div');
+                container.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'file-icon';
+                const mime = String(file?.mimeType || '').toLowerCase();
+                iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
+
+                info.appendChild(iconWrap);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions-group';
+                actions.style.display = 'flex';
+                actions.style.gap = '10px';
+
+                const baseUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+
+                const viewAction = document.createElement('div');
+                viewAction.className = 'file-actions';
+                viewAction.innerHTML = `<a href="${baseUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
+
+                const downloadAction = document.createElement('div');
+                downloadAction.className = 'file-actions';
+                downloadAction.innerHTML = `<a href="${baseUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
+
+                actions.appendChild(viewAction);
+                actions.appendChild(downloadAction);
+
+                container.appendChild(info);
+                container.appendChild(actions);
+                wrapper.appendChild(container);
+                fileList.appendChild(wrapper);
+            });
 
             selectedFiles.forEach((file, index) => {
                 const wrapper = document.createElement('div');
@@ -646,36 +930,241 @@ ob_start();
         if (addFilesBtn) {
             addFilesBtn.addEventListener('click', () => fileInput.click());
         }
+
+        return {
+            reset() {
+                selectedFiles = [];
+                existingFiles = [];
+                existingEntityId = '';
+                syncFiles();
+                renderFiles();
+                fileInput.value = '';
+                if (dropzone) {
+                    dropzone.classList.remove('active');
+                }
+            },
+            setExistingFiles(files, entityId) {
+                existingFiles = Array.isArray(files) ? files : [];
+                existingEntityId = String(entityId || '').trim();
+                renderFiles();
+            }
+        };
     }
 
     setupFileUpload('');
     
-    setupFileUpload('edit_');
+    repairEditUploadApi = setupFileUpload('edit_');
 
 });
 
     document.addEventListener('DOMContentLoaded', function() {
+        const trackSection = document.getElementById('myRepair');
+        const trackFilterForm = document.getElementById('repairTrackFilterForm');
+        const trackTableWrap = trackSection ? trackSection.querySelector('.table-responsive.circular-my-table-wrap') : null;
+        const trackQueryInput = trackFilterForm ? trackFilterForm.querySelector('input[name="q"]') : null;
+        const trackStatusInput = trackFilterForm ? trackFilterForm.querySelector('select[name="status"]') : null;
+        const trackSortInput = trackFilterForm ? trackFilterForm.querySelector('select[name="sort"]') : null;
+        const loadingApi = window.App && window.App.loading ? window.App.loading : null;
+        let trackSearchTimer = null;
+        let trackSearchIsComposing = false;
+        let trackFilterController = null;
+        let trackFilterRequestId = 0;
+
+        const buildTrackFilterUrl = () => {
+            if (!trackFilterForm) {
+                return '';
+            }
+
+            const action = String(trackFilterForm.getAttribute('action') || '').trim() || window.location.pathname;
+            const params = new URLSearchParams(new FormData(trackFilterForm));
+            const query = params.toString();
+
+            return query !== '' ? `${action}?${query}` : action;
+        };
+
+        const refreshTrackTable = (delayMs = 0) => {
+            if (!trackFilterForm) {
+                return;
+            }
+
+            window.clearTimeout(trackSearchTimer);
+
+            trackSearchTimer = window.setTimeout(async () => {
+                const requestUrl = buildTrackFilterUrl();
+
+                if (requestUrl === '') {
+                    return;
+                }
+
+                if (!trackTableWrap || typeof window.fetch !== 'function' || typeof window.DOMParser !== 'function') {
+                    window.location.assign(requestUrl);
+                    return;
+                }
+
+                if (trackFilterController) {
+                    trackFilterController.abort();
+                }
+
+                const controller = new AbortController();
+                trackFilterController = controller;
+                const requestId = ++trackFilterRequestId;
+
+                if (loadingApi) {
+                    loadingApi.startComponent(trackTableWrap);
+                } else {
+                    trackTableWrap.style.opacity = '0.55';
+                    trackTableWrap.style.pointerEvents = 'none';
+                }
+
+                try {
+                    const response = await fetch(requestUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                        signal: controller.signal,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const html = await response.text();
+
+                    if (requestId !== trackFilterRequestId) {
+                        return;
+                    }
+
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const nextTrackSection = doc.getElementById('myRepair');
+                    const nextTrackTableWrap = nextTrackSection ? nextTrackSection.querySelector('.table-responsive.circular-my-table-wrap') : null;
+
+                    if (!nextTrackTableWrap) {
+                        throw new Error('Unable to locate refreshed repairs table');
+                    }
+
+                    trackTableWrap.innerHTML = nextTrackTableWrap.innerHTML;
+                    window.history.replaceState({}, '', requestUrl);
+                } catch (error) {
+                    if (!error || error.name !== 'AbortError') {
+                        window.location.assign(requestUrl);
+                    }
+                } finally {
+                    if (requestId === trackFilterRequestId) {
+                        trackFilterController = null;
+                    }
+
+                    if (loadingApi) {
+                        loadingApi.stopComponent(trackTableWrap);
+                    } else {
+                        trackTableWrap.style.opacity = '';
+                        trackTableWrap.style.pointerEvents = '';
+                    }
+                }
+            }, delayMs);
+        };
+
+        const submitTrackFilters = () => {
+            if (!trackFilterForm) {
+                return;
+            }
+
+            refreshTrackTable(0);
+        };
+
+        if (trackFilterForm) {
+            trackFilterForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                refreshTrackTable(0);
+            });
+        }
+
+        if (trackQueryInput) {
+            trackQueryInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                    trackSearchTimer = null;
+                }
+
+                submitTrackFilters();
+            });
+
+            trackQueryInput.addEventListener('compositionstart', () => {
+                trackSearchIsComposing = true;
+            });
+
+            trackQueryInput.addEventListener('compositionend', () => {
+                trackSearchIsComposing = false;
+
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+
+                trackSearchTimer = window.setTimeout(() => {
+                    refreshTrackTable(0);
+                }, 450);
+            });
+
+            trackQueryInput.addEventListener('input', () => {
+                if (trackSearchIsComposing) {
+                    return;
+                }
+
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                }
+
+                trackSearchTimer = window.setTimeout(() => {
+                    refreshTrackTable(0);
+                }, 450);
+            });
+        }
+
+        [trackStatusInput, trackSortInput].forEach((input) => {
+            input?.addEventListener('change', () => {
+                if (trackSearchTimer) {
+                    window.clearTimeout(trackSearchTimer);
+                    trackSearchTimer = null;
+                }
+
+                submitTrackFilters();
+            });
+        });
 
         const detailModal = document.getElementById('modalNoticeKeepOverlay');
         const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
-        const openDetailBtns = document.querySelectorAll('.js-open-circular-modal');
+        const detailSubject = document.getElementById('repairDetailSubject');
+        const detailStatus = document.getElementById('repairDetailStatus');
+        const detailRequester = document.getElementById('repairDetailRequester');
+        const detailAssignedTo = document.getElementById('repairDetailAssignedTo');
+        const detailCreatedAt = document.getElementById('repairDetailCreatedAt');
+        const detailUpdatedAt = document.getElementById('repairDetailUpdatedAt');
+        const detailLocation = document.getElementById('repairDetailLocation');
+        const detailEquipment = document.getElementById('repairDetailEquipment');
+        const detailText = document.getElementById('repairDetailText');
+        const detailFileList = document.getElementById('repairDetailFileList');
 
-        const modalUrgency = document.getElementById('modalUrgency');
-        const modalBookNo = document.getElementById('modalBookNo');
-        const modalIssuedDate = document.getElementById('modalIssuedDate');
-        const modalFromText = document.getElementById('modalFromText');
-        const modalToText = document.getElementById('modalToText');
-        const modalSubject = document.getElementById('modalSubject');
-        const modalDetail = document.getElementById('modalDetail');
-        const modalFileSection = document.getElementById('modalFileSection');
-        const modalReceivedTime = document.getElementById('modalReceivedTime');
-        const modalStatus = document.getElementById('modalStatus');
-        const modalConsiderStatus = document.getElementById('modalConsiderStatus');
-        const receiptStatusTableBody = document.getElementById('receiptStatusTableBody');
+        const formatFileSize = (size) => {
+            const bytes = Number(size || 0);
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '';
+            }
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        };
 
-        const buildModalFileItem = (file, entityId) => {
-            const container = document.createElement('div');
-            container.className = 'file-banner';
+        const buildModalFileItem = (file, repairId) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-item-wrapper';
+
+            const banner = document.createElement('div');
+            banner.className = 'file-banner';
 
             const info = document.createElement('div');
             info.className = 'file-info';
@@ -687,130 +1176,145 @@ ob_start();
 
             const text = document.createElement('div');
             text.className = 'file-text';
-            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${file?.mimeType || ''}</span>`;
+            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
 
             info.appendChild(iconWrap);
             info.appendChild(text);
 
-            const fileUrl = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const fileUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const actions = document.createElement('div');
+            actions.className = 'file-actions-group';
+            actions.style.display = 'flex';
+            actions.style.gap = '10px';
 
             const viewAction = document.createElement('div');
             viewAction.className = 'file-actions';
-
-            const viewLink = document.createElement('a');
-            viewLink.href = `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(entityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
-            viewLink.target = '_blank';
-            viewLink.rel = 'noopener';
-            viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
-
-            viewAction.appendChild(viewLink);
+            viewAction.innerHTML = `<a href="${fileUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
 
             const downloadAction = document.createElement('div');
             downloadAction.className = 'file-actions';
-            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download"></i></a>`;
+            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
 
-            container.appendChild(info);
-            container.appendChild(viewAction);
-            container.appendChild(downloadAction);
-            return container;
+            actions.appendChild(viewAction);
+            actions.appendChild(downloadAction);
+
+            banner.appendChild(info);
+            banner.appendChild(actions);
+            wrapper.appendChild(banner);
+
+            return wrapper;
         };
 
-        const renderModalFiles = (files, entityId) => {
-            if (!modalFileSection) return;
-            modalFileSection.innerHTML = '';
+        const renderModalFiles = (files, repairId) => {
+            if (!detailFileList) {
+                return;
+            }
+
+            detailFileList.innerHTML = '';
+
             if (!Array.isArray(files) || files.length === 0) {
-                modalFileSection.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p id="modalDetail">-</p></div>';
+                detailFileList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
                 return;
             }
-            files.forEach((file) => modalFileSection.appendChild(buildModalFileItem(file, entityId)));
-        };
 
-        const renderReceiptRows = (stats) => {
-            if (!receiptStatusTableBody) return;
-            receiptStatusTableBody.innerHTML = '';
-            if (!Array.isArray(stats) || stats.length === 0) {
-                receiptStatusTableBody.innerHTML = '<tr><td colspan="3" class="enterprise-empty">ไม่พบข้อมูลผู้รับ</td></tr>';
-                return;
-            }
-            stats.forEach((item) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item?.name || '-'}</td><td><span class="status-pill ${item?.pill || 'pending'}">${item?.status || 'ยังไม่อ่าน'}</span></td><td>${item?.readAt || '-'}</td>`;
-                receiptStatusTableBody.appendChild(row);
+            files.forEach((file) => {
+                detailFileList.appendChild(buildModalFileItem(file, repairId));
             });
         };
 
-        openDetailBtns.forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+        const openRepairDetailModal = (btn) => {
+            let files = [];
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                files = [];
+            }
 
-                let stats = [];
-                let files = [];
-                try {
-                    stats = JSON.parse(String(btn.getAttribute('data-read-stats') || '[]'));
-                } catch (e) {}
-                try {
-                    files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
-                } catch (e) {}
+            if (detailSubject) detailSubject.value = btn.getAttribute('data-subject') || '-';
+            if (detailStatus) detailStatus.value = btn.getAttribute('data-status-label') || '-';
+            if (detailRequester) detailRequester.value = btn.getAttribute('data-requester-name') || '-';
+            if (detailAssignedTo) detailAssignedTo.value = btn.getAttribute('data-assigned-to-name') || '-';
+            if (detailCreatedAt) detailCreatedAt.value = btn.getAttribute('data-created-at') || '-';
+            if (detailUpdatedAt) detailUpdatedAt.value = btn.getAttribute('data-updated-at') || '-';
+            if (detailLocation) detailLocation.value = btn.getAttribute('data-location') || '-';
+            if (detailEquipment) detailEquipment.value = btn.getAttribute('data-equipment') || '-';
+            if (detailText) detailText.value = btn.getAttribute('data-detail') || '-';
 
-                if (modalUrgency) {
-                    modalUrgency.className = 'urgency-status normal';
-                    const urgencyLabel = modalUrgency.querySelector('p');
-                    if (urgencyLabel) urgencyLabel.textContent = String(btn.getAttribute('data-type') || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'ภายนอก' : 'ภายใน';
-                }
-                if (modalBookNo) modalBookNo.value = btn.getAttribute('data-bookno') || '-';
-                if (modalIssuedDate) modalIssuedDate.value = btn.getAttribute('data-issued') || '-';
-                if (modalFromText) modalFromText.value = btn.getAttribute('data-from') || '-';
-                if (modalToText) modalToText.value = btn.getAttribute('data-to') || '-';
-                if (modalSubject) modalSubject.textContent = btn.getAttribute('data-subject') || '-';
-                if (modalDetail) modalDetail.textContent = btn.getAttribute('data-detail') || '-';
-                if (modalReceivedTime) modalReceivedTime.value = btn.getAttribute('data-received-time') || '-';
-                if (modalStatus) modalStatus.value = btn.getAttribute('data-status') || '-';
-                if (modalConsiderStatus) {
-                    modalConsiderStatus.className = `consider-status ${btn.getAttribute('data-consider') || 'considering'}`;
-                    modalConsiderStatus.textContent = btn.getAttribute('data-status') || '-';
-                }
+            renderModalFiles(files, String(btn.getAttribute('data-repair-id') || '').trim());
 
-                renderModalFiles(files, circularId);
-                renderReceiptRows(stats);
-
-                if (detailModal) detailModal.style.display = 'flex';
-            });
-        });
+            if (detailModal) detailModal.style.display = 'flex';
+        };
 
         closeDetailModalBtn?.addEventListener('click', () => {
             if (detailModal) detailModal.style.display = 'none';
         });
+
         detailModal?.addEventListener('click', (event) => {
             if (event.target === detailModal) detailModal.style.display = 'none';
         });
 
         const editModal = document.getElementById('modalEditOverlay');
         const closeEditModalBtn = document.getElementById('closeModalEdit');
-        const openEditBtns = document.querySelectorAll('.js-open-edit-modal');
-        const editTargetInput = document.getElementById('editTargetCircularId');
+        const editTargetInput = document.getElementById('repairEditId');
+        const editSubjectInput = document.getElementById('edit_subject');
+        const editLocationInput = document.getElementById('edit_location');
+        const editEquipmentInput = document.getElementById('edit_equipment');
+        const editDetailInput = document.getElementById('edit_detail');
 
-        openEditBtns.forEach((btn) => {
-            btn.addEventListener('click', (event) => {
+        const openRepairEditModal = (btn) => {
+            if (repairEditUploadApi && typeof repairEditUploadApi.reset === 'function') {
+                repairEditUploadApi.reset();
+            }
+
+            let files = [];
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                files = [];
+            }
+
+            if (editTargetInput) editTargetInput.value = String(btn.getAttribute('data-repair-id') || '').trim();
+            if (editSubjectInput) editSubjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
+            if (editLocationInput) editLocationInput.value = String(btn.getAttribute('data-location') || '').trim();
+            if (editEquipmentInput) editEquipmentInput.value = String(btn.getAttribute('data-equipment') || '').trim();
+            if (editDetailInput) editDetailInput.value = String(btn.getAttribute('data-detail') || '').trim();
+
+            if (repairEditUploadApi && typeof repairEditUploadApi.setExistingFiles === 'function') {
+                repairEditUploadApi.setExistingFiles(files, String(btn.getAttribute('data-repair-id') || '').trim());
+            }
+
+            if (editModal) editModal.style.display = 'flex';
+        };
+
+        document.addEventListener('click', (event) => {
+            const detailBtn = event.target.closest('.js-open-repair-detail-modal');
+            if (detailBtn) {
                 event.preventDefault();
-                const circularId = String(btn.getAttribute('data-circular-id') || '').trim();
+                openRepairDetailModal(detailBtn);
+                return;
+            }
 
-                if (editTargetInput) editTargetInput.value = circularId;
-
-                const subjectInput = document.getElementById('edit_subject');
-                const detailInput = document.getElementById('edit_detail');
-                if (subjectInput) subjectInput.value = String(btn.getAttribute('data-subject') || '').trim();
-                if (detailInput) detailInput.value = String(btn.getAttribute('data-detail') || '').trim();
-
-                if (editModal) editModal.style.display = 'flex';
-            });
+            const editBtn = event.target.closest('.js-open-repair-edit-modal');
+            if (editBtn) {
+                event.preventDefault();
+                openRepairEditModal(editBtn);
+            }
         });
 
         closeEditModalBtn?.addEventListener('click', () => {
+            if (repairEditUploadApi && typeof repairEditUploadApi.reset === 'function') {
+                repairEditUploadApi.reset();
+            }
             if (editModal) editModal.style.display = 'none';
         });
+
         editModal?.addEventListener('click', (event) => {
-            if (event.target === editModal) editModal.style.display = 'none';
+            if (event.target === editModal) {
+                if (repairEditUploadApi && typeof repairEditUploadApi.reset === 'function') {
+                    repairEditUploadApi.reset();
+                }
+                editModal.style.display = 'none';
+            }
         });
 
     });

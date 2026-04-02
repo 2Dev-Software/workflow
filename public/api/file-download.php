@@ -13,23 +13,30 @@ $file_id = filter_input(INPUT_GET, 'file_id', FILTER_VALIDATE_INT, [
 ]);
 $download = isset($_GET['download']) && $_GET['download'] === '1';
 $is_outgoing_module = $module === 'outgoing';
-$outgoing_entity_id = ctype_digit($entity_id) ? (int) $entity_id : null;
-$outgoing_audit_action = $download ? 'ATTACHMENT_DOWNLOAD' : 'ATTACHMENT_VIEW';
-$outgoing_abort = static function (int $http_status, string $audit_status, string $message, array $payload = [], ?string $http_method = null) use ($is_outgoing_module, $outgoing_audit_action, $outgoing_entity_id, $file_id): void {
-    if ($is_outgoing_module && function_exists('audit_log')) {
-        audit_log('outgoing', $outgoing_audit_action, $audit_status, 'dh_outgoing_letters', $outgoing_entity_id, $message, array_filter(array_merge([
+$is_repairs_module = $module === 'repairs';
+$auditable_entity_id = ctype_digit($entity_id) ? (int) $entity_id : null;
+$auditable_module = $is_outgoing_module ? 'outgoing' : ($is_repairs_module ? 'repairs' : null);
+$auditable_entity_name = $is_outgoing_module ? 'dh_outgoing_letters' : ($is_repairs_module ? 'dh_repair_requests' : null);
+$auditable_action = $download ? 'ATTACHMENT_DOWNLOAD' : 'ATTACHMENT_VIEW';
+$auditable_log = static function (string $audit_status, ?string $message = null, array $payload = [], ?string $http_method = null, ?int $http_status = null) use ($auditable_module, $auditable_entity_name, $auditable_entity_id, $auditable_action, $file_id): void {
+    if ($auditable_module !== null && $auditable_entity_name !== null && function_exists('audit_log')) {
+        audit_log($auditable_module, $auditable_action, $audit_status, $auditable_entity_name, $auditable_entity_id, $message, array_filter(array_merge([
             'fileID' => $file_id ?: null,
+            'download' => isset($_GET['download']) && $_GET['download'] === '1',
         ], $payload), static function ($value): bool {
             return $value !== null && $value !== '' && $value !== [];
         }), $http_method ?? (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $http_status);
     }
+};
+$auditable_abort = static function (int $http_status, string $audit_status, string $message, array $payload = [], ?string $http_method = null) use ($auditable_log): void {
+    $auditable_log($audit_status, $message, $payload, $http_method, $http_status);
     http_response_code($http_status);
     exit();
 };
 
 if (empty($_SESSION['pID'])) {
-    if ($is_outgoing_module && function_exists('audit_log')) {
-        audit_log('security', 'AUTH_REQUIRED', 'DENY', 'dh_outgoing_letters', $outgoing_entity_id, 'outgoing_file_download', array_filter([
+    if ($auditable_module !== null && $auditable_entity_name !== null && function_exists('audit_log')) {
+        audit_log('security', 'AUTH_REQUIRED', 'DENY', $auditable_entity_name, $auditable_entity_id, $auditable_module . '_file_download', array_filter([
             'fileID' => $file_id ?: null,
             'download' => $download,
         ], static function ($value): bool {
@@ -41,11 +48,11 @@ if (empty($_SESSION['pID'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    $outgoing_abort(405, 'FAIL', 'invalid_method');
+    $auditable_abort(405, 'FAIL', 'invalid_method');
 }
 
 if ($module === '' || $entity_id === '' || !$file_id) {
-    $outgoing_abort(400, 'FAIL', 'invalid_params', [
+    $auditable_abort(400, 'FAIL', 'invalid_params', [
         'module' => $module !== '' ? $module : null,
         'rawEntityID' => $entity_id !== '' ? $entity_id : null,
     ], 'GET');
@@ -58,7 +65,7 @@ require_once __DIR__ . '/../../app/rbac/roles.php';
 $allowed_modules = ['circulars', 'orders', 'outgoing', 'memos', 'repairs'];
 
 if (!in_array($module, $allowed_modules, true)) {
-    $outgoing_abort(400, 'FAIL', 'invalid_module', [
+    $auditable_abort(400, 'FAIL', 'invalid_module', [
         'module' => $module,
     ], 'GET');
 }
@@ -72,7 +79,7 @@ $stmt = mysqli_prepare($connection, $file_sql);
 
 if ($stmt === false) {
     error_log('Database Error: ' . mysqli_error($connection));
-    $outgoing_abort(500, 'FAIL', 'file_lookup_prepare_failed', [], 'GET');
+    $auditable_abort(500, 'FAIL', 'file_lookup_prepare_failed', [], 'GET');
 }
 
 mysqli_stmt_bind_param($stmt, 'ssi', $module, $entity_id, $file_id);
@@ -82,7 +89,7 @@ $file_row = $result ? mysqli_fetch_assoc($result) : null;
 mysqli_stmt_close($stmt);
 
 if (!$file_row) {
-    $outgoing_abort(404, 'FAIL', 'file_reference_not_found', [], 'GET');
+    $auditable_abort(404, 'FAIL', 'file_reference_not_found', [], 'GET');
 }
 
 $current_pid = (string) $_SESSION['pID'];
@@ -228,13 +235,13 @@ if ($module === 'circulars') {
 }
 
 if (!$authorized) {
-    $outgoing_abort(403, 'DENY', 'not_authorized', [], 'GET');
+    $auditable_abort(403, 'DENY', 'not_authorized', [], 'GET');
 }
 
 $file_path = (string) ($file_row['filePath'] ?? '');
 
 if ($file_path === '') {
-    $outgoing_abort(404, 'FAIL', 'file_path_missing', [], 'GET');
+    $auditable_abort(404, 'FAIL', 'file_path_missing', [], 'GET');
 }
 
 $base_storage = realpath(__DIR__ . '/../../storage/uploads');
@@ -252,20 +259,17 @@ if ($target_path && $base_assets && strpos($target_path, $base_assets) === 0) {
 }
 
 if (!$valid || !is_file($target_path)) {
-    $outgoing_abort(404, !$valid ? 'DENY' : 'FAIL', !$valid ? 'invalid_file_path' : 'file_missing_on_disk', [], 'GET');
+    $auditable_abort(404, !$valid ? 'DENY' : 'FAIL', !$valid ? 'invalid_file_path' : 'file_missing_on_disk', [], 'GET');
 }
 
 $file_name = (string) ($file_row['fileName'] ?? 'attachment');
 $mime_type = (string) ($file_row['mimeType'] ?? 'application/octet-stream');
 
-if ($is_outgoing_module && function_exists('audit_log')) {
-    audit_log('outgoing', $outgoing_audit_action, 'SUCCESS', 'dh_outgoing_letters', $outgoing_entity_id, null, [
-        'fileID' => (int) ($file_row['fileID'] ?? $file_id),
-        'mimeType' => $mime_type,
-        'fileSize' => (int) ($file_row['fileSize'] ?? 0),
-        'download' => $download,
-    ], 'GET', 200);
-}
+$auditable_log('SUCCESS', null, [
+    'fileID' => (int) ($file_row['fileID'] ?? $file_id),
+    'mimeType' => $mime_type,
+    'fileSize' => (int) ($file_row['fileSize'] ?? 0),
+], 'GET', 200);
 
 header('Content-Type: ' . $mime_type);
 header('Content-Length: ' . (string) filesize($target_path));
