@@ -8,6 +8,7 @@ require_once __DIR__ . '/../auth/csrf.php';
 require_once __DIR__ . '/../rbac/current_user.php';
 require_once __DIR__ . '/../rbac/roles.php';
 require_once __DIR__ . '/../modules/audit/logger.php';
+require_once __DIR__ . '/../modules/outgoing/priority.php';
 require_once __DIR__ . '/../modules/outgoing/service.php';
 require_once __DIR__ . '/../modules/outgoing/repository.php';
 require_once __DIR__ . '/../modules/users/lists.php';
@@ -210,7 +211,7 @@ if (!function_exists('outgoing_parse_detail_meta')) {
 }
 
 if (!function_exists('outgoing_build_view_modal_payload_map')) {
-    function outgoing_build_view_modal_payload_map(array $items, array $attachments_map, array $track_status_map): array
+    function outgoing_build_view_modal_payload_map(array $items, array $attachments_map, array $track_status_map, array $documents_map = []): array
     {
         $payload_map = [];
 
@@ -222,19 +223,33 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
             }
 
             $full_item = outgoing_get($outgoing_id) ?? $item;
+            $outgoing_no = trim((string) ($full_item['outgoingNo'] ?? $item['outgoingNo'] ?? ''));
+            $document = $documents_map[$outgoing_no] ?? [];
             $detail_meta = outgoing_parse_detail_meta((string) ($full_item['detail'] ?? ''));
+            $document_meta = outgoing_parse_detail_meta((string) ($document['content'] ?? ''));
+            $priority_meta = outgoing_resolve_priority_meta(
+                (string) ($full_item['detail'] ?? ''),
+                (string) ($full_item['subject'] ?? $item['subject'] ?? ''),
+                (string) ($document['content'] ?? ''),
+                (string) ($document['subject'] ?? '')
+            );
             $created_at = trim((string) ($full_item['createdAt'] ?? $item['createdAt'] ?? ''));
             $status_key = strtoupper(trim((string) ($full_item['status'] ?? $item['status'] ?? '')));
             $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
-            $effective_date = trim((string) ($detail_meta['effective_date'] ?? ''));
+            $effective_date = trim((string) ($detail_meta['effective_date'] ?? $document_meta['effective_date'] ?? ''));
 
             if ($effective_date === '' && preg_match('/^\d{4}-\d{2}-\d{2}/', $created_at, $matches) === 1) {
                 $effective_date = (string) ($matches[0] ?? '');
             }
 
-            $issuer_name = trim((string) ($detail_meta['issuer_name'] ?? ''));
+            $issuer_name = trim((string) ($detail_meta['issuer_name'] ?? $document_meta['issuer_name'] ?? ''));
             if ($issuer_name === '') {
                 $issuer_name = trim((string) ($full_item['creatorName'] ?? $item['creatorName'] ?? ''));
+            }
+
+            $owner_names = array_values((array) ($detail_meta['owner_names'] ?? []));
+            if ($owner_names === []) {
+                $owner_names = array_values((array) ($document_meta['owner_names'] ?? []));
             }
 
             $attachments = array_map(static function (array $file): array {
@@ -248,13 +263,13 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
 
             $payload_map[(string) $outgoing_id] = [
                 'outgoingID' => $outgoing_id,
-                'outgoingNo' => trim((string) ($full_item['outgoingNo'] ?? $item['outgoingNo'] ?? '')),
+                'outgoingNo' => $outgoing_no,
                 'subject' => trim((string) ($full_item['subject'] ?? $item['subject'] ?? '')),
-                'priorityKey' => trim((string) ($detail_meta['priority_key'] ?? 'normal')),
-                'priorityLabel' => trim((string) ($detail_meta['priority_label'] ?? outgoing_priority_label_from_key('normal'))),
+                'priorityKey' => trim((string) ($priority_meta['priority_key'] ?? 'normal')),
+                'priorityLabel' => trim((string) ($priority_meta['priority_label'] ?? outgoing_priority_label_from_key('normal'))),
                 'effectiveDate' => $effective_date,
                 'issuerName' => $issuer_name,
-                'ownerNames' => array_values((array) ($detail_meta['owner_names'] ?? [])),
+                'ownerNames' => $owner_names,
                 'status' => $status_key,
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
                 'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
@@ -494,8 +509,14 @@ if (!function_exists('outgoing_index')) {
         $outgoing_ids = array_map(static function (array $item): int {
             return (int) ($item['outgoingID'] ?? 0);
         }, $outgoing_items);
+        $outgoing_numbers = array_values(array_filter(array_map(static function (array $item): string {
+            return trim((string) ($item['outgoingNo'] ?? ''));
+        }, $outgoing_items), static function (string $outgoing_no): bool {
+            return $outgoing_no !== '';
+        }));
         $attachments_map = outgoing_list_attachments_map($outgoing_ids);
-        $send_modal_payload_map = outgoing_build_view_modal_payload_map($outgoing_items, $attachments_map, $track_status_map);
+        $documents_map = outgoing_list_documents_map_by_number($outgoing_numbers);
+        $send_modal_payload_map = outgoing_build_view_modal_payload_map($outgoing_items, $attachments_map, $track_status_map, $documents_map);
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && function_exists('audit_log')) {
             audit_log(

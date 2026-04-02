@@ -69,6 +69,50 @@ if (!function_exists('outgoing_get')) {
     }
 }
 
+if (!function_exists('outgoing_list_documents_map_by_number')) {
+    /**
+     * @param array<int, string> $document_numbers
+     * @return array<string, array<string, mixed>>
+     */
+    function outgoing_list_documents_map_by_number(array $document_numbers): array
+    {
+        $document_numbers = array_values(array_unique(array_filter(array_map(static function ($number): string {
+            return trim((string) $number);
+        }, $document_numbers), static function (string $number): bool {
+            return $number !== '';
+        })));
+
+        if ($document_numbers === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($document_numbers), '?'));
+        $types = 's' . str_repeat('s', count($document_numbers));
+        $params = array_merge(['OUTGOING'], $document_numbers);
+        $rows = db_fetch_all(
+            'SELECT id, documentNumber, subject, content, status, senderName
+             FROM dh_documents
+             WHERE documentType = ?
+               AND documentNumber IN (' . $placeholders . ')',
+            $types,
+            ...$params
+        );
+        $map = [];
+
+        foreach ($rows as $row) {
+            $document_number = trim((string) ($row['documentNumber'] ?? ''));
+
+            if ($document_number === '') {
+                continue;
+            }
+
+            $map[$document_number] = $row;
+        }
+
+        return $map;
+    }
+}
+
 if (!function_exists('outgoing_list')) {
     function outgoing_list(array $filters = []): array
     {
