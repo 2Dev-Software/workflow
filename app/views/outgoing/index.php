@@ -8,6 +8,24 @@ $search = trim((string) ($search ?? ''));
 $status_filter = strtoupper(trim((string) ($status_filter ?? 'ALL')));
 $summary_counts = (array) ($summary_counts ?? []);
 $attachments_map = (array) ($attachments_map ?? []);
+$preview_outgoing_no = trim((string) ($preview_outgoing_no ?? ''));
+$issuer_name = trim((string) ($issuer_name ?? ''));
+$form_values = array_merge([
+    'subject' => '',
+    'effective_date' => date('Y-m-d'),
+    'person_ids' => [],
+], (array) ($form_values ?? []));
+$filter_query = trim((string) ($filter_query ?? $search ?? ''));
+$filter_sort = trim((string) ($filter_sort ?? 'newest'));
+$is_track_active = (bool) ($is_track_active ?? false);
+$track_status_map = (array) ($track_status_map ?? []);
+$send_modal_payload_map = (array) ($send_modal_payload_map ?? []);
+$selected_person_ids = array_values(array_unique(array_filter(array_map(static function ($value): string {
+    return trim((string) $value);
+}, (array) ($form_values['person_ids'] ?? [])), static function (string $value): bool {
+    return $value !== '';
+})));
+$selected_person_ids_json = json_encode($selected_person_ids, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 $summary_total = (int) ($summary_counts['all'] ?? count($items));
 $summary_waiting = (int) ($summary_counts[OUTGOING_STATUS_WAITING_ATTACHMENT] ?? 0);
@@ -66,6 +84,12 @@ ob_start();
 ?>
 
 <style>
+    .table-responsive.circular-my-table-wrap.order-create .status-pill.outgoing-complete {
+        background-color: rgba(var(--rgb-primary-dark), 0.18);
+        border: 1px solid var(--color-primary-dark);
+        color: var(--color-primary-dark);
+    }
+
     .table-responsive.circular-my-table-wrap.order-create .order-create-datetime {
         display: flex;
         flex-direction: column;
@@ -139,6 +163,10 @@ ob_start();
         font-weight: 600;
         line-height: 1.35;
         color: var(--color-secondary);
+    }
+
+    [data-owner-flat-list="true"] .dropdown-content .category-title {
+        display: none;
     }
 
     .dropdown-content .category-items {
@@ -389,7 +417,7 @@ ob_start();
 
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
-    <p>หนังสือออกภายนอก / ทะเบียนหนังสือออก</p>
+    <p>ออกเลขทะเบียนส่ง</p>
 </div>
 
 <div class="tabs-container setting-page">
@@ -414,7 +442,8 @@ ob_start();
             </div>
         </div>
 
-        <input type="hidden" name="csrf_token" value="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="create">
         <input type="hidden" name="order_id" value="">
 
         <div class="form-group row">
@@ -423,7 +452,7 @@ ob_start();
                 <input
                     type="text"
                     class="order-no-display"
-                    value="ศธ 04324.53/"
+                    value="<?= h($preview_outgoing_no) ?>"
                     disabled>
             </div>
             <div class="input-group">
@@ -431,7 +460,7 @@ ob_start();
                 <input
                     type="text"
                     name="subject"
-                    value=""
+                    value="<?= h((string) ($form_values['subject'] ?? '')) ?>"
                     placeholder="ระบุหัวข้อคำสั่ง"
                     maxlength="300"
                     required>
@@ -444,22 +473,21 @@ ob_start();
                 <input
                     type="date"
                     name="effective_date"
-                    value=""
+                    value="<?= h((string) ($form_values['effective_date'] ?? '')) ?>"
                     required>
             </div>
             <div class="input-group">
                 <p><strong>ผู้ออกเลข</strong></p>
                 <input
                     type="text"
-                    name="subject"
                     class="order-no-display"
-                    value="นางสาวทิพยรัตน์ บุญมณี"
+                    value="<?= h($issuer_name) ?>"
                     disabled>
             </div>
         </div>
 
 
-        <div class="form-group receive" data-recipients-section="">
+        <div class="form-group receive" data-recipients-section="" data-owner-flat-list="true">
             <label><strong>เจ้าของเรื่อง :</strong></label>
             <div class="dropdown-container">
                 <div class="search-input-wrapper" id="recipientToggle">
@@ -2377,7 +2405,13 @@ ob_start();
 
         <div class="form-group last button">
             <div class="input-group">
-                <button class="submit" type="submit">
+                <button
+                    class="submit"
+                    type="submit"
+                    data-confirm="ยืนยันการบันทึกออกเลขทะเบียนส่งใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการบันทึก"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">
                     <p>บันทึกออกเลข</p>
                 </button>
             </div>
@@ -2420,12 +2454,12 @@ ob_start();
     </div>
 
     <form method="GET" class="circular-my-filter-grid">
+        <input type="hidden" name="tab" value="track">
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value="<? //= h($filter_query) 
-                                                                        ?>"
-                    placeholder="ค้นหาเลขคำสั่งหรือเรื่อง" autocomplete="off">
+                <input class="form-input" type="search" name="q" value="<?= h($filter_query) ?>"
+                    placeholder="ค้นหาเลขทะเบียนส่งหรือเรื่อง" autocomplete="off">
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
@@ -2481,7 +2515,7 @@ ob_start();
 
     <div class="enterprise-card-header order-mine-list-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการเลขทะเบียนส่่งของฉัน</h2>
+            <h2 class="enterprise-card-title">รายการเลขทะเบียนส่งของฉัน</h2>
         </div>
     </div>
 
@@ -2499,39 +2533,65 @@ ob_start();
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div class="circular-my-subject">การแต่งตั้งรักษาการผู้อำนวยการ 11/222่ี</div>
-                        <div class="circular-my-meta">เลขที่คำสั่ง 1/2568</div>
-                    </td>
-                    <td>
-                        <span class="status-pill approved">ส่งต่อคำสั่งสำเร็จ</span>
-                        <p class="viewer">อ่านแล้ว 0 จาก 10 คน</p>
-                    </td>
-                    <td>
-                        <div class="order-create-datetime">
-                            <span class="order-create-datetime-date">1 มีนาคม 2569</span>
-                            <span class="order-create-datetime-time">14:16 น.</span>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="circular-my-actions">
-                            <button
-                                class="booking-action-btn secondary js-open-order-edit-modal"
-                                type="button">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                <span class="tooltip">ดู/แนบไฟล์</span>
-                            </button>
+                <?php if (empty($items)) : ?>
+                    <tr>
+                        <td colspan="4" class="enterprise-empty">ไม่พบรายการเลขทะเบียนส่งของฉัน</td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ($items as $item) : ?>
+                        <?php
+                        $outgoing_id = (int) ($item['outgoingID'] ?? 0);
+                        $outgoing_no = trim((string) ($item['outgoingNo'] ?? ''));
+                        $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+                        $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
+                        $date_display_parts = $format_thai_datetime_parts((string) ($item['createdAt'] ?? ''));
+                        $attachment_count = max(0, (int) ($item['attachmentCount'] ?? 0));
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
+                                <?php if ($outgoing_no !== '') : ?>
+                                    <div class="circular-my-meta">เลขทะเบียนส่ง <?= h($outgoing_no) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
+                                <?php if ($attachment_count > 0) : ?>
+                                    <p class="viewer">แนบไฟล์แล้ว <?= h((string) $attachment_count) ?> ไฟล์</p>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div class="order-create-datetime">
+                                    <span class="order-create-datetime-date"><?= h((string) ($date_display_parts['date'] ?? '-')) ?></span>
+                                    <span class="order-create-datetime-time"><?= h((string) ($date_display_parts['time'] ?? '-')) ?></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="circular-my-actions">
+                                    <button
+                                        class="booking-action-btn secondary js-open-order-edit-modal"
+                                        type="button"
+                                        data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                        title="ดู/แนบไฟล์"
+                                        aria-label="ดู/แนบไฟล์">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span class="tooltip">ดู/แนบไฟล์</span>
+                                    </button>
 
-                            <button
-                                class="booking-action-btn secondary js-open-order-view-modal"
-                                type="button">
-                                <i class="fa-solid fa-eye"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                                    <button
+                                        class="booking-action-btn secondary js-open-order-view-modal"
+                                        type="button"
+                                        data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                        title="ดูรายละเอียด"
+                                        aria-label="ดูรายละเอียด">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
 
         </table>
@@ -2621,7 +2681,7 @@ ob_start();
 
                 </div>
 
-                <div class="form-group receive edit" data-recipients-section="">
+                <div class="form-group receive edit" data-recipients-section="" data-owner-flat-list="true">
                     <label><strong>เจ้าของเรื่อง :</strong></label>
                     <div class="dropdown-container">
                         <div class="search-input-wrapper js-recipient-toggle">
@@ -4735,6 +4795,32 @@ ob_start();
 </div>
 
 <script>
+    const limitOutgoingOwnerDepartmentOptions = (section) => {
+        if (!section || section.getAttribute('data-owner-flat-list') !== 'true') {
+            return;
+        }
+
+        const allowedDepartmentLabel = 'กลุ่มสาระฯ ภาษาต่างประเทศ';
+        const departmentGroups = Array.from(section.querySelectorAll('.department-item-checkbox'))
+            .map((checkbox) => checkbox.closest('.item-group'))
+            .filter((groupItem) => groupItem instanceof HTMLElement);
+
+        departmentGroups.forEach((groupItem) => {
+            const checkbox = groupItem.querySelector('.department-item-checkbox');
+            const label = String(checkbox?.getAttribute('data-group-label') || '').trim();
+
+            if (label !== allowedDepartmentLabel) {
+                groupItem.remove();
+            }
+        });
+
+        section.querySelectorAll('.category-group').forEach((categoryGroup) => {
+            if (!categoryGroup.querySelector('.category-items .item-group')) {
+                categoryGroup.remove();
+            }
+        });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const editModal = document.getElementById('modalOrderEditOverlay');
         const viewModal = document.getElementById('modalOrderViewOverlay');
@@ -4784,6 +4870,10 @@ ob_start();
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('outgointForm');
         if (!form) return;
+        const initialSelectedPersonIds = new Set(<?= $selected_person_ids_json ?: '[]' ?>);
+        const ownerSection = form.querySelector('[data-recipients-section][data-owner-flat-list="true"]');
+
+        limitOutgoingOwnerDepartmentOptions(ownerSection);
 
         const dropdown = document.getElementById('dropdownContent');
         const toggle = document.getElementById('recipientToggle');
@@ -4989,6 +5079,13 @@ ob_start();
             });
         });
 
+        memberChecks.forEach((item) => {
+            const pid = String(item.value || '').trim();
+            if (initialSelectedPersonIds.has(pid) && !item.disabled) {
+                item.checked = true;
+            }
+        });
+
         groupChecks.forEach((item) => {
             if (!item.checked) return;
             const groupKey = item.getAttribute('data-group-key') || '';
@@ -5070,10 +5167,17 @@ ob_start();
         const recipientSections = document.querySelectorAll('[data-recipients-section]');
 
         recipientSections.forEach(section => {
+            limitOutgoingOwnerDepartmentOptions(section);
+
             const dropdown = section.querySelector('.js-dropdown-content');
             const toggle = section.querySelector('.js-recipient-toggle');
             const searchInput = section.querySelector('.js-main-input');
             const selectAll = section.querySelector('.js-select-all');
+
+            if (!dropdown || !toggle || !searchInput || !selectAll) {
+                return;
+            }
+
             const btnShowRecipients = section.nextElementSibling?.querySelector('.js-btn-show-recipients') ||
                 document.querySelector('.js-btn-show-recipients'); // หาปุ่มโชว์ผู้รับที่เกี่ยวข้องกัน
 
