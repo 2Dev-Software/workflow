@@ -350,7 +350,10 @@ ob_start();
     </div>
 
     <?php if (!$is_outside_view) : ?>
-        <form id="bulkActionForm" method="POST">
+        <form
+            id="bulkActionForm"
+            method="POST"
+        >
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="<?= h($archived ? 'unarchive_selected' : 'archive_selected') ?>">
             <div class="table-circular-notice-index">
@@ -574,7 +577,13 @@ ob_start();
                         <?= csrf_field() ?>
                         <input type="hidden" name="inbox_id" id="modalInboxId" value="">
                         <input type="hidden" name="action" value="<?= h($archived ? 'unarchive' : 'archive') ?>">
-                        <button type="submit">
+                        <button
+                            type="submit"
+                            data-confirm="<?= h($archived ? 'ต้องการย้ายหนังสือเวียนนี้กลับไปยังกล่องข้อความหรือไม่' : 'ต้องการจัดเก็บหนังสือเวียนนี้หรือไม่') ?>"
+                            data-confirm-title="<?= h($archived ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ') ?>"
+                            data-confirm-ok="ยืนยัน"
+                            data-confirm-cancel="ยกเลิก"
+                        >
                             <p><?= h($archived ? 'ย้ายกลับ' : 'จัดเก็บ') ?></p>
                         </button>
                     </form>
@@ -1354,7 +1363,15 @@ ob_start();
 
 <?php if (!$is_outside_view) : ?>
     <div class="button-circular-notice-index">
-        <button class="button-keep" type="submit" form="bulkActionForm">
+        <button
+            class="button-keep"
+            type="submit"
+            form="bulkActionForm"
+            data-confirm="<?= h($archived ? 'ต้องการย้ายหนังสือเวียนที่เลือกกลับไปยังกล่องข้อความหรือไม่' : 'ต้องการจัดเก็บหนังสือเวียนที่เลือกหรือไม่') ?>"
+            data-confirm-title="<?= h($archived ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ') ?>"
+            data-confirm-ok="ยืนยัน"
+            data-confirm-cancel="ยกเลิก"
+        >
             <i class="fa-solid fa-file-import"></i>
             <p><?= h($archived ? 'ย้ายกลับ' : 'จัดเก็บ') ?></p>
         </button>
@@ -2078,32 +2095,6 @@ ob_start();
         });
         detailModalExt?.addEventListener('click', (e) => {
             if (e.target === detailModalExt) detailModalExt.style.display = 'none';
-        });
-
-        const modalArchiveForm = document.getElementById('modalArchiveForm');
-        modalArchiveForm?.addEventListener('submit', (event) => {
-            event.preventDefault();
-
-            const actionValue = String(modalArchiveForm.querySelector('input[name="action"]')?.value || '').trim();
-            const confirmTitle = actionValue === 'unarchive' ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ';
-
-            if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
-                window.AppAlerts.confirm('', {
-                    title: confirmTitle,
-                    type: 'warning',
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก',
-                }).then((approved) => {
-                    if (approved) {
-                        modalArchiveForm.submit();
-                    }
-                });
-                return;
-            }
-
-            if (window.confirm(confirmTitle)) {
-                modalArchiveForm.submit();
-            }
         });
 
         setupCircularForm('forward_', 'circularForwardForm');
