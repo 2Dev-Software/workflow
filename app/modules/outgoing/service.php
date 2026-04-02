@@ -114,6 +114,15 @@ if (!function_exists('outgoing_preview_number')) {
     }
 }
 
+if (!function_exists('outgoing_audit_payload')) {
+    function outgoing_audit_payload(array $payload): array
+    {
+        return array_filter($payload, static function ($value): bool {
+            return $value !== null && $value !== '' && $value !== [];
+        });
+    }
+}
+
 if (!function_exists('outgoing_create_draft')) {
     function outgoing_create_draft(array $data, array $files = []): int
     {
@@ -123,6 +132,13 @@ if (!function_exists('outgoing_create_draft')) {
                 return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
             }
         ));
+        $audit_payload = outgoing_audit_payload([
+            'dhYear' => (int) ($data['dh_year'] ?? 0),
+            'subject' => trim((string) ($data['subject'] ?? '')),
+            'requestedStatus' => trim((string) ($data['status'] ?? '')),
+            'createdByPID' => trim((string) ($data['createdByPID'] ?? '')),
+            'incomingAttachmentCount' => count($normalized_files),
+        ]);
 
         db_begin();
 
@@ -143,15 +159,25 @@ if (!function_exists('outgoing_create_draft')) {
             }
 
             outgoing_sync_document($outgoingID);
+            $created_outgoing = outgoing_get($outgoingID) ?? [];
+            $stored_attachments = outgoing_get_attachments($outgoingID);
 
             db_commit();
-            audit_log('outgoing', 'CREATE', 'SUCCESS', 'dh_outgoing_letters', $outgoingID);
+            audit_log('outgoing', 'CREATE', 'SUCCESS', 'dh_outgoing_letters', $outgoingID, null, outgoing_audit_payload(array_merge($audit_payload, [
+                'outgoingNo' => outgoing_document_number($created_outgoing),
+                'outgoingSeq' => (int) ($created_outgoing['outgoingSeq'] ?? $seq),
+                'finalStatus' => trim((string) ($created_outgoing['status'] ?? ($data['status'] ?? ''))),
+                'storedAttachmentCount' => count($stored_attachments),
+            ])));
 
             return $outgoingID;
         } catch (Throwable $e) {
             db_rollback();
             error_log('Outgoing create failed: ' . $e->getMessage());
-            audit_log('outgoing', 'CREATE', 'FAIL', 'dh_outgoing_letters', null, $e->getMessage());
+            audit_log('outgoing', 'CREATE', 'FAIL', 'dh_outgoing_letters', null, $e->getMessage(), outgoing_audit_payload(array_merge($audit_payload, [
+                'outgoingNo' => trim((string) ($data['outgoingNo'] ?? '')),
+                'outgoingSeq' => (int) ($data['outgoingSeq'] ?? 0),
+            ])));
             throw $e;
         }
     }
@@ -163,12 +189,21 @@ if (!function_exists('outgoing_attach_files')) {
         $outgoing = outgoing_get($outgoingID);
 
         if (!$outgoing) {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID > 0 ? $outgoingID : null, 'not_found', outgoing_audit_payload([
+                'actorPID' => trim($actorPID),
+            ]));
             throw new RuntimeException('ไม่พบรายการหนังสือออก');
         }
 
         $status = (string) ($outgoing['status'] ?? '');
+        $existing_count = count(outgoing_get_attachments($outgoingID));
 
         if ($status !== OUTGOING_STATUS_WAITING_ATTACHMENT) {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'invalid_status_for_attach', outgoing_audit_payload([
+                'actorPID' => trim($actorPID),
+                'currentStatus' => $status,
+                'existingAttachmentCount' => $existing_count,
+            ]));
             throw new RuntimeException('รายการนี้ไม่อยู่ในสถานะรอแนบไฟล์');
         }
 
@@ -178,14 +213,24 @@ if (!function_exists('outgoing_attach_files')) {
                 return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
             }
         ));
+        $incoming_attachment_count = count($normalized_files);
+        $audit_payload = outgoing_audit_payload([
+            'actorPID' => trim($actorPID),
+            'outgoingNo' => outgoing_document_number($outgoing),
+            'currentStatus' => $status,
+            'existingAttachmentCount' => $existing_count,
+            'incomingAttachmentCount' => $incoming_attachment_count,
+        ]);
 
         if (empty($normalized_files)) {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'missing_attachments', $audit_payload);
             throw new RuntimeException('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์');
         }
 
-        $existing_count = count(outgoing_get_attachments($outgoingID));
-
         if (($existing_count + count($normalized_files)) > 5) {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'attachment_limit_exceeded', outgoing_audit_payload(array_merge($audit_payload, [
+                'maxFiles' => 5,
+            ])));
             throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
         }
 
@@ -200,12 +245,17 @@ if (!function_exists('outgoing_attach_files')) {
                 'updatedByPID' => $actorPID,
             ]);
             outgoing_sync_document($outgoingID);
+            $updated_outgoing = outgoing_get($outgoingID) ?? $outgoing;
+            $stored_attachments = outgoing_get_attachments($outgoingID);
             db_commit();
-            audit_log('outgoing', 'ATTACH', 'SUCCESS', 'dh_outgoing_letters', $outgoingID);
+            audit_log('outgoing', 'ATTACH', 'SUCCESS', 'dh_outgoing_letters', $outgoingID, null, outgoing_audit_payload(array_merge($audit_payload, [
+                'finalStatus' => trim((string) ($updated_outgoing['status'] ?? '')),
+                'storedAttachmentCount' => count($stored_attachments),
+            ])));
         } catch (Throwable $e) {
             db_rollback();
             error_log('Outgoing attach failed: ' . $e->getMessage());
-            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, $e->getMessage());
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, $e->getMessage(), $audit_payload);
             throw $e;
         }
     }
