@@ -275,6 +275,160 @@ ob_start();
     .content-memo .memo-detail .file-list {
         max-width: 420px;
     }
+
+    .modal-overlay-memo.suggest .form-group.receive {
+        align-items: flex-end;
+    }
+
+    .modal-overlay-memo.suggest .form-group.receive .dropdown-container {
+        width: 450px;
+        max-width: 450px;
+    }
+
+    .modal-overlay-memo.suggest .form-group.receive .search-input-wrapper {
+        height: 40px;
+    }
+
+    .modal-overlay-memo.suggest .form-group.receive .search-input-wrapper i {
+        position: absolute;
+        right: 0;
+        transform: translateX(-20px);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content {
+        width: 100%;
+        right: 0;
+        border-radius: 8px;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .dropdown-list {
+        max-height: 360px;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .category-title {
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(var(--rgb-primary-dark), 0.12);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .category-title span {
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--color-secondary);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .category-items {
+        padding: 0;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.item-group {
+        display: block;
+        width: 100%;
+        padding: 10px 14px;
+        box-sizing: border-box;
+        cursor: default;
+        border-top: 1px solid rgba(var(--rgb-primary-dark), 0.12);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.item-group:hover {
+        background: transparent;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .group-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .item-main {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        padding: 4px 0;
+        margin: 0;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .item-title {
+        display: block;
+        min-width: 0;
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 1.4;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        color: var(--color-secondary);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .item-subtext {
+        display: block;
+        min-width: 0;
+        margin-top: 3px;
+        font-size: 13px;
+        line-height: 1.35;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        color: rgba(var(--rgb-primary-dark), 0.8);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .member-sublist {
+        margin: 8px 0 4px 0;
+        padding: 0 0 0 30px;
+        list-style: none;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item-group .member-sublist li {
+        display: block;
+        width: 100%;
+        margin: 0 0 6px 0;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.member-item {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        align-items: start;
+        gap: 10px;
+        width: 100%;
+        padding: 6px 0;
+        box-sizing: border-box;
+        margin: 0;
+        cursor: pointer;
+        border-radius: 6px;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.member-item input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        margin: 2px 0 0 0;
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.member-item .member-name {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        line-height: 1.55;
+        font-size: 15px;
+        font-weight: 500;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        color: var(--color-primary-dark);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .item.member-item:hover {
+        background: rgba(var(--rgb-primary-dark), 0.06);
+    }
+
+    .modal-overlay-memo.suggest .dropdown-content .category-items label.member-item {
+        width: 100%;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
 </style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
@@ -1407,19 +1561,20 @@ ob_start();
             if (e.target === previewModal) previewModal.classList.remove('active');
         });
 
-        const recipientSection = document.querySelector('[data-recipients-section]');
+        const suggestModalRoot = document.getElementById('modalSuggOverlay');
+        const recipientSection = suggestModalRoot ? suggestModalRoot.querySelector('[data-recipients-section]') : null;
         if (recipientSection) {
             recipientSection.classList.remove('u-hidden');
         }
 
-        const dropdown = document.getElementById('dropdownContent');
-        const toggle = document.getElementById('recipientToggle');
-        const searchInput = document.getElementById('mainInput');
-        const selectAll = document.getElementById('selectAll');
-        const groupChecks = Array.from(document.querySelectorAll('.group-item-checkbox'));
-        const memberChecks = Array.from(document.querySelectorAll('.member-checkbox'));
-        const groupItems = Array.from(document.querySelectorAll('.dropdown-list .item-group'));
-        const categoryGroups = Array.from(document.querySelectorAll('.dropdown-list .category-group'));
+        const dropdown = suggestModalRoot ? suggestModalRoot.querySelector('#dropdownContent') : null;
+        const toggle = suggestModalRoot ? suggestModalRoot.querySelector('#recipientToggle') : null;
+        const searchInput = suggestModalRoot ? suggestModalRoot.querySelector('#mainInput') : null;
+        const selectAll = suggestModalRoot ? suggestModalRoot.querySelector('#selectAll') : null;
+        const groupChecks = suggestModalRoot ? Array.from(suggestModalRoot.querySelectorAll('.group-item-checkbox')) : [];
+        const memberChecks = suggestModalRoot ? Array.from(suggestModalRoot.querySelectorAll('.member-checkbox')) : [];
+        const groupItems = suggestModalRoot ? Array.from(suggestModalRoot.querySelectorAll('.dropdown-list .item-group')) : [];
+        const categoryGroups = suggestModalRoot ? Array.from(suggestModalRoot.querySelectorAll('.dropdown-list .category-group')) : [];
 
         const normalizeSearchText = (value) => String(value || '')
             .toLowerCase()
@@ -1457,6 +1612,20 @@ ob_start();
         const setDropdownVisible = (visible) => {
             if (!dropdown) return;
             dropdown.classList.toggle('show', visible);
+            toggle?.classList.toggle('active', visible);
+        };
+
+        const resetSuggestRecipientDropdown = () => {
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            recipientSearchRequestNo++;
+            filterRecipientDropdown('');
+            groupItems.forEach((groupItem) => {
+                const hasCheckedMember = !!groupItem.querySelector('.member-checkbox:checked');
+                setGroupCollapsed(groupItem, !hasCheckedMember);
+            });
+            setDropdownVisible(false);
         };
 
         toggle?.addEventListener('click', (e) => {
@@ -1654,6 +1823,9 @@ ob_start();
             item.addEventListener('change', () => {
                 syncMemberByPid(item.value || '', item.checked, item);
                 updateSelectAllState();
+                if (item.checked) {
+                    setDropdownVisible(false);
+                }
             });
         });
 
@@ -1669,6 +1841,7 @@ ob_start();
             });
         });
         updateSelectAllState();
+        resetSuggestRecipientDropdown();
 
         const btnSend = document.getElementById('btnSendNotice');
         const confirmModal = document.getElementById('confirmModal');
@@ -2011,6 +2184,44 @@ ob_start();
         }
 
         alert(safeMessage);
+    };
+    const resetSuggestRecipientDropdownUi = () => {
+        if (!suggModal) {
+            return;
+        }
+
+        const dropdown = suggModal.querySelector('#dropdownContent');
+        const toggle = suggModal.querySelector('#recipientToggle');
+        const searchInput = suggModal.querySelector('#mainInput');
+        const groupItems = Array.from(suggModal.querySelectorAll('.dropdown-list .item-group'));
+        const categoryGroups = Array.from(suggModal.querySelectorAll('.dropdown-list .category-group'));
+
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        groupItems.forEach((groupItem) => {
+            groupItem.style.display = '';
+
+            const memberRows = Array.from(groupItem.querySelectorAll('.member-sublist li'));
+            memberRows.forEach((row) => {
+                row.style.display = '';
+            });
+
+            const hasCheckedMember = !!groupItem.querySelector('.member-checkbox:checked');
+            groupItem.classList.toggle('is-collapsed', !hasCheckedMember);
+            const toggleBtn = groupItem.querySelector('.group-toggle');
+            if (toggleBtn) {
+                toggleBtn.setAttribute('aria-expanded', hasCheckedMember ? 'true' : 'false');
+            }
+        });
+
+        categoryGroups.forEach((category) => {
+            category.style.display = '';
+        });
+
+        dropdown?.classList.remove('show');
+        toggle?.classList.remove('active');
     };
     const syncSuggestRecipientSelection = () => {
         const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
@@ -2418,6 +2629,7 @@ ob_start();
                 suggestAttachmentInput.value = '';
             }
             refreshSuggestAttachmentList(memoFiles, memoId, true);
+            resetSuggestRecipientDropdownUi();
 
             if (window.tinymce) {
                 const suggestEditor = tinymce.get('memo_editor_suggest');
@@ -2463,6 +2675,7 @@ ob_start();
     closeSuggBtn?.addEventListener('click', () => {
         if (suggModal) suggModal.style.display = 'none';
         refreshSuggestAttachmentList([], '', true);
+        resetSuggestRecipientDropdownUi();
     });
 
     window.addEventListener('click', (event) => {
@@ -2472,6 +2685,7 @@ ob_start();
         if (event.target === suggModal) {
             suggModal.style.display = 'none';
             refreshSuggestAttachmentList([], '', true);
+            resetSuggestRecipientDropdownUi();
         }
     });
 
