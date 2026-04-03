@@ -17,5 +17,6 @@ final class WorkflowStateMachineTest extends WorkflowTestCase
         $this->assertSame([OUTGOING_STATUS_COMPLETE], $machine['outgoing'][OUTGOING_STATUS_WAITING_ATTACHMENT] ?? []);
         $this->assertSame([REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED], $machine['repairs'][REPAIR_STATUS_PENDING] ?? []);
         $this->assertContains(MEMO_STATUS_SIGNED, $machine['memos'][MEMO_STATUS_IN_REVIEW] ?? []);
+        $this->assertContains(MEMO_STATUS_DRAFT, $machine['memos'][MEMO_STATUS_APPROVED_UNSIGNED] ?? []);
     }
 }
