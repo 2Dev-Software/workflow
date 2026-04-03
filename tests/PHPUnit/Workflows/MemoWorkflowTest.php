@@ -8,6 +8,21 @@ use Tests\Support\WorkflowTestCase;
 
 final class MemoWorkflowTest extends WorkflowTestCase
 {
+    public function testMemoStateMachineMatchesServiceRecallAndTerminalRules(): void
+    {
+        $machine = workflow_state_machine();
+        $memoMachine = $machine['memos'] ?? [];
+
+        $this->assertContains(MEMO_STATUS_SUBMITTED, $memoMachine[MEMO_STATUS_DRAFT] ?? []);
+        $this->assertContains(MEMO_STATUS_CANCELLED, $memoMachine[MEMO_STATUS_DRAFT] ?? []);
+        $this->assertContains(MEMO_STATUS_DRAFT, $memoMachine[MEMO_STATUS_APPROVED_UNSIGNED] ?? []);
+        $this->assertContains(MEMO_STATUS_SIGNED, $memoMachine[MEMO_STATUS_APPROVED_UNSIGNED] ?? []);
+        $this->assertContains(MEMO_STATUS_CANCELLED, $memoMachine[MEMO_STATUS_APPROVED_UNSIGNED] ?? []);
+        $this->assertSame([], $memoMachine[MEMO_STATUS_SIGNED] ?? []);
+        $this->assertSame([], $memoMachine[MEMO_STATUS_REJECTED] ?? []);
+        $this->assertSame([], $memoMachine[MEMO_STATUS_CANCELLED] ?? []);
+    }
+
     public function testCreatorCountMatchesPagedListingForRecentCreator(): void
     {
         $creatorPid = $this->requireScalarValue(
@@ -19,6 +34,46 @@ final class MemoWorkflowTest extends WorkflowTestCase
         $count = memo_count_by_creator($creatorPid, false, 'all', '', null);
 
         $this->assertSame($count, count($rows));
+    }
+
+    public function testCreatorSearchMatchesMemoNumberAndSubjectAcrossOwnListing(): void
+    {
+        $sample = db_fetch_one(
+            'SELECT memoID, createdByPID, memoNo, subject
+             FROM dh_memos
+             WHERE deletedAt IS NULL
+               AND createdByPID IS NOT NULL
+               AND createdByPID <> ""
+               AND (
+                   (memoNo IS NOT NULL AND memoNo <> "")
+                   OR (subject IS NOT NULL AND subject <> "")
+               )
+             ORDER BY memoID DESC
+             LIMIT 1'
+        );
+
+        if (!is_array($sample)) {
+            $this->markTestSkipped('No searchable memo sample available');
+        }
+
+        $memoId = (int) ($sample['memoID'] ?? 0);
+        $creatorPid = trim((string) ($sample['createdByPID'] ?? ''));
+        $memoNo = trim((string) ($sample['memoNo'] ?? ''));
+        $subject = trim((string) ($sample['subject'] ?? ''));
+
+        if ($memoId <= 0 || $creatorPid === '') {
+            $this->markTestSkipped('Incomplete memo sample for creator search test');
+        }
+
+        if ($memoNo !== '') {
+            $rowsByNumber = memo_list_by_creator_page($creatorPid, false, 'all', $memoNo, 50, 0, 'newest', null);
+            $this->assertContains($memoId, array_column($rowsByNumber, 'memoID'));
+        }
+
+        if ($subject !== '') {
+            $rowsBySubject = memo_list_by_creator_page($creatorPid, false, 'all', $subject, 50, 0, 'newest', null);
+            $this->assertContains($memoId, array_column($rowsBySubject, 'memoID'));
+        }
     }
 
     public function testReviewerInboxKeepsAllowedStatusesAndOwnership(): void
@@ -51,5 +106,37 @@ final class MemoWorkflowTest extends WorkflowTestCase
             $this->assertNotSame($reviewerPid, trim((string) ($memo['createdByPID'] ?? '')));
             $this->assertContains((string) ($memo['status'] ?? ''), $allowedStatuses);
         }
+    }
+
+    public function testReviewerYearOptionsMatchInboxYears(): void
+    {
+        $reviewerPid = $this->requireScalarValue(
+            'SELECT toPID FROM dh_memos WHERE deletedAt IS NULL AND toPID IS NOT NULL AND toPID <> "" ORDER BY memoID DESC LIMIT 1',
+            'No memo reviewer data available for year list test'
+        );
+
+        $rows = db_fetch_all(
+            'SELECT DISTINCT dh_year
+             FROM dh_memos
+             WHERE toPID = ?
+               AND createdByPID <> ?
+               AND deletedAt IS NULL
+               AND dh_year IS NOT NULL
+               AND dh_year >= 2568
+               AND (submittedAt IS NOT NULL OR status IN ("SUBMITTED","IN_REVIEW","RETURNED","APPROVED_UNSIGNED","SIGNED","REJECTED"))
+             ORDER BY dh_year DESC',
+            'ss',
+            $reviewerPid,
+            $reviewerPid
+        );
+
+        $expectedYears = array_map(
+            static fn(array $row): int => (int) ($row['dh_year'] ?? 0),
+            $rows
+        );
+
+        $expectedYears = array_values(array_filter($expectedYears, static fn(int $year): bool => $year > 0));
+
+        $this->assertSame($expectedYears, memo_list_reviewer_years($reviewerPid));
     }
 }

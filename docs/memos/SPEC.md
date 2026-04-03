@@ -2,6 +2,8 @@
 
 This spec is the single source of truth for the "memos" module behavior (workflow, permissions, UX screens).
 
+Operational flow reference: see [FLOW_STATUS.md](/Users/pawaponthammalangka/Documents/projects/workflow/docs/memos/FLOW_STATUS.md)
+
 ## Roles
 - Creator (ผู้สร้าง): ครู/บุคลากรทุกคน
 - Approver/Signer (ผู้พิจารณา/ผู้ลงนาม): ผอ./รอง/หัวหน้างาน/หัวหน้ากลุ่มสาระฯ (ถูกเลือกเป็นรายบุคคล หรือเลือก "ผอ./รักษาการ")
@@ -66,4 +68,3 @@ This spec is the single source of truth for the "memos" module behavior (workflo
 
 ## Mock Data
 See `docs/memos/mock-role-data.json`.
-
