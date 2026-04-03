@@ -576,18 +576,6 @@ ob_start();
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
-
-                                    <button
-                                        type="button"
-                                        class="booking-action-btn secondary js-open-suggest-modal"
-                                        data-memo-id="<?= h((string) $memo_id) ?>"
-                                        data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
-                                        data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
-                                        data-memo-attachments="<?= h((string) $attachment_count) ?>"
-                                        data-memo-to="<?= h($to_label) ?>">
-                                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-                                        <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
-                                    </button>
                                 <?php endif; ?>
                             </td>
                         </tr>
