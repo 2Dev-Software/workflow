@@ -133,193 +133,6 @@ ob_start();
         font-size: 18px;
     }
 
-    .dropdown-content {
-        width: 100% !important;
-        right: 0 !important;
-        border-radius: 8px;
-    }
-
-    .dropdown-content .dropdown-header {
-        padding: 8px 10px;
-    }
-
-    .dropdown-content .select-all-box {
-        font-size: 18px;
-        font-weight: 700;
-        line-height: 1.3;
-    }
-
-    .dropdown-content .dropdown-list {
-        max-height: 360px;
-    }
-
-    .dropdown-content .category-title {
-        padding: 8px 10px;
-        border-bottom: 1px solid rgba(var(--rgb-primary-dark), 0.12);
-    }
-
-    .dropdown-content .category-title span {
-        display: inline-flex;
-        align-items: center;
-        font-size: 14px;
-        font-weight: 600;
-        line-height: 1.35;
-        color: var(--color-secondary);
-    }
-
-    [data-owner-flat-list="true"] .dropdown-content .category-title {
-        display: none;
-    }
-
-    .dropdown-content .category-items {
-        padding: 0 !important;
-    }
-
-    .dropdown-content .item.item-group {
-        display: block !important;
-        width: 100%;
-        padding: 10px 14px !important;
-        box-sizing: border-box;
-        cursor: default;
-        border-top: 1px solid rgba(var(--rgb-primary-dark), 0.12);
-    }
-
-    .dropdown-content .item.item-group:hover {
-        background: transparent;
-    }
-
-    .dropdown-content .item-group .group-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-    .dropdown-content .item-group .item-main {
-        display: grid;
-        grid-template-columns: 20px minmax(0, 1fr);
-        align-items: start;
-        column-gap: 10px;
-        row-gap: 3px;
-        width: 100%;
-        padding: 4px 0 !important;
-        box-sizing: border-box;
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .dropdown-content .item-group .group-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        border: 1px solid rgba(var(--rgb-primary-dark), 0.35);
-        border-radius: 8px;
-        background: var(--color-neutral-lightest);
-        color: var(--color-secondary);
-        cursor: pointer;
-        flex-shrink: 0;
-        margin-top: 2px;
-        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-    }
-
-    .dropdown-content .item-group .group-toggle:hover {
-        background: rgba(var(--rgb-primary-dark), 0.06);
-    }
-
-    .dropdown-content .item-group .group-toggle i {
-        transition: transform 0.2s ease;
-    }
-
-    .dropdown-content .item-group.is-collapsed .group-toggle i {
-        transform: rotate(-90deg);
-    }
-
-    .dropdown-content .item-group .item-main input[type="checkbox"] {
-        margin: 2px 0 0 0;
-    }
-
-    .dropdown-content .item-group .item-title {
-        display: block;
-        min-width: 0;
-        font-weight: 700;
-        font-size: 16px;
-        line-height: 1.4;
-        white-space: normal;
-        word-break: normal;
-        overflow-wrap: break-word;
-        color: var(--color-secondary);
-    }
-
-    .dropdown-content .item-group .item-subtext {
-        display: block;
-        grid-column: 2;
-        min-width: 0;
-        margin-top: 0;
-        font-size: 13px;
-        line-height: 1.35;
-        white-space: normal;
-        word-break: normal;
-        overflow-wrap: break-word;
-        color: rgba(var(--rgb-primary-dark), 0.8);
-    }
-
-    .dropdown-content .item-group .member-sublist {
-        margin: 8px 0 4px 0;
-        padding: 0 0 0 30px;
-        list-style: none;
-    }
-
-    .dropdown-content .item-group.is-collapsed .member-sublist {
-        display: none;
-    }
-
-    .dropdown-content .item-group .member-sublist li {
-        margin: 0 0 6px 0;
-    }
-
-    .dropdown-content .item.member-item {
-        display: grid;
-        grid-template-columns: 20px minmax(0, 1fr);
-        align-items: start;
-        gap: 10px;
-        width: 100%;
-        padding: 6px 0 !important;
-        box-sizing: border-box;
-        margin: 0;
-        cursor: pointer;
-        border-radius: 6px;
-    }
-
-    .dropdown-content .item.member-item input[type="checkbox"] {
-        margin: 2px 0 0 0;
-    }
-
-    .dropdown-content .item.member-item .member-name {
-        min-width: 0;
-        line-height: 1.55;
-        font-size: 15px;
-        font-weight: 500;
-        white-space: normal;
-        word-break: normal;
-        overflow-wrap: break-word;
-        color: var(--color-primary-dark);
-    }
-
-    .dropdown-content .item.member-item:hover {
-        background: rgba(var(--rgb-primary-dark), 0.06);
-    }
-
-    .dropdown-content .category-items label.item-main,
-    .dropdown-content .category-items label.member-item {
-        width: 100%;
-        padding: 0 !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-        white-space: normal !important;
-    }
-
     .outgoing .select-all-box input {
         width: 20px;
         height: 20px;
@@ -4716,9 +4529,9 @@ ob_start();
                     <p>ประเภท</p>
                     <div class="radio-group-urgent">
                         <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="normal" checked id="modalOutgoingViewUrgentNormal"><label for="modalOutgoingViewUrgentNormal">ปกติ</label>
-                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="urgent" id="modalOutgoingViewUrgentUrgent"><label for="modalOutgoingViewUrgentUrgent">ด่วน</label>
-                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="high" id="modalOutgoingViewUrgentHigh"><label for="modalOutgoingViewUrgentHigh">ด่วนมาก</label>
-                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="highest" id="modalOutgoingViewUrgentHighest"><label for="modalOutgoingViewUrgentHighest">ด่วนที่สุด</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="urgent" disabled id="modalOutgoingViewUrgentUrgent"><label for="modalOutgoingViewUrgentUrgent">ด่วน</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="high" disabled id="modalOutgoingViewUrgentHigh"><label for="modalOutgoingViewUrgentHigh">ด่วนมาก</label>
+                        <input type="radio" name="outgoingViewUrgent" data-outgoing-view-urgent="highest" disabled id="modalOutgoingViewUrgentHighest"><label for="modalOutgoingViewUrgentHighest">ด่วนที่สุด</label>
                     </div>
                 </div>
                 <div class="content-topic-sec">
@@ -6107,7 +5920,7 @@ ob_start();
         window.__outgoingModalAttachmentUpload = setupFileUpload(
             "fileInput_modal",
             "existingFileListContainer_modal",
-            4, {
+            5, {
                 dropzoneId: "dropzone_modal",
                 addButtonId: "btnAddFiles_modal"
             }
