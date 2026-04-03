@@ -534,7 +534,8 @@ ob_start();
                                         data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
                                         data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
                                         data-memo-attachments="<?= h((string) $attachment_count) ?>"
-                                        data-memo-to="<?= h($to_label) ?>">
+                                        data-memo-to="<?= h($to_label) ?>"
+                                        data-files="<?= h($memo_files_json) ?>">
                                         <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
                                         <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
                                     </button>
@@ -1956,6 +1957,7 @@ ob_start();
     const suggestMemoIdInput = suggModal ? suggModal.querySelector('#memoSuggestMemoId') : null;
     const suggestForm = document.getElementById('memoSuggestForm');
     const suggestAttachmentInput = suggestForm ? suggestForm.querySelector('input[name="attachments[]"]') : null;
+    const suggestAttachmentList = suggestForm ? suggestForm.querySelector('#attachmentList') : null;
     const suggestRecipientRadios = suggModal ? Array.from(suggModal.querySelectorAll('.member-checkbox')) : [];
     const memoDirectorLabel = <?= json_encode($memo_director_label, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     const showSuggestValidationAlert = (message) => {
@@ -1997,6 +1999,20 @@ ob_start();
         if (suggestToText) {
             suggestToText.textContent = memoDirectorLabel;
         }
+    };
+
+    const refreshSuggestAttachmentList = (files, memoId, shouldReset = false) => {
+        if (suggestAttachmentList) {
+            suggestAttachmentList.dataset.existingFiles = JSON.stringify(Array.isArray(files) ? files : []);
+            suggestAttachmentList.dataset.entityId = String(memoId || '').trim();
+            suggestAttachmentList.dataset.module = 'memos';
+        }
+
+        window.dispatchEvent(new CustomEvent('app:attachment-list:refresh', {
+            detail: {
+                reset: shouldReset,
+            },
+        }));
     };
 
     const normalizeMemoText = (value) => {
@@ -2342,7 +2358,14 @@ ob_start();
             const memoSubject = String(btn.getAttribute('data-memo-subject') || '').trim();
             const memoDetail = String(btn.getAttribute('data-memo-detail') || '').trim();
             const memoAttachmentCount = Number(btn.getAttribute('data-memo-attachments') || '0');
+            let memoFiles = [];
             const detailValue = memoDetail !== '' ? memoDetail : '-';
+
+            try {
+                memoFiles = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                memoFiles = [];
+            }
 
             if (suggestMemoIdInput) {
                 suggestMemoIdInput.value = memoId;
@@ -2363,9 +2386,15 @@ ob_start();
                 suggestToChoiceInput.value = 'DIRECTOR';
             }
             if (suggestForm) {
-                const normalizedAttachmentCount = Number.isFinite(memoAttachmentCount) && memoAttachmentCount > 0 ? memoAttachmentCount : 0;
+                const normalizedAttachmentCount = memoFiles.length > 0
+                    ? memoFiles.length
+                    : (Number.isFinite(memoAttachmentCount) && memoAttachmentCount > 0 ? memoAttachmentCount : 0);
                 suggestForm.dataset.existingAttachmentCount = String(normalizedAttachmentCount);
             }
+            if (suggestAttachmentInput) {
+                suggestAttachmentInput.value = '';
+            }
+            refreshSuggestAttachmentList(memoFiles, memoId, true);
 
             if (window.tinymce) {
                 const suggestEditor = tinymce.get('memo_editor_suggest');
@@ -2410,6 +2439,7 @@ ob_start();
 
     closeSuggBtn?.addEventListener('click', () => {
         if (suggModal) suggModal.style.display = 'none';
+        refreshSuggestAttachmentList([], '', true);
     });
 
     window.addEventListener('click', (event) => {
@@ -2418,6 +2448,7 @@ ob_start();
         }
         if (event.target === suggModal) {
             suggModal.style.display = 'none';
+            refreshSuggestAttachmentList([], '', true);
         }
     });
 
