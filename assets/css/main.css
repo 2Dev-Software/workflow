@@ -543,7 +543,7 @@ select {
    Modules: login, dashboard, profile, setting, room, vehicle, circulars, approvals
    ========================================= */
 
-@media screen and (min-width: 1024px) {
+/* @media screen and (min-width: 1024px) { */
   /* ===== MODULE MAP (Desktop) =====
      Sections below are grouped by module using START/END comments.
   */
@@ -15369,7 +15369,7 @@ select {
   }
 
   /* ----- END TIMELINE ----- */
-}
+/* } */
 
 
 /* =========================================

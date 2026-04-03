@@ -135,6 +135,12 @@ ob_start();
         </a>
         <a href="teacher-phone-directory.php">
             <div class="card-shortcut">
+                <img src="/public/assets/img/icon/certificate.png" alt="">
+                <p><strong>ออกเลขเกียรติบัตร</strong></p>
+            </div>
+        </a>
+        <a href="teacher-phone-directory.php">
+            <div class="card-shortcut">
                 <img src="/public/assets/img/icon/phone.png" alt="">
                 <p><strong>สมุดโทรศัพท์</strong></p>
             </div>
