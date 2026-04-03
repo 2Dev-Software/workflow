@@ -309,6 +309,21 @@ ob_start();
     .content-modal .container-circular-notice-sending .sender-row {
         gap: 50px;
     }
+
+    .delete-btn {
+        font-size: var(--font-size-body-1);
+    }
+
+    .delete-btn:hover {
+        transform: none;
+    }
+
+    hr {
+        background-color: var(--color-secondary);
+        height: 1px;
+        border: none;
+        margin: 0 0 40px;
+    }
 </style>
 
 <div class="content-header">
@@ -588,6 +603,7 @@ ob_start();
                     <p>รายละเอียดการแจ้งซ่อมของฉัน</p>
                 </div>
                 <div class="sec-header">
+                    <span class="status-pill pending">ส่งคำร้องสำเร็จ</span>
                     <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
                 </div>
             </div>
@@ -602,12 +618,12 @@ ob_start();
                             <input type="text" id="repairDetailSubject" placeholder="ระบุหัวข้อที่ต้องการแจ้งซ่อม" disabled>
                         </div>
                         <div class="form-group">
-                            <label for="">สถานะ</label>
-                            <input type="text" id="repairDetailStatus" placeholder="สถานะการแจ้งซ่อม" disabled>
+                            <label for="">สถานที่</label>
+                            <input type="text" id="repairDetailLocation" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
                         </div>
                     </div>
 
-                    <div class="sender-row">
+                    <!-- <div class="sender-row">
                         <div class="form-group">
                             <label for="">ผู้แจ้ง</label>
                             <input type="text" id="repairDetailRequester" placeholder="ชื่อผู้แจ้งซ่อม" disabled>
@@ -616,7 +632,7 @@ ob_start();
                             <label for="">ผู้รับผิดชอบ</label>
                             <input type="text" id="repairDetailAssignedTo" placeholder="ชื่อผู้รับผิดชอบ" disabled>
                         </div>
-                    </div>
+                    </div> -->
 
                     <div class="sender-row">
                         <div class="form-group">
@@ -629,16 +645,12 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="sender-row">
-                        <div class="form-group">
-                            <label for="">สถานที่</label>
-                            <input type="text" id="repairDetailLocation" placeholder="เช่น อาคาร 1 ห้อง 205" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label for="">อุปกรณ์</label>
-                            <input type="text" id="repairDetailEquipment" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
-                        </div>
+                    <!-- <div class="sender-row"> -->
+                    <div class="form-group">
+                        <label for="">อุปกรณ์</label>
+                        <input type="text" id="repairDetailEquipment" placeholder="เช่น โปรเจคเตอร์ / เครื่องปรับอากาศ" disabled>
                     </div>
+                    <!-- </div> -->
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
@@ -650,6 +662,141 @@ ob_start();
                         <section class="upload-layout">
                             <div class="file-list" id="repairDetailFileList"></div>
                         </section>
+                    </div>
+
+                    <hr>
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="">ผู้รับผิดชอบ</label>
+                            <input type="text" id="repairDetailAssignedTo" placeholder="ชื่อผู้รับผิดชอบ" disabled>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="timeline">
+                        <p class="timeline-header">สถานะของงานซ่อมแซม</p>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 1 : Lorem ipsum dolor sit amet.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Enim quo similique vel nam distinctio cupiditate nulla cumque nihil quas provident!</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 2 : Lorem, ipsum.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit amet consectetur adipisicing elit. Modi, nihil saepe! Unde nesciunt esse, hic libero cumque in temporibus enim delectus dolore sequi a excepturi reiciendis placeat voluptatum? Repudiandae sint id minus nostrum, animi dolore, cum maxime, illum asperiores totam necessitatibus eaque veritatis quam sed delectus praesentium exercitationem assumenda adipisci ab similique. Laborum impedit numquam distinctio, consequatur quam reprehenderit cupiditate dolore hic. A optio vel accusantium, eos possimus provident consequuntur eveniet repellat enim, ex quia itaque voluptatem quidem magni. Aliquid, veritatis culpa ea dicta quam aut labore qui tempora autem aliquam doloribus incidunt omnis quidem explicabo eum porro enim aspernatur.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
+                                <div class="timeline-desc">eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
+                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
+                            </div>
+                        </div>
+
                     </div>
 
                 </form>
@@ -667,6 +814,7 @@ ob_start();
                     <p>แก้ไขการแจ้งเหตุซ่อมแซมของฉัน</p>
                 </div>
                 <div class="sec-header">
+                    <span class="status-pill pending">ส่งคำร้องสำเร็จ</span>
                     <i class="fa-solid fa-xmark" id="closeModalEdit" style="cursor: pointer;"></i>
                 </div>
             </div>
@@ -750,212 +898,212 @@ ob_start();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-    
-    function setupFileUpload(prefix) {
-        const fileInput = document.getElementById(prefix + 'fileInput');
-        const fileList = document.getElementById(prefix + 'fileListContainer');
-        const dropzone = document.getElementById(prefix + 'dropzone');
-        const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
 
-        if (!fileInput) return null;
+        function setupFileUpload(prefix) {
+            const fileInput = document.getElementById(prefix + 'fileInput');
+            const fileList = document.getElementById(prefix + 'fileListContainer');
+            const dropzone = document.getElementById(prefix + 'dropzone');
+            const addFilesBtn = document.getElementById(prefix + 'btnAddFiles');
 
-        const maxFiles = 999;
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        let selectedFiles = [];
-        let existingFiles = [];
-        let existingEntityId = '';
+            if (!fileInput) return null;
 
-        const formatFileSize = (size) => {
-            const bytes = Number(size || 0);
-            if (!Number.isFinite(bytes) || bytes <= 0) {
-                return '';
-            }
-            return `${(bytes / 1024).toFixed(1)} KB`;
-        };
+            const maxFiles = 999;
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            let selectedFiles = [];
+            let existingFiles = [];
+            let existingEntityId = '';
 
-        const renderFiles = () => {
-            if (!fileList) return;
-            fileList.innerHTML = '';
-
-            existingFiles.forEach((file) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'file-item-wrapper';
-
-                const container = document.createElement('div');
-                container.className = 'file-banner';
-
-                const info = document.createElement('div');
-                info.className = 'file-info';
-
-                const iconWrap = document.createElement('div');
-                iconWrap.className = 'file-icon';
-                const mime = String(file?.mimeType || '').toLowerCase();
-                iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
-
-                const text = document.createElement('div');
-                text.className = 'file-text';
-                text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
-
-                info.appendChild(iconWrap);
-                info.appendChild(text);
-
-                const actions = document.createElement('div');
-                actions.className = 'file-actions-group';
-                actions.style.display = 'flex';
-                actions.style.gap = '10px';
-
-                const baseUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
-
-                const viewAction = document.createElement('div');
-                viewAction.className = 'file-actions';
-                viewAction.innerHTML = `<a href="${baseUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
-
-                const downloadAction = document.createElement('div');
-                downloadAction.className = 'file-actions';
-                downloadAction.innerHTML = `<a href="${baseUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
-
-                actions.appendChild(viewAction);
-                actions.appendChild(downloadAction);
-
-                container.appendChild(info);
-                container.appendChild(actions);
-                wrapper.appendChild(container);
-                fileList.appendChild(wrapper);
-            });
-
-            selectedFiles.forEach((file, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'file-item-wrapper';
-
-                const container = document.createElement('div');
-                container.className = 'file-banner';
-
-                const info = document.createElement('div');
-                info.className = 'file-info';
-
-                const iconWrap = document.createElement('div');
-                iconWrap.className = 'file-icon';
-                const mime = String(file.type || '').toLowerCase();
-                iconWrap.innerHTML = '<i class="fa-solid fa-file-image"></i>';
-
-                const text = document.createElement('div');
-                text.className = 'file-text';
-
-                const sizeKB = (file.size / 1024).toFixed(1);
-                text.innerHTML = `<span class="file-name">${file.name}</span><span class="file-type">${sizeKB} KB</span>`;
-
-                info.appendChild(iconWrap);
-                info.appendChild(text);
-
-                const actions = document.createElement('div');
-                actions.className = 'file-actions-group';
-                actions.style.display = 'flex';
-                actions.style.gap = '10px';
-
-                const viewAction = document.createElement('div');
-                viewAction.className = 'file-actions';
-                const viewLink = document.createElement('a');
-
-                const fileUrl = URL.createObjectURL(file);
-                viewLink.href = fileUrl;
-                viewLink.target = '_blank';
-                viewLink.rel = 'noopener';
-                viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
-                viewAction.appendChild(viewLink);
-
-                const deleteAction = document.createElement('div');
-                deleteAction.className = 'file-actions';
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.style.border = 'none';
-                deleteBtn.style.background = 'none';
-                deleteBtn.style.cursor = 'pointer';
-                deleteBtn.style.color = '#dc3545';
-                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-
-                deleteBtn.onclick = () => {
-                    URL.revokeObjectURL(fileUrl);
-                    selectedFiles = selectedFiles.filter((_, i) => i !== index);
-                    syncFiles();
-                    renderFiles();
-                };
-                deleteAction.appendChild(deleteBtn);
-
-                actions.appendChild(viewAction);
-                actions.appendChild(deleteAction);
-
-                container.appendChild(info);
-                container.appendChild(actions);
-                wrapper.appendChild(container);
-                fileList.appendChild(wrapper);
-            });
-        };
-
-        const syncFiles = () => {
-            if (!fileInput) return;
-            const dt = new DataTransfer();
-            selectedFiles.forEach((file) => dt.items.add(file));
-            fileInput.files = dt.files;
-        };
-
-        const addFiles = (files) => {
-            if (!files) return;
-            const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}`));
-            Array.from(files).forEach((file) => {
-                const key = `${file.name}-${file.size}`;
-                if (!existing.has(key) && allowedTypes.includes(file.type) && selectedFiles.length < maxFiles) {
-                    selectedFiles.push(file);
-                    existing.add(key);
+            const formatFileSize = (size) => {
+                const bytes = Number(size || 0);
+                if (!Number.isFinite(bytes) || bytes <= 0) {
+                    return '';
                 }
-            });
-            syncFiles();
-            renderFiles();
-        };
+                return `${(bytes / 1024).toFixed(1)} KB`;
+            };
 
-        fileInput.addEventListener('change', (e) => addFiles(e.target.files));
-        if (dropzone) {
-            dropzone.addEventListener('click', () => fileInput.click());
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('active');
-            });
-            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('active');
-                addFiles(e.dataTransfer?.files || []);
-            });
-        }
-        if (addFilesBtn) {
-            addFilesBtn.addEventListener('click', () => fileInput.click());
-        }
+            const renderFiles = () => {
+                if (!fileList) return;
+                fileList.innerHTML = '';
 
-        return {
-            reset() {
-                selectedFiles = [];
-                existingFiles = [];
-                existingEntityId = '';
+                existingFiles.forEach((file) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'file-item-wrapper';
+
+                    const container = document.createElement('div');
+                    container.className = 'file-banner';
+
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
+
+                    const iconWrap = document.createElement('div');
+                    iconWrap.className = 'file-icon';
+                    const mime = String(file?.mimeType || '').toLowerCase();
+                    iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
+
+                    const text = document.createElement('div');
+                    text.className = 'file-text';
+                    text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
+
+                    info.appendChild(iconWrap);
+                    info.appendChild(text);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'file-actions-group';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '10px';
+
+                    const baseUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+
+                    const viewAction = document.createElement('div');
+                    viewAction.className = 'file-actions';
+                    viewAction.innerHTML = `<a href="${baseUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
+
+                    const downloadAction = document.createElement('div');
+                    downloadAction.className = 'file-actions';
+                    downloadAction.innerHTML = `<a href="${baseUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
+
+                    actions.appendChild(viewAction);
+                    actions.appendChild(downloadAction);
+
+                    container.appendChild(info);
+                    container.appendChild(actions);
+                    wrapper.appendChild(container);
+                    fileList.appendChild(wrapper);
+                });
+
+                selectedFiles.forEach((file, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'file-item-wrapper';
+
+                    const container = document.createElement('div');
+                    container.className = 'file-banner';
+
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
+
+                    const iconWrap = document.createElement('div');
+                    iconWrap.className = 'file-icon';
+                    const mime = String(file.type || '').toLowerCase();
+                    iconWrap.innerHTML = '<i class="fa-solid fa-file-image"></i>';
+
+                    const text = document.createElement('div');
+                    text.className = 'file-text';
+
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    text.innerHTML = `<span class="file-name">${file.name}</span><span class="file-type">${sizeKB} KB</span>`;
+
+                    info.appendChild(iconWrap);
+                    info.appendChild(text);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'file-actions-group';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '10px';
+
+                    const viewAction = document.createElement('div');
+                    viewAction.className = 'file-actions';
+                    const viewLink = document.createElement('a');
+
+                    const fileUrl = URL.createObjectURL(file);
+                    viewLink.href = fileUrl;
+                    viewLink.target = '_blank';
+                    viewLink.rel = 'noopener';
+                    viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+                    viewAction.appendChild(viewLink);
+
+                    const deleteAction = document.createElement('div');
+                    deleteAction.className = 'file-actions';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.background = 'none';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.color = '#dc3545';
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+
+                    deleteBtn.onclick = () => {
+                        URL.revokeObjectURL(fileUrl);
+                        selectedFiles = selectedFiles.filter((_, i) => i !== index);
+                        syncFiles();
+                        renderFiles();
+                    };
+                    deleteAction.appendChild(deleteBtn);
+
+                    actions.appendChild(viewAction);
+                    actions.appendChild(deleteAction);
+
+                    container.appendChild(info);
+                    container.appendChild(actions);
+                    wrapper.appendChild(container);
+                    fileList.appendChild(wrapper);
+                });
+            };
+
+            const syncFiles = () => {
+                if (!fileInput) return;
+                const dt = new DataTransfer();
+                selectedFiles.forEach((file) => dt.items.add(file));
+                fileInput.files = dt.files;
+            };
+
+            const addFiles = (files) => {
+                if (!files) return;
+                const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}`));
+                Array.from(files).forEach((file) => {
+                    const key = `${file.name}-${file.size}`;
+                    if (!existing.has(key) && allowedTypes.includes(file.type) && selectedFiles.length < maxFiles) {
+                        selectedFiles.push(file);
+                        existing.add(key);
+                    }
+                });
                 syncFiles();
                 renderFiles();
-                fileInput.value = '';
-                if (dropzone) {
+            };
+
+            fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+            if (dropzone) {
+                dropzone.addEventListener('click', () => fileInput.click());
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('active');
+                });
+                dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
                     dropzone.classList.remove('active');
-                }
-            },
-            setExistingFiles(files, entityId) {
-                existingFiles = Array.isArray(files) ? files : [];
-                existingEntityId = String(entityId || '').trim();
-                renderFiles();
+                    addFiles(e.dataTransfer?.files || []);
+                });
             }
-        };
-    }
+            if (addFilesBtn) {
+                addFilesBtn.addEventListener('click', () => fileInput.click());
+            }
 
-    setupFileUpload('');
-    
-    repairEditUploadApi = setupFileUpload('edit_');
+            return {
+                reset() {
+                    selectedFiles = [];
+                    existingFiles = [];
+                    existingEntityId = '';
+                    syncFiles();
+                    renderFiles();
+                    fileInput.value = '';
+                    if (dropzone) {
+                        dropzone.classList.remove('active');
+                    }
+                },
+                setExistingFiles(files, entityId) {
+                    existingFiles = Array.isArray(files) ? files : [];
+                    existingEntityId = String(entityId || '').trim();
+                    renderFiles();
+                }
+            };
+        }
 
-});
+        setupFileUpload('');
+
+        repairEditUploadApi = setupFileUpload('edit_');
+
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         const trackSection = document.getElementById('myRepair');
