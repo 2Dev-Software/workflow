@@ -162,6 +162,17 @@ $status_map = [
     'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'rejected'],
 ];
 
+$status_sort_priority_map = [
+    'DRAFT' => 1,
+    'IN_REVIEW' => 2,
+    'SUBMITTED' => 3,
+    'CANCELLED' => 4,
+    'RETURNED' => 5,
+    'APPROVED_UNSIGNED' => 6,
+    'SIGNED' => 7,
+    'REJECTED' => 8,
+];
+
 $status_options = [
     'all' => 'ทั้งหมด',
     'DRAFT' => 'รอการเสนอแฟ้ม',
@@ -450,6 +461,7 @@ ob_start();
                         $detail_b64 = base64_encode($detail_for_attr);
                         $status = strtoupper(trim((string) ($memo['status'] ?? '')));
                         $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'pending'];
+                        $status_sort_priority = (int) ($status_sort_priority_map[$status] ?? 99);
                         $submitted_at = trim((string) ($memo['submittedAt'] ?? ''));
                         $updated_at = trim((string) ($memo['updatedAt'] ?? ''));
                         $created_at = trim((string) ($memo['createdAt'] ?? ''));
@@ -484,6 +496,7 @@ ob_start();
                             data-memo-track-row="1"
                             data-memo-id="<?= h((string) $memo_id) ?>"
                             data-memo-status="<?= h($status) ?>"
+                            data-memo-status-order="<?= h((string) $status_sort_priority) ?>"
                             data-memo-subject="<?= h($subject) ?>"
                             data-memo-no="<?= h($memo_no) ?>"
                             data-memo-sent-ts="<?= h((string) $sent_sort_ts) ?>">
@@ -1116,6 +1129,7 @@ ob_start();
         const trackTableBody = document.querySelector('#memoMine .memo-mine-table tbody');
         const trackDataRows = trackTableBody ? Array.from(trackTableBody.querySelectorAll('tr[data-memo-track-row="1"]')) : [];
         let trackEmptyRow = trackTableBody ? trackTableBody.querySelector('tr[data-memo-empty-row="1"]') : null;
+        const memoStatusPriorityMap = <?= json_encode($status_sort_priority_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
         const normalizeTrackFilterText = (value) => String(value || '')
             .toLowerCase()
@@ -1185,6 +1199,15 @@ ob_start();
             });
 
             filteredRows.sort((leftRow, rightRow) => {
+                const leftStatus = String(leftRow.getAttribute('data-memo-status') || '').toUpperCase();
+                const rightStatus = String(rightRow.getAttribute('data-memo-status') || '').toUpperCase();
+                const leftStatusOrder = Number(leftRow.getAttribute('data-memo-status-order') || memoStatusPriorityMap[leftStatus] || 99);
+                const rightStatusOrder = Number(rightRow.getAttribute('data-memo-status-order') || memoStatusPriorityMap[rightStatus] || 99);
+
+                if (leftStatusOrder !== rightStatusOrder) {
+                    return leftStatusOrder - rightStatusOrder;
+                }
+
                 const leftTs = Number(leftRow.getAttribute('data-memo-sent-ts') || '0');
                 const rightTs = Number(rightRow.getAttribute('data-memo-sent-ts') || '0');
 
