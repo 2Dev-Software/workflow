@@ -75,6 +75,12 @@ ob_start();
 ?>
 
 <style>
+    .table-responsive.circular-my-table-wrap.order-create .status-pill.outgoing-complete {
+        background-color: rgba(var(--rgb-primary-dark), 0.18);
+        border: 1px solid var(--color-primary-dark);
+        color: var(--color-primary-dark);
+    }
+
     .form-group.receive button p {
         color: var(--color-neutral-lightest);
     }

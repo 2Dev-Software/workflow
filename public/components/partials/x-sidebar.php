@@ -230,6 +230,12 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </ul>
         </li>
         <li>
+            <a href="#">
+                <img src="/public/assets/img/icon/certificate.png" alt="">
+                <p class="link-name">ออกเลขเกียรติบัตร</p>
+            </a>
+        </li>
+        <li>
             <a href="teacher-phone-directory.php">
                 <!-- <i class="fa-solid fa-phone"></i> -->
                 <img src="/public/assets/img/icon/phone.png" alt="">
