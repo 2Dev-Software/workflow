@@ -226,11 +226,21 @@ if (!function_exists('memo_list_by_creator_page')) {
             $params[] = $like;
         }
 
-        $order_by = 'm.createdAt DESC, m.memoID DESC';
-
-        if ($sort === 'oldest') {
-            $order_by = 'm.createdAt ASC, m.memoID ASC';
-        }
+        $status_order_sql = "CASE m.status
+            WHEN 'DRAFT' THEN 1
+            WHEN 'IN_REVIEW' THEN 2
+            WHEN 'SUBMITTED' THEN 3
+            WHEN 'CANCELLED' THEN 4
+            WHEN 'RETURNED' THEN 5
+            WHEN 'APPROVED_UNSIGNED' THEN 6
+            WHEN 'SIGNED' THEN 7
+            WHEN 'REJECTED' THEN 8
+            ELSE 99
+        END";
+        $timeline_order_sql = 'COALESCE(m.submittedAt, m.createdAt)';
+        $timeline_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $memo_id_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $order_by = $status_order_sql . ' ASC, ' . $timeline_order_sql . ' ' . $timeline_direction . ', m.memoID ' . $memo_id_direction;
 
         $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.status, m.toType, m.toPID, m.firstReadAt, m.submittedAt, m.updatedAt, m.createdAt,
                 t.fName AS approverName
