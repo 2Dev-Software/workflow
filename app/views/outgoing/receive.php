@@ -2527,7 +2527,7 @@ ob_start();
                 </div>
                 <div class="content-topic-sec">
                     <div class="more-details">
-                        <p><strong>เก</strong></p>
+                        <p><strong>เกษียณหนังสือ</strong></p>
                         <textarea id="memo_editor_suggest"></textarea>
                     </div>
                 </div>

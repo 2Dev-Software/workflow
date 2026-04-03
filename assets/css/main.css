@@ -7951,7 +7951,7 @@ select {
     display: flex;
     align-items: center;
     width: 425px;
-    gap: 15px;
+    gap: 10px;
     animation: fadeIn 0.3s ease;
   }
 
@@ -7974,6 +7974,7 @@ select {
     background-color: var(--color-secondary);
     border-radius: 8px;
     padding: 10px;
+    gap: 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -8011,7 +8012,8 @@ select {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 250px;
-    width: 90%;
+    min-width: 250px;
+    width: 100%;
     border-bottom: 3px solid var(--color-neutral-lightest);
   }
 
