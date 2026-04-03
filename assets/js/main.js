@@ -1541,6 +1541,16 @@ const ALLOWED_ATTACHMENT_TYPES = [
 ];
 let selectedAttachments = [];
 
+function getExistingAttachments() {
+  if (!attachmentList) return [];
+  try {
+    const payload = JSON.parse(attachmentList.dataset.existingFiles || "[]");
+    return Array.isArray(payload) ? payload : [];
+  } catch (error) {
+    return [];
+  }
+}
+
 function formatFileSize(size) {
   if (!size) return "0 KB";
   const kb = size / 1024;
@@ -1555,6 +1565,16 @@ function setAttachmentError(message) {
   attachmentError.classList.toggle("hidden", !message);
 }
 
+function resetAttachmentSelection() {
+  selectedAttachments = [];
+  if (fileInput) {
+    fileInput.value = "";
+  }
+  syncAttachmentInput();
+  renderAttachmentList();
+  setAttachmentError("");
+}
+
 function syncAttachmentInput() {
   if (!fileInput) return;
   const dataTransfer = new DataTransfer();
@@ -1562,17 +1582,110 @@ function syncAttachmentInput() {
   fileInput.files = dataTransfer.files;
 }
 
+function buildStoredAttachmentItem(file) {
+  const moduleName = String(attachmentList?.dataset.module || "").trim();
+  const entityId = String(attachmentList?.dataset.entityId || "").trim();
+  const fileId = String(file?.fileID || "").trim();
+  const fileName = String(file?.fileName || "").trim();
+
+  if (!attachmentList || moduleName === "" || entityId === "" || fileId === "" || fileName === "") {
+    return null;
+  }
+
+  const banner = document.createElement("div");
+  banner.className = "file-banner";
+
+  const info = document.createElement("div");
+  info.className = "file-info";
+
+  const iconWrap = document.createElement("div");
+  iconWrap.className = "file-icon";
+
+  const icon = document.createElement("i");
+  const mimeType = String(file?.mimeType || "");
+  const mimeLower = mimeType.toLowerCase();
+  if (mimeLower.includes("pdf")) {
+    icon.className = "fa-solid fa-file-pdf";
+  } else if (mimeLower.includes("image")) {
+    icon.className = "fa-solid fa-file-image";
+  } else {
+    icon.className = "fa-solid fa-file";
+  }
+  icon.setAttribute("aria-hidden", "true");
+  iconWrap.appendChild(icon);
+
+  const text = document.createElement("div");
+  text.className = "file-text";
+
+  const name = document.createElement("span");
+  name.className = "file-name";
+  name.textContent = fileName;
+
+  const type = document.createElement("span");
+  type.className = "file-type";
+  type.textContent = mimeType || "ไฟล์แนบ";
+
+  text.appendChild(name);
+  text.appendChild(type);
+
+  info.appendChild(iconWrap);
+  info.appendChild(text);
+  banner.appendChild(info);
+
+  const viewAction = document.createElement("div");
+  viewAction.className = "file-actions";
+  const viewLink = document.createElement("a");
+  viewLink.href =
+    "public/api/file-download.php?module=" +
+    encodeURIComponent(moduleName) +
+    "&entity_id=" +
+    encodeURIComponent(entityId) +
+    "&file_id=" +
+    encodeURIComponent(fileId);
+  viewLink.target = "_blank";
+  viewLink.rel = "noopener";
+  viewLink.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+  viewAction.appendChild(viewLink);
+
+  const downloadAction = document.createElement("div");
+  downloadAction.className = "file-actions";
+  const downloadLink = document.createElement("a");
+  downloadLink.href =
+    "public/api/file-download.php?module=" +
+    encodeURIComponent(moduleName) +
+    "&entity_id=" +
+    encodeURIComponent(entityId) +
+    "&file_id=" +
+    encodeURIComponent(fileId) +
+    "&download=1";
+  downloadLink.innerHTML = '<i class="fa-solid fa-download" aria-hidden="true"></i>';
+  downloadAction.appendChild(downloadLink);
+
+  banner.appendChild(viewAction);
+  banner.appendChild(downloadAction);
+
+  return banner;
+}
+
 function renderAttachmentList() {
   if (!attachmentList) return;
   attachmentList.innerHTML = "";
+  const existingAttachments = getExistingAttachments();
 
-  if (selectedAttachments.length === 0) {
+  if (existingAttachments.length === 0 && selectedAttachments.length === 0) {
     const empty = document.createElement("p");
     empty.className = "attachment-empty";
     empty.textContent = "ยังไม่มีไฟล์แนบ";
     attachmentList.appendChild(empty);
     return;
   }
+
+  existingAttachments.forEach((file) => {
+    const item = buildStoredAttachmentItem(file);
+    if (item) {
+      attachmentList.appendChild(item);
+    }
+  });
 
   selectedAttachments.forEach((file, index) => {
     const item = document.createElement("div");
@@ -1663,6 +1776,7 @@ function addAttachments(files) {
 
   let hasInvalid = false;
   let hitLimit = false;
+  const existingAttachmentCount = getExistingAttachments().length;
 
   Array.from(files).forEach((file) => {
     const key = `${file.name}-${file.size}-${file.lastModified}`;
@@ -1680,7 +1794,7 @@ function addAttachments(files) {
       return;
     }
 
-    if (selectedAttachments.length >= MAX_ATTACHMENTS) {
+    if (existingAttachmentCount + selectedAttachments.length >= MAX_ATTACHMENTS) {
       hitLimit = true;
       return;
     }
@@ -1710,6 +1824,14 @@ if (fileInput) {
 calculateDays();
 validateTimeRange();
 renderAttachmentList();
+
+window.addEventListener("app:attachment-list:refresh", function (event) {
+  if (event?.detail?.reset) {
+    resetAttachmentSelection();
+    return;
+  }
+  renderAttachmentList();
+});
 
 document.addEventListener("DOMContentLoaded", function () {
   const wrappers = document.querySelectorAll(".custom-select-wrapper");
