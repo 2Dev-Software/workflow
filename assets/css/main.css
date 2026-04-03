@@ -15259,6 +15259,114 @@ select {
 
   /* ----- END ORDER-CREATE ----- */
 
+
+  /* ----- START TIMELINE ----- */
+  .timeline {
+    position: relative;
+    max-width: 800px;
+  }
+
+  .timeline .timeline-header {
+    font-size: var(--font-size-title) !important;
+    font-weight: bold !important;
+    margin: 0 0 20px !important;
+  }
+
+  /* .timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background-color: var(--color-primary);
+  } */
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 40px;
+    padding-left: 60px;
+  }
+
+  .timeline-item:before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 24px;
+    width: 2px;
+    height: 130%;
+    background-color: var(--color-primary-deep);
+  }
+
+  .timeline-item::after {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 24px;
+    width: 20px;
+    height: 20px;
+    background: var(--color-primary-deep);
+    border-radius: 50%;
+  }
+
+  .timeline-item:last-child:before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 17px;
+    width: 2px;
+    height: 100%;
+    z-index: 111;
+    background-color: var(--color-primary);
+  }
+
+  .timeline-item:last-child::after {
+    width: 30px;
+    height: 30px;
+    left: 6px;
+    top: 17px;
+    background: var(--color-primary);
+  }
+
+  .timeline-content {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-neutral-lightest);
+    border: 1px solid var(--color-primary-deep);
+    border-radius: 12px;
+    padding: 20px;
+    gap: 10px;
+    box-shadow: 8px 8px 0 0 var(--color-primary-deep);
+    transition: 0.3s;
+  }
+
+  .timeline-item:last-child .timeline-content {
+    border: 1px solid var(--color-primary);
+    box-shadow: 8px 8px 0 0 var(--color-primary);
+  }
+
+  .timeline-content:hover {
+    transform: translateX(10px);
+  }
+
+  .timeline-title {
+    font-size: var(--font-size-body-1);
+    font-weight: bold;
+    color: var(--color-secondary);
+  }
+
+  .timeline-desc {
+    font-size: var(--font-size-body-1);
+    color: var(--color-secondary);
+  }
+
+  .timeline-date {
+    font-size: var(--font-size-body-2);
+    color: var(--color-secondary);
+    font-weight: bold;
+  }
+
+  /* ----- END TIMELINE ----- */
 }
 
 
