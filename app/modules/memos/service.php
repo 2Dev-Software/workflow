@@ -88,6 +88,84 @@ if (!function_exists('memo_next_sequence_for_year')) {
     }
 }
 
+if (!function_exists('memo_list_deputy_candidates')) {
+    function memo_list_deputy_candidates(?string $excludePID = null): array
+    {
+        $connection = db_connection();
+        $deputy_position_ids = system_position_deputy_ids($connection);
+
+        if ($deputy_position_ids === []) {
+            return [];
+        }
+
+        $position = system_position_join($connection, 't', 'p');
+        $position_config = system_position_config($connection);
+        $teacher_position_column = 't.' . (string) ($position_config['teacher_column'] ?? 'positionID');
+        $excludePID = trim((string) $excludePID);
+
+        $placeholders = implode(', ', array_fill(0, count($deputy_position_ids), '?'));
+        $types = str_repeat('i', count($deputy_position_ids));
+        $params = $deputy_position_ids;
+        $where = 't.status = 1 AND ' . $teacher_position_column . ' IN (' . $placeholders . ')';
+
+        if ($excludePID !== '') {
+            $where .= ' AND t.pID <> ?';
+            $types .= 's';
+            $params[] = $excludePID;
+        }
+
+        $rows = db_fetch_all(
+            'SELECT t.pID,
+                    COALESCE(t.fName, "") AS name,
+                    COALESCE(' . $position['name'] . ', "") AS positionName
+             FROM teacher AS t
+             ' . $position['join'] . '
+             WHERE ' . $where . '
+             ORDER BY ' . $position['name'] . ' ASC, t.fName ASC, t.pID ASC',
+            $types,
+            ...$params
+        );
+
+        $items = [];
+
+        foreach ($rows as $row) {
+            $pid = trim((string) ($row['pID'] ?? ''));
+            $name = trim((string) ($row['name'] ?? ''));
+
+            if ($pid === '' || $name === '') {
+                continue;
+            }
+
+            $items[] = [
+                'pID' => $pid,
+                'name' => $name,
+                'positionName' => trim((string) ($row['positionName'] ?? '')),
+            ];
+        }
+
+        return $items;
+    }
+}
+
+if (!function_exists('memo_is_valid_deputy_candidate')) {
+    function memo_is_valid_deputy_candidate(string $targetPID, ?string $excludePID = null): bool
+    {
+        $targetPID = trim($targetPID);
+
+        if ($targetPID === '') {
+            return false;
+        }
+
+        foreach (memo_list_deputy_candidates($excludePID) as $candidate) {
+            if ($targetPID === trim((string) ($candidate['pID'] ?? ''))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('memo_generate_number')) {
     function memo_generate_number(int $year): array
     {
@@ -768,10 +846,11 @@ if (!function_exists('memo_recall')) {
 }
 
 if (!function_exists('memo_forward')) {
-    function memo_forward(int $memoID, string $actorPID, string $note = ''): void
+    function memo_forward(int $memoID, string $actorPID, string $note = '', string $targetPID = ''): void
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+        $targetPID = trim($targetPID);
 
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
@@ -800,10 +879,65 @@ if (!function_exists('memo_forward')) {
                 throw new RuntimeException('ไม่สามารถส่งต่อได้ในสถานะปัจจุบัน');
             }
 
+            $headPID = trim((string) ($memo['headPID'] ?? ''));
+            $deputyPID = trim((string) ($memo['deputyPID'] ?? ''));
+            $directorPID = trim((string) ($memo['directorPID'] ?? ''));
+            $flowStage = strtoupper(trim((string) ($memo['flowStage'] ?? '')));
+            $currentToPID = trim((string) ($memo['toPID'] ?? ''));
+
+            if ($currentToPID !== '' && in_array($flowStage, ['HEAD', 'DEPUTY', 'DIRECTOR'], true)) {
+                if ($flowStage === 'HEAD') {
+                    $headPID = $currentToPID;
+                } elseif ($flowStage === 'DEPUTY') {
+                    $deputyPID = $currentToPID;
+                } elseif ($flowStage === 'DIRECTOR') {
+                    $directorPID = $currentToPID;
+                }
+            }
+
+            if ($headPID === '' || $deputyPID === '' || $directorPID === '') {
+                try {
+                    $resolved = memo_resolve_chain_approvers(trim((string) ($memo['createdByPID'] ?? '')));
+
+                    if ($headPID === '') {
+                        $headPID = trim((string) ($resolved['headPID'] ?? ''));
+                    }
+
+                    if ($deputyPID === '') {
+                        $deputyPID = trim((string) ($resolved['deputyPID'] ?? ''));
+                    }
+
+                    if ($directorPID === '') {
+                        $directorPID = trim((string) ($resolved['directorPID'] ?? ''));
+                    }
+                } catch (Throwable $ignored) {
+                }
+            }
+
+            if ($directorPID === '') {
+                $directorPID = trim((string) (system_get_current_director_pid() ?? ''));
+            }
+
+            $memo = [
+                ...$memo,
+                'headPID' => $headPID,
+                'deputyPID' => $deputyPID,
+                'directorPID' => $directorPID,
+            ];
+
             $currentStage = memo_infer_chain_stage_by_actor($memo, $actorPID);
 
             if (!in_array($currentStage, ['HEAD', 'DEPUTY'], true)) {
                 throw new RuntimeException('ส่งต่อได้เฉพาะหัวหน้ากลุ่ม/รองผู้อำนวยการ');
+            }
+
+            if ($currentStage === 'HEAD' && $targetPID !== '') {
+                if (!preg_match('/^\d{1,13}$/', $targetPID) || !memo_is_valid_deputy_candidate($targetPID, $actorPID)) {
+                    throw new RuntimeException('ไม่พบรองผู้อำนวยการที่เลือก');
+                }
+
+                $deputyPID = $targetPID;
+                $memo['deputyPID'] = $deputyPID;
             }
 
             [$nextPID, $nextStage] = memo_resolve_next_chain_reviewer($memo, $currentStage);
@@ -821,6 +955,9 @@ if (!function_exists('memo_forward')) {
                 'reviewNote' => $note !== '' ? $note : ($memo['reviewNote'] ?? null),
                 'reviewedAt' => $now,
                 'firstReadAt' => null,
+                'headPID' => $headPID !== '' ? $headPID : null,
+                'deputyPID' => $deputyPID !== '' ? $deputyPID : null,
+                'directorPID' => $directorPID !== '' ? $directorPID : null,
                 'updatedByPID' => $actorPID,
             ]);
             memo_add_route($memoID, 'FORWARD', $fromStatus, MEMO_STATUS_SUBMITTED, $actorPID, $note !== '' ? $note : null);

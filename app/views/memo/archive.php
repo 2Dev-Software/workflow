@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
+require_once __DIR__ . '/../../modules/memos/status.php';
 
 $items = (array) ($items ?? []);
 $page = (int) ($page ?? 1);
@@ -22,35 +23,7 @@ $memo_page_inbox = 'memo-inbox.php';
 $memo_page_archive = 'memo-archive.php';
 $memo_page_view = 'memo-view.php';
 
-$status_map = [
-    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'neutral'],
-    'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'warning'],
-    'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'warning'],
-    'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'danger'],
-    'APPROVED_UNSIGNED' => ['label' => 'อนุมัติ (รอแนบไฟล์)', 'variant' => 'warning'],
-    'SIGNED' => ['label' => 'ลงนามแล้ว', 'variant' => 'success'],
-    'REJECTED' => ['label' => 'ไม่อนุมัติ', 'variant' => 'danger'],
-    'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'neutral'],
-];
-
-$status_options = [
-    'all' => 'ทั้งหมด',
-    'DRAFT' => 'รอการเสนอแฟ้ม',
-    'SUBMITTED' => 'รอพิจารณา',
-    'IN_REVIEW' => 'กำลังพิจารณา',
-    'RETURNED' => 'ตีกลับแก้ไข',
-    'APPROVED_UNSIGNED' => 'อนุมัติ (รอแนบไฟล์)',
-    'SIGNED' => 'ลงนามแล้ว',
-    'REJECTED' => 'ไม่อนุมัติ',
-    'CANCELLED' => 'ยกเลิก',
-];
-
-$status_pill_map = [
-    'neutral' => 'processing',
-    'warning' => 'pending',
-    'danger' => 'rejected',
-    'success' => 'approved',
-];
+$status_options = memo_status_options();
 
 $thai_months = [
     1 => 'มกราคม',
@@ -97,7 +70,7 @@ foreach ($items as $item) {
     $memo_id = (int) ($item['memoID'] ?? 0);
     $memo_no = trim((string) ($item['memoNo'] ?? ''));
     $status = (string) ($item['status'] ?? '');
-    $status_meta = $status_map[$status] ?? ['label' => $status !== '' ? $status : '-', 'variant' => 'neutral'];
+    $status_meta = memo_status_meta($status);
     $approver = trim((string) ($item['approverName'] ?? ''));
     $approver = $approver !== '' ? $approver : '-';
     $view_href = $memo_page_view;
@@ -117,7 +90,7 @@ foreach ($items as $item) {
                 'name' => 'badge',
                 'params' => [
                     'label' => $status_meta['label'],
-                    'variant' => $status_meta['variant'],
+                    'variant' => $status_meta['badge_variant'],
                 ],
             ],
         ],
@@ -351,8 +324,8 @@ ob_start();
                                     $subject = trim((string) ($item['subject'] ?? ''));
                                     $approver_name = trim((string) ($item['approverName'] ?? ''));
                                     $status = (string) ($item['status'] ?? '');
-                                    $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'neutral'];
-                                    $status_class = $status_pill_map[(string) ($status_meta['variant'] ?? 'neutral')] ?? 'processing';
+                                    $status_meta = memo_status_meta($status);
+                                    $status_class = (string) ($status_meta['pill_variant'] ?? 'pending');
                                     $submitted_at = trim((string) ($item['submittedAt'] ?? ''));
                                     $created_at = trim((string) ($item['createdAt'] ?? ''));
                                     [$date_line, $time_line] = $format_thai_datetime($submitted_at !== '' ? $submitted_at : $created_at);
