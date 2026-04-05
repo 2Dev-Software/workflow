@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
+require_once __DIR__ . '/../../modules/memos/status.php';
 
 $memo = $memo ?? null;
 $attachments = (array) ($attachments ?? []);
@@ -17,17 +18,6 @@ $is_creator = (bool) ($access['is_creator'] ?? false);
 $is_approver = (bool) ($access['is_approver'] ?? false);
 $is_admin = (bool) ($access['is_admin'] ?? false);
 
-$status_map = [
-    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'neutral'],
-    'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'warning'],
-    'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'warning'],
-    'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'danger'],
-    'APPROVED_UNSIGNED' => ['label' => 'อนุมัติ (รอแนบไฟล์)', 'variant' => 'warning'],
-    'SIGNED' => ['label' => 'ลงนามแล้ว', 'variant' => 'success'],
-    'REJECTED' => ['label' => 'ไม่อนุมัติ', 'variant' => 'danger'],
-    'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'neutral'],
-];
-
 $stage_label_map = [
     'OWNER' => 'เจ้าของเรื่อง',
     'HEAD' => 'หัวหน้ากลุ่ม/หัวหน้างาน',
@@ -38,7 +28,7 @@ $stage_label_map = [
 $memo_id = (int) ($memo['memoID'] ?? 0);
 $memo_no = trim((string) ($memo['memoNo'] ?? ''));
 $status = (string) ($memo['status'] ?? '');
-$status_meta = $status_map[$status] ?? ['label' => $status !== '' ? $status : '-', 'variant' => 'neutral'];
+$status_meta = memo_status_meta($status);
 $action_url = (string) ($action_url ?? '');
 
 if ($action_url === '') {
@@ -172,7 +162,7 @@ ob_start();
         <div class="c-badge-group">
             <?php component_render('badge', [
                 'label' => $status_meta['label'],
-                'variant' => $status_meta['variant'],
+                'variant' => $status_meta['badge_variant'],
             ]); ?>
             <?php if ($is_archived) : ?>
                 <?php component_render('badge', [

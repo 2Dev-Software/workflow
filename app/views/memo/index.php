@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../auth/csrf.php';
+require_once __DIR__ . '/../../modules/memos/status.php';
 
 $values = $values ?? ['writeDate' => '', 'subject' => '', 'detail' => ''];
 $current_user = (array) ($current_user ?? []);
@@ -151,39 +152,8 @@ if (!empty($subject_head_members)) {
     ];
 }
 
-$status_map = [
-    'DRAFT' => ['label' => 'รอการเสนอแฟ้ม', 'variant' => 'pending'],
-    'SUBMITTED' => ['label' => 'รอพิจารณา', 'variant' => 'pending'],
-    'IN_REVIEW' => ['label' => 'กำลังพิจารณา', 'variant' => 'processing'],
-    'RETURNED' => ['label' => 'ตีกลับแก้ไข', 'variant' => 'rejected'],
-    'APPROVED_UNSIGNED' => ['label' => 'อนุมัติ (รอแนบไฟล์)', 'variant' => 'pending'],
-    'SIGNED' => ['label' => 'ลงนามแล้ว', 'variant' => 'approved'],
-    'REJECTED' => ['label' => 'ไม่อนุมัติ', 'variant' => 'rejected'],
-    'CANCELLED' => ['label' => 'ยกเลิก', 'variant' => 'rejected'],
-];
-
-$status_sort_priority_map = [
-    'DRAFT' => 1,
-    'IN_REVIEW' => 2,
-    'SUBMITTED' => 3,
-    'CANCELLED' => 4,
-    'RETURNED' => 5,
-    'APPROVED_UNSIGNED' => 6,
-    'SIGNED' => 7,
-    'REJECTED' => 8,
-];
-
-$status_options = [
-    'all' => 'ทั้งหมด',
-    'DRAFT' => 'รอการเสนอแฟ้ม',
-    'SUBMITTED' => 'รอพิจารณา',
-    'IN_REVIEW' => 'กำลังพิจารณา',
-    'RETURNED' => 'ตีกลับแก้ไข',
-    'APPROVED_UNSIGNED' => 'อนุมัติ (รอแนบไฟล์)',
-    'SIGNED' => 'ลงนามแล้ว',
-    'REJECTED' => 'ไม่อนุมัติ',
-    'CANCELLED' => 'ยกเลิก',
-];
+$status_sort_priority_map = memo_status_sort_priority_map();
+$status_options = memo_status_options();
 
 $thai_months = [
     1 => 'มกราคม',
@@ -614,8 +584,8 @@ ob_start();
                         $detail_for_attr = $detail !== '' ? $detail : '-';
                         $detail_b64 = base64_encode($detail_for_attr);
                         $status = strtoupper(trim((string) ($memo['status'] ?? '')));
-                        $status_meta = $status_map[$status] ?? ['label' => ($status !== '' ? $status : '-'), 'variant' => 'pending'];
-                        $status_sort_priority = (int) ($status_sort_priority_map[$status] ?? 99);
+                        $status_meta = memo_status_meta($status);
+                        $status_sort_priority = (int) ($status_meta['priority'] ?? 99);
                         $submitted_at = trim((string) ($memo['submittedAt'] ?? ''));
                         $updated_at = trim((string) ($memo['updatedAt'] ?? ''));
                         $created_at = trim((string) ($memo['createdAt'] ?? ''));
@@ -658,7 +628,7 @@ ob_start();
                                 <p><?= h($truncate_subject($subject)) ?></p>
                             </td>
                             <td>
-                                <span class="status-pill <?= h((string) ($status_meta['variant'] ?? 'pending')) ?>">
+                                <span class="status-pill <?= h((string) ($status_meta['pill_variant'] ?? 'pending')) ?>">
                                     <?= h((string) ($status_meta['label'] ?? '-')) ?>
                                 </span>
                             </td>

@@ -8,6 +8,50 @@ use Tests\Support\WorkflowTestCase;
 
 final class MemoWorkflowTest extends WorkflowTestCase
 {
+    public function testMemoSharedStatusDefinitionsStayConsistentAcrossViews(): void
+    {
+        $definitions = memo_status_definitions();
+
+        $this->assertSame([
+            MEMO_STATUS_DRAFT,
+            MEMO_STATUS_IN_REVIEW,
+            MEMO_STATUS_SUBMITTED,
+            MEMO_STATUS_CANCELLED,
+            MEMO_STATUS_RETURNED,
+            MEMO_STATUS_APPROVED_UNSIGNED,
+            MEMO_STATUS_SIGNED,
+            MEMO_STATUS_REJECTED,
+        ], array_keys($definitions));
+
+        $this->assertSame('รอการเสนอแฟ้ม', $definitions[MEMO_STATUS_DRAFT]['label'] ?? null);
+        $this->assertSame('processing', $definitions[MEMO_STATUS_IN_REVIEW]['pill_variant'] ?? null);
+        $this->assertSame('approved', $definitions[MEMO_STATUS_SIGNED]['pill_variant'] ?? null);
+        $this->assertSame('danger', $definitions[MEMO_STATUS_CANCELLED]['badge_variant'] ?? null);
+
+        $this->assertSame([
+            'all' => 'ทั้งหมด',
+            MEMO_STATUS_DRAFT => 'รอการเสนอแฟ้ม',
+            MEMO_STATUS_IN_REVIEW => 'กำลังพิจารณา',
+            MEMO_STATUS_SUBMITTED => 'รอพิจารณา',
+            MEMO_STATUS_CANCELLED => 'ยกเลิก',
+            MEMO_STATUS_RETURNED => 'ตีกลับแก้ไข',
+            MEMO_STATUS_APPROVED_UNSIGNED => 'อนุมัติ (รอแนบไฟล์)',
+            MEMO_STATUS_SIGNED => 'ลงนามแล้ว',
+            MEMO_STATUS_REJECTED => 'ไม่อนุมัติ',
+        ], memo_status_options());
+
+        $this->assertSame([
+            MEMO_STATUS_DRAFT => 1,
+            MEMO_STATUS_IN_REVIEW => 2,
+            MEMO_STATUS_SUBMITTED => 3,
+            MEMO_STATUS_CANCELLED => 4,
+            MEMO_STATUS_RETURNED => 5,
+            MEMO_STATUS_APPROVED_UNSIGNED => 6,
+            MEMO_STATUS_SIGNED => 7,
+            MEMO_STATUS_REJECTED => 8,
+        ], memo_status_sort_priority_map());
+    }
+
     public function testMemoStateMachineMatchesServiceRecallAndTerminalRules(): void
     {
         $machine = workflow_state_machine();
@@ -138,5 +182,28 @@ final class MemoWorkflowTest extends WorkflowTestCase
         $expectedYears = array_values(array_filter($expectedYears, static fn(int $year): bool => $year > 0));
 
         $this->assertSame($expectedYears, memo_list_reviewer_years($reviewerPid));
+    }
+
+    public function testDeputyCandidatesForInboxForwardSelectionAreWellFormed(): void
+    {
+        $candidates = memo_list_deputy_candidates();
+
+        if ($candidates === []) {
+            $this->markTestSkipped('No deputy candidates available');
+        }
+
+        $seen = [];
+
+        foreach ($candidates as $candidate) {
+            $pid = trim((string) ($candidate['pID'] ?? ''));
+            $name = trim((string) ($candidate['name'] ?? ''));
+
+            $this->assertNotSame('', $pid);
+            $this->assertMatchesRegularExpression('/^\d{1,13}$/', $pid);
+            $this->assertNotSame('', $name);
+            $this->assertArrayNotHasKey($pid, $seen);
+
+            $seen[$pid] = true;
+        }
     }
 }

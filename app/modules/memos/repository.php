@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../db/db.php';
 require_once __DIR__ . '/../../config/state.php';
+require_once __DIR__ . '/../system/positions.php';
+require_once __DIR__ . '/status.php';
 
 const MEMO_MODULE_NAME = 'memos';
 const MEMO_ENTITY_NAME = 'dh_memos';
@@ -226,17 +228,7 @@ if (!function_exists('memo_list_by_creator_page')) {
             $params[] = $like;
         }
 
-        $status_order_sql = "CASE m.status
-            WHEN 'DRAFT' THEN 1
-            WHEN 'IN_REVIEW' THEN 2
-            WHEN 'SUBMITTED' THEN 3
-            WHEN 'CANCELLED' THEN 4
-            WHEN 'RETURNED' THEN 5
-            WHEN 'APPROVED_UNSIGNED' THEN 6
-            WHEN 'SIGNED' THEN 7
-            WHEN 'REJECTED' THEN 8
-            ELSE 99
-        END";
+        $status_order_sql = memo_status_order_case_sql('m.status');
         $timeline_order_sql = 'COALESCE(m.submittedAt, m.createdAt)';
         $timeline_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
         $memo_id_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
@@ -321,6 +313,8 @@ if (!function_exists('memo_count_by_reviewer')) {
 if (!function_exists('memo_list_by_reviewer_page')) {
     function memo_list_by_reviewer_page(string $pID, ?string $status, ?string $search, int $limit, int $offset, ?int $dh_year = null): array
     {
+        $connection = db_connection();
+        $creator_position = system_position_join($connection, 'c', 'cp');
         $limit = max(1, $limit);
         $offset = max(0, $offset);
         $status = trim((string) $status);
@@ -354,11 +348,19 @@ if (!function_exists('memo_list_by_reviewer_page')) {
         }
 
         $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.reviewNote, m.status,
-                m.createdAt, m.firstReadAt, m.submittedAt, m.reviewedAt, m.toType, m.toPID,
+                m.createdAt, m.firstReadAt, m.submittedAt, m.reviewedAt, m.toType, m.toPID, m.flowStage,
+                m.createdByPID, m.headPID, m.deputyPID, m.directorPID,
                 c.fName AS creatorName,
+                COALESCE(c.signature, "") AS creatorSignature,
+                COALESCE(cf.fName, "") AS creatorFactionName,
+                COALESCE(cd.dName, "") AS creatorDepartmentName,
+                COALESCE(' . $creator_position['name'] . ', "") AS creatorPositionName,
                 a.fName AS approverName
             FROM dh_memos AS m
             LEFT JOIN teacher AS c ON m.createdByPID = c.pID
+            LEFT JOIN faction AS cf ON c.fID = cf.fID
+            LEFT JOIN department AS cd ON c.dID = cd.dID
+            ' . $creator_position['join'] . '
             LEFT JOIN teacher AS a ON m.toPID = a.pID
             WHERE ' . $where . '
             ORDER BY m.submittedAt DESC, m.memoID DESC

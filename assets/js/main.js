@@ -1837,6 +1837,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const wrappers = document.querySelectorAll(".custom-select-wrapper");
 
   wrappers.forEach((wrapper) => {
+    if (wrapper.hasAttribute("data-custom-select-manual")) {
+      return;
+    }
+
     const trigger = wrapper.querySelector(".custom-select-trigger");
     const options = wrapper.querySelectorAll(".custom-option");
     const hiddenInput = wrapper.querySelector('input[type="hidden"]');
