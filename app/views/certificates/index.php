@@ -233,7 +233,7 @@ ob_start();
 
     <div class="enterprise-card-header order-mine-list-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการเลขทะเบียนส่งของฉัน</h2>
+            <h2 class="enterprise-card-title">รายการเลขเกียรติบัตร</h2>
         </div>
     </div>
 
@@ -417,7 +417,7 @@ ob_start();
 
     <div class="enterprise-card-header order-mine-list-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการเลขทะเบียนส่งของฉัน</h2>
+            <h2 class="enterprise-card-title">รายการเลขเกียรติบัตรของฉัน</h2>
         </div>
     </div>
 
@@ -621,7 +621,18 @@ ob_start();
 
             const buildFileIconMarkup = (mimeType) => {
                 const normalizedMime = String(mimeType || '').toLowerCase();
-                return normalizedMime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : '<i class="fa-solid fa-file-image"></i>';
+
+                if (normalizedMime.includes('pdf')) {
+                    return '<i class="fa-solid fa-file-pdf"></i>';
+                }else if (normalizedMime.includes('word')) {
+                    return '<i class="fa-solid fa-file-word"></i>';
+                }else if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheet')) {
+                    return '<i class="fa-solid fa-file-excel"></i>';
+                }else if (normalizedMime.includes('zip')) {
+                    return '<i class="fa-solid fa-file-zipper"></i>';
+                }else {
+                    return '<i class="fa-solid fa-file"></i>';
+                }
             };
 
             const buildExistingFileUrl = (file) => {
