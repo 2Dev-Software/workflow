@@ -133,7 +133,7 @@ ob_start();
                 <p><strong>แจ้งเหตุซ่อมแซม</strong></p>
             </div>
         </a>
-        <a href="teacher-phone-directory.php">
+        <a href="certificates.php">
             <div class="card-shortcut">
                 <img src="/public/assets/img/icon/certificate.png" alt="">
                 <p><strong>ออกเลขเกียรติบัตร</strong></p>
