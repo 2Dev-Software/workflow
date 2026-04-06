@@ -14,9 +14,10 @@ $file_id = filter_input(INPUT_GET, 'file_id', FILTER_VALIDATE_INT, [
 $download = isset($_GET['download']) && $_GET['download'] === '1';
 $is_outgoing_module = $module === 'outgoing';
 $is_repairs_module = $module === 'repairs';
+$is_certificates_module = $module === 'certificates';
 $auditable_entity_id = ctype_digit($entity_id) ? (int) $entity_id : null;
-$auditable_module = $is_outgoing_module ? 'outgoing' : ($is_repairs_module ? 'repairs' : null);
-$auditable_entity_name = $is_outgoing_module ? 'dh_outgoing_letters' : ($is_repairs_module ? 'dh_repair_requests' : null);
+$auditable_module = $is_outgoing_module ? 'outgoing' : ($is_repairs_module ? 'repairs' : ($is_certificates_module ? 'certificates' : null));
+$auditable_entity_name = $is_outgoing_module ? 'dh_outgoing_letters' : ($is_repairs_module ? 'dh_repair_requests' : ($is_certificates_module ? 'dh_certificates' : null));
 $auditable_action = $download ? 'ATTACHMENT_DOWNLOAD' : 'ATTACHMENT_VIEW';
 $auditable_log = static function (string $audit_status, ?string $message = null, array $payload = [], ?string $http_method = null, ?int $http_status = null) use ($auditable_module, $auditable_entity_name, $auditable_entity_id, $auditable_action, $file_id): void {
     if ($auditable_module !== null && $auditable_entity_name !== null && function_exists('audit_log')) {
@@ -62,7 +63,7 @@ require_once __DIR__ . '/../../config/connection.php';
 require_once __DIR__ . '/../../app/config/constants.php';
 require_once __DIR__ . '/../../app/rbac/roles.php';
 
-$allowed_modules = ['circulars', 'orders', 'outgoing', 'memos', 'repairs'];
+$allowed_modules = ['circulars', 'orders', 'outgoing', 'memos', 'repairs', 'certificates'];
 
 if (!in_array($module, $allowed_modules, true)) {
     $auditable_abort(400, 'FAIL', 'invalid_module', [
@@ -232,6 +233,8 @@ if ($module === 'circulars') {
             mysqli_stmt_close($check);
         }
     }
+} elseif ($module === 'certificates') {
+    $authorized = true;
 }
 
 if (!$authorized) {
