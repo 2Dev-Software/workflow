@@ -137,10 +137,10 @@ ob_start();
     <div class="button-container">
         <button class="tab-btn <?= $active_tab === 'compose' ? 'active' : '' ?>"
             onclick="openTab('certificate', event)">ออกเลขเกียรติบัตร</button>
-        <button class="tab-btn <?= $active_tab === 'data' ? 'active' : '' ?>"
-            onclick="openTab('certificateData', event)">ข้อมูลเกียรติบัตร</button>
         <button class="tab-btn <?= $active_tab === 'mine' ? 'active' : '' ?>"
             onclick="openTab('certificateMine', event)">เกียรติบัตรของฉัน</button>
+        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+            onclick="openTab('certificateData', event)">เกียรติบัตรทั้งหมด</button>
     </div>
 </div>
 
@@ -656,7 +656,35 @@ ob_start();
                 return;
             }
 
-            const total = Math.max(0, Number(totalInput.value) || 0);
+            if (!fileInput) return null;
+
+            const syncRemovedFileInputs = () => {
+                if (!removedFilesContainer) return;
+                removedFilesContainer.innerHTML = '';
+                removedExistingFileIds.forEach((fileId) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'remove_file_ids[]';
+                    input.value = String(fileId);
+                    removedFilesContainer.appendChild(input);
+                });
+            };
+
+            const buildFileIconMarkup = (mimeType) => {
+                const normalizedMime = String(mimeType || '').toLowerCase();
+
+                if (normalizedMime.includes('pdf')) {
+                    return '<i class="fa-solid fa-file-pdf"></i>';
+                } else if (normalizedMime.includes('word')) {
+                    return '<i class="fa-solid fa-file-word"></i>';
+                } else if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheet')) {
+                    return '<i class="fa-solid fa-file-excel"></i>';
+                } else if (normalizedMime.includes('zip')) {
+                    return '<i class="fa-solid fa-file-zipper"></i>';
+                } else {
+                    return '<i class="fa-solid fa-file"></i>';
+                }
+            };
 
             if (total <= 0) {
                 fromInput.value = '';

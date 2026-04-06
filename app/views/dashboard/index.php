@@ -48,6 +48,53 @@ ob_start();
         </div>
     </div> -->
 
+    <div class="notification-system">
+        <div class="notification-list">
+            <ul>
+                <li><i class="fa-solid fa-caret-right"></i>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
+                <li><i class="fa-solid fa-caret-right"></i>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
+                <li><i class="fa-solid fa-caret-right"></i>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b>9999</b>ฉบับ</li>
+                <li><i class="fa-solid fa-caret-right"></i>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
+                <li><i class="fa-solid fa-caret-right"></i>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
+            </ul>
+        </div>
+        <main class="profile-section">
+            <?php
+            $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
+            $profile_picture = '';
+
+            if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+                $profile_picture = $profile_picture_raw;
+            }
+            ?>
+            <section>
+                <div class="profile-image">
+                    <? //php if ($profile_picture !== ''): 
+                    ?>
+                    <img src="/assets/img/profile/1819900163142/profile_20260210_203425_572e17b6cfe7.jpg" alt="Profile image">
+                    <? //php else: 
+                    ?>
+                    <!-- <i class="fa-solid fa-user"></i> -->
+                    <? //php endif; 
+                    ?>
+                </div>
+                <div class="proflie-text">
+                    <p><b>ชื่อ : นางทิพรัตน์ บุณมณี</b></p>
+                    <p>ตำแหน่ง : ผู้อำนวยการโรงเรียน</p>
+                    <p>หน้าที่ : เจ้าหน้าที่ธุรการ</p>
+                    <!-- <p><b>ชื่อ : <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></b></p>
+                    <p>ตำแหน่ง : <?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                    <p>หน้าที่ : <?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p> -->
+                </div>
+            </section>
+            <div class="profile-date">
+                <i class="fa-solid fa-clock"></i>
+                <p>วันที่ 19 มิถุนายน พ.ศ.2569</p>
+            </div>
+        </main>
+    </div>
+
+
     <div class="dashboard-header">
         <p><strong>แผนผังระบบสำนักงานอิเล็กทรอนิกส์</strong></p>
     </div>
