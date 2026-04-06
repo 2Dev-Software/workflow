@@ -50,9 +50,9 @@ ob_start();
         <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
             onclick="openTab('certificate', event)">ออกเลขเกียรติบัตร</button>
         <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
-            onclick="openTab('certificateData', event)">ข้อมูลเกียรติบัตร</button>
-        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
             onclick="openTab('certificateMine', event)">เกียรติบัตรของฉัน</button>
+        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+            onclick="openTab('certificateData', event)">เกียรติบัตรทั้งหมด</button>
     </div>
 </div>
 
@@ -624,13 +624,13 @@ ob_start();
 
                 if (normalizedMime.includes('pdf')) {
                     return '<i class="fa-solid fa-file-pdf"></i>';
-                }else if (normalizedMime.includes('word')) {
+                } else if (normalizedMime.includes('word')) {
                     return '<i class="fa-solid fa-file-word"></i>';
-                }else if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheet')) {
+                } else if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheet')) {
                     return '<i class="fa-solid fa-file-excel"></i>';
-                }else if (normalizedMime.includes('zip')) {
+                } else if (normalizedMime.includes('zip')) {
                     return '<i class="fa-solid fa-file-zipper"></i>';
-                }else {
+                } else {
                     return '<i class="fa-solid fa-file"></i>';
                 }
             };
