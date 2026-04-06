@@ -11,6 +11,8 @@ require_once __DIR__ . '/../app/db/db.php';
 require_once __DIR__ . '/../app/modules/system/system.php';
 require_once __DIR__ . '/../app/modules/outgoing/repository.php';
 require_once __DIR__ . '/../app/modules/circulars/repository.php';
+require_once __DIR__ . '/../app/modules/certificates/repository.php';
+require_once __DIR__ . '/../app/modules/certificates/service.php';
 require_once __DIR__ . '/../app/modules/memos/repository.php';
 require_once __DIR__ . '/../app/modules/memos/service.php';
 require_once __DIR__ . '/../app/modules/orders/repository.php';

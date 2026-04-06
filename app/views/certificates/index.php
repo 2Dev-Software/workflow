@@ -1,10 +1,65 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
+$active_tab = trim((string) ($active_tab ?? 'compose'));
+$filter_status = trim((string) ($filter_status ?? 'all'));
+$filter_sort = trim((string) ($filter_sort ?? 'newest'));
+$search = trim((string) ($search ?? ''));
+$groups = (array) ($groups ?? []);
+$form_values = (array) ($form_values ?? []);
+$certificate_items = (array) ($certificate_items ?? []);
+$my_certificate_items = (array) ($my_certificate_items ?? []);
+$certificate_status_map = (array) ($certificate_status_map ?? []);
+$view_modal_payload_map = (array) ($view_modal_payload_map ?? []);
+$preview_base = (array) ($preview_base ?? []);
+$selected_group_fid = trim((string) ($form_values['group_fid'] ?? ''));
+$selected_group_name = '';
+
+foreach ($groups as $group) {
+    if ((string) ($group['fID'] ?? '') === $selected_group_fid) {
+        $selected_group_name = trim((string) ($group['fName'] ?? ''));
+        break;
+    }
+}
+
+if ($selected_group_name === '' && $groups !== []) {
+    $selected_group_name = trim((string) ($groups[0]['fName'] ?? ''));
+}
+
+if (!function_exists('certificate_view_file_size')) {
+    function certificate_view_file_size(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '0 KB';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $size = (float) $bytes;
+        $unit_index = 0;
+
+        while ($size >= 1024 && $unit_index < count($units) - 1) {
+            $size /= 1024;
+            $unit_index++;
+        }
+
+        $precision = $unit_index === 0 ? 0 : 1;
+
+        return number_format($size, $precision) . ' ' . $units[$unit_index];
+    }
+}
+
 ob_start();
 ?>
 
 <style>
+    .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person .modal-content .content-modal .content-topic-sec:nth-child(2) {
+        flex-wrap: nowrap;
+    }
+
+    .vehicle-row .btn.btn-upload-small {
+        margin: 0;
+    }
+
     .file-hint p {
         color: var(--color-danger) !important;
     }
@@ -16,6 +71,22 @@ ob_start();
     .form-group.row.label {
         margin: 0 0 10px;
         height: auto;
+    }
+
+    .enterprise-card+.enterprise-card {
+        margin-top: 0;
+    }
+
+    .file-item-wrapper {
+        width: auto;
+    }
+
+    .file-banner {
+        max-width: 800px;
+    }
+
+    .delete-btn {
+        width: 60px !important;
     }
 
     .delete-btn {
@@ -35,8 +106,25 @@ ob_start();
         flex-direction: column !important;
     }
 
-    td:last-child {
+    .certificate-empty-row {
         text-align: center;
+        color: var(--color-neutral-dark);
+    }
+
+    .certificate-file-empty {
+        color: var(--color-neutral-dark);
+    }
+
+    .certificate-file-empty p {
+        color: inherit !important;
+    }
+
+    .certificate-file-list {
+        width: 100%;
+    }
+
+    .certificate-hidden-inputs {
+        display: none;
     }
 </style>
 
@@ -47,137 +135,125 @@ ob_start();
 
 <div class="tabs-container setting-page">
     <div class="button-container">
-        <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
+        <button class="tab-btn <?= $active_tab === 'compose' ? 'active' : '' ?>"
             onclick="openTab('certificate', event)">ออกเลขเกียรติบัตร</button>
-        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+        <button class="tab-btn <?= $active_tab === 'mine' ? 'active' : '' ?>"
             onclick="openTab('certificateMine', event)">เกียรติบัตรของฉัน</button>
         <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
             onclick="openTab('certificateData', event)">เกียรติบัตรทั้งหมด</button>
     </div>
 </div>
 
-<div class="content-order tab-content active" id="certificate">
-    <div class="form-group row">
-        <div class="input-group">
-            <p><strong>จำนวนเกียรติบัตรทั้งหมด</strong></p>
-            <input
-                type="number"
-                class="order-no-display"
-                value="">
-        </div>
-        <div class="input-group">
-            <p><strong>ผู้ขอ</strong></p>
-            <input
-                type="text"
-                class="order-no-display"
-                value=""
-                disabled>
-        </div>
-    </div>
-
-    <div class="form-group row">
-        <div class="input-group">
-            <p><strong>จากลำดับที่</strong></p>
-            <input
-                type="number"
-                class="order-no-display"
-                value=""
-                disabled>
-        </div>
-        <div class="input-group">
-            <p><strong>ถึงลำดับที่</strong></p>
-            <input
-                type="number"
-                class="order-no-display"
-                value=""
-                disabled>
-        </div>
-    </div>
-
-    <div class="form-group row">
-        <div class="input-group">
-            <p><strong>เรื่อง</strong></p>
-            <input
-                type="text"
-                class="order-no-display"
-                value="">
-        </div>
-        <div class="input-group">
-            <p><strong>ในนามของ</strong></p>
-            <div class="custom-select-wrapper">
-                <div class="custom-select-trigger">
-                    <p class="select-value">กลุ่มบริหารงานทั่วไป</p>
-                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                </div>
-
-                <div class="custom-options">
-                    <div class="custom-option" data-value="5">กลุ่มบริหารกิจการนักเรียน</div>
-                    <div class="custom-option selected" data-value="4">กลุ่มบริหารงานทั่วไป</div>
-                    <div class="custom-option" data-value="3">กลุ่มบริหารงานบุคคลและงบประมาณ</div>
-                    <div class="custom-option" data-value="2">กลุ่มบริหารงานวิชาการ</div>
-                    <div class="custom-option" data-value="6">กลุ่มสนับสนุนการสอน</div>
-                    <div class="custom-option" data-value="1">ฝ่ายบริหาร</div>
-                </div>
-
-                <input type="hidden" name="group_fid" value="4">
+<div class="content-order tab-content <?= $active_tab === 'compose' ? 'active' : '' ?>" id="certificate">
+    <form method="POST" enctype="multipart/form-data" id="certificateCreateForm">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="create">
+        <div class="form-group row">
+            <div class="input-group">
+                <p><strong>เรื่อง</strong></p>
+                <input type="text" class="order-no-display" name="subject"
+                    value="<?= h((string) ($form_values['subject'] ?? '')) ?>">
+            </div>
+            <div class="input-group">
+                <p><strong>จำนวนเกียรติบัตรทั้งหมด</strong></p>
+                <input type="number" min="1" class="order-no-display" id="certificateTotalInput"
+                    name="total_certificates" value="<?= h((string) ($form_values['total_certificates'] ?? '')) ?>">
             </div>
         </div>
-    </div>
 
-    <div class="form-group row label">
-        <div class="input-group">
-            <p><strong>แนบเอกสาร</strong></p>
+        <div class="form-group row">
+            <div class="input-group">
+                <p><strong>จากลำดับที่</strong></p>
+                <input type="text" class="order-no-display" id="certificateFromNoInput" value="" disabled>
+            </div>
+            <div class="input-group">
+                <p><strong>ถึงลำดับที่</strong></p>
+                <input type="text" class="order-no-display" id="certificateToNoInput" value="" disabled>
+            </div>
         </div>
-    </div>
 
-    <div class="form-group row">
-        <section class="upload-layout">
-            <input type="file" id="certiFile" name="cover_file" accept="application/pdf,image/png,image/jpeg" style="display: none;">
-            <div class="row form-group">
-                <button class="btn btn-upload-small" type="button" id="btnCertiAddFile">
-                    <p>เพิ่มไฟล์</p>
+        <div class="form-group row">
+            <div class="input-group">
+                <p><strong>ผู้ขอ</strong></p>
+                <input type="text" class="order-no-display" value="<?= h((string) ($current_user_name ?? '')) ?>"
+                    disabled>
+            </div>
+            <div class="input-group">
+                <p><strong>ในนามของ</strong></p>
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value">
+                            <?= h($selected_group_name !== '' ? $selected_group_name : 'เลือกในนามของ') ?>
+                        </p>
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <?php foreach ($groups as $group): ?>
+                            <?php $group_fid = (string) ($group['fID'] ?? ''); ?>
+                            <div class="custom-option<?= $group_fid === $selected_group_fid ? ' selected' : '' ?>"
+                                data-value="<?= h($group_fid) ?>">
+                                <?= h((string) ($group['fName'] ?? '')) ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <input type="hidden" name="group_fid" value="<?= h($selected_group_fid) ?>">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group row label">
+            <div class="input-group">
+                <p><strong>แนบไฟล์เอกสาร</strong></p>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <section class="upload-layout">
+                <input type="file" id="certiFile" name="cover_file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/vnd.rar"
+                    style="display: none;">
+                <div class="row form-group">
+                    <button class="btn btn-upload-small" type="button" id="btnCertiAddFile">
+                        <p>เพิ่มไฟล์</p>
+                    </button>
+                    <div class="file-hint">
+                        <p>*อัปโหลดได้เฉพาะไฟล์ word, excel, pdf, zip, rar สูงสุดแนบไฟล์ได้ 1 ไฟล์ *</p>
+                    </div>
+                </div>
+                <div class="existing-file-section">
+                    <div class="file-list certificate-file-list" id="certiFileContainer"></div>
+                </div>
+            </section>
+        </div>
+
+        <div class="form-group last button">
+            <div class="input-group">
+                <button class="submit" type="submit" data-confirm="ยืนยันการบันทึกออกเลขเกียรติบัตรใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการบันทึก" data-confirm-ok="ยืนยัน" data-confirm-cancel="ยกเลิก">
+                    <p>บันทึกออกเลข</p>
                 </button>
-                <div class="file-hint">
-                    <p>*อัปโหลดได้เฉพาะไฟล์ word, excel, pdf, zip, rar สูงสุดแนบไฟล์ได้ 1 ไฟล์ *</p>
-                    <p></p>
-                </div>
             </div>
-            <div class="existing-file-section">
-                <div class="file-list" id="certiFileContainer"></div>
-            </div>
-        </section>
-    </div>
-
-    <div class="form-group last button">
-        <div class="input-group">
-            <button
-                class="submit"
-                type="submit"
-                data-confirm="ยืนยันการบันทึกออกเลขทะเบียนส่งใช่หรือไม่?"
-                data-confirm-title="ยืนยันการบันทึก"
-                data-confirm-ok="ยืนยัน"
-                data-confirm-cancel="ยกเลิก">
-                <p>บันทึกออกเลข</p>
-            </button>
         </div>
-    </div>
-
+    </form>
 </div>
 
-<section class="enterprise-card tab-content <?= $is_track_active ? 'active' : '' ?>" id="certificateData">
+<section class="enterprise-card tab-content <?= $active_tab === 'data' ? 'active' : '' ?>" id="certificateData">
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
             <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
         </div>
     </div>
 
-    <form method="GET" class="circular-my-filter-grid">
-        <input type="hidden" name="tab" value="track">
+    <form method="GET" class="circular-my-filter-grid" id="certificateDataFilterForm">
+        <input type="hidden" name="tab" value="data">
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value=""
-                    placeholder="ค้นหาเลขเกียรติบัตรของฉัน" autocomplete="off">
+                <input class="form-input" type="search" name="q" value="<?= h($search) ?>"
+                    data-filter-search="certificate-data"
+                    placeholder="ค้นหาเลขเกียรติบัตรหรือเรื่อง" autocomplete="off">
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
@@ -196,17 +272,19 @@ ob_start();
                         </p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
-
                     <div class="custom-options">
-                        <div class="custom-option" data-value="all">ทั้งหมด</div>
-                        <div class="custom-option" data-value="waiting_attachment">รอการแนบไฟล์</div>
-                        <div class="custom-option" data-value="complete">แนบไฟล์สำเร็จ</div>
+                        <div class="custom-option<?= $filter_status === 'all' ? ' selected' : '' ?>" data-value="all">
+                            ทั้งหมด</div>
+                        <div class="custom-option<?= $filter_status === 'waiting_attachment' ? ' selected' : '' ?>"
+                            data-value="waiting_attachment">รอการแนบไฟล์</div>
+                        <div class="custom-option<?= $filter_status === 'complete' ? ' selected' : '' ?>"
+                            data-value="complete">แนบไฟล์สำเร็จ</div>
                     </div>
-
-                    <select class="form-input" name="status">
+                    <select class="form-input" name="status" data-filter-select="certificate-data">
                         <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
                         <option value="waiting_attachment" <?= $filter_status === 'waiting_attachment' ? 'selected' : '' ?>>รอการแนบไฟล์</option>
-                        <option value="complete" <?= $filter_status === 'complete' ? 'selected' : '' ?>>แนบไฟล์สำเร็จ</option>
+                        <option value="complete" <?= $filter_status === 'complete' ? 'selected' : '' ?>>แนบไฟล์สำเร็จ
+                        </option>
                     </select>
                 </div>
             </div>
@@ -216,13 +294,13 @@ ob_start();
                         <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
-
                     <div class="custom-options">
-                        <div class="custom-option" data-value="newest">ใหม่ไปเก่า</div>
-                        <div class="custom-option" data-value="oldest">เก่าไปใหม่</div>
+                        <div class="custom-option<?= $filter_sort === 'newest' ? ' selected' : '' ?>"
+                            data-value="newest">ใหม่ไปเก่า</div>
+                        <div class="custom-option<?= $filter_sort === 'oldest' ? ' selected' : '' ?>"
+                            data-value="oldest">เก่าไปใหม่</div>
                     </div>
-
-                    <select class="form-input" name="sort">
+                    <select class="form-input" name="sort" data-filter-select="certificate-data">
                         <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
                         <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
                     </select>
@@ -238,129 +316,67 @@ ob_start();
     </div>
 
     <div class="table-responsive circular-my-table-wrap order-create">
-        <script type="application/json" class="js-order-send-map">
-            <?= (string) json_encode($send_modal_payload_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
-        </script>
         <table class="custom-table circular-my-table">
             <thead>
                 <tr>
                     <th>เรื่อง</th>
-                    <th>จากสำดับที่</th>
-                    <th>ถึงสำดับที่</th>
+                    <th>จากลำดับที่</th>
+                    <th>ถึงลำดับที่</th>
                     <th>สถานะ</th>
                     <th>จัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Open House SMTE 90</td>
-                    <td>124</td>
-                    <td>212</td>
-                    <td><span class="status-pill approved">สำเร็จ</span></td>
-                    <td>
-                        <div class="circular-my-actions">
-                            <button class="booking-action-btn secondary js-open-order-view-modal" type="button" data-outgoing-id="1" data-outgoing-priority-key="normal" title="ดูรายละเอียด" aria-label="ดูรายละเอียด">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                <?php if ($certificate_items === []): ?>
+                    <tr>
+                        <td colspan="5" class="certificate-empty-row">ไม่พบรายการเกียรติบัตร</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($certificate_items as $item): ?>
+                        <?php
+                        $certificate_id = (int) ($item['certificateID'] ?? 0);
+                        $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+                        $status_meta = $certificate_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'approved'];
+                        ?>
+                        <tr>
+                            <td><?= h((string) ($item['subject'] ?? '-')) ?></td>
+                            <td><?= h((string) ($item['certificateFromNo'] ?? '-')) ?></td>
+                            <td><?= h((string) ($item['certificateToNo'] ?? '-')) ?></td>
+                            <td><span
+                                    class="status-pill <?= h((string) ($status_meta['pill'] ?? 'approved')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="circular-my-actions">
+                                    <button class="booking-action-btn secondary js-open-certificate-view-modal" type="button"
+                                        data-certificate-id="<?= h((string) $certificate_id) ?>" title="ดูรายละเอียด"
+                                        aria-label="ดูรายละเอียด">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
-
         </table>
     </div>
 </section>
 
-<div class="content-circular-notice-index circular-track-modal-host">
-    <div class="modal-overlay-circular-notice-index outside-person" id="modalOrderViewOverlay">
-        <div class="modal-content">
-            <div class="header-modal">
-                <div class="first-header">
-                    <p id="modalOutgoingViewTitle">ดูรายละเอียดออกเลขเกียรติบัตร</p>
-                </div>
-                <div class="sec-header">
-                    <i class="fa-solid fa-xmark" id="modalOrderViewCloseBtn"></i>
-                </div>
-            </div>
-
-            <div class="content-modal">
-                <div class="content-topic-sec">
-                    <div class="more-details">
-                        <p><strong>จำนวนเกียรติบัตรทั้งหมด</strong></p>
-                        <input type="number" id="modalOutgoingViewNo" class="order-no-display" value="0" disabled>
-                    </div>
-                    <div class="more-details">
-                        <p><strong>ผู้ขอ</strong></p>
-                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
-                    </div>
-                </div>
-
-                <div class="content-topic-sec">
-                    <div class="more-details">
-                        <p><strong>จากลำดับที่</strong></p>
-                        <input type="number" id="modalOutgoingViewEffectiveDate" class="order-no-display" value="0" disabled>
-                    </div>
-                    <div class="more-details">
-                        <p><strong>ถึงลำดับที่</strong></p>
-                        <input type="number" id="modalOutgoingViewIssuer" class="order-no-display" value="0" disabled>
-                    </div>
-                </div>
-
-                <div class="content-topic-sec">
-                    <div class="more-details">
-                        <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="-" disabled>
-                    </div>
-                    <div class="more-details">
-                        <p><strong>ในนามของ</strong></p>
-                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
-                    </div>
-                </div>
-
-                <div class="vehicle-row file-sec">
-                    <div class="vehicle-input-content">
-                        <p><strong>ไฟล์หนังสือนำ</strong></p>
-                    </div>
-
-                    <div class="file-list" id="vehicleAttachmentList" aria-live="polite">
-                        <div class="file-item-wrapper" data-file-id="148">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Worksheet_5+-+Pre-campaign+insight+_page-0001.jpg</span><span class="file-type">image/jpeg • 971 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="footer-modal">
-                <!-- <button type="button" id="modalOrderViewCloseBtn">
-                    <p>ปิดหน้าต่าง</p>
-                </button> -->
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<section class="enterprise-card tab-content <?= $is_track_active ? 'active' : '' ?>" id="certificateMine">
+<section class="enterprise-card tab-content <?= $active_tab === 'mine' ? 'active' : '' ?>" id="certificateMine">
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
             <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
         </div>
     </div>
 
-    <form method="GET" class="circular-my-filter-grid">
-        <input type="hidden" name="tab" value="track">
+    <form method="GET" class="circular-my-filter-grid" id="certificateMineFilterForm">
+        <input type="hidden" name="tab" value="mine">
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value=""
+                <input class="form-input" type="search" name="q" value="<?= h($search) ?>"
+                    data-filter-search="certificate-mine"
                     placeholder="ค้นหาเลขเกียรติบัตรของฉัน" autocomplete="off">
             </div>
             <div class="room-admin-filter">
@@ -380,17 +396,19 @@ ob_start();
                         </p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
-
                     <div class="custom-options">
-                        <div class="custom-option" data-value="all">ทั้งหมด</div>
-                        <div class="custom-option" data-value="waiting_attachment">รอการแนบไฟล์</div>
-                        <div class="custom-option" data-value="complete">แนบไฟล์สำเร็จ</div>
+                        <div class="custom-option<?= $filter_status === 'all' ? ' selected' : '' ?>" data-value="all">
+                            ทั้งหมด</div>
+                        <div class="custom-option<?= $filter_status === 'waiting_attachment' ? ' selected' : '' ?>"
+                            data-value="waiting_attachment">รอการแนบไฟล์</div>
+                        <div class="custom-option<?= $filter_status === 'complete' ? ' selected' : '' ?>"
+                            data-value="complete">แนบไฟล์สำเร็จ</div>
                     </div>
-
-                    <select class="form-input" name="status">
+                    <select class="form-input" name="status" data-filter-select="certificate-mine">
                         <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
                         <option value="waiting_attachment" <?= $filter_status === 'waiting_attachment' ? 'selected' : '' ?>>รอการแนบไฟล์</option>
-                        <option value="complete" <?= $filter_status === 'complete' ? 'selected' : '' ?>>แนบไฟล์สำเร็จ</option>
+                        <option value="complete" <?= $filter_status === 'complete' ? 'selected' : '' ?>>แนบไฟล์สำเร็จ
+                        </option>
                     </select>
                 </div>
             </div>
@@ -400,13 +418,13 @@ ob_start();
                         <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
-
                     <div class="custom-options">
-                        <div class="custom-option" data-value="newest">ใหม่ไปเก่า</div>
-                        <div class="custom-option" data-value="oldest">เก่าไปใหม่</div>
+                        <div class="custom-option<?= $filter_sort === 'newest' ? ' selected' : '' ?>"
+                            data-value="newest">ใหม่ไปเก่า</div>
+                        <div class="custom-option<?= $filter_sort === 'oldest' ? ' selected' : '' ?>"
+                            data-value="oldest">เก่าไปใหม่</div>
                     </div>
-
-                    <select class="form-input" name="sort">
+                    <select class="form-input" name="sort" data-filter-select="certificate-mine">
                         <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
                         <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
                     </select>
@@ -422,50 +440,145 @@ ob_start();
     </div>
 
     <div class="table-responsive circular-my-table-wrap order-create">
-        <script type="application/json" class="js-order-send-map">
-            <?= (string) json_encode($send_modal_payload_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
-        </script>
         <table class="custom-table circular-my-table">
             <thead>
                 <tr>
                     <th>เรื่อง</th>
-                    <th>จากสำดับที่</th>
-                    <th>ถึงสำดับที่</th>
+                    <th>จากลำดับที่</th>
+                    <th>ถึงลำดับที่</th>
                     <th>สถานะ</th>
                     <th>จัดการ</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Open House SMTE 90</td>
-                    <td>124</td>
-                    <td>212</td>
-                    <td><span class="status-pill pending">กำลังดำเนินการ</span></td>
-                    <td>
-                        <div class="circular-my-actions">
-                            <button class="booking-action-btn secondary js-open-order-edit-modal" type="button" data-outgoing-id="1" data-outgoing-priority-key="normal" title="ดู/แนบไฟล์" aria-label="ดู/แนบไฟล์">
-                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                                <span class="tooltip">ดู/แนบไฟล์</span>
-                            </button>
-                        </div>
-                    </td>
-                    </td>
-                </tr>
+                <?php if ($my_certificate_items === []): ?>
+                    <tr>
+                        <td colspan="5" class="certificate-empty-row">ไม่พบรายการเกียรติบัตรของฉัน</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($my_certificate_items as $item): ?>
+                        <?php
+                        $certificate_id = (int) ($item['certificateID'] ?? 0);
+                        $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+                        $status_meta = $certificate_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'approved'];
+                        ?>
+                        <tr>
+                            <td><?= h((string) ($item['subject'] ?? '-')) ?></td>
+                            <td><?= h((string) ($item['certificateFromNo'] ?? '-')) ?></td>
+                            <td><?= h((string) ($item['certificateToNo'] ?? '-')) ?></td>
+                            <td><span
+                                    class="status-pill <?= h((string) ($status_meta['pill'] ?? 'approved')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="circular-my-actions">
+                                    <button class="booking-action-btn secondary js-open-certificate-edit-modal" type="button"
+                                        data-certificate-id="<?= h((string) $certificate_id) ?>" title="ดู/แนบไฟล์"
+                                        aria-label="ดู/แนบไฟล์">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        <span class="tooltip">ดู/แนบไฟล์</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
-
         </table>
     </div>
 </section>
 
 <div class="content-circular-notice-index circular-track-modal-host">
-    <div class="modal-overlay-circular-notice-index outside-person" id="modalOrderEditOverlay">
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalCertificateEditOverlay">
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p id="modalOutgoingViewTitle">แก้ไขออกเลขเกียรติบัตร</p>
+                    <p>ดู/แนบไฟล์เกียรติบัตร</p>
                 </div>
                 <div class="sec-header">
-                    <i class="fa-solid fa-xmark" id="modalOrderViewCloseBtn"></i>
+                    <i class="fa-solid fa-xmark" id="modalCertificateEditCloseBtn" aria-hidden="true"></i>
+                </div>
+            </div>
+
+            <div class="content-modal">
+                <form method="POST" enctype="multipart/form-data" id="modalCertificateEditForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="attach">
+                    <input type="hidden" name="certificate_id" id="modalCertificateEditId" value="">
+
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>จำนวนเกียรติบัตรทั้งหมด</strong></p>
+                            <input type="number" id="modalCertificateEditTotal" class="order-no-display" value="0" disabled>
+                        </div>
+                        <div class="more-details">
+                            <p><strong>เรื่อง</strong></p>
+                            <input type="text" id="modalCertificateEditSubject" class="order-no-display" value="-" disabled>
+                        </div>
+                    </div>
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>จากลำดับที่</strong></p>
+                            <input type="text" id="modalCertificateEditFrom" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                            <p><strong>ถึงลำดับที่</strong></p>
+                            <input type="text" id="modalCertificateEditTo" class="order-no-display" value="-" disabled>
+                        </div>
+                    </div>
+
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>ผู้ขอ</strong></p>
+                            <input type="text" id="modalCertificateEditRequester" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                            <p><strong>ในนามของ</strong></p>
+                            <input type="text" id="modalCertificateEditGroup" class="order-no-display" value="-" disabled>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-row file-sec">
+                        <div class="vehicle-input-content">
+                            <p><strong>ไฟล์เอกสารแนบ</strong></p>
+                        </div>
+                        <section class="upload-layout">
+                            <input type="file" id="modalCertificateEditFileInput" name="attachments[]"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/vnd.rar"
+                                style="display: none;">
+                            <div class="row form-group">
+                                <button class="btn btn-upload-small" type="button" id="modalCertificateEditAddFileBtn">
+                                    <p>เพิ่มไฟล์</p>
+                                </button>
+                                <div class="file-hint">
+                                    <p>*อัปโหลดได้เฉพาะไฟล์ word, excel, pdf, zip, rar สูงสุดแนบไฟล์ได้ 1 ไฟล์ *</p>
+                                </div>
+                            </div>
+                            <div class="existing-file-section">
+                                <div class="file-list certificate-file-list" id="modalCertificateEditFileList" aria-live="polite"></div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="certificate-hidden-inputs" id="modalCertificateEditRemoveInputs" data-remove-file-inputs="true"></div>
+                </form>
+            </div>
+
+            <div class="footer-modal">
+                <button type="submit" form="modalCertificateEditForm">
+                    <p>ยืนยัน</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalCertificateViewOverlay">
+        <div class="modal-content">
+            <div class="header-modal">
+                <div class="first-header">
+                    <p>ดูรายละเอียดออกเลขเกียรติบัตร</p>
+                </div>
+                <div class="sec-header">
+                    <i class="fa-solid fa-xmark" id="modalCertificateViewCloseBtn" aria-hidden="true"></i>
                 </div>
             </div>
 
@@ -473,136 +586,74 @@ ob_start();
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>จำนวนเกียรติบัตรทั้งหมด</strong></p>
-                        <input type="number" id="modalOutgoingViewNo" class="order-no-display" value="0" disabled>
+                        <input type="number" id="modalCertificateViewTotal" class="order-no-display" value="0" disabled>
                     </div>
                     <div class="more-details">
-                        <p><strong>ผู้ขอ</strong></p>
-                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
+                        <p><strong>เรื่อง</strong></p>
+                        <input type="text" id="modalCertificateViewSubject" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
-
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>จากลำดับที่</strong></p>
-                        <input type="number" id="modalOutgoingViewEffectiveDate" class="order-no-display" value="0" disabled>
+                        <input type="text" id="modalCertificateViewFrom" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>ถึงลำดับที่</strong></p>
-                        <input type="number" id="modalOutgoingViewIssuer" class="order-no-display" value="0" disabled>
+                        <input type="text" id="modalCertificateViewTo" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
                 <div class="content-topic-sec">
+
                     <div class="more-details">
-                        <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="">
+                        <p><strong>ผู้ขอ</strong></p>
+                        <input type="text" id="modalCertificateViewRequester" class="order-no-display" value="-"
+                            disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>ในนามของ</strong></p>
-                        <div class="custom-select-wrapper">
-                            <div class="custom-select-trigger">
-                                <p class="select-value">กลุ่มบริหารงานทั่วไป</p>
-                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                            </div>
-
-                            <div class="custom-options">
-                                <div class="custom-option" data-value="5">กลุ่มบริหารกิจการนักเรียน</div>
-                                <div class="custom-option selected" data-value="4">กลุ่มบริหารงานทั่วไป</div>
-                                <div class="custom-option" data-value="3">กลุ่มบริหารงานบุคคลและงบประมาณ</div>
-                                <div class="custom-option" data-value="2">กลุ่มบริหารงานวิชาการ</div>
-                                <div class="custom-option" data-value="6">กลุ่มสนับสนุนการสอน</div>
-                                <div class="custom-option" data-value="1">ฝ่ายบริหาร</div>
-                            </div>
-
-                            <input type="hidden" name="group_fid" value="4">
-                        </div>
+                        <input type="text" id="modalCertificateViewGroup" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
-                <div class="form-group row label">
-                    <div class="input-group">
-                        <p><strong>อัปโหลดไฟล์หนังสือนำ</strong></p>
+                <div class="vehicle-row file-sec">
+                    <div class="vehicle-input-content">
+                        <p><strong>ไฟล์เอกสารแนบ</strong></p>
+                    </div>
+                    <div class="file-list certificate-file-list" id="certificateAttachmentList" aria-live="polite">
                     </div>
                 </div>
-                <div class="form-group row">
-                    <section class="upload-layout">
-                        <input type="file" id="coverFileInput_modal" name="cover_file" accept="application/pdf,image/png,image/jpeg" style="display: none;">
-
-                        <div class="row form-group">
-                            <button class="btn btn-upload-small" type="button" id="btnCoverAddFile_modal">
-                                <p>เพิ่มไฟล์</p>
-                            </button>
-                            <div class="file-hint">
-                                <p>* แนบไฟล์หนังสือนำได้ 1 ไฟล์ *</p>
-                            </div>
-                        </div>
-
-                        <div class="existing-file-section">
-                            <div class="file-list" id="coverFileListContainer_modal"></div>
-                        </div>
-                    </section>
-                </div>
-
             </div>
-
-            <div class="footer-modal">
-                <button type="button" id="modalOrderViewCloseBtn">
-                    <p>ยืนยัน</p>
-                </button>
-            </div>
-
         </div>
     </div>
 </div>
 
+<script type="application/json" id="certificateModalPayloadMap">
+    <?= (string) json_encode($view_modal_payload_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        function setupFileUpload(inputId, listId, maxFiles = 1, options = {}) {
-            const fileInput = document.getElementById(inputId);
-            const fileList = document.getElementById(listId);
-            const dropzone = options.dropzoneId ? document.getElementById(options.dropzoneId) : null;
-            const addFilesBtn = options.addButtonId ? document.getElementById(options.addButtonId) : null;
-            const form = fileInput ? fileInput.closest('form') : null;
+        const totalInput = document.getElementById('certificateTotalInput');
+        const fromInput = document.getElementById('certificateFromNoInput');
+        const toInput = document.getElementById('certificateToNoInput');
+        const fileInput = document.getElementById('certiFile');
+        const addFileButton = document.getElementById('btnCertiAddFile');
+        const fileContainer = document.getElementById('certiFileContainer');
+        const previewBase = {
+            year: <?= (int) ($preview_base['year'] ?? 0) ?>,
+            nextSeq: <?= (int) ($preview_base['fromSeq'] ?? 1) ?>,
+        };
 
-            const allowedTypes = [
-                // PDF
-                'application/pdf',
+        const formatCertificateNumber = (year, seq) => {
+            const normalizedSeq = Math.max(1, Number(seq) || 1);
+            return `ด.บ.${year}-${String(normalizedSeq).padStart(5, '0')}`;
+        };
 
-                // Word
-                'application/msword', // .doc
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-
-                // Excel
-                'application/vnd.ms-excel', // .xls
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-
-                // ZIP / RAR
-                'application/zip',
-                'application/x-zip-compressed',
-                'application/x-rar-compressed',
-                'application/vnd.rar'
-            ];
-
-            const allowedExtensions = [
-                '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.rar'
-            ];
-
-            const isValid = (file) => {
-                const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-                return allowedTypes.includes(file.type) && allowedExtensions.includes(ext);
-            };
-
-            let selectedFiles = [];
-            let existingFiles = [];
-            let existingEntityId = '';
-            let removedExistingFileIds = [];
-
-            let removedFilesContainer = form ? form.querySelector('[data-remove-file-inputs]') : null;
-            if (form && !removedFilesContainer) {
-                removedFilesContainer = document.createElement('div');
-                removedFilesContainer.setAttribute('data-remove-file-inputs', 'true');
-                removedFilesContainer.style.display = 'none';
-                form.appendChild(removedFilesContainer);
+        const renderPreviewRange = () => {
+            if (!totalInput || !fromInput || !toInput) {
+                return;
             }
 
             if (!fileInput) return null;
@@ -635,277 +686,495 @@ ob_start();
                 }
             };
 
-            const buildExistingFileUrl = (file) => {
-                const fileId = String(file?.fileID || '').trim();
-                if (existingEntityId === '' || fileId === '') {
-                    return '';
-                }
-                return `/public/api/file-download.php?module=circulars&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(fileId)}`;
-            };
-
-            const renderFiles = () => {
-                if (!fileList) return;
-                fileList.innerHTML = '';
-
-                existingFiles.forEach((file) => {
-                    const fileId = String(file?.fileID || '').trim();
-                    const fileUrl = buildExistingFileUrl(file);
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'file-item-wrapper';
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.type = 'button';
-                    deleteBtn.className = 'delete-btn';
-                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                    deleteBtn.addEventListener('click', () => {
-                        if (fileId !== '' && !removedExistingFileIds.includes(fileId)) {
-                            removedExistingFileIds.push(fileId);
-                        }
-                        existingFiles = existingFiles.filter((existingFile) => String(existingFile?.fileID || '').trim() !== fileId);
-                        syncRemovedFileInputs();
-                        renderFiles();
-                    });
-
-                    const banner = document.createElement('div');
-                    banner.className = 'file-banner';
-
-                    const info = document.createElement('div');
-                    info.className = 'file-info';
-
-                    const icon = document.createElement('div');
-                    icon.className = 'file-icon';
-                    icon.innerHTML = buildFileIconMarkup(file?.mimeType);
-
-                    const text = document.createElement('div');
-                    text.className = 'file-text';
-                    text.innerHTML = `<div class="file-name">${String(file?.fileName || '-')}</div><div class="file-type">${String(file?.mimeType || 'ไฟล์แนบ')}</div>`;
-
-                    info.appendChild(icon);
-                    info.appendChild(text);
-                    banner.appendChild(info);
-
-                    if (fileUrl !== '') {
-                        const actions = document.createElement('div');
-                        actions.className = 'file-actions';
-
-                        const view = document.createElement('a');
-                        view.href = fileUrl;
-                        view.target = '_blank';
-                        view.rel = 'noopener';
-                        view.innerHTML = '<i class="fa-solid fa-eye"></i>';
-                        actions.appendChild(view);
-                        banner.appendChild(actions);
-                    }
-
-                    wrapper.appendChild(deleteBtn);
-                    wrapper.appendChild(banner);
-                    fileList.appendChild(wrapper);
-                });
-
-                selectedFiles.forEach((file, index) => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'file-item-wrapper new-file-item';
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.type = 'button';
-                    deleteBtn.className = 'delete-btn';
-                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-                    deleteBtn.addEventListener('click', () => {
-                        selectedFiles = selectedFiles.filter((_, i) => i !== index);
-                        syncFiles();
-                        renderFiles();
-                    });
-
-                    const banner = document.createElement('div');
-                    banner.className = 'file-banner';
-
-                    const info = document.createElement('div');
-                    info.className = 'file-info';
-
-                    const icon = document.createElement('div');
-                    icon.className = 'file-icon';
-                    icon.innerHTML = buildFileIconMarkup(file.type);
-
-                    const text = document.createElement('div');
-                    text.className = 'file-text';
-                    text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'}</div>`;
-
-                    info.appendChild(icon);
-                    info.appendChild(text);
-
-                    const actions = document.createElement('div');
-                    actions.className = 'file-actions';
-
-                    const fileUrl = URL.createObjectURL(file);
-                    const view = document.createElement('a');
-                    view.href = fileUrl;
-                    view.target = '_blank';
-                    view.rel = 'noopener';
-                    view.innerHTML = '<i class="fa-solid fa-eye"></i>';
-
-                    view.addEventListener('click', () => {
-                        setTimeout(() => URL.revokeObjectURL(fileUrl), 100);
-                    });
-
-                    actions.appendChild(view);
-                    banner.appendChild(info);
-                    banner.appendChild(actions);
-                    wrapper.appendChild(deleteBtn);
-                    wrapper.appendChild(banner);
-                    fileList.appendChild(wrapper);
-                });
-            };
-
-            const syncFiles = () => {
-                const dt = new DataTransfer();
-                selectedFiles.forEach((file) => dt.items.add(file));
-                fileInput.files = dt.files;
-            };
-
-            const addFiles = (files) => {
-                if (!files || files.length === 0) return;
-
-                if (maxFiles === 1) {
-                    const file = files[0];
-                    if (isValid(file)) {
-                        selectedFiles = [file];
-                    } else {
-                        alert('ประเภทไฟล์ไม่ได้รับอนุญาต');
-                    }
-                } else {
-                    const existing = new Set(selectedFiles.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
-                    let currentTotal = existingFiles.length + selectedFiles.length;
-
-                    Array.from(files).forEach((file) => {
-                        const key = `${file.name}-${file.size}-${file.lastModified}`;
-                        if (!existing.has(key) && isValid(file) && currentTotal < maxFiles) {
-                            selectedFiles.push(file);
-                            existing.add(key);
-                            currentTotal++;
-                        } else if (!isValid(file)) {
-                            console.warn('ประเภทไฟล์ไม่ได้รับอนุญาต:', file.name);
-                        } else if (currentTotal >= maxFiles) {
-                            console.warn('เกินจำนวนไฟล์สูงสุดแล้ว');
-                        }
-                    });
-                }
-                syncFiles();
-                renderFiles();
-            };
-
-            const setExistingFiles = (files, entityId) => {
-                existingFiles = Array.isArray(files) ? files : [];
-                existingEntityId = String(entityId || '').trim();
-                selectedFiles = [];
-                removedExistingFileIds = [];
-                syncRemovedFileInputs();
-                syncFiles();
-                renderFiles();
-            };
-
-            fileInput.addEventListener('change', (e) => {
-                addFiles(e.target.files);
-                fileInput.value = '';
-            });
-
-            if (addFilesBtn) {
-                addFilesBtn.addEventListener('click', () => fileInput.click());
-            }
-
-            renderFiles();
-
-            return {
-                setExistingFiles,
-                reset: () => {
-                    selectedFiles = [];
-                    existingFiles = [];
-                    removedExistingFileIds = [];
-                    syncRemovedFileInputs();
-                    syncFiles();
-                    renderFiles();
-                }
-            };
-        }
-
-        window.__outgoingMainUpload = setupFileUpload(
-            'certiFile',
-            'certiFileContainer',
-            1, {
-                addButtonId: 'btnCertiAddFile'
-            }
-        );
-
-        window.__outgoingMainCoverUpload = setupFileUpload(
-            'coverFileInput_modal',
-            'coverFileListContainer_modal',
-            1, {
-                addButtonId: 'btnCoverAddFile_modal'
-            }
-        );
-    })
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const editModal = document.getElementById('modalOrderEditOverlay');
-        const viewModal = document.getElementById('modalOrderViewOverlay');
-        const openOutgoingEditModal = (outgoingIdRaw, fallbackPriorityKey = 'normal') => {
-            if (!editModal) {
+            if (total <= 0) {
+                fromInput.value = '';
+                toInput.value = '';
                 return;
             }
-            editModal.style.display = 'flex';
-            scheduleOutgoingPrioritySync(modalOutgoingEditUrgentRadios, resolveOutgoingPriorityKey(payload, fallbackPriorityKey));
+
+            const fromSeq = previewBase.nextSeq;
+            const toSeq = fromSeq + total - 1;
+
+            fromInput.value = formatCertificateNumber(previewBase.year, fromSeq);
+            toInput.value = formatCertificateNumber(previewBase.year, toSeq);
         };
 
-        const openOutgoingViewModal = (outgoingIdRaw, fallbackPriorityKey = 'normal') => {
+        const renderSelectedFile = () => {
+            if (!fileContainer || !fileInput) {
+                return;
+            }
+
+            fileContainer.innerHTML = '';
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-item-wrapper';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+            deleteBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                renderSelectedFile();
+            });
+
+            const banner = document.createElement('div');
+            banner.className = 'file-banner';
+
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const icon = document.createElement('div');
+            icon.className = 'file-icon';
+            icon.innerHTML = '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+            const text = document.createElement('div');
+            text.className = 'file-text';
+            text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'} • ${Math.max(1, Math.round(file.size / 1024))} KB</div>`;
+
+            info.appendChild(icon);
+            info.appendChild(text);
+            banner.appendChild(info);
+            wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(banner);
+            fileContainer.appendChild(wrapper);
+        };
+
+        renderPreviewRange();
+
+        if (totalInput) {
+            totalInput.addEventListener('input', renderPreviewRange);
+        }
+
+        if (addFileButton && fileInput) {
+            addFileButton.addEventListener('click', () => fileInput.click());
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', renderSelectedFile);
+        }
+
+        const setupFilterForm = (formId) => {
+            const form = document.getElementById(formId);
+
+            if (!form) {
+                return;
+            }
+
+            const searchInput = form.querySelector('input[type="search"][data-filter-search]');
+            const selectInputs = form.querySelectorAll('select[data-filter-select]');
+            let searchTimer = null;
+
+            selectInputs.forEach((select) => {
+                select.addEventListener('change', () => {
+                    form.submit();
+                });
+            });
+
+            if (!searchInput) {
+                return;
+            }
+
+            searchInput.addEventListener('input', () => {
+                window.clearTimeout(searchTimer);
+                searchTimer = window.setTimeout(() => {
+                    form.submit();
+                }, 300);
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+                window.clearTimeout(searchTimer);
+                form.submit();
+            });
+        };
+
+        setupFilterForm('certificateDataFilterForm');
+        setupFilterForm('certificateMineFilterForm');
+
+        const viewModal = document.getElementById('modalCertificateViewOverlay');
+        const viewCloseBtn = document.getElementById('modalCertificateViewCloseBtn');
+        const editModal = document.getElementById('modalCertificateEditOverlay');
+        const editCloseBtn = document.getElementById('modalCertificateEditCloseBtn');
+        const payloadMapElement = document.getElementById('certificateModalPayloadMap');
+        const payloadMap = payloadMapElement ? JSON.parse(payloadMapElement.textContent || '{}') : {};
+        const viewTotalField = document.getElementById('modalCertificateViewTotal');
+        const viewRequesterField = document.getElementById('modalCertificateViewRequester');
+        const viewFromField = document.getElementById('modalCertificateViewFrom');
+        const viewToField = document.getElementById('modalCertificateViewTo');
+        const viewSubjectField = document.getElementById('modalCertificateViewSubject');
+        const viewGroupField = document.getElementById('modalCertificateViewGroup');
+        const viewAttachmentList = document.getElementById('certificateAttachmentList');
+        const editForm = document.getElementById('modalCertificateEditForm');
+        const editIdField = document.getElementById('modalCertificateEditId');
+        const editTotalField = document.getElementById('modalCertificateEditTotal');
+        const editRequesterField = document.getElementById('modalCertificateEditRequester');
+        const editFromField = document.getElementById('modalCertificateEditFrom');
+        const editToField = document.getElementById('modalCertificateEditTo');
+        const editSubjectField = document.getElementById('modalCertificateEditSubject');
+        const editGroupField = document.getElementById('modalCertificateEditGroup');
+        const editFileInput = document.getElementById('modalCertificateEditFileInput');
+        const editAddFileButton = document.getElementById('modalCertificateEditAddFileBtn');
+        const editFileList = document.getElementById('modalCertificateEditFileList');
+        const editRemoveInputs = document.getElementById('modalCertificateEditRemoveInputs');
+        let editExistingFiles = [];
+        let removedEditFileIds = [];
+
+        const buildDownloadUrl = (certificateId, fileId) => {
+            return `/public/api/file-download.php?module=certificates&entity_id=${encodeURIComponent(String(certificateId))}&file_id=${encodeURIComponent(String(fileId))}`;
+        };
+
+        const formatFileSizeLabel = (bytes) => {
+            const normalizedBytes = Number(bytes) || 0;
+
+            if (normalizedBytes <= 0) {
+                return '0 KB';
+            }
+
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = normalizedBytes;
+            let unitIndex = 0;
+
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex += 1;
+            }
+
+            return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+        };
+
+        const renderViewAttachmentList = (certificateId, attachments) => {
+            if (!viewAttachmentList) {
+                return;
+            }
+
+            viewAttachmentList.innerHTML = '';
+
+            if (!attachments || attachments.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'certificate-file-empty';
+                empty.innerHTML = '<p>-</p>';
+                viewAttachmentList.appendChild(empty);
+                return;
+            }
+
+            attachments.forEach((file) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+                const sizeLabel = document.createElement('span');
+                sizeLabel.className = 'file-type';
+                sizeLabel.textContent = `${file.mimeType || 'ไฟล์แนบ'} • ${formatFileSizeLabel(file.fileSize)}`;
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                const fileName = document.createElement('span');
+                fileName.className = 'file-name';
+                fileName.textContent = file.fileName || '-';
+                text.appendChild(fileName);
+                text.appendChild(sizeLabel);
+
+                info.appendChild(icon);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions';
+
+                const view = document.createElement('a');
+                view.href = buildDownloadUrl(certificateId, file.fileID);
+                view.target = '_blank';
+                view.rel = 'noopener';
+                view.className = 'action-btn';
+                view.title = 'ดูตัวอย่าง';
+                view.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+
+                actions.appendChild(view);
+                banner.appendChild(info);
+                banner.appendChild(actions);
+                wrapper.appendChild(banner);
+                viewAttachmentList.appendChild(wrapper);
+            });
+        };
+
+        const syncEditRemoveInputs = () => {
+            if (!editRemoveInputs) {
+                return;
+            }
+
+            editRemoveInputs.innerHTML = '';
+
+            removedEditFileIds.forEach((fileId) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'remove_file_ids[]';
+                input.value = String(fileId);
+                editRemoveInputs.appendChild(input);
+            });
+        };
+
+        const resetEditModalState = () => {
+            editExistingFiles = [];
+            removedEditFileIds = [];
+
+            if (editFileInput) {
+                editFileInput.value = '';
+            }
+
+            syncEditRemoveInputs();
+
+            if (editFileList) {
+                editFileList.innerHTML = '';
+            }
+        };
+
+        const renderEditAttachmentList = (certificateId) => {
+            if (!editFileList) {
+                return;
+            }
+
+            editFileList.innerHTML = '';
+
+            editExistingFiles.forEach((file) => {
+                const fileId = String(file.fileID || '').trim();
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+                deleteBtn.addEventListener('click', () => {
+                    if (fileId !== '' && !removedEditFileIds.includes(fileId)) {
+                        removedEditFileIds.push(fileId);
+                    }
+
+                    editExistingFiles = editExistingFiles.filter((existingFile) => String(existingFile.fileID || '').trim() !== fileId);
+                    syncEditRemoveInputs();
+                    renderEditAttachmentList(certificateId);
+                });
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<div class="file-name">${file.fileName || '-'}</div><div class="file-type">${file.mimeType || 'ไฟล์แนบ'} • ${formatFileSizeLabel(file.fileSize)}</div>`;
+
+                info.appendChild(icon);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions';
+
+                const view = document.createElement('a');
+                view.href = buildDownloadUrl(certificateId, file.fileID);
+                view.target = '_blank';
+                view.rel = 'noopener';
+                view.className = 'action-btn';
+                view.title = 'ดูตัวอย่าง';
+                view.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+
+                actions.appendChild(view);
+                banner.appendChild(info);
+                banner.appendChild(actions);
+                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(banner);
+                editFileList.appendChild(wrapper);
+            });
+
+            const selectedFile = editFileInput && editFileInput.files && editFileInput.files.length > 0
+                ? editFileInput.files[0]
+                : null;
+
+            if (selectedFile) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper new-file-item';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+                deleteBtn.addEventListener('click', () => {
+                    if (editFileInput) {
+                        editFileInput.value = '';
+                    }
+                    renderEditAttachmentList(certificateId);
+                });
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.innerHTML = '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<div class="file-name">${selectedFile.name}</div><div class="file-type">${selectedFile.type || 'ไฟล์แนบ'} • ${formatFileSizeLabel(selectedFile.size)}</div>`;
+
+                info.appendChild(icon);
+                info.appendChild(text);
+                banner.appendChild(info);
+                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(banner);
+                editFileList.appendChild(wrapper);
+            }
+
+            if (editFileList.children.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'certificate-file-empty';
+                editFileList.appendChild(empty);
+            }
+        };
+
+        const openViewModal = (certificateId) => {
             if (!viewModal) {
                 return;
             }
+
+            const payload = payloadMap[String(certificateId)];
+
+            if (!payload) {
+                return;
+            }
+
+            if (viewTotalField) viewTotalField.value = String(payload.totalCertificates || 0);
+            if (viewRequesterField) viewRequesterField.value = payload.requesterName || '-';
+            if (viewFromField) viewFromField.value = payload.certificateFromNo || '-';
+            if (viewToField) viewToField.value = payload.certificateToNo || '-';
+            if (viewSubjectField) viewSubjectField.value = payload.subject || '-';
+            if (viewGroupField) viewGroupField.value = payload.groupName || '-';
+
+            renderViewAttachmentList(certificateId, Array.isArray(payload.attachments) ? payload.attachments : []);
             viewModal.style.display = 'flex';
-            scheduleOutgoingPrioritySync(modalOutgoingViewUrgentRadios, resolveOutgoingPriorityKey(payload, fallbackPriorityKey));
         };
+
+        const openEditModal = (certificateId) => {
+            if (!editModal) {
+                return;
+            }
+
+            const payload = payloadMap[String(certificateId)];
+
+            if (!payload) {
+                return;
+            }
+
+            resetEditModalState();
+
+            if (editIdField) editIdField.value = String(payload.certificateID || certificateId || '');
+            if (editTotalField) editTotalField.value = String(payload.totalCertificates || 0);
+            if (editRequesterField) editRequesterField.value = payload.requesterName || '-';
+            if (editFromField) editFromField.value = payload.certificateFromNo || '-';
+            if (editToField) editToField.value = payload.certificateToNo || '-';
+            if (editSubjectField) editSubjectField.value = payload.subject || '-';
+            if (editGroupField) editGroupField.value = payload.groupName || '-';
+
+            editExistingFiles = Array.isArray(payload.attachments) ? payload.attachments.map((file) => ({
+                fileID: Number(file.fileID) || 0,
+                fileName: file.fileName || '-',
+                mimeType: file.mimeType || '',
+                fileSize: Number(file.fileSize) || 0,
+            })) : [];
+
+            renderEditAttachmentList(certificateId);
+            editModal.style.display = 'flex';
+        };
+
         document.addEventListener('click', (event) => {
-            const targetBtn = event.target.closest('button');
-            if (!targetBtn) return;
+            const viewButton = event.target.closest('.js-open-certificate-view-modal');
+            const editButton = event.target.closest('.js-open-certificate-edit-modal');
 
-            if (targetBtn.classList.contains('js-open-order-edit-modal')) {
-                openOutgoingEditModal(
-                    targetBtn.getAttribute('data-outgoing-id'),
-                    targetBtn.getAttribute('data-outgoing-priority-key') || 'normal'
-                );
+            if (viewButton) {
+                openViewModal(viewButton.getAttribute('data-certificate-id') || '');
             }
 
-            if (targetBtn.classList.contains('js-open-order-view-modal')) {
-                openOutgoingViewModal(
-                    targetBtn.getAttribute('data-outgoing-id'),
-                    targetBtn.getAttribute('data-outgoing-priority-key') || 'normal'
-                );
+            if (editButton) {
+                openEditModal(editButton.getAttribute('data-certificate-id') || '');
             }
         });
-        const closeActions = [{
-                btn: editModal?.querySelector('#closeModalOrderSend') ?? null,
-                modal: editModal,
-            },
-            {
-                btn: viewModal?.querySelector('#modalOrderViewCloseBtn') ?? null,
-                modal: viewModal,
-            }
-        ];
 
-        closeActions.forEach(action => {
-            if (action.btn && action.modal) {
-                action.btn.addEventListener('click', () => {
-                    action.modal.style.display = 'none';
-                });
-            }
-        });
-        window.addEventListener('click', (event) => {
-            if (event.target === editModal) {
-                editModal.style.display = 'none';
-            }
-            if (event.target === viewModal) {
+        if (viewCloseBtn && viewModal) {
+            viewCloseBtn.addEventListener('click', () => {
                 viewModal.style.display = 'none';
-            }
-        });
-    })
+            });
+        }
+
+        if (viewModal) {
+            window.addEventListener('click', (event) => {
+                if (event.target === viewModal) {
+                    viewModal.style.display = 'none';
+                }
+            });
+        }
+
+        if (editAddFileButton && editFileInput) {
+            editAddFileButton.addEventListener('click', () => editFileInput.click());
+        }
+
+        if (editFileInput) {
+            editFileInput.addEventListener('change', () => {
+                const certificateId = editIdField ? editIdField.value : '';
+
+                if (editFileInput.files && editFileInput.files.length > 0 && editExistingFiles.length > 0) {
+                    window.alert('กรุณาลบไฟล์เดิมก่อนเลือกไฟล์ใหม่');
+                    editFileInput.value = '';
+                }
+
+                renderEditAttachmentList(certificateId);
+            });
+        }
+
+        if (editCloseBtn && editModal) {
+            editCloseBtn.addEventListener('click', () => {
+                editModal.style.display = 'none';
+                resetEditModalState();
+            });
+        }
+
+        if (editModal) {
+            window.addEventListener('click', (event) => {
+                if (event.target === editModal) {
+                    editModal.style.display = 'none';
+                    resetEditModalState();
+                }
+            });
+        }
+
+        if (editForm) {
+            editForm.addEventListener('submit', () => {
+                syncEditRemoveInputs();
+            });
+        }
+    });
 </script>
 
 <?php
