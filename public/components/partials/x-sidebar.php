@@ -53,6 +53,15 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </a>
         </li>
 
+        <li>
+            <a href="#news-paper">
+                <span class="red-dot-alert pulse-shadow"></span>
+                <!-- <i class="fa-solid fa-house-chimney"></i> -->
+                <img src="/public/assets/img/icon/news-paper.png" alt="">
+                <p class="link-name">ข่าวประชาสัมพันธ์ </p>
+            </a>
+        </li>
+
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
