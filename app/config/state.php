@@ -76,7 +76,7 @@ if (!function_exists('workflow_state_machine')) {
                 ORDER_STATUS_SENT => [],
             ],
             'repairs' => [
-                REPAIR_STATUS_PENDING => [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED],
+                REPAIR_STATUS_PENDING => [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
                 REPAIR_STATUS_IN_PROGRESS => [REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
                 REPAIR_STATUS_COMPLETED => [],
                 REPAIR_STATUS_CANCELLED => [],
