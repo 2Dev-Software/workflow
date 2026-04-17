@@ -206,6 +206,13 @@ if (!function_exists('repairs_transition_actions')) {
                     'confirm_title' => 'ยืนยันการรับคำร้อง',
                 ],
                 [
+                    'target_status' => REPAIR_STATUS_COMPLETED,
+                    'label' => 'ดำเนินการเสร็จสิ้น',
+                    'variant' => 'primary',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นดำเนินการเสร็จสิ้นใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการปิดงาน',
+                ],
+                [
                     'target_status' => REPAIR_STATUS_CANCELLED,
                     'label' => 'ยกเลิกคำร้อง',
                     'variant' => 'danger',
@@ -225,6 +232,13 @@ if (!function_exists('repairs_transition_actions')) {
                     'variant' => 'primary',
                     'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นกำลังดำเนินการใช่หรือไม่?',
                     'confirm_title' => 'ยืนยันการรับงาน',
+                ];
+                $actions[] = [
+                    'target_status' => REPAIR_STATUS_COMPLETED,
+                    'label' => 'ดำเนินการเสร็จสิ้น',
+                    'variant' => 'primary',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นดำเนินการเสร็จสิ้นใช่หรือไม่?',
+                    'confirm_title' => 'ยืนยันการปิดงาน',
                 ];
                 $actions[] = [
                     'target_status' => REPAIR_STATUS_CANCELLED,
@@ -431,10 +445,15 @@ if (!function_exists('repairs_handle_mode')) {
             $action = (string) ($_POST['action'] ?? 'create');
             $repair_id = (int) ($_POST['repair_id'] ?? 0);
             $target_status = trim((string) ($_POST['target_status'] ?? ''));
+            $transition_note = trim((string) ($_POST['transition_note'] ?? ''));
             $values = repair_normalize_form_data($_POST);
             $post_audit_payload = [
                 'repairID' => $repair_id > 0 ? $repair_id : null,
                 'targetStatus' => $target_status !== '' ? $target_status : null,
+                'transitionNote' => $transition_note !== '' ? $transition_note : null,
+                'transitionNoteLength' => $transition_note !== ''
+                    ? (function_exists('mb_strlen') ? mb_strlen($transition_note, 'UTF-8') : strlen($transition_note))
+                    : 0,
                 'subject' => $values['subject'] !== '' ? $values['subject'] : null,
                 'location' => $values['location'] !== '' ? $values['location'] : null,
                 'equipment' => $values['equipment'] !== '' ? $values['equipment'] : null,
@@ -596,14 +615,14 @@ if (!function_exists('repairs_handle_mode')) {
                         'title' => 'ไม่สามารถเปลี่ยนสถานะได้',
                         'message' => 'สถานะที่เลือกไม่ถูกต้องสำหรับรายการนี้',
                     ];
-                } elseif ($mode === 'approval' && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED], true)) {
+                } elseif ($mode === 'approval' && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED], true)) {
                     repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'invalid_approval_transition', array_merge($post_audit_payload, [
                         'currentStatus' => $current_status !== '' ? $current_status : null,
                     ]));
                     $alert = [
                         'type' => 'warning',
                         'title' => 'ไม่สามารถดำเนินการได้',
-                        'message' => 'หน้าเจ้าหน้าที่รองรับเฉพาะการเปลี่ยนเป็นกำลังดำเนินการหรือยกเลิกคำร้องเท่านั้น',
+                        'message' => 'หน้าเจ้าหน้าที่รองรับเฉพาะการเปลี่ยนเป็นกำลังดำเนินการ ดำเนินการเสร็จสิ้น หรือยกเลิกคำร้องเท่านั้น',
                     ];
                 } else {
                     $update_data = [
@@ -623,6 +642,12 @@ if (!function_exists('repairs_handle_mode')) {
                         'fromStatus' => $current_status !== '' ? $current_status : null,
                         'toStatus' => $target_status,
                     ]));
+                    repair_log_timeline_event($repair_id, $current_pid, 'TRANSITION', $current_status, $target_status, [
+                        'mode' => $mode,
+                        'assignedToPID' => (string) ($update_data['assignedToPID'] ?? ($target['assignedToPID'] ?? '')) ?: null,
+                        'resolvedAt' => (string) ($update_data['resolvedAt'] ?? '') ?: null,
+                        'note' => $transition_note !== '' ? $transition_note : null,
+                    ]);
 
                     $alert = [
                         'type' => 'success',

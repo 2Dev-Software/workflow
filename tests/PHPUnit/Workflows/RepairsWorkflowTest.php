@@ -129,9 +129,9 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame([], repairs_resolve_filter_statuses('unknown'));
 
         $this->assertTrue(repair_can_transition(REPAIR_STATUS_PENDING, REPAIR_STATUS_IN_PROGRESS));
+        $this->assertTrue(repair_can_transition(REPAIR_STATUS_PENDING, REPAIR_STATUS_COMPLETED));
         $this->assertTrue(repair_can_transition(REPAIR_STATUS_PENDING, REPAIR_STATUS_CANCELLED));
         $this->assertTrue(repair_can_transition(REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED));
-        $this->assertFalse(repair_can_transition(REPAIR_STATUS_PENDING, REPAIR_STATUS_COMPLETED));
         $this->assertFalse(repair_can_transition(REPAIR_STATUS_COMPLETED, REPAIR_STATUS_PENDING));
     }
 
@@ -148,10 +148,10 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $completedActions = repairs_transition_actions('approval', ['status' => REPAIR_STATUS_COMPLETED]);
 
         $this->assertSame(
-            [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED],
+            [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
             array_column($pendingActions, 'target_status')
         );
-        $this->assertSame(['primary', 'danger'], array_column($pendingActions, 'variant'));
+        $this->assertSame(['primary', 'primary', 'danger'], array_column($pendingActions, 'variant'));
         $this->assertSame([], $completedActions);
     }
 
@@ -162,7 +162,7 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $cancelledActions = repairs_transition_actions('manage', ['status' => REPAIR_STATUS_CANCELLED]);
 
         $this->assertSame(
-            [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_CANCELLED],
+            [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED],
             array_column($pendingActions, 'target_status')
         );
         $this->assertSame(
@@ -192,7 +192,10 @@ final class RepairsWorkflowTest extends WorkflowTestCase
 
         $repair = repair_get($repairId);
         $log = $this->fetchLatestAuditLog('CREATE', 'SUCCESS', $repairId);
+        $timelineLog = $this->fetchLatestAuditLog('TIMELINE', 'SUCCESS', $repairId);
         $payload = $this->decodePayload($log['payloadData'] ?? null);
+        $timelinePayload = $this->decodePayload($timelineLog['payloadData'] ?? null);
+        $timeline = repair_get_timeline($repairId);
 
         $this->assertNotNull($repair);
         $this->assertSame($requesterPid, (string) ($repair['requesterPID'] ?? ''));
@@ -211,6 +214,15 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame($equipment, (string) ($payload['equipment'] ?? ''));
         $this->assertSame(0, (int) ($payload['attachmentCount'] ?? -1));
         $this->assertGreaterThan(0, (int) ($payload['detailLength'] ?? 0));
+
+        $this->assertNotNull($timelineLog);
+        $this->assertSame('TIMELINE', (string) ($timelineLog['actionName'] ?? ''));
+        $this->assertSame('รับเรื่องคำร้องแล้ว', (string) ($timelineLog['logMessage'] ?? ''));
+        $this->assertSame('CREATE', (string) ($timelinePayload['event'] ?? ''));
+        $this->assertSame(REPAIR_STATUS_PENDING, (string) ($timelinePayload['toStatus'] ?? ''));
+        $this->assertSame('ส่งคำร้องสำเร็จ', (string) ($timelinePayload['toLabel'] ?? ''));
+        $this->assertNotEmpty($timeline);
+        $this->assertSame('รับเรื่องคำร้องแล้ว', (string) ($timeline[0]['title'] ?? ''));
     }
 
     public function testCreateValidationFailureWritesFailAuditLog(): void
@@ -459,6 +471,34 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame('audit-probe', $payload['query'] ?? null);
         $this->assertSame(REPAIR_STATUS_IN_PROGRESS, $payload['fromStatus'] ?? null);
         $this->assertSame(REPAIR_STATUS_COMPLETED, $payload['toStatus'] ?? null);
+    }
+
+    public function testRepairTimelineLogHelperPersistsReadableStatusHistory(): void
+    {
+        $actorPid = $this->requireRoleTeacherPid(ROLE_FACILITY, 'No active facility officer available for timeline test');
+        $repairId = 987654321;
+
+        $this->actAs($actorPid);
+        repair_log_timeline_event($repairId, $actorPid, 'TRANSITION', REPAIR_STATUS_PENDING, REPAIR_STATUS_IN_PROGRESS, [
+            'mode' => 'approval',
+            'note' => 'ตรวจสอบและเริ่มดำเนินการซ่อมแล้ว',
+        ]);
+
+        $log = $this->fetchLatestAuditLog('TIMELINE', 'SUCCESS', $repairId);
+        $payload = $this->decodePayload($log['payloadData'] ?? null);
+        $timeline = repair_get_timeline($repairId);
+
+        $this->assertNotNull($log);
+        $this->assertSame('กำลังดำเนินการ', (string) ($log['logMessage'] ?? ''));
+        $this->assertSame('TRANSITION', (string) ($payload['event'] ?? ''));
+        $this->assertSame(REPAIR_STATUS_PENDING, (string) ($payload['fromStatus'] ?? ''));
+        $this->assertSame('ส่งคำร้องสำเร็จ', (string) ($payload['fromLabel'] ?? ''));
+        $this->assertSame(REPAIR_STATUS_IN_PROGRESS, (string) ($payload['toStatus'] ?? ''));
+        $this->assertSame('กำลังดำเนินการ', (string) ($payload['toLabel'] ?? ''));
+        $this->assertSame('approval', (string) ($payload['mode'] ?? ''));
+        $this->assertSame('ตรวจสอบและเริ่มดำเนินการซ่อมแล้ว', (string) ($payload['note'] ?? ''));
+        $this->assertNotEmpty($timeline);
+        $this->assertSame(REPAIR_STATUS_IN_PROGRESS, (string) ($timeline[0]['toStatus'] ?? ''));
     }
 
     private function actAs(string $pid): void

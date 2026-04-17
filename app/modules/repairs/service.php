@@ -99,6 +99,115 @@ if (!function_exists('repair_build_audit_payload')) {
     }
 }
 
+if (!function_exists('repair_timeline_status_label')) {
+    function repair_timeline_status_label(string $status): string
+    {
+        $status = strtoupper(trim($status));
+        $labels = [
+            REPAIR_STATUS_PENDING => 'ส่งคำร้องสำเร็จ',
+            REPAIR_STATUS_IN_PROGRESS => 'กำลังดำเนินการ',
+            REPAIR_STATUS_COMPLETED => 'เสร็จสิ้น',
+            REPAIR_STATUS_CANCELLED => 'ยกเลิกคำร้อง',
+            REPAIR_STATUS_REJECTED => 'ยกเลิกคำร้อง',
+        ];
+
+        return $labels[$status] ?? $status;
+    }
+}
+
+if (!function_exists('repair_timeline_title')) {
+    function repair_timeline_title(string $status): string
+    {
+        $status = strtoupper(trim($status));
+        $titles = [
+            REPAIR_STATUS_PENDING => 'รับเรื่องคำร้องแล้ว',
+            REPAIR_STATUS_IN_PROGRESS => 'กำลังดำเนินการ',
+            REPAIR_STATUS_COMPLETED => 'เสร็จสิ้น',
+            REPAIR_STATUS_CANCELLED => 'ยกเลิกคำร้อง',
+            REPAIR_STATUS_REJECTED => 'ยกเลิกคำร้อง',
+        ];
+
+        return $titles[$status] ?? repair_timeline_status_label($status);
+    }
+}
+
+if (!function_exists('repair_log_timeline_event')) {
+    function repair_log_timeline_event(int $repair_id, string $actor_pid, string $event, ?string $from_status, string $to_status, array $payload = []): void
+    {
+        if (!function_exists('audit_log') || $repair_id <= 0) {
+            return;
+        }
+
+        $from_status = $from_status !== null ? strtoupper(trim($from_status)) : null;
+        $to_status = strtoupper(trim($to_status));
+        $title = repair_timeline_title($to_status);
+        $timeline_payload = [
+            'actorPID' => trim($actor_pid) !== '' ? trim($actor_pid) : null,
+            'event' => strtoupper(trim($event)),
+            'fromStatus' => $from_status,
+            'fromLabel' => $from_status !== null && $from_status !== '' ? repair_timeline_status_label($from_status) : null,
+            'toStatus' => $to_status,
+            'toLabel' => repair_timeline_status_label($to_status),
+            'timelineTitle' => $title,
+        ];
+
+        $timeline_payload = array_filter(array_merge($timeline_payload, $payload), static function ($value): bool {
+            return $value !== null && $value !== '' && $value !== [];
+        });
+
+        audit_log('repairs', 'TIMELINE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id, $title, $timeline_payload);
+    }
+}
+
+if (!function_exists('repair_get_timeline')) {
+    function repair_get_timeline(int $repair_id): array
+    {
+        if ($repair_id <= 0) {
+            return [];
+        }
+
+        $connection = db_connection();
+
+        if (!db_table_exists($connection, 'dh_logs')) {
+            return [];
+        }
+
+        $rows = db_fetch_all(
+            'SELECT logID, actorPID, actionName, logMessage, payloadData, created_at
+             FROM dh_logs
+             WHERE moduleName = ? AND actionName = ? AND actionStatus = ? AND entityName = ? AND entityID = ?
+             ORDER BY created_at ASC, logID ASC',
+            'ssssi',
+            'repairs',
+            'TIMELINE',
+            'SUCCESS',
+            REPAIR_ENTITY_NAME,
+            $repair_id
+        );
+
+        return array_map(static function (array $row): array {
+            $payload = json_decode((string) ($row['payloadData'] ?? ''), true);
+
+            if (!is_array($payload)) {
+                $payload = [];
+            }
+
+            return [
+                'logID' => (int) ($row['logID'] ?? 0),
+                'actorPID' => (string) ($row['actorPID'] ?? ''),
+                'title' => (string) ($row['logMessage'] ?? ''),
+                'event' => (string) ($payload['event'] ?? ''),
+                'fromStatus' => (string) ($payload['fromStatus'] ?? ''),
+                'fromLabel' => (string) ($payload['fromLabel'] ?? ''),
+                'toStatus' => (string) ($payload['toStatus'] ?? ''),
+                'toLabel' => (string) ($payload['toLabel'] ?? ''),
+                'createdAt' => (string) ($row['created_at'] ?? ''),
+                'payload' => $payload,
+            ];
+        }, $rows);
+    }
+}
+
 if (!function_exists('repair_create_request')) {
     function repair_create_request(array $input, array $files, string $actor_pid): int
     {
@@ -135,6 +244,12 @@ if (!function_exists('repair_create_request')) {
             if (function_exists('audit_log')) {
                 audit_log('repairs', 'CREATE', 'SUCCESS', REPAIR_ENTITY_NAME, $repair_id, null, $audit_payload);
             }
+
+            repair_log_timeline_event($repair_id, $actor_pid, 'CREATE', null, REPAIR_STATUS_PENDING, [
+                'subject' => $data['subject'],
+                'location' => $data['location'],
+                'equipment' => $data['equipment'] !== '' ? $data['equipment'] : null,
+            ]);
 
             return $repair_id;
         } catch (Throwable $exception) {

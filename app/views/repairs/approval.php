@@ -596,22 +596,22 @@ ob_start();
                     <div class="form-group">
                         <div class="custom-select-wrapper open">
                             <div class="custom-select-trigger">
-                                <p class="select-value" id="repairApprovalDetailStatusValue">ส่งคำร้องสำเร็จ</p>
+                                <p class="select-value" id="repairApprovalDetailStatusValue">กรุณาเลือกสถานะการดำเนินงาน</p>
                                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                             </div>
 
                             <div class="custom-options">
-                                <div class="custom-option selected" data-value="pending">ส่งคำร้องสำเร็จ</div>
-                                <div class="custom-option" data-value="in_progress">กำลังดำเนินการ</div>
-                                <div class="custom-option" data-value="completed">เสร็จสิ้น</div>
-                                <div class="custom-option" data-value="cancelled">ยกเลิกคำร้อง</div>
+                                <div class="custom-option selected" data-value="">กรุณาเลือกสถานะการดำเนินงาน</div>
+                                <div class="custom-option" data-value="<?= h(REPAIR_STATUS_IN_PROGRESS) ?>">กำลังดำเนินการ</div>
+                                <div class="custom-option" data-value="<?= h(REPAIR_STATUS_COMPLETED) ?>">ดำเนินการเสร็จสิ้น</div>
+                                <div class="custom-option" data-value="<?= h(REPAIR_STATUS_CANCELLED) ?>">ยกเลิกคำร้อง</div>
                             </div>
 
                             <select class="form-input" id="repairApprovalDetailStatusSelect" name="status">
-                                <option value="pending">ส่งคำร้องสำเร็จ</option>
-                                <option value="in_progress">กำลังดำเนินการ</option>
-                                <option value="completed">เสร็จสิ้น</option>
-                                <option value="cancelled">ยกเลิกคำร้อง</option>
+                                <option value="">กรุณาเลือกสถานะการดำเนินงาน</option>
+                                <option value="<?= h(REPAIR_STATUS_IN_PROGRESS) ?>">กำลังดำเนินการ</option>
+                                <option value="<?= h(REPAIR_STATUS_COMPLETED) ?>">ดำเนินการเสร็จสิ้น</option>
+                                <option value="<?= h(REPAIR_STATUS_CANCELLED) ?>">ยกเลิกคำร้อง</option>
                             </select>
 
                         </div>
@@ -619,15 +619,20 @@ ob_start();
 
                     <div class="form-group">
                         <label for="">รายละเอียดเพิ่มเติม</label>
-                        <textarea id="repairApprovalDecisionSummary" name="" rows="4" placeholder="อธิบายอาการหรือปัญหาที่พบ"></textarea>
+                        <textarea id="repairApprovalDecisionSummary" name="" rows="4" placeholder="ระบุรายละเอียดการดำเนินงานของเจ้าหน้าที่"></textarea>
                     </div>
 
                 </form>
             </div>
 
             <div class="footer-modal">
-                <form method="POST" id="">
-                    <button type="button">
+                <form method="POST" action="<?= h($base_url) ?>" id="repairApprovalTransitionForm">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="transition">
+                    <input type="hidden" name="repair_id" id="repairApprovalTransitionRepairId" value="">
+                    <input type="hidden" name="target_status" id="repairApprovalTransitionTargetStatus" value="">
+                    <input type="hidden" name="transition_note" id="repairApprovalTransitionNote" value="">
+                    <button type="submit">
                         <p>บันทึก</p>
                     </button>
                 </form>
@@ -652,6 +657,23 @@ ob_start();
         const statusOptions = modal ? Array.from(modal.querySelectorAll('.custom-options .custom-option')) : [];
         const fileList = document.getElementById('repairApprovalDetailFileList');
         const decisionSummary = document.getElementById('repairApprovalDecisionSummary');
+        const transitionForm = document.getElementById('repairApprovalTransitionForm');
+        const transitionRepairId = document.getElementById('repairApprovalTransitionRepairId');
+        const transitionTargetStatus = document.getElementById('repairApprovalTransitionTargetStatus');
+        const transitionNote = document.getElementById('repairApprovalTransitionNote');
+        const pendingStatus = '<?= h(REPAIR_STATUS_PENDING) ?>';
+        const inProgressStatus = '<?= h(REPAIR_STATUS_IN_PROGRESS) ?>';
+        const completedStatus = '<?= h(REPAIR_STATUS_COMPLETED) ?>';
+        const cancelledStatus = '<?= h(REPAIR_STATUS_CANCELLED) ?>';
+        const placeholderStatusLabel = 'กรุณาเลือกสถานะการดำเนินงาน';
+        const statusLabels = {
+            '<?= h(REPAIR_STATUS_PENDING) ?>': 'ส่งคำร้องสำเร็จ',
+            '<?= h(REPAIR_STATUS_IN_PROGRESS) ?>': 'กำลังดำเนินการ',
+            '<?= h(REPAIR_STATUS_COMPLETED) ?>': 'ดำเนินการเสร็จสิ้น',
+            '<?= h(REPAIR_STATUS_CANCELLED) ?>': 'ยกเลิกคำร้อง',
+            '<?= h(REPAIR_STATUS_REJECTED) ?>': 'ยกเลิกคำร้อง',
+        };
+        let activeRepairStatus = pendingStatus;
 
         if (!modal) {
             return;
@@ -732,39 +754,51 @@ ob_start();
             });
         };
 
-        const syncStatusDisplay = (statusKey, statusLabel) => {
-            if (statusSelect) {
-                statusSelect.value = statusKey || 'pending';
-            }
-
-            if (statusValue) {
-                statusValue.textContent = statusLabel || 'ส่งคำร้องสำเร็จ';
-            }
-
+        const setSelectedStatusOption = (value) => {
             statusOptions.forEach((option) => {
-                option.classList.toggle('selected', option.dataset.value === statusKey);
+                option.classList.toggle('selected', String(option.dataset.value || '') === value);
             });
         };
 
-        const buildDecisionSummary = (button) => {
-            const lines = [];
-            const assignedTo = String(button.getAttribute('data-assigned-to-name') || '').trim();
-            const updatedAt = String(button.getAttribute('data-updated-at') || '').trim();
-            const resolvedAt = String(button.getAttribute('data-resolved-at') || '').trim();
-
-            if (assignedTo !== '' && assignedTo !== '-') {
-                lines.push(`ผู้รับผิดชอบ: ${assignedTo}`);
+        const getAllowedTargetStatuses = () => {
+            if (activeRepairStatus === pendingStatus) {
+                return [inProgressStatus, completedStatus, cancelledStatus];
             }
 
-            if (updatedAt !== '' && updatedAt !== '-') {
-                lines.push(`อัปเดตล่าสุด: ${updatedAt}`);
+            if (activeRepairStatus === inProgressStatus) {
+                return [completedStatus, cancelledStatus];
             }
 
-            if (resolvedAt !== '' && resolvedAt !== '-') {
-                lines.push(`ปิดงานเมื่อ: ${resolvedAt}`);
+            return [];
+        };
+
+        const isAllowedTargetStatus = (value) => {
+            return value === '' || getAllowedTargetStatuses().includes(value);
+        };
+
+        const syncStatusDisplay = (statusKey, statusLabel) => {
+            const normalizedStatusKey = String(statusKey || pendingStatus).trim().toUpperCase();
+            const isPending = normalizedStatusKey === pendingStatus;
+            const nextSelectValue = isPending ? '' : normalizedStatusKey;
+            const nextLabel = isPending
+                ? placeholderStatusLabel
+                : (statusLabel || statusLabels[normalizedStatusKey] || '-');
+
+            activeRepairStatus = normalizedStatusKey;
+
+            if (statusSelect) {
+                statusSelect.value = nextSelectValue;
             }
 
-            return lines.length > 0 ? lines.join('\n') : '-';
+            if (statusValue) {
+                statusValue.textContent = nextLabel;
+            }
+
+            if (transitionTargetStatus) {
+                transitionTargetStatus.value = '';
+            }
+
+            setSelectedStatusOption(nextSelectValue);
         };
 
         const openModal = (button) => {
@@ -801,12 +835,20 @@ ob_start();
             }
 
             syncStatusDisplay(
-                String(button.getAttribute('data-status-key') || 'pending').trim(),
-                String(button.getAttribute('data-status-label') || 'ส่งคำร้องสำเร็จ').trim()
+                String(button.getAttribute('data-status-key') || pendingStatus).trim(),
+                String(button.getAttribute('data-status-label') || statusLabels[pendingStatus]).trim()
             );
 
             if (decisionSummary) {
-                decisionSummary.value = buildDecisionSummary(button);
+                decisionSummary.value = '';
+            }
+
+            if (transitionNote) {
+                transitionNote.value = '';
+            }
+
+            if (transitionRepairId) {
+                transitionRepairId.value = String(button.getAttribute('data-repair-id') || '').trim();
             }
 
             renderModalFiles(files, String(button.getAttribute('data-repair-id') || '').trim());
@@ -818,6 +860,82 @@ ob_start();
             modal.classList.add('hidden');
             modal.style.display = 'none';
         };
+
+        statusOptions.forEach((option) => {
+            option.addEventListener('click', function() {
+                const value = String(option.dataset.value || '').trim().toUpperCase();
+                const label = String(option.textContent || '').trim() || placeholderStatusLabel;
+
+                if (!isAllowedTargetStatus(value)) {
+                    return;
+                }
+
+                if (statusSelect) {
+                    statusSelect.value = value;
+                }
+
+                if (statusValue) {
+                    statusValue.textContent = label;
+                }
+
+                if (transitionTargetStatus) {
+                    transitionTargetStatus.value = value;
+                }
+
+                setSelectedStatusOption(value);
+            });
+        });
+
+        statusSelect?.addEventListener('change', function() {
+            const value = String(statusSelect.value || '').trim().toUpperCase();
+            const selected = statusSelect.options[statusSelect.selectedIndex];
+            const label = String(selected?.textContent || '').trim() || placeholderStatusLabel;
+
+            if (!isAllowedTargetStatus(value)) {
+                statusSelect.value = '';
+
+                if (statusValue) {
+                    statusValue.textContent = placeholderStatusLabel;
+                }
+
+                if (transitionTargetStatus) {
+                    transitionTargetStatus.value = '';
+                }
+
+                setSelectedStatusOption('');
+                return;
+            }
+
+            if (statusValue) {
+                statusValue.textContent = label;
+            }
+
+            if (transitionTargetStatus) {
+                transitionTargetStatus.value = value;
+            }
+
+            setSelectedStatusOption(value);
+        });
+
+        transitionForm?.addEventListener('submit', function(event) {
+            const selectedStatus = String(transitionTargetStatus?.value || '').trim().toUpperCase();
+            const allowedStatuses = getAllowedTargetStatuses();
+
+            if (transitionNote) {
+                transitionNote.value = String(decisionSummary?.value || '').trim();
+            }
+
+            if (allowedStatuses.length === 0) {
+                event.preventDefault();
+                window.alert('รายการนี้ไม่สามารถเปลี่ยนสถานะได้');
+                return;
+            }
+
+            if (selectedStatus === '' || !allowedStatuses.includes(selectedStatus)) {
+                event.preventDefault();
+                window.alert(placeholderStatusLabel);
+            }
+        });
 
         document.addEventListener('click', function(event) {
             const openBtn = event.target.closest('.js-open-repair-approval-detail-modal, [data-vehicle-approval-action="detail"]');
