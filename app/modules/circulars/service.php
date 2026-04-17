@@ -86,9 +86,10 @@ if (!function_exists('circular_resolve_person_ids')) {
         $roleIds = array_values(array_filter(array_map('intval', $roleIds)));
 
         if (!empty($roleIds)) {
+            $role_condition = rbac_csv_role_condition('roleID', count($roleIds));
             $placeholders = implode(', ', array_fill(0, count($roleIds), '?'));
             $types = str_repeat('i', count($roleIds));
-            $sql = 'SELECT pID FROM teacher WHERE status = 1 AND roleID IN (' . $placeholders . ')';
+            $sql = 'SELECT pID FROM teacher WHERE status = 1 AND ' . $role_condition;
             $stmt = db_query($sql, $types, ...$roleIds);
             $result = mysqli_stmt_get_result($stmt);
 
@@ -156,9 +157,10 @@ if (!function_exists('circular_registry_pids')) {
             return [];
         }
 
+        $role_condition = rbac_csv_role_condition('roleID', count($registry_ids));
         $placeholders = implode(', ', array_fill(0, count($registry_ids), '?'));
         $types = str_repeat('i', count($registry_ids));
-        $sql = 'SELECT pID FROM teacher WHERE status = 1 AND roleID IN (' . $placeholders . ')';
+        $sql = 'SELECT pID FROM teacher WHERE status = 1 AND ' . $role_condition;
         $stmt = db_query($sql, $types, ...$registry_ids);
         $result = mysqli_stmt_get_result($stmt);
         $pids = [];

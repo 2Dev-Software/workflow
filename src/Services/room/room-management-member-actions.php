@@ -135,8 +135,13 @@ try {
         if (!$is_ajax) {
             $_SESSION['room_management_open_modal'] = 'roomMemberModal';
         }
-        $sql = 'UPDATE teacher SET roleID = ?
-            WHERE pID = ? AND status = 1 AND roleID IN (?, ?)';
+        $sql = 'UPDATE teacher
+            SET roleID = CASE
+                WHEN roleID IS NULL OR roleID = "" OR roleID = "0" THEN ?
+                ELSE CONCAT(TRIM(BOTH "," FROM REPLACE(CAST(roleID AS CHAR), " ", "")), ",", ?)
+            END
+            WHERE pID = ? AND status = 1
+              AND FIND_IN_SET(CAST(? AS CHAR), REPLACE(CAST(roleID AS CHAR), " ", "")) = 0';
         $stmt = mysqli_prepare($connection, $sql);
 
         if ($stmt === false) {
@@ -150,7 +155,8 @@ try {
             }
             $set_room_management_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเพิ่มสมาชิกได้ในขณะนี้');
         } else {
-            mysqli_stmt_bind_param($stmt, 'isii', $staff_role_id, $member_pid, $default_role_id, $unassigned_role_id);
+            $staff_role_value = (string) $staff_role_id;
+            mysqli_stmt_bind_param($stmt, 'ssss', $staff_role_value, $staff_role_value, $member_pid, $staff_role_value);
             mysqli_stmt_execute($stmt);
             $affected = mysqli_stmt_affected_rows($stmt);
             mysqli_stmt_close($stmt);
@@ -178,8 +184,13 @@ try {
             }
         }
     } elseif ($action === 'remove') {
-        $sql = 'UPDATE teacher SET roleID = ?
-            WHERE pID = ? AND status = 1 AND roleID = ?';
+        $sql = 'UPDATE teacher
+            SET roleID = COALESCE(
+                NULLIF(TRIM(BOTH "," FROM REPLACE(CONCAT(",", REPLACE(CAST(roleID AS CHAR), " ", ""), ","), CONCAT(",", ?, ","), ",")), ""),
+                ?
+            )
+            WHERE pID = ? AND status = 1
+              AND FIND_IN_SET(CAST(? AS CHAR), REPLACE(CAST(roleID AS CHAR), " ", "")) > 0';
         $stmt = mysqli_prepare($connection, $sql);
 
         if ($stmt === false) {
@@ -193,7 +204,9 @@ try {
             }
             $set_room_management_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถลบสมาชิกได้ในขณะนี้');
         } else {
-            mysqli_stmt_bind_param($stmt, 'isi', $default_role_id, $member_pid, $staff_role_id);
+            $staff_role_value = (string) $staff_role_id;
+            $default_role_value = (string) $default_role_id;
+            mysqli_stmt_bind_param($stmt, 'ssss', $staff_role_value, $default_role_value, $member_pid, $staff_role_value);
             mysqli_stmt_execute($stmt);
             $affected = mysqli_stmt_affected_rows($stmt);
             mysqli_stmt_close($stmt);

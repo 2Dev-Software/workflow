@@ -8,6 +8,7 @@ require_once __DIR__ . '/../security/csrf.php';
 require_once __DIR__ . '/../services/auth-service.php';
 require_once __DIR__ . '/../views/view.php';
 require_once __DIR__ . '/../modules/audit/logger.php';
+require_once __DIR__ . '/../rbac/roles.php';
 
 if (!function_exists('auth_show_login')) {
     function auth_show_login(): void
@@ -74,9 +75,9 @@ if (!function_exists('auth_handle_login')) {
 
         $status_row = db_fetch_one('SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1');
         $dh_status = $status_row ? (int) ($status_row['dh_status'] ?? 1) : 1;
-        $role_id = (int) ($user['roleID'] ?? 0);
+        $role_ids = rbac_parse_role_ids($user['roleID'] ?? '');
 
-        if ($dh_status !== 1 && $role_id !== 1) {
+        if ($dh_status !== 1 && !in_array(1, $role_ids, true)) {
             http_response_code(403);
 
             if (request_wants_json()) {

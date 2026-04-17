@@ -138,8 +138,13 @@ if (!function_exists('vehicle_management_index')) {
                         try {
                             if ($member_action === 'add') {
                                 $_SESSION['vehicle_management_open_modal'] = 'vehicleMemberModal';
-                                $sql = 'UPDATE teacher SET roleID = ?
-                                    WHERE pID = ? AND status = 1 AND (roleID IS NULL OR roleID = 0 OR roleID = ?)';
+                                $sql = 'UPDATE teacher
+                                    SET roleID = CASE
+                                        WHEN roleID IS NULL OR roleID = "" OR roleID = "0" THEN ?
+                                        ELSE CONCAT(TRIM(BOTH "," FROM REPLACE(CAST(roleID AS CHAR), " ", "")), ",", ?)
+                                    END
+                                    WHERE pID = ? AND status = 1
+                                      AND FIND_IN_SET(CAST(? AS CHAR), REPLACE(CAST(roleID AS CHAR), " ", "")) = 0';
                                 $stmt = mysqli_prepare($connection, $sql);
 
                                 if ($stmt === false) {
@@ -152,7 +157,8 @@ if (!function_exists('vehicle_management_index')) {
                                     }
                                     $set_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเพิ่มสมาชิกได้ในขณะนี้');
                                 } else {
-                                    mysqli_stmt_bind_param($stmt, 'isi', $vehicle_role_id, $member_pid, $general_role_id);
+                                    $vehicle_role_value = (string) $vehicle_role_id;
+                                    mysqli_stmt_bind_param($stmt, 'ssss', $vehicle_role_value, $vehicle_role_value, $member_pid, $vehicle_role_value);
                                     mysqli_stmt_execute($stmt);
                                     $affected = mysqli_stmt_affected_rows($stmt);
                                     mysqli_stmt_close($stmt);
@@ -174,8 +180,13 @@ if (!function_exists('vehicle_management_index')) {
                                     }
                                 }
                             } elseif ($member_action === 'remove') {
-                                $sql = 'UPDATE teacher SET roleID = ?
-                                    WHERE pID = ? AND status = 1 AND roleID = ?';
+                                $sql = 'UPDATE teacher
+                                    SET roleID = COALESCE(
+                                        NULLIF(TRIM(BOTH "," FROM REPLACE(CONCAT(",", REPLACE(CAST(roleID AS CHAR), " ", ""), ","), CONCAT(",", ?, ","), ",")), ""),
+                                        ?
+                                    )
+                                    WHERE pID = ? AND status = 1
+                                      AND FIND_IN_SET(CAST(? AS CHAR), REPLACE(CAST(roleID AS CHAR), " ", "")) > 0';
                                 $stmt = mysqli_prepare($connection, $sql);
 
                                 if ($stmt === false) {
@@ -188,7 +199,9 @@ if (!function_exists('vehicle_management_index')) {
                                     }
                                     $set_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถลบสมาชิกได้ในขณะนี้');
                                 } else {
-                                    mysqli_stmt_bind_param($stmt, 'isi', $general_role_id, $member_pid, $vehicle_role_id);
+                                    $vehicle_role_value = (string) $vehicle_role_id;
+                                    $general_role_value = (string) $general_role_id;
+                                    mysqli_stmt_bind_param($stmt, 'ssss', $vehicle_role_value, $general_role_value, $member_pid, $vehicle_role_value);
                                     mysqli_stmt_execute($stmt);
                                     $affected = mysqli_stmt_affected_rows($stmt);
                                     mysqli_stmt_close($stmt);
@@ -365,16 +378,17 @@ if (!function_exists('vehicle_management_index')) {
 
         try {
             $position = system_position_join($connection, 't', 'p');
+            $role_name_select = rbac_role_names_select('t') . ' AS role_name';
+            $vehicle_role_condition = rbac_csv_role_condition('t.roleID', 1);
 
             $staff_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
                 ' . $position['name'] . ' AS position_name,
-                r.roleName AS role_name,
+                ' . $role_name_select . ',
                 d.dName AS department_name
                 FROM teacher AS t
                 ' . $position['join'] . '
-                LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
                 LEFT JOIN department AS d ON t.dID = d.dID
-                WHERE t.status = 1 AND t.roleID = ?
+                WHERE t.status = 1 AND ' . $vehicle_role_condition . '
                 ORDER BY t.fName';
 
             $stmt = mysqli_prepare($connection, $staff_sql);
@@ -395,13 +409,13 @@ if (!function_exists('vehicle_management_index')) {
 
             $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
                 ' . $position['name'] . ' AS position_name,
-                r.roleName AS role_name,
+                ' . $role_name_select . ',
                 d.dName AS department_name
                 FROM teacher AS t
                 ' . $position['join'] . '
-                LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
                 LEFT JOIN department AS d ON t.dID = d.dID
-                WHERE t.status = 1 AND (t.roleID IS NULL OR t.roleID = 0 OR t.roleID = ?)
+                WHERE t.status = 1
+                  AND (t.roleID IS NULL OR NOT ' . $vehicle_role_condition . ')
                 ORDER BY t.fName';
 
             $stmt = mysqli_prepare($connection, $candidate_sql);
@@ -409,7 +423,7 @@ if (!function_exists('vehicle_management_index')) {
             if ($stmt === false) {
                 throw new RuntimeException('Database prepare failed: ' . mysqli_error($connection));
             }
-            mysqli_stmt_bind_param($stmt, 'i', $general_role_id);
+            mysqli_stmt_bind_param($stmt, 'i', $vehicle_role_id);
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
 

@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+require_once __DIR__ . '/../../../app/rbac/roles.php';
 
 $redirect_to_login = static function (): void {
     if (function_exists('audit_log')) {
@@ -42,7 +43,7 @@ if (empty($_SESSION['pID'])) {
 require_once __DIR__ . '/../../../config/connection.php';
 
 $teacher_pid = (string) $_SESSION['pID'];
-$teacher_role_id = 0;
+$teacher_role_ids = [];
 
 $role_sql = 'SELECT roleID FROM teacher WHERE pID = ? AND status = 1 LIMIT 1';
 $role_stmt = mysqli_prepare($connection, $role_sql);
@@ -62,7 +63,7 @@ if (!$role_row) {
     $redirect_to_login();
 }
 
-$teacher_role_id = (int) ($role_row['roleID'] ?? 0);
+$teacher_role_ids = rbac_parse_role_ids($role_row['roleID'] ?? '');
 $dh_status = 1;
 
 $status_sql = 'SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1';
@@ -80,7 +81,7 @@ if ($status_stmt === false) {
     mysqli_stmt_close($status_stmt);
 }
 
-if ($dh_status !== 1 && $teacher_role_id !== 1) {
+if ($dh_status !== 1 && !in_array(1, $teacher_role_ids, true)) {
     $redirect_to_login();
 }
 

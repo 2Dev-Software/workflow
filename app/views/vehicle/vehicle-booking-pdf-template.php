@@ -57,7 +57,7 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
 	  <style>
 	    body {
         font-family: sarabun;
-        font-size: 14pt;
+        font-size: 12pt;
         line-height: 1.55;
         color: #111;
         margin: 0;
@@ -80,7 +80,7 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
       }
 	    .title {
         font-weight: bold;
-        font-size: 18.5pt;
+        font-size: 14pt;
         text-align: center;
         padding: 0 0 4pt 0;
       }

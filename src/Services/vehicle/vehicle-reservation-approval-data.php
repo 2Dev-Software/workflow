@@ -9,6 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../teacher/teacher-profile.php';
 require_once __DIR__ . '/../../../app/modules/system/system.php';
+require_once __DIR__ . '/../../../app/rbac/roles.php';
 require_once __DIR__ . '/vehicle-reservation-utils.php';
 require_once __DIR__ . '/vehicle-reservation-data.php';
 
@@ -35,8 +36,13 @@ if ($position_id === 1) {
     $vehicle_approval_exec_pid = $actor_pid;
 }
 // roleID mapping (legacy): 1=ADMIN, 3=VEHICLE
-$vehicle_approval_is_admin = $role_id === 1;
-$vehicle_approval_is_vehicle_officer = $role_id === 3;
+$vehicle_approval_is_admin = $role_id === 1
+    || ($actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN));
+$vehicle_approval_is_vehicle_officer = !$vehicle_approval_is_admin
+    && (
+        $role_id === 3
+        || ($actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE))
+    );
 // Admin is view-only for vehicle approval flows.
 $vehicle_approval_can_assign = $vehicle_approval_is_vehicle_officer && !$vehicle_approval_is_admin;
 $vehicle_approval_can_finalize = $vehicle_approval_is_director;

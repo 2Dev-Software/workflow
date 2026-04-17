@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../teacher/teacher-profile.php';
 require_once __DIR__ . '/../../../app/modules/system/system.php';
 require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+require_once __DIR__ . '/../../../app/rbac/roles.php';
 require_once __DIR__ . '/vehicle-reservation-utils.php';
 
 // NOTE:
@@ -105,9 +106,14 @@ $role_id = (int) ($teacher['roleID'] ?? 0);
 $current_director_pid = system_get_current_director_pid();
 $is_director = $current_director_pid !== null && $current_director_pid !== '' && $current_director_pid === $actor_pid;
 // roleID mapping (legacy): 1=ADMIN, 3=VEHICLE
-$is_admin = $role_id === 1;
+$is_admin = $role_id === 1
+    || (function_exists('rbac_user_has_role') && $actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN));
 // Admin is view-only for vehicle approval flows.
-$is_vehicle_officer = !$is_admin && $role_id === 3;
+$is_vehicle_officer = !$is_admin
+    && (
+        $role_id === 3
+        || (function_exists('rbac_user_has_role') && $actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE))
+    );
 
 $assigned_note_present = array_key_exists('assignedNote', $_POST);
 $assigned_note = trim((string) ($_POST['assignedNote'] ?? ''));

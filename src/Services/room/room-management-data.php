@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../../config/connection.php';
 require_once __DIR__ . '/../../../app/modules/system/positions.php';
+require_once __DIR__ . '/../../../app/rbac/roles.php';
 
 $connection = $connection ?? ($GLOBALS['connection'] ?? null);
 
@@ -35,16 +36,17 @@ $map_member = static function (array $row): array {
 };
 
 $position = system_position_join($connection, 't', 'p');
+$role_name_select = rbac_role_names_select('t') . ' AS role_name';
+$staff_role_condition = rbac_csv_role_condition('t.roleID', 1);
 
 $staff_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
     ' . $position['name'] . ' AS position_name,
-    r.roleName AS role_name,
+    ' . $role_name_select . ',
     d.dName AS department_name
     FROM teacher AS t
     ' . $position['join'] . '
-    LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
-    WHERE t.status = 1 AND t.roleID = ?
+    WHERE t.status = 1 AND ' . $staff_role_condition . '
     ORDER BY t.fName';
 
 try {
@@ -83,13 +85,13 @@ try {
 
 $candidate_sql = 'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
     ' . $position['name'] . ' AS position_name,
-    r.roleName AS role_name,
+    ' . $role_name_select . ',
     d.dName AS department_name
     FROM teacher AS t
     ' . $position['join'] . '
-    LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
     LEFT JOIN department AS d ON t.dID = d.dID
-    WHERE t.status = 1 AND t.roleID IN (?, ?)
+    WHERE t.status = 1
+      AND (t.roleID IS NULL OR NOT ' . $staff_role_condition . ')
     ORDER BY t.fName';
 
 try {
@@ -104,7 +106,7 @@ try {
             'button_label' => 'ยืนยัน',
         ];
     } else {
-        mysqli_stmt_bind_param($stmt, 'ii', $default_role_id, $unassigned_role_id);
+        mysqli_stmt_bind_param($stmt, 'i', $room_staff_role_id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
 

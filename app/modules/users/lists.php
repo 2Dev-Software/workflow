@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
+require_once __DIR__ . '/../../rbac/roles.php';
 
 if (!function_exists('user_list_factions')) {
     function user_list_factions(): array
@@ -33,11 +34,14 @@ if (!function_exists('user_list_teachers')) {
             $position_join = ' LEFT JOIN position AS op ON op.oID = t.positionID';
         }
 
+        $role_name_select = rbac_role_names_select('t') . ' AS roleName';
+
         return db_fetch_all(
             "SELECT t.pID, t.fName, t.fID, t.dID, t.positionID, t.roleID,
                     COALESCE(f.fName, '') AS factionName,
                     COALESCE(d.dName, '') AS departmentName,
-                    {$position_name_select}
+                    {$position_name_select},
+                    {$role_name_select}
              FROM teacher AS t
              LEFT JOIN faction AS f ON f.fID = t.fID
              LEFT JOIN department AS d ON d.dID = t.dID

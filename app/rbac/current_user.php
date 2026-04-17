@@ -31,19 +31,19 @@ if (!function_exists('current_user')) {
 
         $connection = db_connection();
         $position = system_position_join($connection, 't', 'p');
+        $role_name_select = rbac_role_names_select('t') . ' AS role_name';
 
         $sql = 'SELECT t.pID, t.fName, t.fID, t.dID, t.lID, t.positionID, t.roleID, t.telephone, t.picture, t.signature, t.status,
             f.fName AS faction_name,
             d.dName AS department_name,
             l.lName AS level_name,
             ' . $position['name'] . ' AS position_name,
-            r.roleName AS role_name
+            ' . $role_name_select . '
             FROM teacher AS t
             LEFT JOIN faction AS f ON t.fID = f.fID
             LEFT JOIN department AS d ON t.dID = d.dID
             LEFT JOIN level AS l ON t.lID = l.lID
             ' . $position['join'] . '
-            LEFT JOIN dh_roles AS r ON t.roleID = r.roleID
             WHERE t.pID = ? AND t.status = 1
             LIMIT 1';
 

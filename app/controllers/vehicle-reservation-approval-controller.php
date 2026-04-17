@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../src/Services/teacher/teacher-profile.php';
 require_once __DIR__ . '/../../src/Services/system/exec-duty-current.php';
 require_once __DIR__ . '/../../src/Services/vehicle/vehicle-reservation-utils.php';
 require_once __DIR__ . '/../modules/audit/logger.php';
+require_once __DIR__ . '/../rbac/roles.php';
 
 if (!function_exists('vehicle_reservation_approval_index')) {
     function vehicle_reservation_approval_index(): void
@@ -27,8 +28,11 @@ if (!function_exists('vehicle_reservation_approval_index')) {
 
         $vehicle_approval_is_director = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
         // roleID mapping (legacy): 1=ADMIN, 3=VEHICLE
-        $vehicle_approval_is_admin = $role_id === 1;
-        $vehicle_approval_is_vehicle_officer = $role_id === 3;
+        $connection = db_connection();
+        $vehicle_approval_is_admin = $role_id === 1
+            || ($actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN));
+        $vehicle_approval_is_vehicle_officer = $role_id === 3
+            || ($actor_pid !== '' && rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE));
 
         if (!$vehicle_approval_is_director && !$vehicle_approval_is_vehicle_officer && !$vehicle_approval_is_admin) {
             if (function_exists('audit_log')) {

@@ -13,15 +13,15 @@ if (!function_exists('dashboard_resolve_access')) {
     function dashboard_resolve_access(array $current_user): array
     {
         $actor_pid = trim((string) ($current_user['pID'] ?? ($_SESSION['pID'] ?? '')));
-        $role_id = (int) ($current_user['roleID'] ?? 0);
+        $role_ids = rbac_parse_role_ids($current_user['roleID'] ?? '');
         $position_id = (int) ($current_user['positionID'] ?? 0);
 
         $connection = db_connection();
 
-        $is_admin_user = $role_id === 1;
-        $is_registry_user = $role_id === 2;
-        $is_vehicle_user = $role_id === 3;
-        $is_facility_user = $role_id === 5;
+        $is_admin_user = in_array(1, $role_ids, true);
+        $is_registry_user = in_array(2, $role_ids, true);
+        $is_vehicle_user = in_array(3, $role_ids, true);
+        $is_facility_user = in_array(5, $role_ids, true);
 
         if ($actor_pid !== '') {
             $is_admin_user = rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;

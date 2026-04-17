@@ -117,6 +117,11 @@ ob_start();
         text-align: start;
     }
 
+    #outgoingMine .table-responsive.circular-my-table-wrap.order-create .circular-my-table thead th:nth-child(2),
+    #outgoingMine .table-responsive.circular-my-table-wrap.order-create .circular-my-table thead th:nth-child(4) {
+        text-align: center;
+    }
+
     .form-group.receive button p {
         color: var(--color-neutral-lightest);
     }
@@ -2391,6 +2396,7 @@ ob_start();
                         $attachment_count = max(0, (int) ($item['attachmentCount'] ?? 0));
                         $modal_payload = (array) ($send_modal_payload_map[(string) $outgoing_id] ?? []);
                         $modal_priority_key = outgoing_normalize_priority_key((string) ($modal_payload['priorityKey'] ?? 'normal'));
+                        $is_waiting_attachment = $status_key === OUTGOING_STATUS_WAITING_ATTACHMENT;
                         ?>
                         <tr>
                             <td>
@@ -2413,27 +2419,29 @@ ob_start();
                             </td>
                             <td>
                                 <div class="circular-my-actions">
-                                    <button
-                                        class="booking-action-btn secondary js-open-order-edit-modal"
-                                        type="button"
-                                        data-outgoing-id="<?= h((string) $outgoing_id) ?>"
-                                        data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
-                                        title="ดู/แนบไฟล์"
-                                        aria-label="ดู/แนบไฟล์">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                        <span class="tooltip">ดู/แนบไฟล์</span>
-                                    </button>
-
-                                    <button
-                                        class="booking-action-btn secondary js-open-order-view-modal"
-                                        type="button"
-                                        data-outgoing-id="<?= h((string) $outgoing_id) ?>"
-                                        data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
-                                        title="ดูรายละเอียด"
-                                        aria-label="ดูรายละเอียด">
-                                        <i class="fa-solid fa-eye"></i>
-                                        <span class="tooltip">ดูรายละเอียด</span>
-                                    </button>
+                                    <?php if ($is_waiting_attachment) : ?>
+                                        <button
+                                            class="booking-action-btn secondary js-open-order-edit-modal"
+                                            type="button"
+                                            data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                            data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
+                                            title="ดู/แนบไฟล์"
+                                            aria-label="ดู/แนบไฟล์">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span class="tooltip">ดู/แนบไฟล์</span>
+                                        </button>
+                                    <?php else : ?>
+                                        <button
+                                            class="booking-action-btn secondary js-open-order-view-modal"
+                                            type="button"
+                                            data-outgoing-id="<?= h((string) $outgoing_id) ?>"
+                                            data-outgoing-priority-key="<?= h($modal_priority_key) ?>"
+                                            title="ดูรายละเอียด"
+                                            aria-label="ดูรายละเอียด">
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -2492,7 +2500,7 @@ ob_start();
                         </div>
                         <div class="more-details">
                             <p><strong>ส่งถึง</strong></p>
-                            <input type="text" id="modalOutgoingEditIssuer" class="order-no-display" value="-">
+                            <input type="text" id="modalOutgoingEditIssuer" name="destination_name" class="order-no-display" value="">
                         </div>
                     </div>
 
@@ -4498,14 +4506,9 @@ ob_start();
 
 
             <div class="footer-modal">
-                <form method="POST" id="modalOutgoingAttachForm" enctype="multipart/form-data">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="attach">
-                    <input type="hidden" name="outgoing_id" id="modalOutgoingEditOutgoingId" value="">
-                    <button type="submit" id="modalOrderEditSaveBtn">
-                        <p>บันทึก</p>
-                    </button>
-                </form>
+                <button type="submit" id="modalOrderEditSaveBtn" form="modalOutgoingAttachForm">
+                    <p>บันทึก</p>
+                </button>
             </div>
 
         </div>
@@ -4836,7 +4839,7 @@ ob_start();
                 modalOutgoingEditEffectiveDate.value = '';
             }
             if (modalOutgoingEditIssuer) {
-                modalOutgoingEditIssuer.value = '-';
+                modalOutgoingEditIssuer.value = '';
             }
 
             setOutgoingPriorityRadio(modalOutgoingEditUrgentRadios, 'normal');
@@ -4891,7 +4894,7 @@ ob_start();
                     modalOutgoingEditEffectiveDate.value = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '';
                 }
                 if (modalOutgoingEditIssuer) {
-                    modalOutgoingEditIssuer.value = String(payload.issuerName || '').trim() || '-';
+                    modalOutgoingEditIssuer.value = String(payload.destinationName || '').trim();
                 }
 
                 renderOutgoingEditFiles(outgoingId, Array.isArray(payload.attachments) ? payload.attachments : []);
@@ -5016,7 +5019,7 @@ ob_start();
                     modalOutgoingViewEffectiveDate.value = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '';
                 }
                 if (modalOutgoingViewIssuer) {
-                    modalOutgoingViewIssuer.value = String(payload.issuerName || '').trim() || '-';
+                    modalOutgoingViewIssuer.value = String(payload.destinationName || '').trim() || '-';
                 }
 
                 renderOutgoingViewFiles(outgoingId, Array.isArray(payload.attachments) ? payload.attachments : []);

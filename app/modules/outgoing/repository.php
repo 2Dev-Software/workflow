@@ -7,6 +7,21 @@ require_once __DIR__ . '/../../db/db.php';
 const OUTGOING_MODULE_NAME = 'outgoing';
 const OUTGOING_ENTITY_NAME = 'dh_outgoing_letters';
 
+if (!function_exists('outgoing_has_destination_name_column')) {
+    function outgoing_has_destination_name_column(): bool
+    {
+        static $exists = null;
+
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        $exists = db_column_exists(db_connection(), OUTGOING_ENTITY_NAME, 'destinationName');
+
+        return $exists;
+    }
+}
+
 if (!function_exists('outgoing_create_record')) {
     function outgoing_create_record(array $data): int
     {

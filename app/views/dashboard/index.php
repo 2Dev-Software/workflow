@@ -49,7 +49,7 @@ ob_start();
     </div> -->
 
     <div class="dashboard-header">
-        <p><strong>แผนผังระบบสำนักงานอิเล็กทรอนิกส์</strong></p>
+        <p><strong>ระบบสำนักงานอิเล็กทรอนิกส์</strong></p>
     </div>
 
     <!-- <div class="dashboard-content">

@@ -12,6 +12,7 @@ const ROLE_REGISTRY = 'REGISTRY';
 const ROLE_VEHICLE = 'VEHICLE';
 const ROLE_LEAVE = 'LEAVE';
 const ROLE_FACILITY = 'FACILITY';
+const ROLE_REPAIR = 'REPAIR';
 const ROLE_GENERAL = 'GENERAL';
 
 // Circulars

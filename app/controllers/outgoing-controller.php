@@ -147,6 +147,7 @@ if (!function_exists('outgoing_parse_detail_meta')) {
             'priority_key' => 'normal',
             'effective_date' => '',
             'issuer_name' => '',
+            'destination_name' => '',
             'owner_names' => [],
         ];
         $priority_found = false;
@@ -181,6 +182,11 @@ if (!function_exists('outgoing_parse_detail_meta')) {
 
             if (preg_match('/^ผู้ออกเลข:\s*(.+)$/u', $line, $matches) === 1) {
                 $meta['issuer_name'] = trim((string) ($matches[1] ?? ''));
+                continue;
+            }
+
+            if (preg_match('/^ส่งถึง:\s*(.+)$/u', $line, $matches) === 1) {
+                $meta['destination_name'] = trim((string) ($matches[1] ?? ''));
                 continue;
             }
 
@@ -247,6 +253,11 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
                 $issuer_name = trim((string) ($full_item['creatorName'] ?? $item['creatorName'] ?? ''));
             }
 
+            $destination_name = trim((string) ($full_item['destinationName'] ?? ''));
+            if ($destination_name === '') {
+                $destination_name = trim((string) ($detail_meta['destination_name'] ?? $document_meta['destination_name'] ?? ''));
+            }
+
             $owner_names = array_values((array) ($detail_meta['owner_names'] ?? []));
             if ($owner_names === []) {
                 $owner_names = array_values((array) ($document_meta['owner_names'] ?? []));
@@ -269,6 +280,7 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
                 'priorityLabel' => trim((string) ($priority_meta['priority_label'] ?? outgoing_priority_label_from_key('normal'))),
                 'effectiveDate' => $effective_date,
                 'issuerName' => $issuer_name,
+                'destinationName' => $destination_name,
                 'ownerNames' => $owner_names,
                 'status' => $status_key,
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
@@ -361,6 +373,7 @@ if (!function_exists('outgoing_index')) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = trim((string) ($_POST['action'] ?? ''));
             $outgoing_id = isset($_POST['outgoing_id']) ? (int) $_POST['outgoing_id'] : 0;
+            $destination_name = trim((string) ($_POST['destination_name'] ?? ''));
             $is_create_request = $action === 'create'
                 || ($action === '' && $outgoing_id <= 0 && (
                     array_key_exists('subject', $_POST)
@@ -379,6 +392,10 @@ if (!function_exists('outgoing_index')) {
                 'requestedAction' => $action !== '' ? $action : ($is_create_request ? 'create' : 'unknown'),
                 'outgoingID' => $outgoing_id > 0 ? $outgoing_id : null,
             ];
+
+            if ($action === 'attach') {
+                $post_audit_payload['destinationName'] = $destination_name !== '' ? $destination_name : null;
+            }
 
             if ($is_create_request) {
                 $post_audit_payload['subject'] = $form_values['subject'] !== '' ? $form_values['subject'] : null;
@@ -463,7 +480,7 @@ if (!function_exists('outgoing_index')) {
                         ];
                     } else {
                         try {
-                            outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? []);
+                            outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? [], $destination_name);
                             $alert = [
                                 'type' => 'success',
                                 'title' => 'แนบไฟล์เรียบร้อย',
