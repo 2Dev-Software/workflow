@@ -42,7 +42,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/DBHub-logo2.png" alt="db-logo">
+            <img src="assets/img/DBsarabun_banner.png" alt="DB Sarabun">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>

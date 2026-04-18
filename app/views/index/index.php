@@ -67,7 +67,7 @@ if ($dh_year_value <= 0) {
 
             <footer class="footer-login">
                 <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
-                <p>DB HUB V.1.0.0 Copyright 2DEV&Software All rights reserved</p>
+                <p>DB-Sarabun</p>
                 <p>Paperless office พ.ศ.<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?></p>
             </footer>
 

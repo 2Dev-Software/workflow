@@ -409,6 +409,26 @@ if (!function_exists('order_get_for_owner')) {
     }
 }
 
+if (!function_exists('order_get_by_share_token')) {
+    function order_get_by_share_token(string $shareToken): ?array
+    {
+        $shareToken = trim($shareToken);
+
+        if ($shareToken === '') {
+            return null;
+        }
+
+        $sql = 'SELECT o.*, t.fName AS creatorName, t.fID AS creatorFID, f.fName AS creatorFactionName
+            FROM dh_orders AS o
+            LEFT JOIN teacher AS t ON o.createdByPID = t.pID
+            LEFT JOIN faction AS f ON t.fID = f.fID
+            WHERE o.shareToken = ? AND o.deletedAt IS NULL
+            LIMIT 1';
+
+        return db_fetch_one($sql, 's', $shareToken);
+    }
+}
+
 if (!function_exists('order_has_any_read')) {
     function order_has_any_read(int $orderID): bool
     {
@@ -712,6 +732,19 @@ if (!function_exists('order_get_attachments')) {
     }
 }
 
+if (!function_exists('order_get_attachment_for_share')) {
+    function order_get_attachment_for_share(int $orderID, int $fileID): ?array
+    {
+        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
+            FROM dh_file_refs AS r
+            INNER JOIN dh_files AS f ON r.fileID = f.fileID
+            WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND r.fileID = ? AND f.deletedAt IS NULL
+            LIMIT 1';
+
+        return db_fetch_one($sql, 'sssi', ORDER_MODULE_NAME, ORDER_ENTITY_NAME, (string) $orderID, $fileID);
+    }
+}
+
 if (!function_exists('order_get_read_stats')) {
     function order_get_read_stats(int $orderID, string $filter = 'all'): array
     {
@@ -770,7 +803,12 @@ if (!function_exists('order_list_drafts_page_filtered')) {
         $offset = max(0, $offset);
         $filter = order_build_owner_filters($pID, $filters, true);
         $order_by = order_owner_order_by((string) ($filter['sort'] ?? 'newest'));
-        $sql = 'SELECT o.orderID, o.orderNo, o.subject, o.detail, o.status, o.createdAt,
+        $has_share_columns = db_column_exists(db_connection(), 'dh_orders', 'shareToken')
+            && db_column_exists(db_connection(), 'dh_orders', 'shareCreatedAt');
+        $share_select = $has_share_columns
+            ? 'o.shareToken, o.shareCreatedAt,'
+            : 'NULL AS shareToken, NULL AS shareCreatedAt,';
+        $sql = 'SELECT o.orderID, o.orderNo, o.subject, o.detail, o.status, ' . $share_select . ' o.createdAt,
                 (SELECT COUNT(*) FROM dh_order_inboxes WHERE orderID = o.orderID) AS recipientCount,
                 (SELECT COUNT(*) FROM dh_order_inboxes WHERE orderID = o.orderID AND isRead = 1) AS readCount
             FROM dh_orders AS o
