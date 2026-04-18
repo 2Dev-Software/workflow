@@ -388,11 +388,14 @@ ob_start();
                             </div>
                             <br><br><br>
                         </div>
-                        <?php foreach ([
-                            'HEAD' => 'ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้',
-                            'DEPUTY' => 'ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ',
-                            'DIRECTOR' => 'ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน',
-                        ] as $stage_key => $stage_label) : ?>
+                        <br><br><br>
+                        <?php foreach (
+                            [
+                                'HEAD' => 'ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้',
+                                'DEPUTY' => 'ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ',
+                                'DIRECTOR' => 'ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน',
+                            ] as $stage_key => $stage_label
+                        ) : ?>
                             <div class="content-editor secondary" data-memo-stage-section="<?= h($stage_key) ?>" style="display: none;">
                                 <p><strong data-memo-stage-label="<?= h($stage_key) ?>"><?= h($stage_label) ?></strong></p>
                                 <br>
@@ -440,6 +443,8 @@ ob_start();
         </div>
     </div>
 </section>
+<div class="button-circular-notice-keep"></div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
 <script>
