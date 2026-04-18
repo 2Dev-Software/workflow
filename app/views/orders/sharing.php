@@ -67,137 +67,95 @@ if ($item) {
 <!DOCTYPE html>
 <html lang="th">
 <?php require __DIR__ . '/../../../public/components/x-head.php'; ?>
+
 <body class="orders-sharing-public">
-    <style>
-        .orders-sharing-public {
-            background: #f4f7fb;
-            min-height: 100vh;
-        }
-
-        .orders-sharing-shell {
-            width: min(1080px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 40px 0;
-        }
-
-        .orders-sharing-shell .content-header {
-            margin-bottom: 18px;
-        }
-
-        .orders-sharing-shell .enterprise-card {
-            background: #fff;
-        }
-
-        .orders-sharing-notice {
-            color: #5d6b8a;
-            margin: 4px 0 0;
-        }
-    </style>
-
     <main class="orders-sharing-shell">
         <div class="content-header">
-            <h1>คำสั่งราชการ</h1>
-            <p>ลิงก์สาธารณะสำหรับแชร์คำสั่งราชการ</p>
+            <h1>คำสั่งราชการที่ 1/2569</h1>
         </div>
 
-        <section class="enterprise-card orders-view-card" data-orders-sharing>
-            <?php if (!$item) : ?>
-                <div class="enterprise-card-header">
-                    <div class="enterprise-card-title-group">
-                        <h2 class="enterprise-card-title">ไม่พบคำสั่งราชการ</h2>
-                        <p class="enterprise-card-subtitle">ลิงก์นี้ไม่ถูกต้อง หรือรายการถูกยกเลิกการใช้งานแล้ว</p>
-                    </div>
+        <main class="content-sharing-card">
+            <div class="header">
+                <p>แต่งตั้งรักษาการแทนผู้อำนวยการโรงเรียน</p>
+            </div>
+            <div class="sharing-row">
+                <div class="group">
+                    <label for="">ทั้งนี้ตั้งแต่วันที่</label>
+                    <p>วันที่ 17 มีนาคม พ.ศ. 2568</p>
                 </div>
-            <?php else : ?>
-                <div class="enterprise-card-header">
-                    <div class="enterprise-card-title-group">
-                        <h2 class="enterprise-card-title"><?= h((string) ($item['subject'] ?? 'คำสั่งราชการ')) ?></h2>
-                        <p class="enterprise-card-subtitle">ข้อมูลคำสั่งราชการจากระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
-                    </div>
+                <div class="group">
+                    <label for="">สั้ง ณ วันที่</label>
+                    <p>วันที่ 17 มีนาคม พ.ศ. 2568</p>
                 </div>
-
-                <div class="enterprise-info">
-                    <div class="enterprise-info-row">
-                        <span class="enterprise-info-label">เลขที่คำสั่ง</span>
-                        <span class="enterprise-info-value"><?= h((string) ($item['orderNo'] ?? '-')) ?></span>
-                    </div>
-                    <div class="enterprise-info-row">
-                        <span class="enterprise-info-label">เรื่อง</span>
-                        <span class="enterprise-info-value"><?= h((string) ($item['subject'] ?? '-')) ?></span>
-                    </div>
-                    <div class="enterprise-info-row">
-                        <span class="enterprise-info-label">ผู้ออกคำสั่ง</span>
-                        <span class="enterprise-info-value"><?= h((string) ($item['creatorName'] ?? '-')) ?></span>
-                    </div>
-                    <div class="enterprise-info-row">
-                        <span class="enterprise-info-label">กลุ่ม/ฝ่าย</span>
-                        <span class="enterprise-info-value"><?= h((string) ($item['creatorFactionName'] ?? '-')) ?></span>
-                    </div>
-                    <div class="enterprise-info-row">
-                        <span class="enterprise-info-label">วันที่สร้างรายการ</span>
-                        <span class="enterprise-info-value"><?= h($format_thai_datetime((string) ($item['createdAt'] ?? ''))) ?></span>
-                    </div>
+            </div>
+            <div class="sharing-row">
+                <div class="group">
+                    <label for="">ผู้ออกคำสั่ง</label>
+                    <p>นางสาวทิพยรัต์ บุญมณี</p>
                 </div>
-
-                <div class="enterprise-divider"></div>
-
-                <div class="enterprise-panel">
-                    <p><strong>รายละเอียด</strong></p>
-                    <?php if ($detail_lines === []) : ?>
-                        <p>-</p>
-                    <?php else : ?>
-                        <?php foreach ($detail_lines as $line) : ?>
-                            <p><?= h($line) ?></p>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <div class="group">
+                    <label for="">กลุ่ม/ฝ่าย</label>
+                    <p>กลุ่มบริหารงานทั่วไป</p>
                 </div>
-
-                <div class="enterprise-divider"></div>
-
-                <div class="enterprise-panel">
-                    <p><strong>ไฟล์แนบ</strong></p>
-                    <?php if ($attachments === []) : ?>
-                        <p class="orders-sharing-notice">ไม่มีไฟล์แนบ</p>
-                    <?php else : ?>
-                        <div class="table-responsive">
-                            <table class="custom-table booking-table">
-                                <thead>
-                                    <tr>
-                                        <th>ชื่อไฟล์</th>
-                                        <th>ประเภท</th>
-                                        <th>ขนาด</th>
-                                        <th>จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($attachments as $file) : ?>
-                                        <?php
-                                        $file_id = (int) ($file['fileID'] ?? 0);
-                                        $file_href = 'orders-sharing-file.php?token=' . rawurlencode($share_token) . '&file_id=' . rawurlencode((string) $file_id);
-                                        ?>
-                                        <tr>
-                                            <td><?= h((string) ($file['fileName'] ?? '-')) ?></td>
-                                            <td><?= h((string) ($file['mimeType'] ?? '-')) ?></td>
-                                            <td><?= h($format_size((int) ($file['fileSize'] ?? 0))) ?></td>
-                                            <td>
-                                                <a class="booking-action-btn secondary" href="<?= h($file_href) ?>" target="_blank" rel="noopener">
-                                                    <i class="fa-solid fa-eye"></i>
-                                                    <span class="tooltip">ดูไฟล์</span>
-                                                </a>
-                                                <a class="booking-action-btn secondary" href="<?= h($file_href . '&download=1') ?>">
-                                                    <i class="fa-solid fa-download"></i>
-                                                    <span class="tooltip">ดาวน์โหลด</span>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+            </div>
+            <div class="sharing-row">
+                <div class="group">
+                    <label for="">วันที่สร้างรายการ</label>
+                    <p>วันที่ 3 มีนาคม พ.ศ. 2569 เวลา 16:35 น.</p>
                 </div>
-            <?php endif; ?>
-        </section>
+            </div>
+
+            <hr>
+
+            <section class="sharing-table">
+                <div class="header">
+                    <p>ไฟล์เอกสารแนบจากระบบ</p>
+                    <a href="#">ดาวน์โหลดไฟล์ทั้งหมด</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table booking-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อไฟล์</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>WorkSheet_5+-=Pre-campaign+insight+_page-0001.jpg</td>
+                                <td>
+                                    <a class="booking-action-btn secondary" href="<?= h($file_href) ?>" target="_blank" rel="noopener">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span class="tooltip">ดูไฟล์</span>
+                                    </a>
+                                    <a class="booking-action-btn secondary" href="<?= h($file_href . '&download=1') ?>">
+                                        <i class="fa-solid fa-download"></i>
+                                        <span class="tooltip">ดาวน์โหลด</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Worksheet_6-+Pre-campaign+.pdf</td>
+                                <td>
+                                    <a class="booking-action-btn secondary" href="<?= h($file_href) ?>" target="_blank" rel="noopener">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span class="tooltip">ดูไฟล์</span>
+                                    </a>
+                                    <a class="booking-action-btn secondary" href="<?= h($file_href . '&download=1') ?>">
+                                        <i class="fa-solid fa-download"></i>
+                                        <span class="tooltip">ดาวน์โหลด</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+
     </main>
 </body>
+
 </html>
