@@ -26,11 +26,11 @@ if ($dh_year_value <= 0) {
         <div class="container-login-section">
 
             <header class="header-login">
-                <div class="container-notification-toggle">
+                <!-- <div class="container-notification-toggle">
                     <button type="button" id="toggleNewsBtn">
                         ดูข่าวประชาสัมพันธ์ <i class="fa-solid fa-bullhorn"></i>
                     </button>
-                </div>
+                </div> -->
                 <div class="logo-login">
                     <img src="assets/img/favicon/deebuk-logo.png" alt="DB-logo">
                 </div>
@@ -71,13 +71,20 @@ if ($dh_year_value <= 0) {
                 <p>Paperless office พ.ศ.<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?></p>
             </footer>
 
+            <div class="slide-down">
+                <span>เลื่อนลงเพื่อดูข่าวประชาสัมพันธ์</span>
+                <i class="fa-solid fa-angle-down"></i>
+            </div>
+
         </div>
 
         <aside class="container-notification-section" id="notificationSection">
 
             <header class="announcement-bar">
-                <i class="fa-solid fa-bullhorn"></i>
-                <p><?= htmlspecialchars($exec_duty_announcement, ENT_QUOTES, 'UTF-8') ?></p>
+                <img src="public/assets/img/icon/demostration.png" alt="">
+                <!-- <p><? //= htmlspecialchars($exec_duty_announcement, ENT_QUOTES, 'UTF-8') 
+                        ?></p> -->
+                <p>วันนี้ <b>นางสาวศริญญา ผั้วผดุง</b> รองผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน รักษาราชการแทน</p>
                 <div class="close-news-section">
                     <i class="fa-solid fa-xmark" id="closeNewsBtn"></i>
                 </div>
@@ -85,14 +92,19 @@ if ($dh_year_value <= 0) {
 
             <div class="news-bar">
                 <div class="header-news-bar">
-                    <p>ข่าวประชาสัมพันธ์</p>
+                    <div>
+                        <img src="public/assets/img/icon/news-paper.png" alt="">
+                        <p>ข่าวประชาสัมพันธ์</p>
+                    </div>
                     <a href="#">ดูข่าวทั้งหมด</a>
                 </div>
 
                 <div class="details-news-bar">
                     <ul>
                         <?php if (empty($announcement_items)) : ?>
-                            <li><p>ยังไม่มีข่าวประชาสัมพันธ์</p></li>
+                            <li>
+                                <p>ยังไม่มีข่าวประชาสัมพันธ์</p>
+                            </li>
                         <?php else : ?>
                             <?php foreach ($announcement_items as $announcement) : ?>
                                 <li>

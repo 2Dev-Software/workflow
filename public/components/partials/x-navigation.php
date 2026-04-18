@@ -11,7 +11,8 @@ if ($dh_year_value === '' || !is_numeric($dh_year_value)) {
 ?>
 <nav class="navigation-bar">
     <div class="nav-user-info">
-        <p>สวัสดี, <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+        <!-- <p>สวัสดี, <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></p> -->
+         <p>วันนี้ <b>นางสาวศริญญา  ผั้วผดุง</b> รักษาราชการแทน</p>
         <p>ปีสารบรรณ <?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?></p>
     </div>
 </nav>
