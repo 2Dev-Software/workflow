@@ -600,8 +600,7 @@ select {
 }
 
 .header-login .logo-login img {
-  width: calc(28px + 5vw);
-  height: calc(28px + 5vw);
+  width: calc(62px + 15vw);
 }
 
 .header-login .text-header-login {
@@ -1344,20 +1343,18 @@ select {
 }
 
 .modal-header {
-  /* padding: 0 0 24px 0; */
-  padding: 0 40px;
-  /* border-bottom: 6px solid var(--color-secondary); */
+  margin: 0 40px;
+  border-bottom: 2px solid var(--color-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* background-color: var(--color-neutral-lightest); */
-  background-color: var(--color-secondary);
+  background-color: var(--color-neutral-lightest);
   min-height: 80px;
 }
 
 .modal-title {
   font-size: var(--font-size-body-1);
-  font-weight: normal;
+  font-weight: bold;
   color: var(--color-secondary);
   display: flex;
   align-items: baseline;
@@ -1366,7 +1363,7 @@ select {
 
 .close-modal-btn {
   font-size: var(--font-size-body-1);
-  color: var(--color-neutral-lightest);
+  color: var(--color-secondary);
   cursor: pointer;
   transition: 0.4s;
   display: flex;
@@ -16012,13 +16009,13 @@ label {
 
   .close-news-section i {
     font-size: 1.5rem;
-    color: white;
+    color: var(--color-neutral-lightest);
     cursor: pointer;
   }
 
   .announcement-bar {
-    width: 85%;
-    color: white;
+    width: 100%;
+    color: var(--color-neutral-lightest);
     text-align: center;
     margin-bottom: 0px;
     display: flex;
@@ -16280,6 +16277,7 @@ label {
     align-items: center;
     background-color: var(--color-neutral-lightest);
     min-height: 40px;
+    margin: 0;
   }
 
   .modal-title {
@@ -25785,13 +25783,13 @@ label {
   }
 
   .container-notification-section .announcement-bar img {
-    width: 10px;
-    height: 10px;
+    width: 15px;
+    height: 15px;
     margin: 0 10px 0 0;
   }
 
   .container-notification-section .announcement-bar p {
-    font-size: var(--font-size-desc-3);
+    font-size: var(--font-size-desc-4);
   }
 
   .header-news-bar div img {
@@ -25938,12 +25936,6 @@ label {
     width: 100%;
   }
 
-  .container-calendar .calendar {
-    background-color: white;
-    border-radius: 16px;
-    padding: 20px;
-  }
-
   /* CALENDAR */
   .container-calendar {
     display: flex;
@@ -25960,7 +25952,7 @@ label {
     flex-direction: column;
     padding: calc(3px + 1vw);
     background-color: var(--color-neutral-lightest);
-    border-radius: 16px;
+    border-radius: 8px;
     box-shadow: 4px 4px 12px 0 rgba(var(--rgb-neutral-lightest), 0.25);
   }
 
@@ -26134,6 +26126,7 @@ label {
     align-items: center;
     background-color: var(--color-neutral-lightest);
     min-height: 30px;
+    margin: 0;
   }
 
   .modal-title {

@@ -32,7 +32,7 @@ if ($dh_year_value <= 0) {
                     </button>
                 </div> -->
                 <div class="logo-login">
-                    <img src="assets/img/favicon/deebuk-logo.png" alt="DB-logo">
+                    <img src="assets/img/DBsarabun-logo1.png" alt="DB-logo">
                 </div>
                 <div class="text-header-login">
                     <h3>ระบบสำนักงานอิเล็กทรอนิกส์</h3>
