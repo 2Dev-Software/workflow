@@ -12,6 +12,7 @@ $vehicle_staff_members = (array) ($vehicle_staff_members ?? []);
 $vehicle_candidate_members = (array) ($vehicle_candidate_members ?? []);
 $vehicle_staff_count = (int) ($vehicle_staff_count ?? count($vehicle_staff_members));
 $vehicle_candidate_count = (int) ($vehicle_candidate_count ?? count($vehicle_candidate_members));
+$vehicle_approval_status = (string) ($vehicle_approval_status ?? 'all');
 
 $form_values = array_merge([
     'vehicleType' => '',
@@ -297,8 +298,8 @@ ob_start();
                                         <div class="room-admin-member-subtext"><?= h($member_department) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td><span class="room-admin-member-tag"><?= h($member_role !== '' ? $member_role : '-') ?></span></td>
-                                <td><span class="member-status-pill">อยู่ในทีมแล้ว</span></td>
+                                <td><span class="room-admin-member-tag">เจ้าหน้าที่ยานพาหนะ</span></td>
+                                <td><span class="member-status-pill">กำลังปฏิบัติหน้าที่</span></td>
                                 <td>
                                     <div class="booking-action-group">
                                         <form class="booking-action-form" data-member-remove-form method="POST"

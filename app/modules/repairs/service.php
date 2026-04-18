@@ -6,7 +6,12 @@ require_once __DIR__ . '/repository.php';
 require_once __DIR__ . '/../../services/uploads.php';
 require_once __DIR__ . '/../system/system.php';
 require_once __DIR__ . '/../audit/logger.php';
+require_once __DIR__ . '/../../rbac/roles.php';
 require_once __DIR__ . '/../../db/db.php';
+
+const REPAIR_STAFF_ROLE_ID = 7;
+const REPAIR_STAFF_ROLE_NAME = 'เจ้าหน้าที่ซ่อมแซม';
+const REPAIR_STAFF_FALLBACK_ROLE_ID = 6;
 
 if (!function_exists('repair_form_defaults')) {
     function repair_form_defaults(): array
@@ -99,6 +104,143 @@ if (!function_exists('repair_build_audit_payload')) {
     }
 }
 
+if (!function_exists('repair_staff_role_id')) {
+    function repair_staff_role_id(): int
+    {
+        $connection = db_connection();
+        $role_ids = rbac_resolve_role_ids($connection, ROLE_REPAIR);
+
+        foreach ($role_ids as $role_id) {
+            $role_id = (int) $role_id;
+
+            if ($role_id > 0) {
+                return $role_id;
+            }
+        }
+
+        return REPAIR_STAFF_ROLE_ID;
+    }
+}
+
+if (!function_exists('repair_map_staff_member')) {
+    function repair_map_staff_member(array $row): array
+    {
+        $name = trim((string) ($row['fName'] ?? ''));
+
+        return [
+            'pID' => (string) ($row['pID'] ?? ''),
+            'name' => $name !== '' ? $name : 'ไม่ระบุชื่อ',
+            'position_name' => trim((string) ($row['position_name'] ?? '')),
+            'role_name' => trim((string) ($row['role_name'] ?? '')),
+            'department_name' => trim((string) ($row['department_name'] ?? '')),
+            'telephone' => trim((string) ($row['telephone'] ?? '')),
+        ];
+    }
+}
+
+if (!function_exists('repair_staff_members')) {
+    function repair_staff_members(): array
+    {
+        $connection = db_connection();
+        $position = system_position_join($connection, 't', 'p');
+        $role_name_select = rbac_role_names_select('t') . ' AS role_name';
+        $staff_role_id = repair_staff_role_id();
+        $staff_role_condition = rbac_csv_role_condition('t.roleID', 1);
+        $rows = db_fetch_all(
+            'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
+                ' . $position['name'] . ' AS position_name,
+                ' . $role_name_select . ',
+                d.dName AS department_name
+             FROM teacher AS t
+             ' . $position['join'] . '
+             LEFT JOIN department AS d ON t.dID = d.dID
+             WHERE t.status = 1 AND ' . $staff_role_condition . '
+             ORDER BY t.fName ASC, t.pID ASC',
+            'i',
+            $staff_role_id
+        );
+
+        return array_map('repair_map_staff_member', $rows);
+    }
+}
+
+if (!function_exists('repair_staff_candidates')) {
+    function repair_staff_candidates(): array
+    {
+        $connection = db_connection();
+        $position = system_position_join($connection, 't', 'p');
+        $role_name_select = rbac_role_names_select('t') . ' AS role_name';
+        $staff_role_id = repair_staff_role_id();
+        $staff_role_condition = rbac_csv_role_condition('t.roleID', 1);
+        $rows = db_fetch_all(
+            'SELECT t.pID, t.fName, t.positionID, t.roleID, t.telephone,
+                ' . $position['name'] . ' AS position_name,
+                ' . $role_name_select . ',
+                d.dName AS department_name
+             FROM teacher AS t
+             ' . $position['join'] . '
+             LEFT JOIN department AS d ON t.dID = d.dID
+             WHERE t.status = 1 AND NOT ' . $staff_role_condition . '
+             ORDER BY t.fName ASC, t.pID ASC',
+            'i',
+            $staff_role_id
+        );
+
+        return array_map('repair_map_staff_member', $rows);
+    }
+}
+
+if (!function_exists('repair_assign_staff_role')) {
+    function repair_assign_staff_role(string $member_pid): bool
+    {
+        $member_pid = trim($member_pid);
+
+        if ($member_pid === '') {
+            return false;
+        }
+
+        $connection = db_connection();
+
+        return rbac_add_teacher_role_id($connection, $member_pid, repair_staff_role_id());
+    }
+}
+
+if (!function_exists('repair_remove_staff_role')) {
+    function repair_remove_staff_role(string $member_pid): bool
+    {
+        $member_pid = trim($member_pid);
+
+        if ($member_pid === '') {
+            return false;
+        }
+
+        $connection = db_connection();
+
+        return rbac_remove_teacher_role_id($connection, $member_pid, repair_staff_role_id(), REPAIR_STAFF_FALLBACK_ROLE_ID);
+    }
+}
+
+if (!function_exists('repair_staff_position_id')) {
+    function repair_staff_position_id(): int
+    {
+        return repair_staff_role_id();
+    }
+}
+
+if (!function_exists('repair_assign_staff_position')) {
+    function repair_assign_staff_position(string $member_pid): bool
+    {
+        return repair_assign_staff_role($member_pid);
+    }
+}
+
+if (!function_exists('repair_remove_staff_position')) {
+    function repair_remove_staff_position(string $member_pid): bool
+    {
+        return repair_remove_staff_role($member_pid);
+    }
+}
+
 if (!function_exists('repair_timeline_status_label')) {
     function repair_timeline_status_label(string $status): string
     {
@@ -173,10 +315,11 @@ if (!function_exists('repair_get_timeline')) {
         }
 
         $rows = db_fetch_all(
-            'SELECT logID, actorPID, actionName, logMessage, payloadData, created_at
-             FROM dh_logs
-             WHERE moduleName = ? AND actionName = ? AND actionStatus = ? AND entityName = ? AND entityID = ?
-             ORDER BY created_at ASC, logID ASC',
+            'SELECT l.logID, l.actorPID, COALESCE(actor.fName, "") AS actorName, l.actionName, l.logMessage, l.payloadData, l.created_at
+             FROM dh_logs AS l
+             LEFT JOIN teacher AS actor ON l.actorPID = actor.pID
+             WHERE l.moduleName = ? AND l.actionName = ? AND l.actionStatus = ? AND l.entityName = ? AND l.entityID = ?
+             ORDER BY l.created_at ASC, l.logID ASC',
             'ssssi',
             'repairs',
             'TIMELINE',
@@ -195,6 +338,7 @@ if (!function_exists('repair_get_timeline')) {
             return [
                 'logID' => (int) ($row['logID'] ?? 0),
                 'actorPID' => (string) ($row['actorPID'] ?? ''),
+                'actorName' => (string) ($row['actorName'] ?? ''),
                 'title' => (string) ($row['logMessage'] ?? ''),
                 'event' => (string) ($payload['event'] ?? ''),
                 'fromStatus' => (string) ($payload['fromStatus'] ?? ''),
@@ -205,6 +349,129 @@ if (!function_exists('repair_get_timeline')) {
                 'payload' => $payload,
             ];
         }, $rows);
+    }
+}
+
+if (!function_exists('repair_get_timeline_map')) {
+    function repair_get_timeline_map(array $repair_ids): array
+    {
+        $repair_ids = array_values(array_unique(array_filter(array_map('intval', $repair_ids), static function (int $repair_id): bool {
+            return $repair_id > 0;
+        })));
+
+        if ($repair_ids === []) {
+            return [];
+        }
+
+        $connection = db_connection();
+
+        if (!db_table_exists($connection, 'dh_logs')) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($repair_ids), '?'));
+        $rows = db_fetch_all(
+            'SELECT l.entityID, l.logID, l.actorPID, COALESCE(actor.fName, "") AS actorName, l.actionName, l.logMessage, l.payloadData, l.created_at
+             FROM dh_logs AS l
+             LEFT JOIN teacher AS actor ON l.actorPID = actor.pID
+             WHERE l.moduleName = ? AND l.actionName = ? AND l.actionStatus = ? AND l.entityName = ? AND l.entityID IN (' . $placeholders . ')
+             ORDER BY l.entityID ASC, l.created_at ASC, l.logID ASC',
+            'ssss' . str_repeat('i', count($repair_ids)),
+            'repairs',
+            'TIMELINE',
+            'SUCCESS',
+            REPAIR_ENTITY_NAME,
+            ...$repair_ids
+        );
+
+        $timeline_map = [];
+
+        foreach ($rows as $row) {
+            $repair_id = (int) ($row['entityID'] ?? 0);
+
+            if ($repair_id <= 0) {
+                continue;
+            }
+
+            $payload = json_decode((string) ($row['payloadData'] ?? ''), true);
+
+            if (!is_array($payload)) {
+                $payload = [];
+            }
+
+            $timeline_map[$repair_id][] = [
+                'logID' => (int) ($row['logID'] ?? 0),
+                'actorPID' => (string) ($row['actorPID'] ?? ''),
+                'actorName' => (string) ($row['actorName'] ?? ''),
+                'title' => (string) ($row['logMessage'] ?? ''),
+                'event' => (string) ($payload['event'] ?? ''),
+                'fromStatus' => (string) ($payload['fromStatus'] ?? ''),
+                'fromLabel' => (string) ($payload['fromLabel'] ?? ''),
+                'toStatus' => (string) ($payload['toStatus'] ?? ''),
+                'toLabel' => (string) ($payload['toLabel'] ?? ''),
+                'createdAt' => (string) ($row['created_at'] ?? ''),
+                'payload' => $payload,
+            ];
+        }
+
+        return $timeline_map;
+    }
+}
+
+if (!function_exists('repair_get_latest_timeline_notes_map')) {
+    function repair_get_latest_timeline_notes_map(array $repair_ids): array
+    {
+        $repair_ids = array_values(array_unique(array_filter(array_map('intval', $repair_ids), static function (int $repair_id): bool {
+            return $repair_id > 0;
+        })));
+
+        if ($repair_ids === []) {
+            return [];
+        }
+
+        $connection = db_connection();
+
+        if (!db_table_exists($connection, 'dh_logs')) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($repair_ids), '?'));
+        $rows = db_fetch_all(
+            'SELECT entityID, payloadData
+             FROM dh_logs
+             WHERE moduleName = ? AND actionName = ? AND actionStatus = ? AND entityName = ? AND entityID IN (' . $placeholders . ')
+             ORDER BY created_at DESC, logID DESC',
+            'ssss' . str_repeat('i', count($repair_ids)),
+            'repairs',
+            'TIMELINE',
+            'SUCCESS',
+            REPAIR_ENTITY_NAME,
+            ...$repair_ids
+        );
+
+        $notes = [];
+
+        foreach ($rows as $row) {
+            $repair_id = (int) ($row['entityID'] ?? 0);
+
+            if ($repair_id <= 0 || array_key_exists($repair_id, $notes)) {
+                continue;
+            }
+
+            $payload = json_decode((string) ($row['payloadData'] ?? ''), true);
+
+            if (!is_array($payload)) {
+                continue;
+            }
+
+            $note = trim((string) ($payload['note'] ?? ''));
+
+            if ($note !== '') {
+                $notes[$repair_id] = $note;
+            }
+        }
+
+        return $notes;
     }
 }
 

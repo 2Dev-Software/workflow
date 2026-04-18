@@ -185,7 +185,7 @@ if (!function_exists('outgoing_create_draft')) {
 }
 
 if (!function_exists('outgoing_attach_files')) {
-    function outgoing_attach_files(int $outgoingID, string $actorPID, array $files): void
+    function outgoing_attach_files(int $outgoingID, string $actorPID, array $files, ?string $destinationName = null): void
     {
         $outgoing = outgoing_get($outgoingID);
 
@@ -198,6 +198,7 @@ if (!function_exists('outgoing_attach_files')) {
 
         $status = (string) ($outgoing['status'] ?? '');
         $existing_count = count(outgoing_get_attachments($outgoingID));
+        $destination_name = trim((string) $destinationName);
 
         if ($status !== OUTGOING_STATUS_WAITING_ATTACHMENT) {
             audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'invalid_status_for_attach', outgoing_audit_payload([
@@ -221,6 +222,7 @@ if (!function_exists('outgoing_attach_files')) {
             'currentStatus' => $status,
             'existingAttachmentCount' => $existing_count,
             'incomingAttachmentCount' => $incoming_attachment_count,
+            'destinationName' => $destination_name,
         ]);
 
         if (empty($normalized_files)) {
@@ -241,10 +243,16 @@ if (!function_exists('outgoing_attach_files')) {
             upload_store_files($files, OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID, $actorPID, [
                 'max_files' => 5,
             ]);
-            outgoing_update_record($outgoingID, [
+            $update_data = [
                 'status' => OUTGOING_STATUS_COMPLETE,
                 'updatedByPID' => $actorPID,
-            ]);
+            ];
+
+            if (outgoing_has_destination_name_column()) {
+                $update_data['destinationName'] = $destination_name;
+            }
+
+            outgoing_update_record($outgoingID, $update_data);
             outgoing_sync_document($outgoingID);
             $updated_outgoing = outgoing_get($outgoingID) ?? $outgoing;
             $stored_attachments = outgoing_get_attachments($outgoingID);

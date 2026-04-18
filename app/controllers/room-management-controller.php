@@ -13,11 +13,16 @@ if (!function_exists('room_management_index')) {
     function room_management_index(): void
     {
         $current_user = current_user() ?? [];
+        $current_pid = trim((string) ($current_user['pID'] ?? ($_SESSION['pID'] ?? '')));
         $current_role_id = (int) ($current_user['roleID'] ?? 0);
+        $connection = db_connection();
+        $can_manage_rooms = in_array($current_role_id, [1, 5], true)
+            || ($current_pid !== '' && rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN, ROLE_FACILITY]));
 
-        if (!in_array($current_role_id, [1, 5], true)) {
+        if (!$can_manage_rooms) {
             if (function_exists('audit_log')) {
                 audit_log('room', 'MANAGEMENT_ACCESS', 'DENY', null, null, 'not_authorized_role', [
+                    'pID' => $current_pid !== '' ? $current_pid : null,
                     'roleID' => $current_role_id,
                 ]);
             }

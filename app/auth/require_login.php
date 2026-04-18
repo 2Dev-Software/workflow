@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../rbac/roles.php';
 
 if (!function_exists('redirect_to_login')) {
     function redirect_to_login(): void
@@ -52,11 +53,11 @@ if (!function_exists('require_login')) {
             redirect_to_login();
         }
 
-        $teacher_role_id = (int) ($role_row['roleID'] ?? 0);
+        $teacher_role_ids = rbac_parse_role_ids($role_row['roleID'] ?? '');
         $status_row = db_fetch_one('SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1');
         $dh_status = $status_row ? (int) ($status_row['dh_status'] ?? 1) : 1;
 
-        if ($dh_status !== 1 && $teacher_role_id !== 1) {
+        if ($dh_status !== 1 && !in_array(1, $teacher_role_ids, true)) {
             redirect_to_login();
         }
     }

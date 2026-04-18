@@ -35578,3 +35578,7 @@ label {
   margin: 0;
   white-space: nowrap;
 }
+
+.repair-management-card .room-admin-member-subtext {
+  color: #000;
+}

@@ -112,6 +112,13 @@ if (!function_exists('repairs_track_status_filters')) {
     }
 }
 
+if (!function_exists('repairs_default_filter_status')) {
+    function repairs_default_filter_status(string $mode): string
+    {
+        return 'all';
+    }
+}
+
 if (!function_exists('repairs_resolve_filter_statuses')) {
     function repairs_resolve_filter_statuses(string $filter_status): array
     {
@@ -306,15 +313,19 @@ if (!function_exists('repairs_handle_mode')) {
         $config = repairs_mode_config($mode);
         $current_user = current_user() ?? [];
         $current_pid = (string) ($current_user['pID'] ?? '');
+        $current_role_ids = rbac_parse_role_ids($current_user['roleID'] ?? '');
         $connection = db_connection();
         $has_table = db_table_exists($connection, 'dh_repair_requests');
         $has_equipment_column = $has_table && db_column_exists($connection, 'dh_repair_requests', 'equipment');
+        $repair_staff_role_id = repair_staff_role_id();
 
         $is_admin = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN)
-            || (int) ($current_user['roleID'] ?? 0) === 1;
+            || in_array(1, $current_role_ids, true);
         $is_facility = $is_admin
             || rbac_user_has_role($connection, $current_pid, ROLE_FACILITY)
-            || (int) ($current_user['roleID'] ?? 0) === 5;
+            || in_array(5, $current_role_ids, true)
+            || rbac_user_has_role($connection, $current_pid, ROLE_REPAIR)
+            || in_array($repair_staff_role_id, $current_role_ids, true);
 
         $audit_request_payload = static function (array $payload = []) use ($mode, $current_pid, $is_admin, $is_facility): array {
             return repairs_controller_audit_payload($mode, array_merge([
@@ -348,13 +359,10 @@ if (!function_exists('repairs_handle_mode')) {
         $view_attachments = [];
         $edit_item = null;
         $edit_attachments = [];
-
-        if ($mode === 'approval' && !array_key_exists('status', $_REQUEST)) {
-            $filter_status = 'pending';
-        }
+        $default_filter_status = repairs_default_filter_status($mode);
 
         if (!isset($status_filter_options[$filter_status])) {
-            $filter_status = $mode === 'approval' ? 'pending' : 'all';
+            $filter_status = $default_filter_status;
         }
 
         if (!in_array($filter_sort, ['newest', 'oldest'], true)) {
@@ -443,12 +451,16 @@ if (!function_exists('repairs_handle_mode')) {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = (string) ($_POST['action'] ?? 'create');
+            $member_action = trim((string) ($_POST['member_action'] ?? ''));
+            $member_pid = trim((string) ($_POST['member_pid'] ?? ''));
             $repair_id = (int) ($_POST['repair_id'] ?? 0);
             $target_status = trim((string) ($_POST['target_status'] ?? ''));
             $transition_note = trim((string) ($_POST['transition_note'] ?? ''));
             $values = repair_normalize_form_data($_POST);
             $post_audit_payload = [
                 'repairID' => $repair_id > 0 ? $repair_id : null,
+                'memberAction' => $member_action !== '' ? $member_action : null,
+                'memberPID' => $member_pid !== '' ? $member_pid : null,
                 'targetStatus' => $target_status !== '' ? $target_status : null,
                 'transitionNote' => $transition_note !== '' ? $transition_note : null,
                 'transitionNoteLength' => $transition_note !== ''
@@ -471,6 +483,76 @@ if (!function_exists('repairs_handle_mode')) {
                     'message' => 'กรุณาลองใหม่อีกครั้ง',
                 ];
                 audit_log('security', 'CSRF_FAIL', 'DENY', REPAIR_ENTITY_NAME, $repair_id > 0 ? $repair_id : null, 'repairs_controller', $audit_request_payload($post_audit_payload));
+            } elseif ($mode === 'manage' && $member_action !== '') {
+                $staff_role_id = repair_staff_role_id();
+
+                if ($member_pid === '' || !preg_match('/^[A-Za-z0-9]{1,64}$/', $member_pid)) {
+                    audit_log('repairs', 'REPAIR_STAFF_MANAGE', 'FAIL', 'teacher', null, 'invalid_member_pid', array_merge($post_audit_payload, [
+                        'staffRoleID' => $staff_role_id,
+                    ]));
+                    flash_set('repairs_alert', [
+                        'type' => 'danger',
+                        'title' => 'ข้อมูลไม่ถูกต้อง',
+                        'message' => 'ไม่พบรหัสบุคลากรที่ต้องการ',
+                    ]);
+                } else {
+                    try {
+                        if ($member_action === 'add') {
+                            $updated = repair_assign_staff_role($member_pid);
+                            audit_log('repairs', 'ASSIGN_REPAIR_STAFF', $updated ? 'SUCCESS' : 'FAIL', 'teacher', null, $updated ? null : 'no_rows_affected', array_merge($post_audit_payload, [
+                                'staffRoleID' => $staff_role_id,
+                                'actorPID' => $current_pid !== '' ? $current_pid : null,
+                            ]));
+                            flash_set('repairs_alert', $updated ? [
+                                'type' => 'success',
+                                'title' => 'เพิ่มสมาชิกสำเร็จ',
+                                'message' => 'อัปเดตสิทธิ์เป็นเจ้าหน้าที่ซ่อมแซมแล้ว',
+                            ] : [
+                                'type' => 'warning',
+                                'title' => 'ไม่สามารถเพิ่มสมาชิก',
+                                'message' => 'บุคลากรนี้อาจถูกเพิ่มแล้วหรือไม่อยู่ในระบบ',
+                            ]);
+                        } elseif ($member_action === 'remove') {
+                            $updated = repair_remove_staff_role($member_pid);
+                            audit_log('repairs', 'REMOVE_REPAIR_STAFF', $updated ? 'SUCCESS' : 'FAIL', 'teacher', null, $updated ? null : 'no_rows_affected', array_merge($post_audit_payload, [
+                                'staffRoleID' => $staff_role_id,
+                                'fallbackRoleID' => REPAIR_STAFF_FALLBACK_ROLE_ID,
+                                'actorPID' => $current_pid !== '' ? $current_pid : null,
+                            ]));
+                            flash_set('repairs_alert', $updated ? [
+                                'type' => 'success',
+                                'title' => 'ลบสมาชิกสำเร็จ',
+                                'message' => 'นำสิทธิ์เจ้าหน้าที่ซ่อมแซมออกแล้ว',
+                            ] : [
+                                'type' => 'warning',
+                                'title' => 'ไม่สามารถลบสมาชิก',
+                                'message' => 'ไม่พบบุคลากรในสิทธิ์เจ้าหน้าที่ซ่อมแซม',
+                            ]);
+                        } else {
+                            audit_log('repairs', 'REPAIR_STAFF_MANAGE', 'FAIL', 'teacher', null, 'invalid_member_action', array_merge($post_audit_payload, [
+                                'staffRoleID' => $staff_role_id,
+                            ]));
+                            flash_set('repairs_alert', [
+                                'type' => 'danger',
+                                'title' => 'ข้อมูลไม่ถูกต้อง',
+                                'message' => 'ไม่พบคำสั่งที่ต้องการ',
+                            ]);
+                        }
+                    } catch (Throwable $exception) {
+                        audit_log('repairs', 'REPAIR_STAFF_MANAGE', 'FAIL', 'teacher', null, $exception->getMessage(), array_merge($post_audit_payload, [
+                            'staffRoleID' => $staff_role_id,
+                            'actorPID' => $current_pid !== '' ? $current_pid : null,
+                        ]));
+                        flash_set('repairs_alert', [
+                            'type' => 'danger',
+                            'title' => 'ระบบขัดข้อง',
+                            'message' => 'ไม่สามารถจัดการทีมเจ้าหน้าที่ซ่อมแซมได้ในขณะนี้',
+                        ]);
+                    }
+                }
+
+                header('Location: ' . $config['base_url'], true, 303);
+                exit;
             } elseif (!$has_table || !$has_equipment_column) {
                 repairs_controller_audit_log($mode, strtoupper($action !== '' ? $action : 'ACTION'), 'FAIL', $repair_id > 0 ? $repair_id : null, 'schema_not_ready', $post_audit_payload);
                 $alert = system_not_ready_alert('ยังไม่พบโครงสร้าง repairs ล่าสุด กรุณารัน migrations/019_add_repair_equipment_column.sql');
@@ -591,6 +673,11 @@ if (!function_exists('repairs_handle_mode')) {
             } elseif ($action === 'transition') {
                 $target = $repair_id > 0 ? repair_get($repair_id) : null;
                 $current_status = (string) ($target['status'] ?? '');
+                $is_same_status_note_update = $target_status !== ''
+                    && $current_status !== ''
+                    && $current_status !== REPAIR_STATUS_PENDING
+                    && $target_status === $current_status
+                    && $transition_note !== '';
 
                 if (!$target) {
                     repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id > 0 ? $repair_id : null, 'not_found', $post_audit_payload);
@@ -606,7 +693,16 @@ if (!function_exists('repairs_handle_mode')) {
                         'title' => 'ไม่มีสิทธิ์ดำเนินการ',
                         'message' => 'คุณไม่มีสิทธิ์เปลี่ยนสถานะรายการนี้',
                     ];
-                } elseif ($target_status === '' || !repair_can_transition($current_status, $target_status)) {
+                } elseif ($target_status === '') {
+                    repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'missing_target_status', array_merge($post_audit_payload, [
+                        'currentStatus' => $current_status !== '' ? $current_status : null,
+                    ]));
+                    $alert = [
+                        'type' => 'warning',
+                        'title' => 'กรุณาเลือกสถานะการดำเนินงาน',
+                        'message' => '',
+                    ];
+                } elseif (!$is_same_status_note_update && !repair_can_transition($current_status, $target_status)) {
                     repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'invalid_transition', array_merge($post_audit_payload, [
                         'currentStatus' => $current_status !== '' ? $current_status : null,
                     ]));
@@ -615,7 +711,7 @@ if (!function_exists('repairs_handle_mode')) {
                         'title' => 'ไม่สามารถเปลี่ยนสถานะได้',
                         'message' => 'สถานะที่เลือกไม่ถูกต้องสำหรับรายการนี้',
                     ];
-                } elseif ($mode === 'approval' && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED], true)) {
+                } elseif ($mode === 'approval' && !$is_same_status_note_update && !in_array($target_status, [REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_COMPLETED, REPAIR_STATUS_CANCELLED], true)) {
                     repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id, 'invalid_approval_transition', array_merge($post_audit_payload, [
                         'currentStatus' => $current_status !== '' ? $current_status : null,
                     ]));
@@ -624,6 +720,34 @@ if (!function_exists('repairs_handle_mode')) {
                         'title' => 'ไม่สามารถดำเนินการได้',
                         'message' => 'หน้าเจ้าหน้าที่รองรับเฉพาะการเปลี่ยนเป็นกำลังดำเนินการ ดำเนินการเสร็จสิ้น หรือยกเลิกคำร้องเท่านั้น',
                     ];
+                } elseif ($is_same_status_note_update) {
+                    repair_update_record($repair_id, [
+                        'updatedAt' => date('Y-m-d H:i:s'),
+                    ]);
+                    repairs_controller_audit_log($mode, 'NOTE_UPDATE', 'SUCCESS', $repair_id, $current_status, array_merge($post_audit_payload, [
+                        'status' => $current_status,
+                    ]));
+                    repair_log_timeline_event($repair_id, $current_pid, 'NOTE_UPDATE', $current_status, $current_status, [
+                        'mode' => $mode,
+                        'assignedToPID' => (string) ($target['assignedToPID'] ?? '') ?: null,
+                        'note' => $transition_note,
+                    ]);
+
+                    $alert = [
+                        'type' => 'success',
+                        'title' => 'บันทึกรายละเอียดแล้ว',
+                        'message' => '',
+                    ];
+
+                    if ($mode === 'approval') {
+                        $view_id = 0;
+                        $view_item = null;
+                        $view_attachments = [];
+                    } else {
+                        $view_id = $repair_id;
+                        $view_item = repair_get($repair_id);
+                        $view_attachments = repair_get_attachments($repair_id);
+                    }
                 } else {
                     $update_data = [
                         'status' => $target_status,
@@ -728,13 +852,40 @@ if (!function_exists('repairs_handle_mode')) {
         }
 
         $request_attachments_map = [];
+        $request_timeline_map = [];
+        $request_timeline_note_map = [];
+        $repair_staff_members = [];
+        $repair_candidate_members = [];
+        $repair_staff_count = 0;
+        $repair_candidate_count = 0;
 
         if (!empty($requests)) {
-            $request_attachments_map = repair_get_attachments_map(array_column($requests, 'repairID'));
+            $request_ids = array_column($requests, 'repairID');
+            $request_attachments_map = repair_get_attachments_map($request_ids);
+            $request_timeline_map = repair_get_timeline_map($request_ids);
+            $request_timeline_note_map = repair_get_latest_timeline_notes_map($request_ids);
+        }
+
+        if ($mode === 'manage') {
+            try {
+                $repair_staff_members = repair_staff_members();
+                $repair_candidate_members = repair_staff_candidates();
+                $repair_staff_count = count($repair_staff_members);
+                $repair_candidate_count = count($repair_candidate_members);
+            } catch (Throwable $exception) {
+                error_log('Repair staff data error: ' . $exception->getMessage());
+
+                if ($alert === null) {
+                    $alert = [
+                        'type' => 'danger',
+                        'title' => 'ระบบขัดข้อง',
+                        'message' => 'ไม่สามารถโหลดข้อมูลเจ้าหน้าที่ซ่อมแซมได้ในขณะนี้',
+                    ];
+                }
+            }
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $default_filter_status = $mode === 'approval' ? 'pending' : 'all';
             $is_filtered_request = $filter_query !== ''
                 || $filter_status !== $default_filter_status
                 || $filter_sort !== 'newest'
@@ -769,6 +920,12 @@ if (!function_exists('repairs_handle_mode')) {
             'values' => $values,
             'requests' => $requests,
             'request_attachments_map' => $request_attachments_map,
+            'request_timeline_map' => $request_timeline_map,
+            'request_timeline_note_map' => $request_timeline_note_map,
+            'repair_staff_members' => $repair_staff_members,
+            'repair_candidate_members' => $repair_candidate_members,
+            'repair_staff_count' => $repair_staff_count,
+            'repair_candidate_count' => $repair_candidate_count,
             'current_pid' => $current_pid,
             'view_item' => $view_item,
             'view_attachments' => $view_attachments,

@@ -102,6 +102,9 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $generalPid = $this->requireRoleTeacherPid(ROLE_GENERAL, 'No active general staff available for repairs workflow test');
 
         $this->assertTrue(rbac_user_has_role($connection, $adminPid, ROLE_ADMIN));
+        $this->assertTrue(rbac_user_has_role($connection, $adminPid, ROLE_FACILITY));
+        $this->assertTrue(rbac_user_has_role($connection, $adminPid, ROLE_VEHICLE));
+        $this->assertTrue(rbac_user_has_any_role($connection, $adminPid, [ROLE_FACILITY]));
         $this->assertTrue(rbac_user_has_role($connection, $facilityPid, ROLE_FACILITY));
         $this->assertTrue(rbac_user_has_role($connection, $generalPid, ROLE_GENERAL));
         $this->assertFalse(rbac_user_has_role($connection, $generalPid, ROLE_ADMIN));
@@ -124,6 +127,10 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame('กำลังดำเนินการ', $filters['in_progress'] ?? null);
         $this->assertSame('เสร็จสิ้น', $filters['completed'] ?? null);
         $this->assertSame('ยกเลิกคำร้อง', $filters['cancelled'] ?? null);
+        $this->assertSame('all', repairs_default_filter_status('approval'));
+        $this->assertSame('all', repairs_default_filter_status('report'));
+        $this->assertSame([1, 5, 6], rbac_parse_role_ids('1,5,6'));
+        $this->assertSame([5, 6], rbac_parse_role_ids(['5', '6,5']));
 
         $this->assertSame([REPAIR_STATUS_CANCELLED, REPAIR_STATUS_REJECTED], repairs_resolve_filter_statuses('cancelled'));
         $this->assertSame([], repairs_resolve_filter_statuses('unknown'));
@@ -196,6 +203,7 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $payload = $this->decodePayload($log['payloadData'] ?? null);
         $timelinePayload = $this->decodePayload($timelineLog['payloadData'] ?? null);
         $timeline = repair_get_timeline($repairId);
+        $timelineMap = repair_get_timeline_map([$repairId]);
 
         $this->assertNotNull($repair);
         $this->assertSame($requesterPid, (string) ($repair['requesterPID'] ?? ''));
@@ -223,6 +231,10 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame('ส่งคำร้องสำเร็จ', (string) ($timelinePayload['toLabel'] ?? ''));
         $this->assertNotEmpty($timeline);
         $this->assertSame('รับเรื่องคำร้องแล้ว', (string) ($timeline[0]['title'] ?? ''));
+        $this->assertNotSame('', trim((string) ($timeline[0]['actorName'] ?? '')));
+        $this->assertArrayHasKey($repairId, $timelineMap);
+        $this->assertSame('รับเรื่องคำร้องแล้ว', (string) ($timelineMap[$repairId][0]['title'] ?? ''));
+        $this->assertNotSame('', trim((string) ($timelineMap[$repairId][0]['actorName'] ?? '')));
     }
 
     public function testCreateValidationFailureWritesFailAuditLog(): void
@@ -487,6 +499,8 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $log = $this->fetchLatestAuditLog('TIMELINE', 'SUCCESS', $repairId);
         $payload = $this->decodePayload($log['payloadData'] ?? null);
         $timeline = repair_get_timeline($repairId);
+        $timelineMap = repair_get_timeline_map([$repairId]);
+        $latestNotes = repair_get_latest_timeline_notes_map([$repairId]);
 
         $this->assertNotNull($log);
         $this->assertSame('กำลังดำเนินการ', (string) ($log['logMessage'] ?? ''));
@@ -499,6 +513,17 @@ final class RepairsWorkflowTest extends WorkflowTestCase
         $this->assertSame('ตรวจสอบและเริ่มดำเนินการซ่อมแล้ว', (string) ($payload['note'] ?? ''));
         $this->assertNotEmpty($timeline);
         $this->assertSame(REPAIR_STATUS_IN_PROGRESS, (string) ($timeline[0]['toStatus'] ?? ''));
+        $this->assertSame(REPAIR_STATUS_IN_PROGRESS, (string) ($timelineMap[$repairId][0]['toStatus'] ?? ''));
+        $this->assertNotSame('', trim((string) ($timelineMap[$repairId][0]['actorName'] ?? '')));
+        $this->assertSame('ตรวจสอบและเริ่มดำเนินการซ่อมแล้ว', (string) ($latestNotes[$repairId] ?? ''));
+
+        repair_log_timeline_event($repairId, $actorPid, 'NOTE_UPDATE', REPAIR_STATUS_IN_PROGRESS, REPAIR_STATUS_IN_PROGRESS, [
+            'mode' => 'approval',
+            'note' => 'เปลี่ยนชุดหลอดไฟและตรวจสอบระบบแล้ว',
+        ]);
+
+        $latestNotes = repair_get_latest_timeline_notes_map([$repairId]);
+        $this->assertSame('เปลี่ยนชุดหลอดไฟและตรวจสอบระบบแล้ว', (string) ($latestNotes[$repairId] ?? ''));
     }
 
     private function actAs(string $pid): void
@@ -537,12 +562,12 @@ final class RepairsWorkflowTest extends WorkflowTestCase
             $this->markTestSkipped($message);
         }
 
-        $placeholders = implode(', ', array_fill(0, count($roleIds), '?'));
         $types = str_repeat('i', count($roleIds));
         $params = $roleIds;
+        $roleCondition = rbac_csv_role_condition('roleID', count($roleIds));
 
         return $this->requireScalarValue(
-            'SELECT pID FROM teacher WHERE status = 1 AND roleID IN (' . $placeholders . ') ORDER BY pID ASC LIMIT 1',
+            'SELECT pID FROM teacher WHERE status = 1 AND ' . $roleCondition . ' ORDER BY pID ASC LIMIT 1',
             $message,
             $types,
             ...$params

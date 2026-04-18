@@ -23,6 +23,10 @@ return [
         'id' => isset($_ENV['ROLE_FACILITY_ID']) ? (int) $_ENV['ROLE_FACILITY_ID'] : 5,
         'names' => ['เจ้าหน้าที่สถานที่', 'เจ้าหน้าที่อาคาร', 'Facility Officer', 'Building Officer'],
     ],
+    'REPAIR' => [
+        'id' => isset($_ENV['ROLE_REPAIR_ID']) ? (int) $_ENV['ROLE_REPAIR_ID'] : 7,
+        'names' => ['เจ้าหน้าที่ซ่อมแซม', 'เจ้าหน้าที่งานซ่อม', 'Repair Officer', 'Maintenance Officer'],
+    ],
     'GENERAL' => [
         'id' => isset($_ENV['ROLE_GENERAL_ID']) ? (int) $_ENV['ROLE_GENERAL_ID'] : 6,
         'names' => ['บุคลากรทั่วไป', 'ครู', 'Staff', 'General Staff'],

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../auth/csrf.php';
 $values = (array) ($values ?? []);
 $requests = (array) ($requests ?? []);
 $request_attachments_map = (array) ($request_attachments_map ?? []);
+$request_timeline_map = (array) ($request_timeline_map ?? []);
 $current_pid = (string) ($current_pid ?? '');
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
@@ -85,10 +86,28 @@ $thai_months = [
     12 => 'ธันวาคม',
 ];
 
-$format_thai_datetime_parts = static function (?string $datetime) use ($thai_months): array {
+$parse_repair_datetime = static function (?string $datetime): ?DateTime {
     $datetime = trim((string) $datetime);
 
-    if ($datetime === '' || $datetime === '0000-00-00 00:00:00') {
+    if ($datetime === '' || preg_match('/^0000-00-00/u', $datetime) === 1) {
+        return null;
+    }
+
+    foreach (['Y-m-d H:i:s.u', 'Y-m-d H:i:s', 'Y-m-d H:i'] as $format) {
+        $date_obj = DateTime::createFromFormat($format, $datetime);
+
+        if ($date_obj instanceof DateTime) {
+            return $date_obj;
+        }
+    }
+
+    return null;
+};
+
+$format_thai_datetime_parts = static function (?string $datetime) use ($thai_months, $parse_repair_datetime): array {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || preg_match('/^0000-00-00/u', $datetime) === 1) {
         return [
             'date' => '-',
             'time' => '-',
@@ -96,13 +115,9 @@ $format_thai_datetime_parts = static function (?string $datetime) use ($thai_mon
         ];
     }
 
-    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    $date_obj = $parse_repair_datetime($datetime);
 
-    if ($date_obj === false) {
-        $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
-    }
-
-    if ($date_obj === false) {
+    if (!$date_obj instanceof DateTime) {
         return [
             'date' => $datetime,
             'time' => '-',
@@ -122,6 +137,27 @@ $format_thai_datetime_parts = static function (?string $datetime) use ($thai_mon
         'time' => $time_line,
         'full' => trim($date_line . ' ' . $time_line),
     ];
+};
+
+$format_repair_timeline_datetime = static function (?string $datetime) use ($thai_months, $parse_repair_datetime): string {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || preg_match('/^0000-00-00/u', $datetime) === 1) {
+        return '-';
+    }
+
+    $date_obj = $parse_repair_datetime($datetime);
+
+    if (!$date_obj instanceof DateTime) {
+        return $datetime;
+    }
+
+    $day = (int) $date_obj->format('j');
+    $month = (int) $date_obj->format('n');
+    $year = (int) $date_obj->format('Y') + 543;
+    $month_label = $thai_months[$month] ?? '';
+
+    return trim('วันที่ ' . $day . ' ' . $month_label . ' พ.ศ.' . $year . ' ' . $date_obj->format('H:i') . ' น.');
 };
 
 $truncate_repair_detail = static function (?string $text, int $limit = 80): string {
@@ -163,6 +199,30 @@ $resolve_repair_status = static function (array $repair) use ($status_map): arra
     $status_key = (string) ($repair['status'] ?? REPAIR_STATUS_PENDING);
 
     return $status_map[$status_key] ?? ['label' => $status_key !== '' ? $status_key : '-', 'variant' => 'pending'];
+};
+
+$build_repair_timeline_description = static function (array $entry): string {
+    $payload = (array) ($entry['payload'] ?? []);
+    $note = trim((string) ($payload['note'] ?? ''));
+
+    if ($note !== '') {
+        return $note;
+    }
+
+    $event = strtoupper(trim((string) ($entry['event'] ?? '')));
+    $status = strtoupper(trim((string) ($entry['toStatus'] ?? '')));
+
+    if ($event === 'NOTE_UPDATE') {
+        return 'เจ้าหน้าที่อัปเดตรายละเอียดการดำเนินงาน';
+    }
+
+    return match ($status) {
+        REPAIR_STATUS_PENDING => 'ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว',
+        REPAIR_STATUS_IN_PROGRESS => 'เจ้าหน้าที่รับเรื่องและอยู่ระหว่างดำเนินการตรวจสอบหรือซ่อมแซม',
+        REPAIR_STATUS_COMPLETED => 'เจ้าหน้าที่ดำเนินการซ่อมแซมเสร็จสิ้นแล้ว',
+        REPAIR_STATUS_CANCELLED, REPAIR_STATUS_REJECTED => 'คำร้องแจ้งซ่อมถูกยกเลิกแล้ว',
+        default => 'ระบบบันทึกสถานะการดำเนินงานเรียบร้อยแล้ว',
+    };
 };
 
 $headers = $show_requester_column
@@ -507,6 +567,58 @@ ob_start();
                         if (!is_string($attachment_json)) {
                             $attachment_json = '[]';
                         }
+
+                        $timeline_by_status = [];
+
+                        foreach ((array) ($request_timeline_map[$repair_id] ?? []) as $timeline_item) {
+                            $to_status = strtoupper(trim((string) ($timeline_item['toStatus'] ?? '')));
+                            $status_label = trim((string) ($timeline_item['toLabel'] ?? ''));
+                            $status_key_for_timeline = $to_status !== '' ? $to_status : trim((string) ($timeline_item['title'] ?? ''));
+                            $timeline_actor_name = trim((string) ($timeline_item['actorName'] ?? ''));
+                            $timeline_date = $format_repair_timeline_datetime((string) ($timeline_item['createdAt'] ?? ''));
+                            $should_show_timeline_actor = $to_status !== REPAIR_STATUS_PENDING;
+
+                            if ($status_key_for_timeline === '') {
+                                continue;
+                            }
+
+                            if ($status_label === '') {
+                                $status_label = trim((string) ($timeline_item['title'] ?? ''));
+                            }
+
+                            $timeline_by_status[$status_key_for_timeline] = [
+                                'title' => 'ขั้นตอนดำเนินงาน : ' . ($status_label !== '' ? $status_label : '-'),
+                                'description' => $build_repair_timeline_description((array) $timeline_item),
+                                'date' => $timeline_date . ($should_show_timeline_actor && $timeline_actor_name !== '' ? ' [' . $timeline_actor_name . ']' : ''),
+                            ];
+                        }
+
+                        if ($is_soft_deleted) {
+                            $deleted_actor_name = trim((string) ($req['requesterName'] ?? ''));
+                            $deleted_date = $format_repair_timeline_datetime((string) ($req['deletedAt'] ?? ''));
+                            $timeline_by_status['DELETED'] = [
+                                'title' => 'ขั้นตอนดำเนินงาน : ลบคำร้องสำเร็จ',
+                                'description' => 'ผู้แจ้งลบคำร้องเรียบร้อยแล้ว',
+                                'date' => $deleted_date . ($deleted_actor_name !== '' ? ' [' . $deleted_actor_name . ']' : ''),
+                            ];
+                        }
+
+                        if ($timeline_by_status === []) {
+                            $fallback_actor_name = trim((string) ($req['assignedToName'] ?? ''));
+                            $fallback_date = $format_repair_timeline_datetime((string) ($req['createdAt'] ?? ''));
+                            $should_show_fallback_actor = $status_key !== REPAIR_STATUS_PENDING;
+                            $timeline_by_status[$status_key] = [
+                                'title' => 'ขั้นตอนดำเนินงาน : ' . (string) ($row_status['label'] ?? '-'),
+                                'description' => $is_soft_deleted ? 'ผู้แจ้งลบคำร้องเรียบร้อยแล้ว' : 'ระบบบันทึกสถานะการดำเนินงานเรียบร้อยแล้ว',
+                                'date' => $fallback_date . ($should_show_fallback_actor && $fallback_actor_name !== '' ? ' [' . $fallback_actor_name . ']' : ''),
+                            ];
+                        }
+
+                        $timeline_json = json_encode(array_values($timeline_by_status), $json_flags);
+
+                        if (!is_string($timeline_json)) {
+                            $timeline_json = '[]';
+                        }
                         ?>
                         <tr>
                             <td>
@@ -579,7 +691,8 @@ ob_start();
                                             data-assigned-to-name="<?= h((string) ($req['assignedToName'] ?? '-')) ?>"
                                             data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
                                             data-status-pill="<?= h((string) ($row_status['variant'] ?? 'pending')) ?>"
-                                            data-files="<?= h($attachment_json) ?>">
+                                            data-files="<?= h($attachment_json) ?>"
+                                            data-timeline="<?= h($timeline_json) ?>">
                                             <i class="fa-solid fa-eye"></i>
                                             <span class="tooltip">ดูรายละเอียด</span>
                                         </button>
@@ -673,130 +786,8 @@ ob_start();
                         </div>
                     </div>
                     <br>
-                    <div class="timeline">
+                    <div class="timeline" id="repairDetailTimeline">
                         <p class="timeline-header">สถานะของงานซ่อมแซม</p>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 1 : Lorem ipsum dolor sit amet.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Enim quo similique vel nam distinctio cupiditate nulla cumque nihil quas provident!</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 2 : Lorem, ipsum.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit amet consectetur adipisicing elit. Modi, nihil saepe! Unde nesciunt esse, hic libero cumque in temporibus enim delectus dolore sequi a excepturi reiciendis placeat voluptatum? Repudiandae sint id minus nostrum, animi dolore, cum maxime, illum asperiores totam necessitatibus eaque veritatis quam sed delectus praesentium exercitationem assumenda adipisci ab similique. Laborum impedit numquam distinctio, consequatur quam reprehenderit cupiditate dolore hic. A optio vel accusantium, eos possimus provident consequuntur eveniet repellat enim, ex quia itaque voluptatem quidem magni. Aliquid, veritatis culpa ea dicta quam aut labore qui tempora autem aliquam doloribus incidunt omnis quidem explicabo eum porro enim aspernatur.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ipsa laborum beatae eos qui delectus inventore ad doloremque, nemo culpa autem molestias itaque porro consectetur debitis labore, eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">Step 3 : Lorem ipsum dolor sit, amet consectetur adipisicing elit.</div>
-                                <div class="timeline-desc">eveniet ex vel nam quas, pariatur neque. Autem minima voluptate sint fuga? Quibusdam odit neque aliquam hic itaque vel autem voluptas, necessitatibus molestias ut.</div>
-                                <div class="timeline-date">วันที่ 2 เมษายน พ.ศ.2568 23:12น.</div>
-                            </div>
-                        </div>
-
                     </div>
 
                 </form>
@@ -1298,6 +1289,8 @@ ob_start();
         const detailEquipment = document.getElementById('repairDetailEquipment');
         const detailText = document.getElementById('repairDetailText');
         const detailFileList = document.getElementById('repairDetailFileList');
+        const detailTimeline = document.getElementById('repairDetailTimeline');
+        const detailStatusPill = detailModal ? detailModal.querySelector('.header-modal .status-pill') : null;
 
         const formatFileSize = (size) => {
             const bytes = Number(size || 0);
@@ -1370,12 +1363,87 @@ ob_start();
             });
         };
 
+        const renderRepairTimeline = (items) => {
+            if (!detailTimeline) {
+                return;
+            }
+
+            detailTimeline.innerHTML = '';
+
+            const header = document.createElement('p');
+            header.className = 'timeline-header';
+            header.textContent = 'สถานะของงานซ่อมแซม';
+            detailTimeline.appendChild(header);
+
+            const timelineItems = Array.isArray(items) ? items : [];
+
+            if (timelineItems.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'timeline-item';
+
+                const emptyContent = document.createElement('div');
+                emptyContent.className = 'timeline-content';
+
+                const title = document.createElement('div');
+                title.className = 'timeline-title';
+                title.textContent = 'ขั้นตอนดำเนินงาน : -';
+
+                const desc = document.createElement('div');
+                desc.className = 'timeline-desc';
+                desc.textContent = 'ยังไม่มีข้อมูลสถานะการดำเนินงาน';
+
+                const date = document.createElement('div');
+                date.className = 'timeline-date';
+                date.textContent = '-';
+
+                emptyContent.appendChild(title);
+                emptyContent.appendChild(desc);
+                emptyContent.appendChild(date);
+                emptyItem.appendChild(emptyContent);
+                detailTimeline.appendChild(emptyItem);
+                return;
+            }
+
+            timelineItems.forEach((item) => {
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+
+                const content = document.createElement('div');
+                content.className = 'timeline-content';
+
+                const title = document.createElement('div');
+                title.className = 'timeline-title';
+                title.textContent = String(item?.title || 'ขั้นตอนดำเนินงาน : -');
+
+                const desc = document.createElement('div');
+                desc.className = 'timeline-desc';
+                desc.textContent = String(item?.description || '-');
+
+                const date = document.createElement('div');
+                date.className = 'timeline-date';
+                date.textContent = String(item?.date || '-');
+
+                content.appendChild(title);
+                content.appendChild(desc);
+                content.appendChild(date);
+                timelineItem.appendChild(content);
+                detailTimeline.appendChild(timelineItem);
+            });
+        };
+
         const openRepairDetailModal = (btn) => {
             let files = [];
+            let timeline = [];
             try {
                 files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
             } catch (error) {
                 files = [];
+            }
+
+            try {
+                timeline = JSON.parse(String(btn.getAttribute('data-timeline') || '[]'));
+            } catch (error) {
+                timeline = [];
             }
 
             if (detailSubject) detailSubject.value = btn.getAttribute('data-subject') || '-';
@@ -1388,7 +1456,13 @@ ob_start();
             if (detailEquipment) detailEquipment.value = btn.getAttribute('data-equipment') || '-';
             if (detailText) detailText.value = btn.getAttribute('data-detail') || '-';
 
+            if (detailStatusPill) {
+                detailStatusPill.className = `status-pill ${btn.getAttribute('data-status-pill') || 'pending'}`;
+                detailStatusPill.textContent = btn.getAttribute('data-status-label') || '-';
+            }
+
             renderModalFiles(files, String(btn.getAttribute('data-repair-id') || '').trim());
+            renderRepairTimeline(timeline);
 
             if (detailModal) detailModal.style.display = 'flex';
         };

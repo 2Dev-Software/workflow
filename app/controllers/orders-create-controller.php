@@ -189,7 +189,7 @@ if (!function_exists('orders_create_index')) {
         foreach ($send_picker_teachers as $teacher) {
             $pid = trim((string) ($teacher['pID'] ?? ''));
             $fid = (int) ($teacher['fID'] ?? 0);
-            $rid = (int) ($teacher['roleID'] ?? 0);
+            $role_ids = rbac_parse_role_ids($teacher['roleID'] ?? '');
 
             if ($pid === '') {
                 continue;
@@ -203,7 +203,7 @@ if (!function_exists('orders_create_index')) {
                 $send_picker_faction_member_map[$fid_key][] = $pid;
             }
 
-            if ($rid > 0) {
+            foreach ($role_ids as $rid) {
                 $rid_key = (string) $rid;
                 if (!isset($send_picker_role_member_map[$rid_key])) {
                     $send_picker_role_member_map[$rid_key] = [];

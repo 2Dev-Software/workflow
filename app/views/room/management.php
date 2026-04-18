@@ -250,8 +250,8 @@ ob_start();
                                         <div class="room-admin-member-subtext"><?= h($member_department) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td><span class="room-admin-member-tag"><?= h($member_role !== '' ? $member_role : '-') ?></span></td>
-                                <td><span class="member-status-pill">อยู่ในทีมแล้ว</span></td>
+                                <td><span class="room-admin-member-tag">เจ้าหน้าที่สถานที่</span></td>
+                                <td><span class="member-status-pill">กำลังปฏิบัติหน้าที่</span></td>
                                 <td>
                                     <div class="booking-action-group">
                                         <form class="booking-action-form" data-member-remove-form method="POST"

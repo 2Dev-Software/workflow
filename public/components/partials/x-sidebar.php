@@ -4,8 +4,9 @@ require_once __DIR__ . '/../../../app/rbac/roles.php';
 require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php';
 require_once __DIR__ . '/../../../src/Services/system/exec-duty-current.php';
 
-$role_id = (int) ($teacher['roleID'] ?? 0);
+$role_ids = rbac_parse_role_ids($teacher['roleID'] ?? '');
 $position_id = (int) ($teacher['positionID'] ?? 0);
+$repair_staff_role_id = 7;
 $actor_pid = (string) ($_SESSION['pID'] ?? '');
 
 // Exec duty: dutyStatus 2 means "acting director" (รองรักษาการแทน).
@@ -14,31 +15,34 @@ $acting_pid = '';
 if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
     $acting_pid = (string) $exec_duty_current_pid;
 }
-$is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
 
 $sidebar_connection = db_connection();
-$is_admin_user = $role_id === 1;
-$is_registry_user = $role_id === 2;
-$is_vehicle_user = $role_id === 3;
-$is_facility_user = $role_id === 5;
+$is_admin_user = in_array(1, $role_ids, true);
+$is_registry_user = in_array(2, $role_ids, true);
+$is_vehicle_user = in_array(3, $role_ids, true);
+$is_facility_user = in_array(5, $role_ids, true);
+$is_repair_staff_user = in_array($repair_staff_role_id, $role_ids, true);
 
 if ($actor_pid !== '') {
     $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;
     $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $is_registry_user;
     $is_vehicle_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_VEHICLE) || $is_vehicle_user;
     $is_facility_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_FACILITY) || $is_facility_user;
+    $is_repair_staff_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REPAIR) || $is_repair_staff_user;
 }
 
+$is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
 $can_manage_external_circular = $is_admin_user || $is_registry_user;
 $can_access_external_circular_menu = $can_manage_external_circular || $is_director_or_acting;
 $can_manage_room_module = $is_admin_user || $is_facility_user;
 $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
 $can_access_settings = $is_admin_user || $is_registry_user;
+$can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_staff_user;
 ?>
 <aside class="sidebar close">
     <header class="logo-details">
         <a href="#">
-            <img src="assets/img/DBHub-logo1.png" alt="db-logo">
+            <img src="assets/img/DBHub-logo2.png" alt="db-logo">
         </a>
         <i class="fa-solid fa-angle-left" id="btn-toggle"></i>
     </header>
@@ -85,7 +89,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <a href="#">
                         <span class="red-dot-alert pulse-shadow"></span>
                         <img src="/public/assets/img/icon/files.png" alt="">
-                        <p class="link-name">หนังสือเวียนภายนอก</p>
+                        <p class="link-name">หนังสือเวียน</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
@@ -101,6 +105,22 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                 </ul>
             </li>
         <?php endif; ?>
+
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <!-- <i class="fa-solid fa-book"></i> -->
+                    <img src="/public/assets/img/icon/envelope.png" alt="">
+                    <p class="link-name">หนังสือเวียน (ภายใน)</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
+                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
+                <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
+            </ul>
+        </li>
 
         <?php if ($can_manage_external_circular): ?>
             <li>
@@ -197,6 +217,13 @@ $can_access_settings = $is_admin_user || $is_registry_user;
                     <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
                 </ul>
             </li>
+        <?php elseif ($is_director_or_acting): ?>
+            <li>
+                <a href="vehicle-reservation-approval.php">
+                    <i class="fa-solid fa-car"></i>
+                    <p class="link-name">อนุมัติการจองยานพาหนะ</p>
+                </a>
+            </li>
         <?php else: ?>
             <li>
                 <a href="vehicle-reservation.php">
@@ -218,7 +245,7 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </div>
             <ul class="navigation-links-sub-menu">
                 <li><a href="repairs.php">แจ้งเหตุซ่อมแซม</a></li>
-                <?php if ($is_admin_user || $is_facility_user): ?>
+                <?php if ($can_manage_repair_module): ?>
                     <li><a href="repairs-approval.php">อนุมัติการซ่อมแซม</a></li>
                 <?php endif; ?>
                 <?php if ($is_admin_user): ?>
@@ -227,33 +254,12 @@ $can_access_settings = $is_admin_user || $is_registry_user;
             </ul>
         </li>
         <li>
-            <a href="#">
-                <span class="red-dot-alert pulse-shadow"></span>
-                <img src="/public/assets/img/icon/certificate.png" alt="">
-                <p class="link-name">ออกเลขเกียรติบัตร</p>
-            </a>
-        </li>
-        <li>
             <a href="teacher-phone-directory.php">
                 <!-- <i class="fa-solid fa-phone"></i> -->
                 <img src="/public/assets/img/icon/phone.png" alt="">
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
-        <!-- <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
-                    <i class="fa-solid fa-briefcase"></i>
-                    <p class="link-name">งานอนาคต</p>
-                </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="travel.php">ขออนุญาตไปราชการ</a></li>
-                <li><a href="leave.php">การลา</a></li>
-                <li><a href="certificates.php">ทะเบียนเกียรติบัตร</a></li>
-            </ul>
-        </li> -->
 
         <li>
             <a href="profile.php">

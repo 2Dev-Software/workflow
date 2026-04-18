@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     require_once __DIR__ . '/../../../app/services/auth-service.php';
     require_once __DIR__ . '/../../../app/repositories/user-repository.php';
     require_once __DIR__ . '/../../../app/modules/audit/logger.php';
+    require_once __DIR__ . '/../../../app/rbac/roles.php';
 
     if (!csrf_validate($_POST['csrf_token'] ?? null)) {
         http_response_code(403);
@@ -64,9 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
     $status_row = db_fetch_one('SELECT dh_status FROM thesystem ORDER BY ID DESC LIMIT 1');
     $dh_status = $status_row ? (int) ($status_row['dh_status'] ?? 1) : 1;
-    $role_id = (int) ($user['roleID'] ?? 0);
+    $role_ids = function_exists('rbac_parse_role_ids') ? rbac_parse_role_ids($user['roleID'] ?? '') : [(int) ($user['roleID'] ?? 0)];
 
-    if ($dh_status !== 1 && $role_id !== 1) {
+    if ($dh_status !== 1 && !in_array(1, $role_ids, true)) {
         http_response_code(403);
 
         $status_titles = [
