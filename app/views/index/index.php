@@ -82,9 +82,7 @@ if ($dh_year_value <= 0) {
 
             <header class="announcement-bar">
                 <img src="public/assets/img/icon/demostration.png" alt="">
-                <!-- <p><? //= htmlspecialchars($exec_duty_announcement, ENT_QUOTES, 'UTF-8') 
-                        ?></p> -->
-                <p>วันนี้ <b>นางสาวศริญญา ผั้วผดุง</b> รองผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน รักษาราชการแทน</p>
+                <p><?= htmlspecialchars($exec_duty_announcement !== '' ? $exec_duty_announcement : 'วันนี้ยังไม่มีข้อมูลการปฏิบัติราชการ', ENT_QUOTES, 'UTF-8') ?></p>
                 <div class="close-news-section">
                     <i class="fa-solid fa-xmark" id="closeNewsBtn"></i>
                 </div>

@@ -121,6 +121,31 @@ if (!function_exists('dashboard_shortcuts')) {
     }
 }
 
+if (!function_exists('dashboard_current_thai_date_label')) {
+    function dashboard_current_thai_date_label(): string
+    {
+        $months = [
+            1 => 'มกราคม',
+            2 => 'กุมภาพันธ์',
+            3 => 'มีนาคม',
+            4 => 'เมษายน',
+            5 => 'พฤษภาคม',
+            6 => 'มิถุนายน',
+            7 => 'กรกฎาคม',
+            8 => 'สิงหาคม',
+            9 => 'กันยายน',
+            10 => 'ตุลาคม',
+            11 => 'พฤศจิกายน',
+            12 => 'ธันวาคม',
+        ];
+        $now = new DateTimeImmutable('now', new DateTimeZone('Asia/Bangkok'));
+        $month = (int) $now->format('n');
+        $year = (int) $now->format('Y') + 543;
+
+        return 'วันที่ ' . (int) $now->format('j') . ' ' . ($months[$month] ?? '') . ' พ.ศ.' . $year;
+    }
+}
+
 if (!function_exists('dashboard_index')) {
     function dashboard_index(): void
     {
@@ -134,6 +159,8 @@ if (!function_exists('dashboard_index')) {
             'dashboard_counts' => $counts,
             'dashboard_shortcuts' => $shortcuts,
             'dashboard_access' => $access,
+            'dashboard_user' => $current_user,
+            'dashboard_current_date_label' => dashboard_current_thai_date_label(),
         ]);
     }
 }

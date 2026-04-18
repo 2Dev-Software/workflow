@@ -3,6 +3,11 @@ require_once __DIR__ . '/../../helpers.php';
 
 $dashboard_counts = (array) ($dashboard_counts ?? []);
 $dashboard_shortcuts = (array) ($dashboard_shortcuts ?? []);
+$dashboard_user = (array) ($dashboard_user ?? []);
+$dashboard_current_date_label = trim((string) ($dashboard_current_date_label ?? ''));
+$dashboard_name = trim((string) ($dashboard_user['fName'] ?? ''));
+$dashboard_position = trim((string) ($dashboard_user['position_name'] ?? ''));
+$dashboard_role = trim((string) ($dashboard_user['role_name'] ?? ''));
 
 $visible_shortcuts = array_values(array_filter($dashboard_shortcuts, static function ($shortcut): bool {
     return !empty($shortcut['visible']);
@@ -61,7 +66,7 @@ ob_start();
         <section>
             <main class="profile-section">
                 <?php
-                $profile_picture_raw = trim((string) ($teacher['picture'] ?? ''));
+                $profile_picture_raw = trim((string) ($dashboard_user['picture'] ?? ''));
                 $profile_picture = '';
 
                 if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
@@ -70,27 +75,21 @@ ob_start();
                 ?>
                 <section>
                     <div class="profile-image">
-                        <? //php if ($profile_picture !== ''): 
-                        ?>
-                        <img src="/assets/img/profile/1819900163142/profile_20260210_203425_572e17b6cfe7.jpg" alt="Profile image">
-                        <? //php else: 
-                        ?>
-                        <!-- <i class="fa-solid fa-user"></i> -->
-                        <? //php endif; 
-                        ?>
+                        <?php if ($profile_picture !== '') : ?>
+                            <img src="<?= h($profile_picture) ?>" alt="Profile image">
+                        <?php else : ?>
+                            <i class="fa-solid fa-user"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="proflie-text">
-                        <p><b>ชื่อ : นางทิพรัตน์ บุณมณี</b></p>
-                        <p>ตำแหน่ง : ผู้อำนวยการโรงเรียน</p>
-                        <p>หน้าที่ : เจ้าหน้าที่ธุรการ</p>
-                        <!-- <p><b>ชื่อ : <?= htmlspecialchars($teacher['fName'] ?? '', ENT_QUOTES, 'UTF-8') ?></b></p>
-                        <p>ตำแหน่ง : <?= htmlspecialchars($teacher['position_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
-                        <p>หน้าที่ : <?= htmlspecialchars($teacher['role_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></p> -->
+                        <p><b>ชื่อ : <?= h($dashboard_name !== '' ? $dashboard_name : '-') ?></b></p>
+                        <p>ตำแหน่ง : <?= h($dashboard_position !== '' ? $dashboard_position : '-') ?></p>
+                        <p>หน้าที่ : <?= h($dashboard_role !== '' ? $dashboard_role : '-') ?></p>
                     </div>
                 </section>
                 <div class="profile-date">
                     <i class="fa-solid fa-clock"></i>
-                    <p>วันที่ 19 มิถุนายน พ.ศ.2569</p>
+                    <p><?= h($dashboard_current_date_label !== '' ? $dashboard_current_date_label : '-') ?></p>
                 </div>
             </main>
             <a href="#news-paper">
