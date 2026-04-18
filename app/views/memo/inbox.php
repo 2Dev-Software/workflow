@@ -383,11 +383,13 @@ ob_start();
                             <p data-memo-detail-signature-position><?= h($current_position !== '' ? $current_position : '-') ?></p>
                         </div>
                         <br><br><br>
-                        <?php foreach ([
-                            'HEAD' => 'ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้',
-                            'DEPUTY' => 'ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ',
-                            'DIRECTOR' => 'ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน',
-                        ] as $stage_key => $stage_label) : ?>
+                        <?php foreach (
+                            [
+                                'HEAD' => 'ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้',
+                                'DEPUTY' => 'ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ',
+                                'DIRECTOR' => 'ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน',
+                            ] as $stage_key => $stage_label
+                        ) : ?>
                             <div class="content-editor secondary" data-memo-stage-section="<?= h($stage_key) ?>" style="display: none;">
                                 <p><strong data-memo-stage-label="<?= h($stage_key) ?>"><?= h($stage_label) ?></strong></p>
                                 <br>
@@ -433,6 +435,8 @@ ob_start();
         </div>
     </div>
 </section>
+<div class="button-circular-notice-keep"></div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
 <script>
@@ -671,15 +675,15 @@ ob_start();
         const directorPid = String(trigger.dataset.directorPid || '').trim();
 
         if (reviewerRole === 'HEAD') {
-            const deputyForwardOptions = deputyCandidates.length > 0
-                ? deputyCandidates.map((candidate) => ({
+            const deputyForwardOptions = deputyCandidates.length > 0 ?
+                deputyCandidates.map((candidate) => ({
                     key: 'forward:' + candidate.pID,
                     value: 'forward',
                     label: candidate.name,
                     submitLabel: 'เสนอแฟ้ม',
                     targetPid: candidate.pID,
-                }))
-                : [{
+                })) :
+                [{
                     key: 'forward:' + (deputyPid || directorPid || 'fallback'),
                     value: 'forward',
                     label: deputyName || directorName || 'รองผู้อำนวยการ',
