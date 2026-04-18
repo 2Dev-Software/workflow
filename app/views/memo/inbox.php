@@ -108,7 +108,6 @@ foreach ($factions as $faction) {
     }
 }
 
-$signature_src = trim((string) ($current_user['signature'] ?? ''));
 $current_name = trim((string) ($current_user['fName'] ?? ''));
 $current_position = trim((string) ($current_user['position_name'] ?? ''));
 
@@ -292,10 +291,14 @@ ob_start();
                                         data-memo-id="<?= h((string) $memo_id) ?>"
                                         data-subject="<?= h($subject) ?>"
                                         data-detail="<?= h($detail) ?>"
+                                        data-to-pid="<?= h((string) ($item['toPID'] ?? '')) ?>"
+                                        data-flow-mode="<?= h((string) ($item['flowMode'] ?? '')) ?>"
+                                        data-flow-stage="<?= h((string) ($item['flowStage'] ?? '')) ?>"
+                                        data-to-type="<?= h((string) ($item['toType'] ?? '')) ?>"
                                         data-section="<?= h($creator_section !== '' ? $creator_section : ($selected_faction_name !== '' ? $selected_faction_name : 'กลุ่ม')) ?>"
                                         data-name="<?= h($creator_name !== '' ? $creator_name : '-') ?>"
                                         data-position="<?= h($creator_position !== '' ? $creator_position : '-') ?>"
-                                        data-signature="<?= h($creator_signature !== '' ? $creator_signature : $signature_src) ?>"
+                                        data-signature="<?= h($creator_signature) ?>"
                                         data-reviewer-role="<?= h($reviewer_role) ?>"
                                         data-head-pid="<?= h($head_pid) ?>"
                                         data-head-name="<?= h((string) ($item['headName'] ?? '')) ?>"
@@ -377,12 +380,14 @@ ob_start();
                             <textarea name="detail" id="memo_detail_editor" data-memo-detail-body readonly><?= h((string) ($values['detail'] ?? '')) ?></textarea>
                         </div>
 
-                        <div class="form-group-row signature">
-                            <img src="<?= h($signature_src !== '' ? $signature_src : 'assets/img/garuda-logo.png') ?>" alt="" data-memo-detail-signature-image>
-                            <p data-memo-detail-signature-name>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
-                            <p data-memo-detail-signature-position><?= h($current_position !== '' ? $current_position : '-') ?></p>
+                        <div data-memo-detail-signature-block style="display: none;">
+                            <div class="form-group-row signature">
+                                <img src="" alt="" data-memo-detail-signature-image style="display: none;">
+                                <p data-memo-detail-signature-name>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
+                                <p data-memo-detail-signature-position><?= h($current_position !== '' ? $current_position : '-') ?></p>
+                            </div>
+                            <br><br><br>
                         </div>
-                        <br><br><br>
                         <?php foreach ([
                             'HEAD' => 'ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้',
                             'DEPUTY' => 'ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ',
@@ -394,12 +399,14 @@ ob_start();
                                 <textarea name="modal_<?= strtolower($stage_key) ?>_note" id="memo_detail_<?= h($stage_key) ?>" data-memo-stage-note="<?= h($stage_key) ?>" rows="7" readonly></textarea>
                             </div>
 
-                            <div class="form-group-row signature secondary" data-memo-stage-signature="<?= h($stage_key) ?>" style="display: none;">
-                                <img src="<?= h($signature_src !== '' ? $signature_src : 'assets/img/garuda-logo.png') ?>" alt="" data-memo-stage-signature-image="<?= h($stage_key) ?>">
-                                <p data-memo-stage-signature-name="<?= h($stage_key) ?>">(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
-                                <p data-memo-stage-signature-position="<?= h($stage_key) ?>"><?= h($current_position !== '' ? $current_position : '-') ?></p>
+                            <div data-memo-stage-signature-block="<?= h($stage_key) ?>" style="display: none;">
+                                <div class="form-group-row signature secondary" data-memo-stage-signature="<?= h($stage_key) ?>" style="display: none;">
+                                    <img src="" alt="" data-memo-stage-signature-image="<?= h($stage_key) ?>" style="display: none;">
+                                    <p data-memo-stage-signature-name="<?= h($stage_key) ?>">(<?= h($current_name !== '' ? $current_name : '-') ?>)</p>
+                                    <p data-memo-stage-signature-position="<?= h($stage_key) ?>"><?= h($current_position !== '' ? $current_position : '-') ?></p>
+                                </div>
+                                <br><br><br>
                             </div>
-                            <br><br><br>
                         <?php endforeach; ?>
 
                         <div class="form-group-row" data-memo-review-action-row style="display: none;">
@@ -474,6 +481,7 @@ ob_start();
     const modalSignatureImage = editModal?.querySelector('[data-memo-detail-signature-image]');
     const modalSignatureName = editModal?.querySelector('[data-memo-detail-signature-name]');
     const modalSignaturePosition = editModal?.querySelector('[data-memo-detail-signature-position]');
+    const modalSignatureBlock = editModal?.querySelector('[data-memo-detail-signature-block]');
     const modalFooterForm = document.getElementById('modalArchiveForm');
     const modalMemoIdInput = document.getElementById('modalMemoId');
     const modalMemoActionInput = document.getElementById('modalMemoAction');
@@ -486,9 +494,9 @@ ob_start();
     const modalActionValue = editModal?.querySelector('[data-memo-action-value]');
     const modalActionOptions = editModal?.querySelector('[data-memo-action-options]');
     const modalDetailContainer = editModal?.querySelector('.memo-detail');
-    const defaultSignatureImage = modalSignatureImage?.getAttribute('src') ?? '';
     const defaultSignatureName = modalSignatureName?.textContent ?? '';
     const defaultSignaturePosition = modalSignaturePosition?.textContent ?? '';
+    const currentPid = <?= json_encode($current_pid, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     const deputyCandidates = <?= $deputy_candidates_json ?>;
     const stageOrderByRole = {
         HEAD: ['HEAD'],
@@ -516,6 +524,7 @@ ob_start();
             label: editModal?.querySelector('[data-memo-stage-label="' + stage + '"]') || null,
             note: editModal?.querySelector('[data-memo-stage-note="' + stage + '"]') || null,
             signature: editModal?.querySelector('[data-memo-stage-signature="' + stage + '"]') || null,
+            signatureBlock: editModal?.querySelector('[data-memo-stage-signature-block="' + stage + '"]') || null,
             signatureImage: editModal?.querySelector('[data-memo-stage-signature-image="' + stage + '"]') || null,
             signatureName: editModal?.querySelector('[data-memo-stage-signature-name="' + stage + '"]') || null,
             signaturePosition: editModal?.querySelector('[data-memo-stage-signature-position="' + stage + '"]') || null,
@@ -579,11 +588,91 @@ ob_start();
         }
     };
 
+    const getMemoEditor = (field) => {
+        if (!field || !field.id || typeof tinymce === 'undefined') {
+            return null;
+        }
+
+        return tinymce.get(field.id) || null;
+    };
+
+    const setStageEditorState = (field, value, editable) => {
+        if (!field) {
+            return;
+        }
+
+        const normalizedValue = typeof value === 'string' ? value : '';
+        field.value = normalizedValue;
+        field.readOnly = !editable;
+
+        const editor = getMemoEditor(field);
+
+        if (editor) {
+            editor.setContent(normalizedValue);
+
+            if (editor.mode && typeof editor.mode.set === 'function') {
+                editor.mode.set(editable ? 'design' : 'readonly');
+            }
+        }
+    };
+
+    const readStageEditorValue = (field) => {
+        if (!field) {
+            return '';
+        }
+
+        const editor = getMemoEditor(field);
+
+        if (!editor) {
+            return String(field.value || '');
+        }
+
+        const content = String(editor.getContent() || '');
+        field.value = content;
+
+        return content;
+    };
+
+    const isMeaningfulEditorContent = (value) => {
+        const html = String(value || '').trim();
+
+        if (html === '') {
+            return false;
+        }
+
+        const text = html
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        return text !== '';
+    };
+
     const formatSignatureName = (value, fallbackValue = '-') => {
         const cleanValue = String(value || '').trim();
         const fallbackCleanValue = String(fallbackValue || '').replace(/^\(|\)$/g, '').trim();
 
         return '(' + (cleanValue || fallbackCleanValue || '-') + ')';
+    };
+
+    const applySignatureBlock = (blockElement, imageElement, signaturePath) => {
+        const resolvedPath = String(signaturePath || '').trim();
+
+        if (imageElement) {
+            if (resolvedPath === '') {
+                imageElement.removeAttribute('src');
+                imageElement.style.display = 'none';
+            } else {
+                imageElement.setAttribute('src', resolvedPath);
+                imageElement.style.display = '';
+            }
+        }
+
+        if (blockElement) {
+            blockElement.style.display = resolvedPath === '' ? 'none' : '';
+        }
     };
 
     const hideStageSection = (stage) => {
@@ -601,9 +690,12 @@ ob_start();
             elements.signature.style.display = 'none';
         }
 
+        if (elements.signatureBlock) {
+            elements.signatureBlock.style.display = 'none';
+        }
+
         if (elements.note) {
-            elements.note.value = '';
-            elements.note.readOnly = true;
+            setStageEditorState(elements.note, '', false);
         }
     };
 
@@ -638,14 +730,9 @@ ob_start();
             elements.label.textContent = stageMeta[stage]?.label || 'ความคิดเห็นและข้อเสนอแนะ';
         }
 
-        if (elements.note) {
-            elements.note.value = payload.note || '';
-            elements.note.readOnly = !editable;
-        }
+        setStageEditorState(elements.note, payload.note || '', editable);
 
-        if (elements.signatureImage) {
-            elements.signatureImage.setAttribute('src', payload.signature || defaultSignatureImage);
-        }
+        applySignatureBlock(elements.signatureBlock, elements.signatureImage, payload.signature);
 
         if (elements.signatureName) {
             elements.signatureName.textContent = formatSignatureName(payload.name, '-');
@@ -659,36 +746,50 @@ ob_start();
             elements.section.style.display = '';
         }
 
-        if (elements.signature) {
+        if (elements.signature && String(payload.signature || '').trim() !== '') {
             elements.signature.style.display = '';
         }
     };
 
     const buildActionOptions = (reviewerRole, trigger) => {
+        const flowMode = String(trigger.dataset.flowMode || '').trim().toUpperCase() || 'CHAIN';
         const deputyName = String(trigger.dataset.deputyName || '').trim();
         const deputyPid = String(trigger.dataset.deputyPid || '').trim();
         const directorName = String(trigger.dataset.directorName || '').trim();
         const directorPid = String(trigger.dataset.directorPid || '').trim();
+        const deputyForwardOptions = deputyCandidates.length > 0
+            ? deputyCandidates.map((candidate) => ({
+                key: 'forward:' + candidate.pID,
+                value: 'forward',
+                label: candidate.name,
+                submitLabel: 'เสนอแฟ้ม',
+                targetPid: candidate.pID,
+            }))
+            : [{
+                key: 'forward:' + (deputyPid || directorPid || 'fallback'),
+                value: 'forward',
+                label: deputyName || directorName || 'รองผู้อำนวยการ',
+                submitLabel: 'เสนอแฟ้ม',
+                targetPid: deputyPid || '',
+            }];
 
         if (reviewerRole === 'HEAD') {
-            const deputyForwardOptions = deputyCandidates.length > 0
-                ? deputyCandidates.map((candidate) => ({
-                    key: 'forward:' + candidate.pID,
-                    value: 'forward',
-                    label: candidate.name,
-                    submitLabel: 'เสนอแฟ้ม',
-                    targetPid: candidate.pID,
-                }))
-                : [{
-                    key: 'forward:' + (deputyPid || directorPid || 'fallback'),
-                    value: 'forward',
-                    label: deputyName || directorName || 'รองผู้อำนวยการ',
-                    submitLabel: 'เสนอแฟ้ม',
-                    targetPid: deputyPid || '',
-                }];
+            return deputyForwardOptions;
+        }
 
-            return [
-                ...deputyForwardOptions,
+        if (flowMode === 'DIRECT') {
+            return [{
+                    key: 'approve_unsigned',
+                    value: 'approve_unsigned',
+                    label: 'อนุมัติรอแนบไฟล์',
+                    submitLabel: 'อนุมัติรอแนบไฟล์',
+                },
+                {
+                    key: 'reject',
+                    value: 'reject',
+                    label: 'ไม่อนุมัติ',
+                    submitLabel: 'ไม่อนุมัติ',
+                },
                 {
                     key: 'return',
                     value: 'return',
@@ -780,6 +881,41 @@ ob_start();
         });
     };
 
+    const resolveSavedActionKey = (reviewerRole, trigger) => {
+        if (reviewerRole === 'HEAD') {
+            const deputyPid = String(trigger.dataset.deputyPid || '').trim();
+
+            if (deputyPid !== '') {
+                return 'forward:' + deputyPid;
+            }
+        }
+
+        if (reviewerRole === 'DEPUTY') {
+            const directorPid = String(trigger.dataset.directorPid || '').trim();
+
+            if (directorPid !== '') {
+                return 'forward:' + directorPid;
+            }
+        }
+
+        return '';
+    };
+
+    const confirmMemoSubmit = (submitLabel) => {
+        const title = 'ยืนยันการเสนอแฟ้ม';
+        const message = 'ยืนยันการดำเนินการ "' + String(submitLabel || 'เสนอแฟ้ม') + '" ใช่หรือไม่?';
+
+        if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+            return window.AppAlerts.confirm(message, {
+                title: title,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+            });
+        }
+
+        return Promise.resolve(window.confirm(title + '\n' + message));
+    };
+
     const resetReviewState = () => {
         currentEditableReviewField = null;
         currentActionOptions = [];
@@ -826,6 +962,10 @@ ob_start();
             modalFooterButtonLabel.textContent = 'เสนอแฟ้ม';
         }
 
+        if (modalFooterForm) {
+            delete modalFooterForm.dataset.confirmedSubmit;
+        }
+
         if (modalActionRow && modalDetailContainer) {
             modalDetailContainer.appendChild(modalActionRow);
         }
@@ -864,9 +1004,7 @@ ob_start();
 
         syncMemoDetailEditor(trigger.dataset.detail || '');
 
-        if (modalSignatureImage) {
-            modalSignatureImage.setAttribute('src', trigger.dataset.signature || defaultSignatureImage);
-        }
+        applySignatureBlock(modalSignatureBlock, modalSignatureImage, trigger.dataset.signature || '');
 
         if (modalSignatureName) {
             modalSignatureName.textContent = '(' + (trigger.dataset.name || defaultSignatureName.replace(/^\(|\)$/g, '') || '-') + ')';
@@ -879,6 +1017,9 @@ ob_start();
         resetReviewState();
 
         const reviewerRole = String(trigger.dataset.reviewerRole || '').toUpperCase();
+        const flowStage = String(trigger.dataset.flowStage || '').toUpperCase();
+        const currentToPid = String(trigger.dataset.toPid || '').trim();
+        const isCurrentReviewer = reviewerRole !== '' && currentToPid !== '' && currentToPid === currentPid && flowStage === reviewerRole;
         const stageSequence = stageOrderByRole[reviewerRole] || [];
 
         if (modalMemoIdInput) {
@@ -893,7 +1034,7 @@ ob_start();
                 return;
             }
 
-            const isEditable = stage === reviewerRole;
+            const isEditable = stage === reviewerRole && isCurrentReviewer;
             renderStageSection(stage, payload, isEditable);
 
             if (isEditable) {
@@ -903,26 +1044,34 @@ ob_start();
 
         currentActionOptions = buildActionOptions(reviewerRole, trigger);
 
-        if (currentActionOptions.length > 0) {
+        const savedActionKey = resolveSavedActionKey(reviewerRole, trigger);
+        const hasSavedAction = savedActionKey !== '' && currentActionOptions.some((option) => option.key === savedActionKey);
+
+        if (currentActionOptions.length > 0 && (isCurrentReviewer || hasSavedAction)) {
             moveActionRowAfterStage(reviewerRole);
 
             if (modalActionRow) {
                 modalActionRow.style.display = '';
             }
 
-            if (modalFooterButton) {
-                modalFooterButton.style.display = '';
-            }
-
             if (modalActionOptions) {
                 modalActionOptions.innerHTML = currentActionOptions.map((option, index) => (
-                    '<div class="custom-option' + (index === 0 ? ' selected' : '') + '" data-memo-action-option="' + option.key + '">' +
+                    '<div class="custom-option' + (hasSavedAction ? (option.key === savedActionKey ? ' selected' : '') : (index === 0 ? ' selected' : '')) + '" data-memo-action-option="' + option.key + '">' +
                     option.label +
                     '</div>'
                 )).join('');
             }
 
-            applySelectedAction(currentActionOptions[0].value);
+            applySelectedAction(hasSavedAction ? savedActionKey : currentActionOptions[0].key);
+
+            if (modalActionWrapper) {
+                modalActionWrapper.classList.toggle('is-disabled', !isCurrentReviewer);
+                modalActionWrapper.style.pointerEvents = isCurrentReviewer ? 'auto' : 'none';
+            }
+
+            if (modalFooterButton) {
+                modalFooterButton.style.display = isCurrentReviewer ? '' : 'none';
+            }
         }
 
         editModal.style.display = 'flex';
@@ -948,18 +1097,48 @@ ob_start();
     });
 
     modalFooterForm?.addEventListener('submit', (event) => {
+        if (modalFooterForm.dataset.confirmedSubmit === '1') {
+            delete modalFooterForm.dataset.confirmedSubmit;
+            return;
+        }
+
         const currentAction = String(modalMemoActionInput?.value || '').trim();
-        const noteValue = String(currentEditableReviewField?.value || '').trim();
+        const noteValue = readStageEditorValue(currentEditableReviewField);
+        const hasMeaningfulNote = isMeaningfulEditorContent(noteValue);
 
         if (modalMemoNoteInput) {
             modalMemoNoteInput.value = noteValue;
         }
 
-        if ((currentAction === 'return' || currentAction === 'director_reject') && noteValue === '') {
+        if ((currentAction === 'return' || currentAction === 'director_reject' || currentAction === 'reject') && !hasMeaningfulNote) {
             event.preventDefault();
             window.alert('กรุณากรอกความเห็น');
-            currentEditableReviewField?.focus();
+            const editor = getMemoEditor(currentEditableReviewField);
+
+            if (editor && typeof editor.focus === 'function') {
+                editor.focus();
+            } else {
+                currentEditableReviewField?.focus();
+            }
+            return;
         }
+
+        event.preventDefault();
+
+        confirmMemoSubmit(modalFooterButtonLabel?.textContent || 'เสนอแฟ้ม').then((approved) => {
+            if (!approved) {
+                return;
+            }
+
+            modalFooterForm.dataset.confirmedSubmit = '1';
+
+            if (typeof modalFooterForm.requestSubmit === 'function') {
+                modalFooterForm.requestSubmit();
+                return;
+            }
+
+            modalFooterForm.submit();
+        });
     });
 
     closeEditBtn?.addEventListener('click', closeEditModal);

@@ -869,10 +869,6 @@ if (!function_exists('memo_forward')) {
                 throw new RuntimeException('ไม่มีสิทธิ์ส่งต่อรายการนี้');
             }
 
-            if (!memo_is_chain_mode($memo)) {
-                throw new RuntimeException('รายการนี้ไม่ได้อยู่ในโหมดเสนอแฟ้มตามลำดับ');
-            }
-
             $fromStatus = (string) ($memo['status'] ?? '');
 
             if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
@@ -918,6 +914,7 @@ if (!function_exists('memo_forward')) {
                 $directorPID = trim((string) (system_get_current_director_pid() ?? ''));
             }
 
+            $is_chain_mode = memo_is_chain_mode($memo);
             $memo = [
                 ...$memo,
                 'headPID' => $headPID,
@@ -925,18 +922,31 @@ if (!function_exists('memo_forward')) {
                 'directorPID' => $directorPID,
             ];
 
-            $currentStage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+            if ($is_chain_mode) {
+                $currentStage = memo_infer_chain_stage_by_actor($memo, $actorPID);
 
-            if (!in_array($currentStage, ['HEAD', 'DEPUTY'], true)) {
-                throw new RuntimeException('ส่งต่อได้เฉพาะหัวหน้ากลุ่ม/รองผู้อำนวยการ');
-            }
+                if (!in_array($currentStage, ['HEAD', 'DEPUTY'], true)) {
+                    throw new RuntimeException('ส่งต่อได้เฉพาะหัวหน้ากลุ่ม/รองผู้อำนวยการ');
+                }
 
-            if ($currentStage === 'HEAD' && $targetPID !== '') {
+                if ($currentStage === 'HEAD' && $targetPID !== '') {
+                    if (!preg_match('/^\d{1,13}$/', $targetPID) || !memo_is_valid_deputy_candidate($targetPID, $actorPID)) {
+                        throw new RuntimeException('ไม่พบรองผู้อำนวยการที่เลือก');
+                    }
+
+                    $deputyPID = $targetPID;
+                    $memo['deputyPID'] = $deputyPID;
+                }
+            } else {
                 if (!preg_match('/^\d{1,13}$/', $targetPID) || !memo_is_valid_deputy_candidate($targetPID, $actorPID)) {
                     throw new RuntimeException('ไม่พบรองผู้อำนวยการที่เลือก');
                 }
 
+                $currentStage = 'HEAD';
+                $headPID = $actorPID;
                 $deputyPID = $targetPID;
+                $memo['flowMode'] = 'CHAIN';
+                $memo['headPID'] = $headPID;
                 $memo['deputyPID'] = $deputyPID;
             }
 
@@ -949,6 +959,7 @@ if (!function_exists('memo_forward')) {
             $now = date('Y-m-d H:i:s');
             memo_update_record($memoID, [
                 'status' => MEMO_STATUS_SUBMITTED,
+                'flowMode' => 'CHAIN',
                 'flowStage' => $nextStage,
                 'toType' => $nextStage === 'DIRECTOR' ? 'DIRECTOR' : 'PERSON',
                 'toPID' => $nextPID,
