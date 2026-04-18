@@ -57,6 +57,150 @@ if (!function_exists('orders_sharing_abort')) {
     }
 }
 
+if (!function_exists('orders_sharing_safe_filename')) {
+    function orders_sharing_safe_filename(string $fileName, string $fallback = 'attachment'): string
+    {
+        $fileName = trim(str_replace(["\r", "\n", '/', '\\'], '', $fileName));
+
+        return $fileName !== '' ? $fileName : $fallback;
+    }
+}
+
+if (!function_exists('orders_sharing_resolve_file_path')) {
+    function orders_sharing_resolve_file_path(array $file): ?string
+    {
+        $file_path = trim((string) ($file['filePath'] ?? ''));
+
+        if ($file_path === '') {
+            return null;
+        }
+
+        $base_storage = realpath(__DIR__ . '/../../storage/uploads');
+        $base_assets = realpath(__DIR__ . '/../../assets/uploads');
+        $target_path = realpath(__DIR__ . '/../../' . $file_path);
+
+        if (!$target_path || !is_file($target_path)) {
+            return null;
+        }
+
+        $valid_base = static function (?string $base) use ($target_path): bool {
+            if (!$base) {
+                return false;
+            }
+
+            return $target_path === $base || strpos($target_path, $base . DIRECTORY_SEPARATOR) === 0;
+        };
+
+        if (!$valid_base($base_storage) && !$valid_base($base_assets)) {
+            return null;
+        }
+
+        return $target_path;
+    }
+}
+
+if (!function_exists('orders_sharing_send_all_files')) {
+    function orders_sharing_send_all_files(array $item, string $share_token): void
+    {
+        $order_id = (int) ($item['orderID'] ?? 0);
+        $attachments = $order_id > 0 ? order_get_attachments($order_id) : [];
+
+        if ($attachments === []) {
+            audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'FAIL', 'dh_orders', $order_id, 'no_attachment', [
+                'shareToken' => $share_token,
+            ], 'GET', 404);
+            http_response_code(404);
+            exit();
+        }
+
+        if (!class_exists('ZipArchive')) {
+            audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'FAIL', 'dh_orders', $order_id, 'zip_extension_missing', [
+                'shareToken' => $share_token,
+            ], 'GET', 500);
+            http_response_code(500);
+            exit();
+        }
+
+        $zip_path = tempnam(sys_get_temp_dir(), 'order-share-');
+
+        if ($zip_path === false) {
+            audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'FAIL', 'dh_orders', $order_id, 'temp_file_failed', [
+                'shareToken' => $share_token,
+            ], 'GET', 500);
+            http_response_code(500);
+            exit();
+        }
+
+        $zip = new ZipArchive();
+
+        if ($zip->open($zip_path, ZipArchive::OVERWRITE) !== true) {
+            @unlink($zip_path);
+            audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'FAIL', 'dh_orders', $order_id, 'zip_open_failed', [
+                'shareToken' => $share_token,
+            ], 'GET', 500);
+            http_response_code(500);
+            exit();
+        }
+
+        $added = 0;
+        $used_names = [];
+
+        foreach ($attachments as $file) {
+            $target_path = orders_sharing_resolve_file_path((array) $file);
+
+            if ($target_path === null) {
+                continue;
+            }
+
+            $file_id = (int) ($file['fileID'] ?? 0);
+            $base_name = orders_sharing_safe_filename((string) ($file['fileName'] ?? ''), 'attachment-' . $file_id);
+            $zip_name = $base_name;
+            $suffix = 2;
+
+            while (isset($used_names[$zip_name])) {
+                $extension = pathinfo($base_name, PATHINFO_EXTENSION);
+                $name_only = $extension !== '' ? substr($base_name, 0, -1 * (strlen($extension) + 1)) : $base_name;
+                $zip_name = $name_only . '-' . $suffix . ($extension !== '' ? '.' . $extension : '');
+                $suffix++;
+            }
+
+            $used_names[$zip_name] = true;
+
+            if ($zip->addFile($target_path, $zip_name)) {
+                $added++;
+            }
+        }
+
+        $zip->close();
+
+        if ($added === 0) {
+            @unlink($zip_path);
+            audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'FAIL', 'dh_orders', $order_id, 'no_file_on_disk', [
+                'shareToken' => $share_token,
+            ], 'GET', 404);
+            http_response_code(404);
+            exit();
+        }
+
+        $document_number = orders_sharing_safe_filename((string) ($item['orderNo'] ?? ''), 'order-' . $order_id);
+        $archive_name = 'orders-' . $document_number . '.zip';
+
+        audit_log('orders', 'SHARE_ATTACHMENT_DOWNLOAD_ALL', 'SUCCESS', 'dh_orders', $order_id, null, [
+            'shareToken' => $share_token,
+            'fileCount' => $added,
+        ], 'GET', 200);
+
+        header('Content-Type: application/zip');
+        header('Content-Length: ' . (string) filesize($zip_path));
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Disposition: attachment; filename="' . $archive_name . '"');
+
+        readfile($zip_path);
+        @unlink($zip_path);
+        exit();
+    }
+}
+
 if (!function_exists('orders_sharing_index')) {
     function orders_sharing_index(): void
     {
@@ -103,9 +247,10 @@ if (!function_exists('orders_sharing_file')) {
         $file_id = filter_input(INPUT_GET, 'file_id', FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1],
         ]);
+        $download_all = isset($_GET['all']) && $_GET['all'] === '1';
         $download = isset($_GET['download']) && $_GET['download'] === '1';
 
-        if (!orders_sharing_is_valid_token($share_token) || !$file_id) {
+        if (!orders_sharing_is_valid_token($share_token) || (!$download_all && !$file_id)) {
             http_response_code(404);
             exit();
         }
@@ -115,6 +260,10 @@ if (!function_exists('orders_sharing_file')) {
         if (!$item) {
             http_response_code(404);
             exit();
+        }
+
+        if ($download_all) {
+            orders_sharing_send_all_files($item, $share_token);
         }
 
         $order_id = (int) ($item['orderID'] ?? 0);
@@ -129,28 +278,10 @@ if (!function_exists('orders_sharing_file')) {
             exit();
         }
 
-        $file_path = trim((string) ($file['filePath'] ?? ''));
+        $target_path = orders_sharing_resolve_file_path($file);
 
-        if ($file_path === '') {
-            http_response_code(404);
-            exit();
-        }
-
-        $base_storage = realpath(__DIR__ . '/../../storage/uploads');
-        $base_assets = realpath(__DIR__ . '/../../assets/uploads');
-        $target_path = realpath(__DIR__ . '/../../' . $file_path);
-        $valid = false;
-
-        if ($target_path && $base_storage && strpos($target_path, $base_storage) === 0) {
-            $valid = true;
-        }
-
-        if ($target_path && $base_assets && strpos($target_path, $base_assets) === 0) {
-            $valid = true;
-        }
-
-        if (!$valid || !is_file($target_path)) {
-            audit_log('orders', 'SHARE_ATTACHMENT_VIEW', $valid ? 'FAIL' : 'DENY', 'dh_orders', $order_id, $valid ? 'file_missing_on_disk' : 'invalid_file_path', [
+        if ($target_path === null) {
+            audit_log('orders', 'SHARE_ATTACHMENT_VIEW', 'FAIL', 'dh_orders', $order_id, 'file_missing_or_invalid_path', [
                 'shareToken' => $share_token,
                 'fileID' => $file_id,
             ], 'GET', 404);
@@ -158,7 +289,7 @@ if (!function_exists('orders_sharing_file')) {
             exit();
         }
 
-        $file_name = str_replace(["\r", "\n"], '', (string) ($file['fileName'] ?? 'attachment'));
+        $file_name = orders_sharing_safe_filename((string) ($file['fileName'] ?? ''), 'attachment');
         $mime_type = trim((string) ($file['mimeType'] ?? 'application/octet-stream'));
         $mime_type = $mime_type !== '' ? $mime_type : 'application/octet-stream';
         $action = $download ? 'SHARE_ATTACHMENT_DOWNLOAD' : 'SHARE_ATTACHMENT_VIEW';
