@@ -96,6 +96,18 @@ if (!function_exists('orders_issue_find_fid_by_name')) {
     }
 }
 
+if (!function_exists('orders_create_public_share_url')) {
+    function orders_create_public_share_url(string $shareToken): string
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '127.0.0.1:8000');
+        $script_dir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+        $base_path = ($script_dir === '/' || $script_dir === '.') ? '' : rtrim($script_dir, '/');
+
+        return $scheme . '://' . $host . $base_path . '/orders-sharing.php?' . rawurlencode($shareToken);
+    }
+}
+
 if (!function_exists('orders_create_index')) {
     function orders_create_index(): void
     {
@@ -156,6 +168,9 @@ if (!function_exists('orders_create_index')) {
         $has_recipients_table = db_table_exists($connection, 'dh_order_recipients');
         $has_inbox_table = db_table_exists($connection, 'dh_order_inboxes');
         $send_tables_ready = $has_orders_table && $has_recipients_table && $has_inbox_table;
+        $has_share_columns = $has_orders_table
+            && db_column_exists($connection, 'dh_orders', 'shareToken')
+            && db_column_exists($connection, 'dh_orders', 'shareCreatedAt');
 
         $faction_options = [];
         $send_picker_factions = [];
@@ -266,7 +281,9 @@ if (!function_exists('orders_create_index')) {
                         'title' => 'ไม่สามารถยืนยันความปลอดภัย',
                         'message' => 'กรุณาลองใหม่อีกครั้ง',
                     ];
-                } elseif (!$send_tables_ready) {
+                } elseif ($post_action === 'share' && !$has_share_columns) {
+                    $alert = system_not_ready_alert('ยังไม่พบโครงสร้างลิงก์แชร์คำสั่ง กรุณารัน migrations/024_add_order_share_token.sql');
+                } elseif ($post_action !== 'share' && !$send_tables_ready) {
                     $alert = system_not_ready_alert('ยังไม่พบตารางคำสั่ง กรุณารัน migrations/004_create_orders.sql');
                 } elseif ($send_modal_open_order_id <= 0) {
                     $alert = [
@@ -278,7 +295,7 @@ if (!function_exists('orders_create_index')) {
                     $target_order = order_get_for_owner($send_modal_open_order_id, $current_pid);
                     $target_status = strtoupper(trim((string) ($target_order['status'] ?? '')));
 
-                    if (!$target_order || !in_array($target_status, [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true)) {
+                    if (!$target_order || ($post_action !== 'share' && !in_array($target_status, [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true))) {
                         $alert = [
                             'type' => 'danger',
                             'title' => 'ไม่พบคำสั่งหรือไม่มีสิทธิ์ดำเนินการ',
@@ -286,7 +303,16 @@ if (!function_exists('orders_create_index')) {
                         ];
                     } else {
                         try {
-                            if ($post_action === 'recall') {
+                            if ($post_action === 'share') {
+                                $share_token = order_ensure_share_token($send_modal_open_order_id, $current_pid);
+                                $share_url = orders_create_public_share_url($share_token);
+                                $alert = [
+                                    'type' => 'success',
+                                    'title' => 'สร้างลิงก์เรียบร้อย',
+                                    'message' => $share_url,
+                                ];
+                                $send_modal_open_order_id = 0;
+                            } elseif ($post_action === 'recall') {
                                 order_recall($send_modal_open_order_id, $current_pid);
                                 $alert = [
                                     'type' => 'success',

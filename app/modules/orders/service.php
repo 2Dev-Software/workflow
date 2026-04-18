@@ -451,3 +451,78 @@ if (!function_exists('order_recall')) {
         }
     }
 }
+
+if (!function_exists('order_generate_share_token')) {
+    function order_generate_share_token(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+}
+
+if (!function_exists('order_ensure_share_token')) {
+    function order_ensure_share_token(int $orderID, string $actorPID): string
+    {
+        db_begin();
+
+        try {
+            $order = db_fetch_one(
+                'SELECT orderID, createdByPID, shareToken
+                 FROM dh_orders
+                 WHERE orderID = ? AND createdByPID = ? AND deletedAt IS NULL
+                 LIMIT 1
+                 FOR UPDATE',
+                'is',
+                $orderID,
+                $actorPID
+            );
+
+            if (!$order) {
+                throw new RuntimeException('ไม่พบคำสั่งหรือไม่มีสิทธิ์สร้างลิงก์');
+            }
+
+            $existingToken = trim((string) ($order['shareToken'] ?? ''));
+
+            if ($existingToken !== '') {
+                db_commit();
+                audit_log('orders', 'SHARE_LINK_REUSE', 'SUCCESS', 'dh_orders', $orderID, null, [
+                    'shareToken' => $existingToken,
+                ]);
+
+                return $existingToken;
+            }
+
+            $token = '';
+
+            for ($attempt = 0; $attempt < 10; $attempt++) {
+                $candidate = order_generate_share_token();
+
+                if (order_get_by_share_token($candidate) === null) {
+                    $token = $candidate;
+                    break;
+                }
+            }
+
+            if ($token === '') {
+                throw new RuntimeException('ไม่สามารถสร้างรหัสลิงก์ได้ กรุณาลองใหม่อีกครั้ง');
+            }
+
+            order_update_record($orderID, [
+                'shareToken' => $token,
+                'shareCreatedAt' => date('Y-m-d H:i:s'),
+                'updatedByPID' => $actorPID,
+            ]);
+
+            db_commit();
+            audit_log('orders', 'SHARE_LINK_CREATE', 'SUCCESS', 'dh_orders', $orderID, null, [
+                'shareToken' => $token,
+            ]);
+
+            return $token;
+        } catch (Throwable $e) {
+            db_rollback();
+            error_log('Order share link failed: ' . $e->getMessage());
+            audit_log('orders', 'SHARE_LINK_CREATE', 'FAIL', 'dh_orders', $orderID, $e->getMessage());
+            throw $e;
+        }
+    }
+}

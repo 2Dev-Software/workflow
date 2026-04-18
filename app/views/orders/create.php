@@ -1271,6 +1271,10 @@ ob_start();
                         $date_display = (string) ($date_display_parts['full'] ?? '-');
                         $date_display_date = (string) ($date_display_parts['date'] ?? '-');
                         $date_display_time = (string) ($date_display_parts['time'] ?? '-');
+                        $share_token = trim((string) ($item['shareToken'] ?? ''));
+                        $share_url = $share_token !== '' && function_exists('orders_create_public_share_url')
+                            ? orders_create_public_share_url($share_token)
+                            : '';
                         $show_attach_action = $order_id > 0 && $status_key === ORDER_STATUS_WAITING_ATTACHMENT;
                         $show_send_action = $order_id > 0 && $status_key === ORDER_STATUS_COMPLETE;
                         $show_recipients_action = $order_id > 0 && $status_key === ORDER_STATUS_SENT;
@@ -1307,7 +1311,38 @@ ob_start();
                                 </div>
                             </td>
                             <td>
-                                <div class="circular-my-actions">
+                                <div class="circular-my-actions booking-action-group">
+                                    <?php if ($order_id > 0) : ?>
+                                        <?php if ($share_url !== '') : ?>
+                                            <button
+                                                class="booking-action-btn secondary"
+                                                type="button"
+                                                data-order-share-copy="<?= h($share_url) ?>"
+                                                title="คัดลอกลิงก์"
+                                                aria-label="คัดลอกลิงก์">
+                                                <i class="fa-solid fa-copy"></i>
+                                                <span class="tooltip">คัดลอกลิงก์</span>
+                                            </button>
+                                        <?php else : ?>
+                                            <form method="POST">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="order_action" value="share">
+                                                <input type="hidden" name="send_order_id" value="<?= h((string) $order_id) ?>">
+                                                <button
+                                                    class="booking-action-btn secondary"
+                                                    type="submit"
+                                                    data-confirm="ยืนยันการสร้างลิงก์สาธารณะสำหรับแชร์คำสั่งราชการนี้ใช่หรือไม่?"
+                                                    data-confirm-title="ยืนยันการสร้างลิงก์"
+                                                    data-confirm-ok="ยืนยัน"
+                                                    data-confirm-cancel="ยกเลิก"
+                                                    title="สร้างลิงก์"
+                                                    aria-label="สร้างลิงก์">
+                                                    <i class="fa-solid fa-link"></i>
+                                                    <span class="tooltip">สร้างลิงก์</span>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                     <?php if ($show_attach_action) : ?>
                                         <button
                                             class="booking-action-btn secondary js-open-order-edit-modal"
@@ -3288,6 +3323,51 @@ ob_start();
         document.addEventListener('click', (event) => {
             const target = event.target instanceof Element ? event.target : null;
             if (!target) return;
+
+            const shareCopyTrigger = target.closest('[data-order-share-copy]');
+            if (shareCopyTrigger) {
+                const shareLink = String(shareCopyTrigger.getAttribute('data-order-share-copy') || '').trim();
+                if (shareLink !== '') {
+                    const notify = (message, type = 'success') => {
+                        if (window.Swal && typeof window.Swal.fire === 'function') {
+                            window.Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: type === 'error' ? 'error' : 'success',
+                                title: message,
+                                showConfirmButton: false,
+                                timer: 1800,
+                                timerProgressBar: true,
+                            });
+                            return;
+                        }
+                        if (window.App && window.App.toast && typeof window.App.toast.show === 'function') {
+                            window.App.toast.show(message, type);
+                        }
+                    };
+                    const fallbackCopy = () => {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = shareLink;
+                        textarea.setAttribute('readonly', 'readonly');
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        const copied = document.execCommand('copy');
+                        textarea.remove();
+                        notify(copied ? 'คัดลอกลิงก์สำเร็จ' : 'ไม่สามารถคัดลอกลิงก์ได้', copied ? 'success' : 'error');
+                    };
+
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(shareLink)
+                            .then(() => notify('คัดลอกลิงก์สำเร็จ'))
+                            .catch(fallbackCopy);
+                    } else {
+                        fallbackCopy();
+                    }
+                }
+                return;
+            }
 
             const editTrigger = target.closest('.js-open-order-edit-modal');
             if (editTrigger) {
