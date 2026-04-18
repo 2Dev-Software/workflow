@@ -26,16 +26,11 @@ if ($dh_year_value <= 0) {
         <div class="container-login-section">
 
             <header class="header-login">
-                <!-- <div class="container-notification-toggle">
-                    <button type="button" id="toggleNewsBtn">
-                        ดูข่าวประชาสัมพันธ์ <i class="fa-solid fa-bullhorn"></i>
-                    </button>
-                </div> -->
                 <div class="logo-login">
                     <img src="assets/img/favicon/deebuk-logo.png" alt="DB-logo">
                 </div>
                 <div class="text-header-login">
-                    <h3>ระบบสำนักงานอิเล็กทรอนิกส์</h3>
+                    <h3>ระบบงานสารบรรณออนไลน์</h3>
                     <h3>โรงเรียนดีบุกพังงาวิทยายน</h3>
                 </div>
             </header>
@@ -66,8 +61,8 @@ if ($dh_year_value <= 0) {
             </section>
 
             <footer class="footer-login">
-                <p>ระบบสำนักงานอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน</p>
-                <p>DB-Sarabun</p>
+                <p>ระบบงานสารบรรณออนไลน์ โรงเรียนดีบุกพังงาวิทยายน</p>
+                <p>DB SARABUN V.1.0.0 Copyright © 2026 TPH. All rights reserved</p>
                 <p>Paperless office พ.ศ.<?= htmlspecialchars((string) $dh_year_value, ENT_QUOTES, 'UTF-8') ?></p>
             </footer>
 

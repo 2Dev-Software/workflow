@@ -8,6 +8,11 @@ $dashboard_current_date_label = trim((string) ($dashboard_current_date_label ?? 
 $dashboard_name = trim((string) ($dashboard_user['fName'] ?? ''));
 $dashboard_position = trim((string) ($dashboard_user['position_name'] ?? ''));
 $dashboard_role = trim((string) ($dashboard_user['role_name'] ?? ''));
+$unread_external_circulars = (int) ($dashboard_counts['unread_external_circulars'] ?? $dashboard_counts['unread_circulars'] ?? 0);
+$unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars'] ?? 0);
+$unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
+$unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
+$unread_vehicle_bookings = (int) ($dashboard_counts['unread_vehicle_bookings'] ?? 0);
 
 $visible_shortcuts = array_values(array_filter($dashboard_shortcuts, static function ($shortcut): bool {
     return !empty($shortcut['visible']);
@@ -16,51 +21,14 @@ $visible_shortcuts = array_values(array_filter($dashboard_shortcuts, static func
 ob_start();
 ?>
 <div class="dashboard-container">
-    <!-- <div class="content waiting-circular">
-        <div class="content-header">
-            <p>หนังสือเวียนใหม่ที่รออ่าน</p>
-        </div>
-        <div class="content-info">
-            <p><?= h((string) ((int) ($dashboard_counts['unread_circulars'] ?? 0))) ?></p>
-            <i class="fa-book fa-solid"></i>
-        </div>
-    </div>
-    <div class="content waiting-official-order">
-        <div class="content-header">
-            <p>คำสั่งราชการใหม่ที่รออ่าน</p>
-        </div>
-        <div class="content-info">
-            <p><?= h((string) ((int) ($dashboard_counts['unread_orders'] ?? 0))) ?></p>
-            <i class="fa-book fa-solid"></i>
-        </div>
-    </div>
-    <div class="content waiting-manager">
-        <div class="content-header">
-            <p>หนังสือที่รอเสนอผู้บริหาร</p>
-        </div>
-        <div class="content-info">
-            <p><?= h((string) ((int) ($dashboard_counts['pending_manager'] ?? 0))) ?></p>
-            <i class="fa-book fa-solid"></i>
-        </div>
-    </div>
-    <div class="content waiting-approve">
-        <div class="content-header">
-            <p>หนังสือที่รอเซ็นอนุมัติ</p>
-        </div>
-        <div class="content-info">
-            <p><?= h((string) ((int) ($dashboard_counts['pending_approvals'] ?? 0))) ?></p>
-            <i class="fa-book fa-solid"></i>
-        </div>
-    </div> -->
-
     <div class="notification-system">
         <div class="notification-list">
             <ul>
-                <li>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
-                <li>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
-                <li>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b>9999</b>ฉบับ</li>
-                <li>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
-                <li>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b>9999</b> ฉบับ</li>
+                <li>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_external_circulars) ?></b> ฉบับ</li>
+                <li>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_internal_circulars) ?></b> ฉบับ</li>
+                <li>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_memos) ?></b>ฉบับ</li>
+                <li>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_orders) ?></b> ฉบับ</li>
+                <li>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_vehicle_bookings) ?></b> ฉบับ</li>
             </ul>
         </div>
         <section>
@@ -105,22 +73,6 @@ ob_start();
                 <p><strong>แผนผังระบบสำนักงานอิเล็กทรอนิกส์</strong></p>
             </div>
 
-            <!-- <div class="dashboard-content">
-            <?php foreach ($visible_shortcuts as $shortcut) : ?>
-                <?php
-                $shortcut_href = trim((string) ($shortcut['href'] ?? '#'));
-                $shortcut_label = trim((string) ($shortcut['label'] ?? ''));
-                $shortcut_image = trim((string) ($shortcut['image'] ?? ''));
-                ?>
-                <a href="<?= h($shortcut_href !== '' ? $shortcut_href : '#') ?>">
-                    <div class="card-shortcut">
-                        <img src="<?= h($shortcut_image) ?>" alt="">
-                        <p><strong><?= h($shortcut_label) ?></strong></p>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-        </div> -->
-
             <div class="dashboard-content">
                 <a href="outgoing-receive.php">
                     <div class="card-shortcut">
@@ -128,7 +80,7 @@ ob_start();
                         <p><strong>ลงทะเบียนรับ</strong></p>
                     </div>
                 </a>
-                <a href="outgoing-receive.php">
+                <a href="outgoing.php">
                     <div class="card-shortcut">
                         <img src="/public/assets/img/icon/clipboard.png" alt="">
                         <p><strong>ออกเลขทะเบียนส่ง</strong></p>

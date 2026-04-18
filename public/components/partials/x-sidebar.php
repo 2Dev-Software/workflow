@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/db/db.php';
 require_once __DIR__ . '/../../../app/rbac/roles.php';
+require_once __DIR__ . '/../../../app/modules/dashboard/metrics.php';
 require_once __DIR__ . '/../../../src/Services/teacher/teacher-profile.php';
 require_once __DIR__ . '/../../../src/Services/system/exec-duty-current.php';
 
@@ -38,6 +39,45 @@ $can_manage_room_module = $is_admin_user || $is_facility_user;
 $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
 $can_access_settings = $is_admin_user || $is_registry_user;
 $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_staff_user;
+
+$director_inbox_type = ($acting_pid !== '' && $acting_pid === $actor_pid)
+    ? 'acting_principal_inbox'
+    : 'special_principal_inbox';
+$sidebar_access = [
+    'is_admin_user' => $is_admin_user,
+    'is_registry_user' => $is_registry_user,
+    'is_vehicle_user' => $is_vehicle_user,
+    'is_facility_user' => $is_facility_user,
+    'is_repair_staff_user' => $is_repair_staff_user,
+    'is_director_or_acting' => $is_director_or_acting,
+    'can_manage_external_circular' => $can_manage_external_circular,
+    'can_manage_room_module' => $can_manage_room_module,
+    'can_manage_vehicle_module' => $can_manage_vehicle_module,
+    'can_manage_repair_module' => $can_manage_repair_module,
+];
+$sidebar_counts = $actor_pid !== '' ? dashboard_counts($actor_pid, $sidebar_access) : dashboard_zero_counts();
+$sidebar_counts['external_circular_notifications'] = $actor_pid !== ''
+    ? dashboard_count_external_circular_notifications($sidebar_connection, $actor_pid, $sidebar_access, $director_inbox_type)
+    : 0;
+$sidebar_alerts = [
+    'home' => false,
+    'news' => false,
+    'internal_circular' => (int) ($sidebar_counts['unread_internal_circulars'] ?? 0) > 0,
+    'external_circular' => (int) ($sidebar_counts['external_circular_notifications'] ?? 0) > 0,
+    'memo' => (int) ($sidebar_counts['unread_memos'] ?? 0) > 0,
+    'orders' => (int) ($sidebar_counts['unread_orders'] ?? 0) > 0,
+    'room' => (int) ($sidebar_counts['room_notifications'] ?? 0) > 0,
+    'vehicle' => (int) ($sidebar_counts['unread_vehicle_bookings'] ?? 0) > 0,
+    'repairs' => (int) ($sidebar_counts['repair_notifications'] ?? 0) > 0,
+];
+$sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ?? 0) > 0
+    || $sidebar_alerts['internal_circular']
+    || $sidebar_alerts['external_circular']
+    || $sidebar_alerts['memo']
+    || $sidebar_alerts['orders']
+    || $sidebar_alerts['room']
+    || $sidebar_alerts['vehicle']
+    || $sidebar_alerts['repairs'];
 ?>
 <aside class="sidebar close">
     <header class="logo-details">
@@ -50,8 +90,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
     <div class="navigation-links">
         <li>
             <a href="dashboard.php">
-                <span class="red-dot-alert pulse-shadow"></span>
-                <!-- <i class="fa-solid fa-house-chimney"></i> -->
                 <img src="/public/assets/img/icon/home.png" alt="">
                 <p class="link-name">หน้าหลัก</p>
             </a>
@@ -59,8 +97,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
 
         <li>
             <a href="#news-paper">
-                <span class="red-dot-alert pulse-shadow"></span>
-                <!-- <i class="fa-solid fa-house-chimney"></i> -->
                 <img src="/public/assets/img/icon/news-paper.png" alt="">
                 <p class="link-name">ข่าวประชาสัมพันธ์ </p>
             </a>
@@ -69,10 +105,9 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <span class="red-dot-alert pulse-shadow"></span>
-                    <!-- <i class="fa-solid fa-book"></i> -->
+                    <?php if ($sidebar_alerts['internal_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <img src="/public/assets/img/icon/envelope.png" alt="">
-                    <p class="link-name">หนังสือเวียน</p>
+                    <p class="link-name">หนังสือเวียน (ภายใน)</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
             </div>
@@ -87,7 +122,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
-                        <span class="red-dot-alert pulse-shadow"></span>
+                        <?php if ($sidebar_alerts['external_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                         <img src="/public/assets/img/icon/files.png" alt="">
                         <p class="link-name">หนังสือเวียน</p>
                     </a>
@@ -106,22 +141,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
             </li>
         <?php endif; ?>
 
-        <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
-                    <!-- <i class="fa-solid fa-book"></i> -->
-                    <img src="/public/assets/img/icon/envelope.png" alt="">
-                    <p class="link-name">หนังสือเวียน (ภายใน)</p>
-                </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
-                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
-                <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
-            </ul>
-        </li>
-
         <?php if ($can_manage_external_circular): ?>
             <li>
                 <a href="outgoing.php">
@@ -134,8 +153,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <span class="red-dot-alert pulse-shadow"></span>
-                    <!-- <i class="fa-solid fa-pen-to-square"></i> -->
+                    <?php if ($sidebar_alerts['memo']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <img src="/public/assets/img/icon/memo.png" alt="">
                     <p class="link-name">บันทึกข้อความ</p>
                 </a>
@@ -151,8 +169,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <span class="red-dot-alert pulse-shadow"></span>
-                    <!-- <i class="fa-solid fa-file"></i> -->
+                    <?php if ($sidebar_alerts['orders']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                      <img src="/public/assets/img/icon/files.png" alt="">
                     <p class="link-name">คำสั่งราชการ</p>
                 </a>
@@ -169,8 +186,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
-                        <span class="red-dot-alert pulse-shadow"></span>
-                        <!-- <i class="fa-solid fa-building"></i> -->
+                        <?php if ($sidebar_alerts['room']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                          <img src="/public/assets/img/icon/building.png" alt="">
                         <p class="link-name">การจองสถานที่/ห้อง</p>
                     </a>
@@ -185,7 +201,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <?php else: ?>
             <li>
                 <a href="room-booking.php">
-                    <span class="red-dot-alert pulse-shadow"></span>
+                    <?php if ($sidebar_alerts['room']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <i class="fa-solid fa-building"></i>
                     <p class="link-name">จองสถานที่/ห้อง</p>
                 </a>
@@ -195,7 +211,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <?php if ($is_director_or_acting): ?>
             <li>
                 <a href="vehicle-reservation-approval.php">
-                    <span class="red-dot-alert pulse-shadow"></span>
+                    <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <i class="fa-solid fa-car"></i>
                     <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
@@ -204,8 +220,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
-                        <span class="red-dot-alert pulse-shadow"></span>
-                        <!-- <i class="fa-solid fa-car"></i> -->
+                        <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                         <img src="/public/assets/img/icon/car.png" alt="">
                         <p class="link-name">การจองยานพาหนะ</p>
                     </a>
@@ -227,7 +242,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <?php else: ?>
             <li>
                 <a href="vehicle-reservation.php">
-                    <span class="red-dot-alert pulse-shadow"></span>
+                    <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <i class="fa-solid fa-car"></i>
                     <p class="link-name">จองยานพาหนะ</p>
                 </a>
@@ -236,8 +251,7 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <li class="navigation-links-has-sub">
             <div class="icon-link">
                 <a href="#">
-                    <span class="red-dot-alert pulse-shadow"></span>
-                    <!-- <i class="fa-solid fa-wrench"></i> -->
+                    <?php if ($sidebar_alerts['repairs']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <img src="/public/assets/img/icon/repair.png" alt="">
                     <p class="link-name">แจ้งเหตุซ่อมแซม</p>
                 </a>
@@ -255,7 +269,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         </li>
         <li>
             <a href="teacher-phone-directory.php">
-                <!-- <i class="fa-solid fa-phone"></i> -->
                 <img src="/public/assets/img/icon/phone.png" alt="">
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
@@ -263,7 +276,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
 
         <li>
             <a href="profile.php">
-                <!-- <i class="fa-solid fa-user-gear"></i> -->
                  <img src="/public/assets/img/icon/user.png" alt="">
                 <p class="link-name">โปรไฟล์</p>
             </a>
@@ -271,7 +283,6 @@ $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_st
         <?php if ($can_access_settings): ?>
             <li>
                 <a href="setting.php">
-                    <!-- <i class="fa-solid fa-gear"></i> -->
                     <img src="/public/assets/img/icon/setting.png" alt="">
                     <p class="link-name">การตั้งค่า</p>
                 </a>

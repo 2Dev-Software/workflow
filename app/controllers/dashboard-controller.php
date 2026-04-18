@@ -153,7 +153,7 @@ if (!function_exists('dashboard_index')) {
         $current_pid = trim((string) ($current_user['pID'] ?? ($_SESSION['pID'] ?? '')));
         $access = dashboard_resolve_access($current_user);
         $shortcuts = dashboard_shortcuts($access);
-        $counts = dashboard_counts($current_pid);
+        $counts = dashboard_counts($current_pid, $access);
 
         view_render('dashboard/index', [
             'dashboard_counts' => $counts,
