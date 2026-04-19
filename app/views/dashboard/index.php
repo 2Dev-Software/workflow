@@ -22,49 +22,49 @@ ob_start();
 ?>
 <div class="dashboard-container">
     <div class="notification-system">
-        <div class="notification-list">
-            <ul>
-                <li>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_external_circulars) ?></b> ฉบับ</li>
-                <li>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_internal_circulars) ?></b> ฉบับ</li>
-                <li>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_memos) ?></b>ฉบับ</li>
-                <li>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_orders) ?></b> ฉบับ</li>
-                <li>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_vehicle_bookings) ?></b> ฉบับ</li>
-            </ul>
-        </div>
         <section>
-            <main class="profile-section">
-                <?php
-                $profile_picture_raw = trim((string) ($dashboard_user['picture'] ?? ''));
-                $profile_picture = '';
-
-                if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
-                    $profile_picture = $profile_picture_raw;
-                }
-                ?>
-                <section>
-                    <div class="profile-image">
-                        <?php if ($profile_picture !== '') : ?>
-                            <img src="<?= h($profile_picture) ?>" alt="Profile image">
-                        <?php else : ?>
-                            <i class="fa-solid fa-user"></i>
-                        <?php endif; ?>
-                    </div>
-                    <div class="proflie-text">
-                        <p><b>ชื่อ : <?= h($dashboard_name !== '' ? $dashboard_name : '-') ?></b></p>
-                        <p>ตำแหน่ง : <?= h($dashboard_position !== '' ? $dashboard_position : '-') ?></p>
-                        <p>หน้าที่ : <?= h($dashboard_role !== '' ? $dashboard_role : '-') ?></p>
-                    </div>
-                </section>
-                <div class="profile-date">
-                    <i class="fa-solid fa-clock"></i>
-                    <p><?= h($dashboard_current_date_label !== '' ? $dashboard_current_date_label : '-') ?></p>
-                </div>
-            </main>
+            <div class="notification-list">
+                <ul>
+                    <li>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_external_circulars) ?></b> ฉบับ</li>
+                    <li>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_internal_circulars) ?></b> ฉบับ</li>
+                    <li>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_memos) ?></b>ฉบับ</li>
+                    <li>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_orders) ?></b> ฉบับ</li>
+                    <li>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_vehicle_bookings) ?></b> ฉบับ</li>
+                </ul>
+            </div>
             <a href="#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
                 <p>กดเพื่อดูข่าวประชาสัมพันธ์</p>
             </a>
         </section>
+        <main class="profile-section">
+            <?php
+            $profile_picture_raw = trim((string) ($dashboard_user['picture'] ?? ''));
+            $profile_picture = '';
+
+            if ($profile_picture_raw !== '' && strtoupper($profile_picture_raw) !== 'EMPTY') {
+                $profile_picture = $profile_picture_raw;
+            }
+            ?>
+            <section>
+                <div class="profile-image">
+                    <?php if ($profile_picture !== '') : ?>
+                        <img src="<?= h($profile_picture) ?>" alt="Profile image">
+                    <?php else : ?>
+                        <i class="fa-solid fa-user"></i>
+                    <?php endif; ?>
+                </div>
+                <div class="proflie-text">
+                    <p><b>ชื่อ : <?= h($dashboard_name !== '' ? $dashboard_name : '-') ?></b></p>
+                    <p>ตำแหน่ง : <?= h($dashboard_position !== '' ? $dashboard_position : '-') ?></p>
+                    <p>หน้าที่ : <?= h($dashboard_role !== '' ? $dashboard_role : '-') ?></p>
+                </div>
+            </section>
+            <div class="profile-date">
+                <i class="fa-solid fa-clock"></i>
+                <p><?= h($dashboard_current_date_label !== '' ? $dashboard_current_date_label : '-') ?></p>
+            </div>
+        </main>
     </div>
 
     <main class="panel-system">
