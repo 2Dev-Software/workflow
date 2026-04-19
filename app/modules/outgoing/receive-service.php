@@ -210,13 +210,19 @@ if (!function_exists('outgoing_receive_build_track_payload_map')) {
                 'priorityKey' => outgoing_normalize_priority_key($priority_label),
                 'priorityLabel' => $priority_label !== '' ? $priority_label : 'ปกติ',
                 'effectiveDate' => trim((string) ($item['extIssuedDate'] ?? '')),
+                'detail' => (string) ($item['detail'] ?? ''),
+                'linkURL' => trim((string) ($item['linkURL'] ?? '')),
+                'groupName' => trim((string) ($item['groupName'] ?? '')),
                 'issuerName' => trim((string) ($item['creatorName'] ?? '')),
+                'proposerName' => trim((string) ($item['creatorName'] ?? '')),
+                'fromName' => trim((string) ($item['extFromText'] ?? '')),
                 'destinationName' => trim((string) ($item['extFromText'] ?? '')),
                 'ownerNames' => array_values(array_filter([trim((string) ($item['creatorName'] ?? ''))])),
                 'status' => $status_key,
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
                 'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
                 'attachments' => array_values((array) ($attachments_map[(string) $circular_id] ?? [])),
+                'readStats' => circular_get_read_stats($circular_id),
             ];
         }
 

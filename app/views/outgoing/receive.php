@@ -4693,27 +4693,27 @@ ob_start();
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>เลขที่หนังสือ</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewBookNo" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>ลงวันที่</strong></p>
-                        <input type="date" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
+                        <input type="date" id="modalOutgoingViewIssuedDate" class="order-no-display" value="" disabled>
                     </div>
                 </div>
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>เรื่อง</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewSubjectText" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>จาก</strong></p>
-                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewFrom" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>กลุ่ม</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewGroup" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                     </div>
@@ -4738,14 +4738,7 @@ ob_start();
                             </thead>
                             <tbody id="trackReceiptStatusTableBody">
                                 <tr>
-                                    <td>นายธันวิน ณ นคร</td>
-                                    <td><span class="status-pill pending">ยังไม่อ่าน</span></td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td>นายยุทธนา สุวรรณวิสุทธิ์</td>
-                                    <td><span class="status-pill approved">อ่านแล้ว</span></td>
-                                    <td>11 ก.พ. 2569 16:38 น.</td>
+                                    <td colspan="3" class="booking-empty">ไม่พบข้อมูลสถานะการอ่านรายบุคคล</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -4755,86 +4748,30 @@ ob_start();
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>แนบลิ้งก์</strong></p>
-                        <input type="text" id="modalOutgoingViewSubject" class="order-no-display" value="-" disabled>
+                        <input type="text" id="modalOutgoingViewLink" class="order-no-display" value="-" disabled>
                     </div>
                 </div>
 
-                <div class="vehicle-row file-sec">
+                <div class="vehicle-row file-sec" id="modalOutgoingViewCoverSection" style="display: none;">
                     <div class="vehicle-input-content">
                         <p><strong>ไฟล์หนังสือนำ</strong></p>
                     </div>
 
-                    <div class="file-list" id="vehicleAttachmentList" aria-live="polite">
-                        <div class="file-item-wrapper" data-file-id="148">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Worksheet_5+-+Pre-campaign+insight+_page-0001.jpg</span><span class="file-type">image/jpeg • 971 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="file-list" id="modalOutgoingViewCoverList" aria-live="polite"></div>
                 </div>
 
-                <div class="vehicle-row file-sec">
+                <div class="vehicle-row file-sec" id="modalOutgoingViewAttachmentSection" style="display: none;">
                     <div class="vehicle-input-content">
                         <p><strong>ไฟล์เอกสาร</strong></p>
                     </div>
 
-                    <div class="file-list" id="vehicleAttachmentList" aria-live="polite">
-                        <div class="file-item-wrapper" data-file-id="148">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Worksheet_5+-+Pre-campaign+insight+_page-0001.jpg</span><span class="file-type">image/jpeg • 971 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="149">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">ใบลงรายมือชื่อ_พัฒนาเว็บไซต์ระบบสารบรรณอิเล็กทรอนิกส์ โรงเรียนดีบุกพังงาวิทยายน.pdf</span><span class="file-type">application/pdf • 559 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="150">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">บันทึกอาการประจำวัน.png</span><span class="file-type">image/png • 99 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="151">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">บันทึกอาการประจำวัน (1).png</span><span class="file-type">image/png • 113 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="152">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Worksheet_6-+Pre-campaign+.pdf</span><span class="file-type">application/pdf • 114 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="file-list" id="modalOutgoingViewAttachmentList" aria-live="polite"></div>
                 </div>
 
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ผู้เสนอ</strong></p>
-                        <input type="text" id="modalOutgoingViewNo" class="order-no-display" value="นางสาวทิพยรัตน์ บุญมณี" disabled>
+                        <input type="text" id="modalOutgoingViewProposer" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
                     </div>
@@ -5605,6 +5542,197 @@ ob_start();
             };
         }
 
+        const sendMapElement = document.querySelector('.js-order-send-map');
+        let outgoingViewPayloadMap = {};
+        if (sendMapElement) {
+            try {
+                outgoingViewPayloadMap = JSON.parse(sendMapElement.textContent || '{}') || {};
+            } catch (error) {
+                console.error('Failed to parse outgoing receive modal payload map', error);
+                outgoingViewPayloadMap = {};
+            }
+        }
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const formatThaiDateTime = (value) => {
+            const raw = String(value || '').trim();
+            if (raw === '') {
+                return '-';
+            }
+
+            const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+            const parsed = new Date(normalized);
+
+            if (Number.isNaN(parsed.getTime())) {
+                return raw;
+            }
+
+            const datePart = parsed.toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const timePart = parsed.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            return `${datePart} ${timePart} น.`;
+        };
+
+        const formatFileSize = (bytes) => {
+            const size = Number(bytes || 0);
+            if (!Number.isFinite(size) || size <= 0) {
+                return '0 KB';
+            }
+            if (size >= 1024 * 1024) {
+                return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+            }
+            return `${Math.max(1, Math.round(size / 1024))} KB`;
+        };
+
+        const viewModal = document.getElementById('modalOrderViewOverlay');
+        const modalOutgoingViewBookNo = document.getElementById('modalOutgoingViewBookNo');
+        const modalOutgoingViewIssuedDate = document.getElementById('modalOutgoingViewIssuedDate');
+        const modalOutgoingViewSubjectText = document.getElementById('modalOutgoingViewSubjectText');
+        const modalOutgoingViewFrom = document.getElementById('modalOutgoingViewFrom');
+        const modalOutgoingViewGroup = document.getElementById('modalOutgoingViewGroup');
+        const modalOutgoingViewLink = document.getElementById('modalOutgoingViewLink');
+        const modalOutgoingViewProposer = document.getElementById('modalOutgoingViewProposer');
+        const modalOutgoingViewUrgentRadios = viewModal ? Array.from(viewModal.querySelectorAll('[data-outgoing-view-urgent]')) : [];
+        const modalOutgoingViewCoverSection = document.getElementById('modalOutgoingViewCoverSection');
+        const modalOutgoingViewCoverList = document.getElementById('modalOutgoingViewCoverList');
+        const modalOutgoingViewAttachmentSection = document.getElementById('modalOutgoingViewAttachmentSection');
+        const modalOutgoingViewAttachmentList = document.getElementById('modalOutgoingViewAttachmentList');
+        const modalOutgoingViewReadStatsBody = document.getElementById('trackReceiptStatusTableBody');
+
+        const setOutgoingPriorityRadio = (radios, key) => {
+            const normalizedKey = String(key || 'normal').trim().toLowerCase();
+            let matched = false;
+            radios.forEach((radio) => {
+                const isMatched = String(radio.dataset.outgoingViewUrgent || '').trim().toLowerCase() === normalizedKey;
+                radio.checked = isMatched;
+                matched = matched || isMatched;
+            });
+
+            if (!matched && radios[0]) {
+                radios[0].checked = true;
+            }
+        };
+
+        const setOutgoingViewEditorContent = (html) => {
+            const detailHtml = String(html || '').trim();
+            const editor = window.tinymce ? window.tinymce.get('memo_editor_view') : null;
+            const normalizedHtml = detailHtml !== '' ? detailHtml : '<p>-</p>';
+
+            if (editor) {
+                editor.setContent(normalizedHtml);
+                return;
+            }
+
+            const textarea = document.getElementById('memo_editor_view');
+            if (textarea) {
+                textarea.value = normalizedHtml;
+            }
+
+            window.setTimeout(() => {
+                const delayedEditor = window.tinymce ? window.tinymce.get('memo_editor_view') : null;
+                if (delayedEditor) {
+                    delayedEditor.setContent(normalizedHtml);
+                }
+            }, 50);
+        };
+
+        const renderOutgoingViewReadStats = (rows) => {
+            if (!modalOutgoingViewReadStatsBody) {
+                return;
+            }
+
+            const list = Array.isArray(rows) ? rows : [];
+            if (list.length === 0) {
+                modalOutgoingViewReadStatsBody.innerHTML = '<tr><td colspan="3" class="booking-empty">ไม่พบข้อมูลสถานะการอ่านรายบุคคล</td></tr>';
+                return;
+            }
+
+            modalOutgoingViewReadStatsBody.innerHTML = list.map((row) => {
+                const isRead = Number(row?.isRead || 0) === 1;
+                return `<tr>
+                    <td>${escapeHtml(String(row?.fName || '-'))}</td>
+                    <td><span class="status-pill ${isRead ? 'approved' : 'pending'}">${isRead ? 'อ่านแล้ว' : 'ยังไม่อ่าน'}</span></td>
+                    <td>${escapeHtml(isRead ? formatThaiDateTime(row?.readAt || '') : '-')}</td>
+                </tr>`;
+            }).join('');
+        };
+
+        const renderOutgoingViewFiles = (circularId, files) => {
+            if (!modalOutgoingViewAttachmentSection || !modalOutgoingViewAttachmentList) {
+                return;
+            }
+
+            const list = Array.isArray(files) ? files : [];
+            if (modalOutgoingViewCoverSection && modalOutgoingViewCoverList) {
+                modalOutgoingViewCoverSection.style.display = 'none';
+                modalOutgoingViewCoverList.innerHTML = '';
+            }
+
+            if (list.length === 0) {
+                modalOutgoingViewAttachmentSection.style.display = 'none';
+                modalOutgoingViewAttachmentList.innerHTML = '';
+                return;
+            }
+
+            const safeCircularId = encodeURIComponent(String(circularId || '').trim());
+            modalOutgoingViewAttachmentSection.style.display = '';
+            modalOutgoingViewAttachmentList.innerHTML = list.map((file) => {
+                const fileId = encodeURIComponent(String(file?.fileID || ''));
+                const fileName = escapeHtml(String(file?.fileName || '-'));
+                const mimeType = String(file?.mimeType || '').trim();
+                const typeLabel = escapeHtml(`${mimeType !== '' ? mimeType : 'ไฟล์แนบ'} • ${formatFileSize(file?.fileSize || 0)}`);
+                const viewHref = `public/api/file-download.php?module=circulars&entity_id=${safeCircularId}&file_id=${fileId}`;
+                const iconHtml = mimeType.toLowerCase() === 'application/pdf'
+                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                    : '<i class="fa-solid fa-file-image" aria-hidden="true"></i>';
+
+                return `<div class="file-item-wrapper">
+                    <div class="file-banner">
+                        <div class="file-info">
+                            <div class="file-icon">${iconHtml}</div>
+                            <div class="file-text">
+                                <span class="file-name">${fileName}</span>
+                                <span class="file-type">${typeLabel}</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="${viewHref}" class="action-btn" target="_blank" rel="noopener" title="ดูตัวอย่าง">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        const resetOutgoingViewModal = () => {
+            if (modalOutgoingViewBookNo) modalOutgoingViewBookNo.value = '-';
+            if (modalOutgoingViewIssuedDate) modalOutgoingViewIssuedDate.value = '';
+            if (modalOutgoingViewSubjectText) modalOutgoingViewSubjectText.value = '-';
+            if (modalOutgoingViewFrom) modalOutgoingViewFrom.value = '-';
+            if (modalOutgoingViewGroup) modalOutgoingViewGroup.value = '-';
+            if (modalOutgoingViewLink) modalOutgoingViewLink.value = '-';
+            if (modalOutgoingViewProposer) modalOutgoingViewProposer.value = '-';
+
+            setOutgoingPriorityRadio(modalOutgoingViewUrgentRadios, 'normal');
+            setOutgoingViewEditorContent('');
+            renderOutgoingViewReadStats([]);
+            renderOutgoingViewFiles('', []);
+        };
+
         const editModal = document.getElementById('modalOrderEditOverlay');
         const closeEditBtn = document.getElementById('closeModalOrderSend');
         const openEditBtns = document.querySelectorAll('.js-open-order-edit-modal');
@@ -5641,12 +5769,43 @@ ob_start();
             });
         }
 
-        const viewModal = document.getElementById('modalOrderViewOverlay');
         const closeViewBtn = document.getElementById('modalOrderViewCloseBtn');
         const openViewBtns = document.querySelectorAll('.js-open-order-view-modal');
 
         if (viewModal) {
             const openViewModal = (outgoingId) => {
+                const payload = outgoingViewPayloadMap[String(outgoingId || '').trim()] || {};
+
+                resetOutgoingViewModal();
+
+                if (modalOutgoingViewBookNo) {
+                    modalOutgoingViewBookNo.value = String(payload.outgoingNo || '').trim() || '-';
+                }
+                if (modalOutgoingViewIssuedDate) {
+                    const effectiveDate = String(payload.effectiveDate || '').trim();
+                    modalOutgoingViewIssuedDate.value = /^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ? effectiveDate : '';
+                }
+                if (modalOutgoingViewSubjectText) {
+                    modalOutgoingViewSubjectText.value = String(payload.subject || '').trim() || '-';
+                }
+                if (modalOutgoingViewFrom) {
+                    modalOutgoingViewFrom.value = String(payload.fromName || payload.destinationName || '').trim() || '-';
+                }
+                if (modalOutgoingViewGroup) {
+                    modalOutgoingViewGroup.value = String(payload.groupName || '').trim() || '-';
+                }
+                if (modalOutgoingViewLink) {
+                    modalOutgoingViewLink.value = String(payload.linkURL || '').trim() || '-';
+                }
+                if (modalOutgoingViewProposer) {
+                    modalOutgoingViewProposer.value = String(payload.proposerName || payload.issuerName || '').trim() || '-';
+                }
+
+                setOutgoingPriorityRadio(modalOutgoingViewUrgentRadios, String(payload.priorityKey || 'normal'));
+                setOutgoingViewEditorContent(payload.detail || '');
+                renderOutgoingViewReadStats(payload.readStats || []);
+                renderOutgoingViewFiles(outgoingId, payload.attachments || []);
+
                 viewModal.style.display = 'flex';
             };
 
@@ -5672,78 +5831,6 @@ ob_start();
                 }
             });
         }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-
-        const editModal = document.getElementById('modalOrderEditOverlay');
-        const closeEditBtn = document.getElementById('closeModalOrderSend');
-        const openEditBtns = document.querySelectorAll('.js-open-order-edit-modal');
-
-        if (editModal) {
-            const openEditModal = (outgoingId) => {
-                if (outgoingId) {
-                    const idInput = document.getElementById('modalOutgoingEditOutgoingId');
-                    if (idInput) idInput.value = outgoingId;
-                }
-                editModal.style.display = 'flex';
-            };
-
-            const closeEditModal = () => {
-                editModal.style.display = 'none';
-            };
-
-            openEditBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const outgoingId = btn.getAttribute('data-outgoing-id');
-                    openEditModal(outgoingId);
-                });
-            });
-
-            if (closeEditBtn) {
-                closeEditBtn.addEventListener('click', closeEditModal);
-            }
-
-            window.addEventListener('click', (event) => {
-                if (event.target === editModal) {
-                    closeEditModal();
-                }
-            });
-        }
-
-        const viewModal = document.getElementById('modalOrderViewOverlay');
-        const closeViewBtn = document.getElementById('modalOrderViewCloseBtn');
-        const openViewBtns = document.querySelectorAll('.js-open-order-view-modal');
-
-        if (viewModal) {
-            const openViewModal = (outgoingId) => {
-                viewModal.style.display = 'flex';
-            };
-
-            const closeViewModal = () => {
-                viewModal.style.display = 'none';
-            };
-
-            openViewBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const outgoingId = btn.getAttribute('data-outgoing-id');
-                    openViewModal(outgoingId);
-                });
-            });
-
-            if (closeViewBtn) {
-                closeViewBtn.addEventListener('click', closeViewModal);
-            }
-
-            window.addEventListener('click', (event) => {
-                if (event.target === viewModal) {
-                    closeViewModal();
-                }
-            });
-        }
-
     });
 </script>
 
