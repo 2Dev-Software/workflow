@@ -655,36 +655,7 @@ ob_start();
             if (!totalInput || !fromInput || !toInput) {
                 return;
             }
-
-            if (!fileInput) return null;
-
-            const syncRemovedFileInputs = () => {
-                if (!removedFilesContainer) return;
-                removedFilesContainer.innerHTML = '';
-                removedExistingFileIds.forEach((fileId) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'remove_file_ids[]';
-                    input.value = String(fileId);
-                    removedFilesContainer.appendChild(input);
-                });
-            };
-
-            const buildFileIconMarkup = (mimeType) => {
-                const normalizedMime = String(mimeType || '').toLowerCase();
-
-                if (normalizedMime.includes('pdf')) {
-                    return '<i class="fa-solid fa-file-pdf"></i>';
-                } else if (normalizedMime.includes('word')) {
-                    return '<i class="fa-solid fa-file-word"></i>';
-                } else if (normalizedMime.includes('excel') || normalizedMime.includes('spreadsheet')) {
-                    return '<i class="fa-solid fa-file-excel"></i>';
-                } else if (normalizedMime.includes('zip')) {
-                    return '<i class="fa-solid fa-file-zipper"></i>';
-                } else {
-                    return '<i class="fa-solid fa-file"></i>';
-                }
-            };
+            const total = Math.max(0, Number(totalInput.value) || 0);
 
             if (total <= 0) {
                 fromInput.value = '';

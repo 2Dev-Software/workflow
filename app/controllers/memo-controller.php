@@ -54,6 +54,173 @@ if (!function_exists('memo_build_approver_options')) {
     }
 }
 
+if (!function_exists('memo_owner_latest_note_by_actor')) {
+    function memo_owner_latest_note_by_actor(array $routes, string $actorPID): string
+    {
+        $actorPID = trim($actorPID);
+
+        if ($actorPID === '') {
+            return '';
+        }
+
+        $latestNote = '';
+
+        foreach ($routes as $route) {
+            if (trim((string) ($route['actorPID'] ?? '')) !== $actorPID) {
+                continue;
+            }
+
+            $note = trim((string) ($route['note'] ?? ''));
+
+            if ($note !== '') {
+                $latestNote = $note;
+            }
+        }
+
+        return $latestNote;
+    }
+}
+
+if (!function_exists('memo_owner_latest_review_action_by_actor')) {
+    function memo_owner_latest_review_action_by_actor(array $routes, string $actorPID): string
+    {
+        $actorPID = trim($actorPID);
+
+        if ($actorPID === '') {
+            return '';
+        }
+
+        $latestAction = '';
+        $reviewActions = [
+            'FORWARD',
+            'RETURN',
+            'APPROVE_UNSIGNED',
+            'REJECT',
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+
+        foreach ($routes as $route) {
+            if (trim((string) ($route['actorPID'] ?? '')) !== $actorPID) {
+                continue;
+            }
+
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if (in_array($action, $reviewActions, true)) {
+                $latestAction = $action;
+            }
+        }
+
+        return $latestAction;
+    }
+}
+
+if (!function_exists('memo_owner_fetch_teacher_profiles')) {
+    function memo_owner_fetch_teacher_profiles(mysqli $connection, array $pids): array
+    {
+        $normalized = [];
+
+        foreach ($pids as $pid) {
+            $value = trim((string) $pid);
+
+            if ($value !== '') {
+                $normalized[$value] = true;
+            }
+        }
+
+        $pids = array_keys($normalized);
+
+        if ($pids === []) {
+            return [];
+        }
+
+        $position = system_position_join($connection, 't', 'p');
+        $placeholders = implode(', ', array_fill(0, count($pids), '?'));
+        $types = str_repeat('s', count($pids));
+        $rows = db_fetch_all(
+            'SELECT t.pID,
+                    COALESCE(t.fName, "") AS name,
+                    COALESCE(t.signature, "") AS signature,
+                    COALESCE(' . $position['name'] . ', "") AS positionName
+             FROM teacher AS t
+             ' . $position['join'] . '
+             WHERE t.pID IN (' . $placeholders . ')',
+            $types,
+            ...$pids
+        );
+
+        $items = [];
+
+        foreach ($rows as $row) {
+            $pid = trim((string) ($row['pID'] ?? ''));
+
+            if ($pid === '') {
+                continue;
+            }
+
+            $items[$pid] = [
+                'name' => trim((string) ($row['name'] ?? '')),
+                'signature' => trim((string) ($row['signature'] ?? '')),
+                'positionName' => trim((string) ($row['positionName'] ?? '')),
+            ];
+        }
+
+        return $items;
+    }
+}
+
+if (!function_exists('memo_owner_enrich_creator_memos')) {
+    function memo_owner_enrich_creator_memos(mysqli $connection, array $memos): array
+    {
+        if ($memos === []) {
+            return [];
+        }
+
+        $profilePids = [];
+
+        foreach ($memos as $memo) {
+            $profilePids[] = (string) ($memo['headPID'] ?? '');
+            $profilePids[] = (string) ($memo['deputyPID'] ?? '');
+            $profilePids[] = (string) ($memo['directorPID'] ?? '');
+        }
+
+        $profiles = memo_owner_fetch_teacher_profiles($connection, $profilePids);
+
+        foreach ($memos as $index => $memo) {
+            $memoID = (int) ($memo['memoID'] ?? 0);
+            $routes = $memoID > 0 ? memo_list_routes($memoID) : [];
+
+            foreach ([
+                'head' => trim((string) ($memo['headPID'] ?? '')),
+                'deputy' => trim((string) ($memo['deputyPID'] ?? '')),
+                'director' => trim((string) ($memo['directorPID'] ?? '')),
+            ] as $prefix => $stagePID) {
+                $profile = $profiles[$stagePID] ?? [];
+
+                $memos[$index][$prefix . 'Name'] = trim((string) ($profile['name'] ?? ($memo[$prefix . 'Name'] ?? '')));
+                $memos[$index][$prefix . 'Signature'] = trim((string) ($profile['signature'] ?? ''));
+                $memos[$index][$prefix . 'PositionName'] = trim((string) ($profile['positionName'] ?? ''));
+                $memos[$index][$prefix . 'Note'] = memo_owner_latest_note_by_actor($routes, $stagePID);
+                $memos[$index][$prefix . 'Action'] = memo_owner_latest_review_action_by_actor($routes, $stagePID);
+            }
+        }
+
+        return $memos;
+    }
+}
+
 if (!function_exists('memo_list_sender_factions')) {
     function memo_list_sender_factions(mysqli $connection): array
     {
@@ -407,6 +574,7 @@ if (!function_exists('memo_index')) {
             }
             $offset = ($page - 1) * $per_page;
             $memos = memo_list_by_creator_page($current_pid, false, $status_filter, $search, $per_page, $offset, $sort);
+            $memos = memo_owner_enrich_creator_memos($connection, $memos);
         }
 
         $base_params = ['tab' => 'track'];

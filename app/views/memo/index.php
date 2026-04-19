@@ -611,6 +611,13 @@ ob_start();
                         $attachment_count = $memo_id > 0 ? count(memo_get_attachments($memo_id)) : 0;
                         $memo_files = $memo_id > 0 ? memo_get_attachments($memo_id) : [];
                         $memo_files_json = json_encode($memo_files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                        $head_note_b64 = base64_encode((string) ($memo['headNote'] ?? ''));
+                        $deputy_note_b64 = base64_encode((string) ($memo['deputyNote'] ?? ''));
+                        $director_note_b64 = base64_encode((string) ($memo['directorNote'] ?? ''));
+                        $can_download_pdf = in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
+                        $memo_pdf_download_href = $memo_id > 0
+                            ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id) . '&download=1')
+                            : '';
 
                         if ($memo_files_json === false) {
                             $memo_files_json = '[]';
@@ -659,10 +666,33 @@ ob_start();
                                         data-consider="considering"
                                         data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
                                         data-read-stats="[]"
+                                        data-head-name="<?= h((string) ($memo['headName'] ?? '')) ?>"
+                                        data-head-position="<?= h((string) ($memo['headPositionName'] ?? '')) ?>"
+                                        data-head-signature="<?= h((string) ($memo['headSignature'] ?? '')) ?>"
+                                        data-head-note-b64="<?= h($head_note_b64) ?>"
+                                        data-head-action="<?= h((string) ($memo['headAction'] ?? '')) ?>"
+                                        data-deputy-name="<?= h((string) ($memo['deputyName'] ?? '')) ?>"
+                                        data-deputy-position="<?= h((string) ($memo['deputyPositionName'] ?? '')) ?>"
+                                        data-deputy-signature="<?= h((string) ($memo['deputySignature'] ?? '')) ?>"
+                                        data-deputy-note-b64="<?= h($deputy_note_b64) ?>"
+                                        data-deputy-action="<?= h((string) ($memo['deputyAction'] ?? '')) ?>"
+                                        data-director-name="<?= h((string) ($memo['directorName'] ?? '')) ?>"
+                                        data-director-position="<?= h((string) ($memo['directorPositionName'] ?? '')) ?>"
+                                        data-director-signature="<?= h((string) ($memo['directorSignature'] ?? '')) ?>"
+                                        data-director-note-b64="<?= h($director_note_b64) ?>"
+                                        data-director-action="<?= h((string) ($memo['directorAction'] ?? '')) ?>"
                                         data-files="<?= h($memo_files_json) ?>">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
+                                    <?php if ($can_download_pdf && $memo_pdf_download_href !== '') : ?>
+                                        <a
+                                            class="booking-action-btn secondary"
+                                            href="<?= h($memo_pdf_download_href) ?>">
+                                            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                                            <span class="tooltip">ดาวน์โหลด PDF</span>
+                                        </a>
+                                    <?php endif; ?>
                                 <?php elseif ($status === 'DRAFT') : ?>
                                     <button
                                         type="button"
@@ -710,10 +740,33 @@ ob_start();
                                         data-consider="considering"
                                         data-received-time="<?= h(trim($date_line . ' ' . $time_line)) ?>"
                                         data-read-stats="[]"
+                                        data-head-name="<?= h((string) ($memo['headName'] ?? '')) ?>"
+                                        data-head-position="<?= h((string) ($memo['headPositionName'] ?? '')) ?>"
+                                        data-head-signature="<?= h((string) ($memo['headSignature'] ?? '')) ?>"
+                                        data-head-note-b64="<?= h($head_note_b64) ?>"
+                                        data-head-action="<?= h((string) ($memo['headAction'] ?? '')) ?>"
+                                        data-deputy-name="<?= h((string) ($memo['deputyName'] ?? '')) ?>"
+                                        data-deputy-position="<?= h((string) ($memo['deputyPositionName'] ?? '')) ?>"
+                                        data-deputy-signature="<?= h((string) ($memo['deputySignature'] ?? '')) ?>"
+                                        data-deputy-note-b64="<?= h($deputy_note_b64) ?>"
+                                        data-deputy-action="<?= h((string) ($memo['deputyAction'] ?? '')) ?>"
+                                        data-director-name="<?= h((string) ($memo['directorName'] ?? '')) ?>"
+                                        data-director-position="<?= h((string) ($memo['directorPositionName'] ?? '')) ?>"
+                                        data-director-signature="<?= h((string) ($memo['directorSignature'] ?? '')) ?>"
+                                        data-director-note-b64="<?= h($director_note_b64) ?>"
+                                        data-director-action="<?= h((string) ($memo['directorAction'] ?? '')) ?>"
                                         data-files="<?= h($memo_files_json) ?>">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
+                                    <?php if ($can_download_pdf && $memo_pdf_download_href !== '') : ?>
+                                        <a
+                                            class="booking-action-btn secondary"
+                                            href="<?= h($memo_pdf_download_href) ?>">
+                                            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                                            <span class="tooltip">ดาวน์โหลด PDF</span>
+                                        </a>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -837,63 +890,54 @@ ob_start();
                         </div>
 
 
-                        <div class="form-group-row secondary u-hidden" data-memo-optional="1">
+                        <div class="form-group-row secondary u-hidden" data-memo-optional="1" id="memoViewHeadNoteRow">
                             <p><strong>ความคิดเห็นและข้อเสนอแนะของหัวหน้ากลุ่มสาระการเรียนรู้</strong></p>
                             <div class="content-editor" style="width:100%">
-                                <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                                <textarea id="memoViewHeadNote" disabled rows="7"></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1">
-                            <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
-                            <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
-                            <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
-                            <!-- <p><?= h($current_position !== '' ? $current_position : '-') ?></p> -->
-                            <p>(นางสาวทิพยรัตน์ บุญมณี)</p>
-                            <p>ตำแหน่ง หัวหน้ากลุ่มสาระการเรีบนรู้ภาษาไทย</p>
+                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1" id="memoViewHeadSignatureRow">
+                            <img id="memoViewHeadSignatureImage" src="" alt="" style="display:none;">
+                            <p id="memoViewHeadSignatureName">(-)</p>
+                            <p id="memoViewHeadSignaturePosition">-</p>
                         </div>
 
-                        <div class="form-group-row comment u-hidden" data-memo-optional="1">
-                            <p><strong>ความคิดเห็น</strong></p>
-                            <input type="text" name="" id="" disabled>
+                        <div class="form-group-row comment u-hidden" data-memo-optional="1" id="memoViewDeputyActionRow">
+                            <p><strong>เสนอ :</strong></p>
+                            <input type="text" id="memoViewDeputyAction" disabled>
                         </div>
 
-                        <div class="form-group-row primary u-hidden" data-memo-optional="1">
-                            <p><strong>ความคิดเห็นเพิ่มเติม</strong></p>
+                        <div class="form-group-row primary u-hidden" data-memo-optional="1" id="memoViewDeputyNoteRow">
+                            <p><strong>ความคิดเห็นและข้อเสนอแนะของรองผู้อำนวยการ</strong></p>
                             <div class="content-editor" style="width:100%">
-                                <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                                <textarea id="memoViewDeputyNote" disabled rows="7"></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature primary u-hidden" data-memo-optional="1">
-                            <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
-                            <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
-                            <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
-                            <!-- <p><?= h($current_position !== '' ? $current_position : '-') ?></p> -->
-                            <p>(นางสาวทิพยรัตน์ บุญมณี)</p>
-                            <p>ตำแหน่ง หัวหน้ากลุ่มสาระการเรีบนรู้ภาษาไทย</p>
+                        <div class="form-group-row signature primary u-hidden" data-memo-optional="1" id="memoViewDeputySignatureRow">
+                            <img id="memoViewDeputySignatureImage" src="" alt="" style="display:none;">
+                            <p id="memoViewDeputySignatureName">(-)</p>
+                            <p id="memoViewDeputySignaturePosition">-</p>
                         </div>
 
 
-                        <div class="form-group-row comment secondary u-hidden" data-memo-optional="1">
+                        <div class="form-group-row comment secondary u-hidden" data-memo-optional="1" id="memoViewDirectorActionRow">
                             <p><strong>ผู้บริหารดำเนินการต่อ</strong></p>
-                            <input type="text" name="" id="" disabled>
+                            <input type="text" id="memoViewDirectorAction" disabled>
                         </div>
 
-                        <div class="form-group-row secondary u-hidden" data-memo-optional="1">
+                        <div class="form-group-row secondary u-hidden" data-memo-optional="1" id="memoViewDirectorNoteRow">
                             <p><strong>ความคิดเห็นและข้อเสนอแนะของผู้อำนวยการโรงเรียน</strong></p>
                             <div class="content-editor" style="width:100%">
-                                <textarea name="detail" id="" disabled rows="7"><?= h((string) ($values['detail'] ?? '')) ?></textarea>
+                                <textarea id="memoViewDirectorNote" disabled rows="7"></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1">
-                            <!-- <img src="<?= h($signature_src) ?>" alt=""> -->
-                            <img src="assets/img/signature/1829900159722/signature_20260211_170950_6f853801016c.png" alt="">
-                            <!-- <p>(<?= h($current_name !== '' ? $current_name : '-') ?>)</p> -->
-                            <!-- <p><?= h($current_position !== '' ? $current_position : '-') ?></p> -->
-                            <p>(นายวิเศษ ปิ่นพิทักษ์)</p>
-                            <p>ผู้อำนวยการโรงเรียนเพชรพิทยาคม</p>
+                        <div class="form-group-row signature secondary u-hidden" data-memo-optional="1" id="memoViewDirectorSignatureRow">
+                            <img id="memoViewDirectorSignatureImage" src="" alt="" style="display:none;">
+                            <p id="memoViewDirectorSignatureName">(-)</p>
+                            <p id="memoViewDirectorSignaturePosition">-</p>
                         </div>
 
                     </div>
@@ -2116,6 +2160,28 @@ ob_start();
     const memoViewFileRow = viewModal ? viewModal.querySelector('#memoViewFileRow') : null;
     const memoViewFileList = viewModal ? viewModal.querySelector('#attachmentListView') : null;
     const memoViewOptionalBlocks = viewModal ? Array.from(viewModal.querySelectorAll('[data-memo-optional="1"]')) : [];
+    const memoViewHeadNoteRow = viewModal ? viewModal.querySelector('#memoViewHeadNoteRow') : null;
+    const memoViewHeadNote = viewModal ? viewModal.querySelector('#memoViewHeadNote') : null;
+    const memoViewHeadSignatureRow = viewModal ? viewModal.querySelector('#memoViewHeadSignatureRow') : null;
+    const memoViewHeadSignatureImage = viewModal ? viewModal.querySelector('#memoViewHeadSignatureImage') : null;
+    const memoViewHeadSignatureName = viewModal ? viewModal.querySelector('#memoViewHeadSignatureName') : null;
+    const memoViewHeadSignaturePosition = viewModal ? viewModal.querySelector('#memoViewHeadSignaturePosition') : null;
+    const memoViewDeputyActionRow = viewModal ? viewModal.querySelector('#memoViewDeputyActionRow') : null;
+    const memoViewDeputyAction = viewModal ? viewModal.querySelector('#memoViewDeputyAction') : null;
+    const memoViewDeputyNoteRow = viewModal ? viewModal.querySelector('#memoViewDeputyNoteRow') : null;
+    const memoViewDeputyNote = viewModal ? viewModal.querySelector('#memoViewDeputyNote') : null;
+    const memoViewDeputySignatureRow = viewModal ? viewModal.querySelector('#memoViewDeputySignatureRow') : null;
+    const memoViewDeputySignatureImage = viewModal ? viewModal.querySelector('#memoViewDeputySignatureImage') : null;
+    const memoViewDeputySignatureName = viewModal ? viewModal.querySelector('#memoViewDeputySignatureName') : null;
+    const memoViewDeputySignaturePosition = viewModal ? viewModal.querySelector('#memoViewDeputySignaturePosition') : null;
+    const memoViewDirectorActionRow = viewModal ? viewModal.querySelector('#memoViewDirectorActionRow') : null;
+    const memoViewDirectorAction = viewModal ? viewModal.querySelector('#memoViewDirectorAction') : null;
+    const memoViewDirectorNoteRow = viewModal ? viewModal.querySelector('#memoViewDirectorNoteRow') : null;
+    const memoViewDirectorNote = viewModal ? viewModal.querySelector('#memoViewDirectorNote') : null;
+    const memoViewDirectorSignatureRow = viewModal ? viewModal.querySelector('#memoViewDirectorSignatureRow') : null;
+    const memoViewDirectorSignatureImage = viewModal ? viewModal.querySelector('#memoViewDirectorSignatureImage') : null;
+    const memoViewDirectorSignatureName = viewModal ? viewModal.querySelector('#memoViewDirectorSignatureName') : null;
+    const memoViewDirectorSignaturePosition = viewModal ? viewModal.querySelector('#memoViewDirectorSignaturePosition') : null;
     const suggestSubjectInput = suggModal ? suggModal.querySelector('[data-memo-suggest-subject]') : null;
     const suggestDetailInput = suggModal ? suggModal.querySelector('[data-memo-suggest-detail]') : null;
     const suggestToText = suggModal ? suggModal.querySelector('[data-memo-suggest-to]') : null;
@@ -2388,6 +2454,107 @@ ob_start();
         textarea.style.overflowY = 'hidden';
     };
 
+    const formatMemoViewSignatureName = (value) => {
+        const cleanValue = String(value || '').replace(/^\(|\)$/g, '').trim();
+        return '(' + (cleanValue || '-') + ')';
+    };
+
+    const formatMemoViewPosition = (value) => {
+        const cleanValue = String(value || '').trim();
+
+        if (cleanValue === 'ผู้อำนวยการโรงเรียน') {
+            return 'ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน';
+        }
+
+        return cleanValue || '-';
+    };
+
+    const memoViewActionLabelMap = {
+        FORWARD: 'เสนอผู้อำนวยการ',
+        APPROVE_UNSIGNED: 'ลงนาม(ป)',
+        RETURN: 'กลับไปแก้ไข',
+        REJECT: 'ไม่อนุมัติ',
+        SIGN: 'ลงนามแล้ว',
+        DIRECTOR_SIGNED: 'ลงนามแล้ว',
+        DIRECTOR_ACKNOWLEDGED: 'ทราบ',
+        DIRECTOR_AGREED: 'ชอบ',
+        DIRECTOR_NOTIFIED: 'แจ้ง',
+        DIRECTOR_ASSIGNED: 'มอบ',
+        DIRECTOR_SCHEDULED: 'ลงนัด',
+        DIRECTOR_PERMITTED: 'อนุญาต',
+        DIRECTOR_APPROVED: 'อนุมัติ',
+        DIRECTOR_REJECTED: 'ไม่อนุมัติ',
+        DIRECTOR_REQUEST_MEETING: 'ขอพบ',
+        DIRECTOR_APPROVE: 'อนุมัติ',
+        DIRECTOR_REJECT: 'ไม่อนุมัติ',
+    };
+
+    const setMemoViewSignatureBlock = (row, image, nameEl, positionEl, payload) => {
+        const signature = String(payload?.signature || '').trim();
+        const name = String(payload?.name || '').trim();
+        const position = String(payload?.position || '').trim();
+        const hasReviewData = Boolean(String(payload?.action || '').trim() || normalizeMemoDetailText(payload?.note || ''));
+        const shouldShow = hasReviewData && signature !== '';
+
+        if (image) {
+            if (shouldShow) {
+                image.setAttribute('src', signature);
+                image.style.display = '';
+            } else {
+                image.removeAttribute('src');
+                image.style.display = 'none';
+            }
+        }
+
+        if (nameEl) {
+            nameEl.textContent = formatMemoViewSignatureName(name);
+        }
+
+        if (positionEl) {
+            positionEl.textContent = formatMemoViewPosition(position);
+        }
+
+        setMemoViewVisible(row, shouldShow);
+    };
+
+    const setMemoViewTextarea = (row, textarea, value) => {
+        const normalized = normalizeMemoDetailText(value);
+        const shouldShow = normalized !== '';
+
+        if (textarea) {
+            textarea.value = normalized;
+        }
+
+        setMemoViewVisible(row, shouldShow);
+
+        if (shouldShow) {
+            autoResizeTextarea(textarea);
+        }
+    };
+
+    const setMemoViewActionField = (row, input, value) => {
+        const actionKey = String(value || '').trim().toUpperCase();
+        const label = memoViewActionLabelMap[actionKey] || '';
+
+        if (input) {
+            input.value = label;
+        }
+
+        setMemoViewVisible(row, label !== '');
+    };
+
+    const readMemoViewStagePayload = (button, prefix) => {
+        const key = String(prefix || '').trim();
+        const noteFromBase64 = decodeBase64Utf8(button.getAttribute('data-' + key + '-note-b64'));
+        return {
+            name: String(button.getAttribute('data-' + key + '-name') || '').trim(),
+            position: String(button.getAttribute('data-' + key + '-position') || '').trim(),
+            signature: String(button.getAttribute('data-' + key + '-signature') || '').trim(),
+            note: noteFromBase64 !== '' ? noteFromBase64 : String(button.getAttribute('data-' + key + '-note') || ''),
+            action: String(button.getAttribute('data-' + key + '-action') || '').trim(),
+        };
+    };
+
     const setMemoViewVisible = (element, visible) => {
         if (!element) {
             return;
@@ -2538,6 +2705,40 @@ ob_start();
             memoViewOptionalBlocks.forEach((block) => {
                 block.classList.add('u-hidden');
             });
+
+            const headPayload = readMemoViewStagePayload(btn, 'head');
+            const deputyPayload = readMemoViewStagePayload(btn, 'deputy');
+            const directorPayload = readMemoViewStagePayload(btn, 'director');
+
+            setMemoViewTextarea(memoViewHeadNoteRow, memoViewHeadNote, headPayload.note);
+            setMemoViewSignatureBlock(
+                memoViewHeadSignatureRow,
+                memoViewHeadSignatureImage,
+                memoViewHeadSignatureName,
+                memoViewHeadSignaturePosition,
+                headPayload
+            );
+
+            setMemoViewActionField(memoViewDeputyActionRow, memoViewDeputyAction, deputyPayload.action);
+            setMemoViewTextarea(memoViewDeputyNoteRow, memoViewDeputyNote, deputyPayload.note);
+            setMemoViewSignatureBlock(
+                memoViewDeputySignatureRow,
+                memoViewDeputySignatureImage,
+                memoViewDeputySignatureName,
+                memoViewDeputySignaturePosition,
+                deputyPayload
+            );
+
+            setMemoViewActionField(memoViewDirectorActionRow, memoViewDirectorAction, directorPayload.action);
+            setMemoViewTextarea(memoViewDirectorNoteRow, memoViewDirectorNote, directorPayload.note);
+            setMemoViewSignatureBlock(
+                memoViewDirectorSignatureRow,
+                memoViewDirectorSignatureImage,
+                memoViewDirectorSignatureName,
+                memoViewDirectorSignaturePosition,
+                directorPayload
+            );
+
             renderMemoViewFiles(files, memoId);
 
             if (viewModal) {
@@ -2549,6 +2750,9 @@ ob_start();
                         return;
                     }
                     autoResizeTextarea(memoViewDetailInput);
+                    autoResizeTextarea(memoViewHeadNote);
+                    autoResizeTextarea(memoViewDeputyNote);
+                    autoResizeTextarea(memoViewDirectorNote);
                 });
             }
         });

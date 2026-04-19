@@ -1,0 +1,12 @@
+{
+    "generated_at": "2026-04-04T19:05:14+07:00",
+    "apply_mode": false,
+    "csv_path": "/var/www/html/tmp/signature-import/signature_import_map.csv",
+    "eligible_rows": 146,
+    "copied_count": 0,
+    "updated_count": 0,
+    "skipped_count": 0,
+    "failed_count": 0,
+    "restore_sql_path": null,
+    "report_csv_path": "/var/www/html/tmp/signature-import/applied/20260404_190514/signature_import_report.csv"
+}

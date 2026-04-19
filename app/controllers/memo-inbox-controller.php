@@ -312,6 +312,16 @@ if (!function_exists('memo_inbox_latest_review_actor_pid')) {
             'REJECT',
             'DIRECTOR_APPROVE',
             'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
             'SIGN',
         ];
 
@@ -330,6 +340,52 @@ if (!function_exists('memo_inbox_latest_review_actor_pid')) {
         }
 
         return $latest_actor_pid;
+    }
+}
+
+if (!function_exists('memo_inbox_latest_review_action_by_actor')) {
+    function memo_inbox_latest_review_action_by_actor(array $routes, string $actor_pid): string
+    {
+        $actor_pid = trim($actor_pid);
+
+        if ($actor_pid === '') {
+            return '';
+        }
+
+        $latest_action = '';
+        $review_actions = [
+            'FORWARD',
+            'RETURN',
+            'APPROVE_UNSIGNED',
+            'REJECT',
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+
+        foreach ($routes as $route) {
+            if (trim((string) ($route['actorPID'] ?? '')) !== $actor_pid) {
+                continue;
+            }
+
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if (in_array($action, $review_actions, true)) {
+                $latest_action = $action;
+            }
+        }
+
+        return $latest_action;
     }
 }
 
@@ -408,6 +464,7 @@ if (!function_exists('memo_inbox_enrich_items')) {
                 $items[$index][$prefix . 'Signature'] = trim((string) ($profile['signature'] ?? ''));
                 $items[$index][$prefix . 'PositionName'] = trim((string) ($profile['positionName'] ?? ''));
                 $items[$index][$prefix . 'Note'] = memo_inbox_resolve_stage_note($item, $routes, $stage_pid);
+                $items[$index][$prefix . 'Action'] = memo_inbox_latest_review_action_by_actor($routes, $stage_pid);
             }
         }
 
@@ -462,6 +519,35 @@ if (!function_exists('memo_inbox_index')) {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $post_action = trim((string) ($_POST['action'] ?? ''));
+            $director_actions = [
+                'director_signed' => 'ลงนามแล้ว',
+                'director_acknowledged' => 'ทราบ',
+                'director_agreed' => 'ชอบ',
+                'director_notified' => 'แจ้ง',
+                'director_assigned' => 'มอบ',
+                'director_scheduled' => 'ลงนัด',
+                'director_permitted' => 'อนุญาต',
+                'director_approved' => 'อนุมัติ',
+                'director_rejected' => 'ไม่อนุมัติ',
+                'director_request_meeting' => 'ขอพบ',
+            ];
+            $resolve_post_note = static function (): string {
+                $note = (string) ($_POST['note'] ?? '');
+
+                if (trim($note) !== '') {
+                    return $note;
+                }
+
+                foreach (['modal_head_note', 'modal_deputy_note', 'modal_director_note'] as $field) {
+                    $fallback_note = (string) ($_POST[$field] ?? '');
+
+                    if (trim($fallback_note) !== '') {
+                        return $fallback_note;
+                    }
+                }
+
+                return '';
+            };
 
             if (!csrf_validate($_POST['csrf_token'] ?? null)) {
                 $alert = [
@@ -469,10 +555,10 @@ if (!function_exists('memo_inbox_index')) {
                     'title' => 'ไม่สามารถยืนยันความปลอดภัย',
                     'message' => 'กรุณาลองใหม่อีกครั้ง',
                 ];
-            } elseif (in_array($post_action, ['forward', 'return', 'director_approve', 'director_reject', 'approve_unsigned', 'reject'], true)) {
+            } elseif (in_array($post_action, array_merge(['forward', 'return', 'director_approve', 'director_reject', 'approve_unsigned', 'reject'], array_keys($director_actions)), true)) {
                 try {
                     $memo_id = (int) ($_POST['memo_id'] ?? 0);
-                    $note = trim((string) ($_POST['note'] ?? ''));
+                    $note = $resolve_post_note();
                     $target_pid = trim((string) ($_POST['target_pid'] ?? ''));
 
                     if ($memo_id <= 0) {
@@ -498,6 +584,13 @@ if (!function_exists('memo_inbox_index')) {
                         $alert = [
                             'type' => 'success',
                             'title' => 'ผู้อำนวยการอนุมัติเรียบร้อย',
+                            'message' => '',
+                        ];
+                    } elseif (isset($director_actions[$post_action])) {
+                        memo_director_process($memo_id, $current_pid, $post_action, $note);
+                        $alert = [
+                            'type' => 'success',
+                            'title' => 'ผู้อำนวยการดำเนินการ "' . $director_actions[$post_action] . '" เรียบร้อย',
                             'message' => '',
                         ];
                     } elseif ($post_action === 'approve_unsigned') {

@@ -993,10 +993,89 @@ if (!function_exists('memo_forward')) {
 }
 
 if (!function_exists('memo_director_approve')) {
-    function memo_director_approve(int $memoID, string $actorPID, string $note = ''): void
+    function memo_director_decision_catalog(): array
+    {
+        return [
+            'director_signed' => [
+                'routeAction' => 'DIRECTOR_SIGNED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'ลงนามแล้ว',
+            ],
+            'director_acknowledged' => [
+                'routeAction' => 'DIRECTOR_ACKNOWLEDGED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'ทราบ',
+            ],
+            'director_agreed' => [
+                'routeAction' => 'DIRECTOR_AGREED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'ชอบ',
+            ],
+            'director_notified' => [
+                'routeAction' => 'DIRECTOR_NOTIFIED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'แจ้ง',
+            ],
+            'director_assigned' => [
+                'routeAction' => 'DIRECTOR_ASSIGNED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'มอบ',
+            ],
+            'director_scheduled' => [
+                'routeAction' => 'DIRECTOR_SCHEDULED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'ลงนัด',
+            ],
+            'director_permitted' => [
+                'routeAction' => 'DIRECTOR_PERMITTED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'อนุญาต',
+            ],
+            'director_approved' => [
+                'routeAction' => 'DIRECTOR_APPROVED',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'อนุมัติ',
+            ],
+            'director_rejected' => [
+                'routeAction' => 'DIRECTOR_REJECTED',
+                'status' => MEMO_STATUS_REJECTED,
+                'label' => 'ไม่อนุมัติ',
+            ],
+            'director_request_meeting' => [
+                'routeAction' => 'DIRECTOR_REQUEST_MEETING',
+                'status' => MEMO_STATUS_SIGNED,
+                'label' => 'ขอพบ',
+            ],
+        ];
+    }
+}
+
+if (!function_exists('memo_director_resolve_decision')) {
+    function memo_director_resolve_decision(string $decisionKey): array
+    {
+        $decisionKey = strtolower(trim($decisionKey));
+        $catalog = memo_director_decision_catalog();
+
+        if ($decisionKey === 'director_approve') {
+            $decisionKey = 'director_approved';
+        } elseif ($decisionKey === 'director_reject') {
+            $decisionKey = 'director_rejected';
+        }
+
+        if (!isset($catalog[$decisionKey])) {
+            throw new RuntimeException('รูปแบบการดำเนินการของผู้อำนวยการไม่ถูกต้อง');
+        }
+
+        return $catalog[$decisionKey];
+    }
+}
+
+if (!function_exists('memo_director_process')) {
+    function memo_director_process(int $memoID, string $actorPID, string $decisionKey, string $note = ''): void
     {
         $actorPID = trim($actorPID);
         $note = trim($note);
+        $decision = memo_director_resolve_decision($decisionKey);
 
         if ($actorPID === '') {
             throw new RuntimeException('ไม่พบผู้ใช้งาน');
@@ -1031,19 +1110,27 @@ if (!function_exists('memo_director_approve')) {
 
             $now = date('Y-m-d H:i:s');
             $ownerPID = trim((string) ($memo['createdByPID'] ?? ''));
+            $storedNote = $note !== '' ? $note : (string) ($decision['label'] ?? '');
             memo_update_record($memoID, [
-                'status' => MEMO_STATUS_SIGNED,
+                'status' => (string) ($decision['status'] ?? MEMO_STATUS_SIGNED),
                 'flowStage' => 'OWNER',
                 'toType' => 'PERSON',
                 'toPID' => $ownerPID,
-                'reviewNote' => $note !== '' ? $note : 'อนุมัติ',
+                'reviewNote' => $storedNote,
                 'reviewedAt' => $now,
                 'firstReadAt' => empty($memo['firstReadAt']) ? $now : ($memo['firstReadAt'] ?? null),
                 'approvedByPID' => $actorPID,
                 'approvedAt' => $now,
                 'updatedByPID' => $actorPID,
             ]);
-            memo_add_route($memoID, 'DIRECTOR_APPROVE', $fromStatus, MEMO_STATUS_SIGNED, $actorPID, $note !== '' ? $note : null);
+            memo_add_route(
+                $memoID,
+                (string) ($decision['routeAction'] ?? 'DIRECTOR_APPROVED'),
+                $fromStatus,
+                (string) ($decision['status'] ?? MEMO_STATUS_SIGNED),
+                $actorPID,
+                $storedNote !== '' ? $storedNote : null
+            );
 
             $documentID = memo_sync_document($memoID);
 
@@ -1057,92 +1144,27 @@ if (!function_exists('memo_director_approve')) {
             }
 
             db_commit();
-            audit_log('memos', 'DIRECTOR_APPROVE', 'SUCCESS', MEMO_ENTITY_NAME, $memoID);
+            audit_log('memos', (string) ($decision['routeAction'] ?? 'DIRECTOR_APPROVED'), 'SUCCESS', MEMO_ENTITY_NAME, $memoID);
         } catch (Throwable $e) {
             db_rollback();
-            error_log('Memo director approve failed: ' . $e->getMessage());
-            audit_log('memos', 'DIRECTOR_APPROVE', 'FAIL', MEMO_ENTITY_NAME, $memoID, $e->getMessage());
+            error_log('Memo director process failed: ' . $e->getMessage());
+            audit_log('memos', (string) ($decision['routeAction'] ?? 'DIRECTOR_APPROVED'), 'FAIL', MEMO_ENTITY_NAME, $memoID, $e->getMessage());
             throw $e;
         }
+    }
+}
+
+if (!function_exists('memo_director_approve')) {
+    function memo_director_approve(int $memoID, string $actorPID, string $note = ''): void
+    {
+        memo_director_process($memoID, $actorPID, 'director_approved', $note);
     }
 }
 
 if (!function_exists('memo_director_reject')) {
     function memo_director_reject(int $memoID, string $actorPID, string $note): void
     {
-        $actorPID = trim($actorPID);
-        $note = trim($note);
-
-        if ($actorPID === '') {
-            throw new RuntimeException('ไม่พบผู้ใช้งาน');
-        }
-
-        if ($note === '') {
-            throw new RuntimeException('กรุณากรอกความเห็น');
-        }
-
-        db_begin();
-
-        try {
-            $memo = db_fetch_one('SELECT * FROM dh_memos WHERE memoID = ? FOR UPDATE', 'i', $memoID);
-
-            if (!$memo) {
-                throw new RuntimeException('ไม่พบบันทึกข้อความ');
-            }
-
-            if (trim((string) ($memo['toPID'] ?? '')) !== $actorPID) {
-                throw new RuntimeException('ไม่มีสิทธิ์พิจารณารายการนี้');
-            }
-
-            $fromStatus = (string) ($memo['status'] ?? '');
-
-            if (!in_array($fromStatus, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
-                throw new RuntimeException('ไม่สามารถไม่อนุมัติได้ในสถานะปัจจุบัน');
-            }
-
-            if (memo_is_chain_mode($memo)) {
-                $stage = memo_infer_chain_stage_by_actor($memo, $actorPID);
-
-                if ($stage !== 'DIRECTOR') {
-                    throw new RuntimeException('ไม่อนุมัติขั้นสุดท้ายได้เฉพาะผู้อำนวยการ/ผู้รักษาการ');
-                }
-            }
-
-            $now = date('Y-m-d H:i:s');
-            $ownerPID = trim((string) ($memo['createdByPID'] ?? ''));
-            memo_update_record($memoID, [
-                'status' => MEMO_STATUS_REJECTED,
-                'flowStage' => 'OWNER',
-                'toType' => 'PERSON',
-                'toPID' => $ownerPID,
-                'reviewNote' => $note,
-                'reviewedAt' => $now,
-                'firstReadAt' => empty($memo['firstReadAt']) ? $now : ($memo['firstReadAt'] ?? null),
-                'approvedByPID' => $actorPID,
-                'approvedAt' => $now,
-                'updatedByPID' => $actorPID,
-            ]);
-            memo_add_route($memoID, 'DIRECTOR_REJECT', $fromStatus, MEMO_STATUS_REJECTED, $actorPID, $note);
-
-            $documentID = memo_sync_document($memoID);
-
-            if ($documentID) {
-                document_mark_read($documentID, $actorPID);
-                document_record_read_receipt($documentID, $actorPID);
-
-                if ($ownerPID !== '') {
-                    document_add_recipients($documentID, [$ownerPID], INBOX_TYPE_NORMAL);
-                }
-            }
-
-            db_commit();
-            audit_log('memos', 'DIRECTOR_REJECT', 'SUCCESS', MEMO_ENTITY_NAME, $memoID);
-        } catch (Throwable $e) {
-            db_rollback();
-            error_log('Memo director reject failed: ' . $e->getMessage());
-            audit_log('memos', 'DIRECTOR_REJECT', 'FAIL', MEMO_ENTITY_NAME, $memoID, $e->getMessage());
-            throw $e;
-        }
+        memo_director_process($memoID, $actorPID, 'director_rejected', $note);
     }
 }
 
@@ -1258,11 +1280,8 @@ if (!function_exists('memo_approve_unsigned')) {
                 throw new RuntimeException('ไม่สามารถอนุมัติได้ในสถานะปัจจุบัน');
             }
 
-            if (memo_is_chain_mode($memo)) {
-                throw new RuntimeException('โหมดเสนอแฟ้มตามลำดับไม่รองรับสถานะ "อนุมัติรอแนบไฟล์"');
-            }
-
             $now = date('Y-m-d H:i:s');
+            $ownerPID = trim((string) ($memo['createdByPID'] ?? ''));
             $updates = [
                 'status' => MEMO_STATUS_APPROVED_UNSIGNED,
                 'reviewNote' => $note,
@@ -1271,6 +1290,18 @@ if (!function_exists('memo_approve_unsigned')) {
                 'approvedAt' => $now,
                 'updatedByPID' => $actorPID,
             ];
+
+            if (memo_is_chain_mode($memo)) {
+                $stage = memo_infer_chain_stage_by_actor($memo, $actorPID);
+
+                if ($stage !== 'DEPUTY') {
+                    throw new RuntimeException('โหมดเสนอแฟ้มตามลำดับรองรับสถานะ "ลงนาม(ป)" เฉพาะรองผู้อำนวยการ');
+                }
+
+                $updates['flowStage'] = 'OWNER';
+                $updates['toType'] = 'PERSON';
+                $updates['toPID'] = $ownerPID;
+            }
 
             if (empty($memo['firstReadAt'])) {
                 $updates['firstReadAt'] = $now;
@@ -1284,6 +1315,10 @@ if (!function_exists('memo_approve_unsigned')) {
             if ($documentID) {
                 document_mark_read($documentID, $actorPID);
                 document_record_read_receipt($documentID, $actorPID);
+
+                if (memo_is_chain_mode($memo) && $ownerPID !== '') {
+                    document_add_recipients($documentID, [$ownerPID], INBOX_TYPE_NORMAL);
+                }
             }
 
             db_commit();

@@ -1,0 +1,12 @@
+{
+    "generated_at": "2026-04-04T19:04:42+07:00",
+    "apply_mode": true,
+    "csv_path": "/var/www/html/tmp/signature-import/signature_import_map.csv",
+    "eligible_rows": 146,
+    "copied_count": 146,
+    "updated_count": 146,
+    "skipped_count": 0,
+    "failed_count": 0,
+    "restore_sql_path": "/var/www/html/tmp/signature-import/applied/20260404_190442/restore_teacher_signature.sql",
+    "report_csv_path": "/var/www/html/tmp/signature-import/applied/20260404_190442/signature_import_report.csv"
+}

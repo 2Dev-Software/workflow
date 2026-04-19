@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-04-04 Asia/Bangkok",
+  "legacy_rows_in_sql": 191,
+  "image_entries_in_zip": 182,
+  "mapped_rows": 178,
+  "matched_current_teacher_rows": 146,
+  "unmatched_rows": 32,
+  "csv": "tmp/signature-import/signature_import_map.csv",
+  "sql": "tmp/signature-import/signature_import_updates.sql",
+  "png_dir": "tmp/signature-import/png-by-id"
+}
