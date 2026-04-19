@@ -26,6 +26,204 @@ if (!function_exists('outgoing_receive_default_values')) {
     }
 }
 
+if (!function_exists('outgoing_receive_track_status_map')) {
+    function outgoing_receive_track_status_map(): array
+    {
+        return [
+            EXTERNAL_STATUS_SUBMITTED => ['label' => 'รับเข้าแล้ว', 'pill' => 'pending'],
+            EXTERNAL_STATUS_PENDING_REVIEW => ['label' => 'กำลังเสนอ', 'pill' => 'pending'],
+            EXTERNAL_STATUS_REVIEWED => ['label' => 'พิจารณาแล้ว', 'pill' => 'considered'],
+            EXTERNAL_STATUS_FORWARDED => ['label' => 'ส่งแล้ว', 'pill' => 'success'],
+        ];
+    }
+}
+
+if (!function_exists('outgoing_receive_normalize_track_filter_status')) {
+    function outgoing_receive_normalize_track_filter_status(string $status): string
+    {
+        $normalized = strtolower(trim($status));
+
+        return match ($normalized) {
+            'submitted', 'waiting_attachment' => 'submitted',
+            'pending_review' => 'pending_review',
+            'reviewed' => 'reviewed',
+            'forwarded', 'complete' => 'forwarded',
+            default => 'all',
+        };
+    }
+}
+
+if (!function_exists('outgoing_receive_normalize_track_filter_sort')) {
+    function outgoing_receive_normalize_track_filter_sort(string $sort): string
+    {
+        return strtolower(trim($sort)) === 'oldest' ? 'oldest' : 'newest';
+    }
+}
+
+if (!function_exists('outgoing_receive_list_registered')) {
+    function outgoing_receive_list_registered(string $current_pid, string $search = '', string $status_filter = 'all', string $sort = 'newest'): array
+    {
+        $search = trim($search);
+        $status_filter = outgoing_receive_normalize_track_filter_status($status_filter);
+        $sort = outgoing_receive_normalize_track_filter_sort($sort);
+        $params = [$current_pid, CIRCULAR_TYPE_EXTERNAL];
+        $types = 'ss';
+        $sql = 'SELECT
+                c.circularID,
+                c.subject,
+                c.detail,
+                c.linkURL,
+                c.extPriority,
+                c.extBookNo,
+                c.extIssuedDate,
+                c.extFromText,
+                c.extGroupFID,
+                c.status,
+                c.createdAt,
+                c.updatedAt,
+                c.createdByPID,
+                t.fName AS creatorName,
+                f.fName AS groupName
+            FROM dh_circulars AS c
+            LEFT JOIN teacher AS t ON c.createdByPID = t.pID
+            LEFT JOIN faction AS f ON c.extGroupFID = f.fID
+            WHERE c.deletedAt IS NULL
+              AND c.createdByPID = ?
+              AND c.circularType = ?';
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $sql .= ' AND (
+                c.subject LIKE ?
+                OR c.extBookNo LIKE ?
+                OR c.extFromText LIKE ?
+                OR c.detail LIKE ?
+            )';
+            $types .= 'ssss';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ($status_filter !== 'all') {
+            $status_key = match ($status_filter) {
+                'submitted' => EXTERNAL_STATUS_SUBMITTED,
+                'pending_review' => EXTERNAL_STATUS_PENDING_REVIEW,
+                'reviewed' => EXTERNAL_STATUS_REVIEWED,
+                'forwarded' => EXTERNAL_STATUS_FORWARDED,
+                default => '',
+            };
+
+            if ($status_key !== '') {
+                $sql .= ' AND c.status = ?';
+                $types .= 's';
+                $params[] = $status_key;
+            }
+        }
+
+        $sort_direction = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $sql .= ' ORDER BY COALESCE(c.updatedAt, c.createdAt) ' . $sort_direction . ', c.circularID ' . $sort_direction;
+
+        return db_fetch_all($sql, $types, ...$params);
+    }
+}
+
+if (!function_exists('outgoing_receive_list_attachments_map')) {
+    /**
+     * @param array<int, int> $circular_ids
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    function outgoing_receive_list_attachments_map(array $circular_ids): array
+    {
+        $circular_ids = array_values(array_unique(array_filter(array_map('intval', $circular_ids), static function (int $id): bool {
+            return $id > 0;
+        })));
+
+        if ($circular_ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($circular_ids), '?'));
+        $types = str_repeat('i', count($circular_ids));
+        $sql = 'SELECT
+                CAST(r.entityID AS UNSIGNED) AS circularID,
+                f.fileID,
+                f.fileName,
+                f.filePath,
+                f.mimeType,
+                f.fileSize
+            FROM dh_file_refs AS r
+            INNER JOIN dh_files AS f ON r.fileID = f.fileID
+            WHERE r.moduleName = (\'' . CIRCULAR_MODULE_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND r.entityName = (\'' . CIRCULAR_ENTITY_NAME . '\' COLLATE utf8mb4_general_ci)
+              AND CAST(r.entityID AS UNSIGNED) IN (' . $placeholders . ')
+              AND f.deletedAt IS NULL
+            ORDER BY r.refID ASC';
+        $rows = db_fetch_all($sql, $types, ...$circular_ids);
+        $map = [];
+
+        foreach ($rows as $row) {
+            $circular_id = (string) ((int) ($row['circularID'] ?? 0));
+
+            if ($circular_id === '0') {
+                continue;
+            }
+
+            if (!isset($map[$circular_id])) {
+                $map[$circular_id] = [];
+            }
+
+            $map[$circular_id][] = [
+                'fileID' => (int) ($row['fileID'] ?? 0),
+                'fileName' => trim((string) ($row['fileName'] ?? '')),
+                'filePath' => trim((string) ($row['filePath'] ?? '')),
+                'mimeType' => trim((string) ($row['mimeType'] ?? '')),
+                'fileSize' => (int) ($row['fileSize'] ?? 0),
+            ];
+        }
+
+        return $map;
+    }
+}
+
+if (!function_exists('outgoing_receive_build_track_payload_map')) {
+    function outgoing_receive_build_track_payload_map(array $items, array $attachments_map, array $track_status_map): array
+    {
+        $payload_map = [];
+
+        foreach ($items as $item) {
+            $circular_id = (int) ($item['circularID'] ?? 0);
+
+            if ($circular_id <= 0) {
+                continue;
+            }
+
+            $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+            $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
+            $priority_label = trim((string) ($item['extPriority'] ?? ''));
+
+            $payload_map[(string) $circular_id] = [
+                'outgoingID' => $circular_id,
+                'outgoingNo' => trim((string) ($item['extBookNo'] ?? '')),
+                'subject' => trim((string) ($item['subject'] ?? '')),
+                'priorityKey' => outgoing_normalize_priority_key($priority_label),
+                'priorityLabel' => $priority_label !== '' ? $priority_label : 'ปกติ',
+                'effectiveDate' => trim((string) ($item['extIssuedDate'] ?? '')),
+                'issuerName' => trim((string) ($item['creatorName'] ?? '')),
+                'destinationName' => trim((string) ($item['extFromText'] ?? '')),
+                'ownerNames' => array_values(array_filter([trim((string) ($item['creatorName'] ?? ''))])),
+                'status' => $status_key,
+                'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
+                'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
+                'attachments' => array_values((array) ($attachments_map[(string) $circular_id] ?? [])),
+            ];
+        }
+
+        return $payload_map;
+    }
+}
+
 if (!function_exists('outgoing_receive_merge_upload_sets')) {
     /**
      * @param array<int, array<string, mixed>> $file_sets

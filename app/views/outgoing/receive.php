@@ -19,6 +19,13 @@ $is_edit_mode = (bool) ($is_edit_mode ?? false);
 $edit_circular_id = (int) ($edit_circular_id ?? 0);
 $editable_circular = (array) ($editable_circular ?? []);
 $existing_attachments = (array) ($existing_attachments ?? []);
+$items = (array) ($items ?? []);
+$filter_query = trim((string) ($filter_query ?? ''));
+$filter_status = outgoing_receive_normalize_track_filter_status((string) ($filter_status ?? 'all'));
+$filter_sort = outgoing_receive_normalize_track_filter_sort((string) ($filter_sort ?? 'newest'));
+$is_track_active = (bool) ($is_track_active ?? false);
+$track_status_map = (array) ($track_status_map ?? outgoing_receive_track_status_map());
+$send_modal_payload_map = (array) ($send_modal_payload_map ?? []);
 
 $priority_options = [
     'ปกติ' => 'ปกติ',
@@ -53,6 +60,18 @@ foreach ($reviewers as $reviewer) {
     $reviewer_options[$pid] = $label;
 }
 
+$default_group_fid = array_key_exists('4', $faction_options) ? '4' : '';
+$selected_group_fid = $values['extGroupFID'] !== '' && array_key_exists($values['extGroupFID'], $faction_options)
+    ? $values['extGroupFID']
+    : $default_group_fid;
+$selected_group_label = $faction_options[$selected_group_fid] ?? 'เลือกกลุ่ม/ฝ่าย';
+$selected_reviewer_label = $reviewer_options[$values['reviewerPID']] ?? '';
+$reviewer_options_json = json_encode($reviewers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+if (!is_string($reviewer_options_json)) {
+    $reviewer_options_json = '[]';
+}
+
 $current_status = trim((string) ($editable_circular['status'] ?? ''));
 $status_label = $current_status !== '' ? $current_status : '-';
 $status_variant = 'pending';
@@ -70,6 +89,45 @@ if ($current_status === EXTERNAL_STATUS_SUBMITTED) {
     $status_label = 'ส่งแล้ว';
     $status_variant = 'approved';
 }
+
+$thai_months = [
+    1 => 'มกราคม',
+    2 => 'กุมภาพันธ์',
+    3 => 'มีนาคม',
+    4 => 'เมษายน',
+    5 => 'พฤษภาคม',
+    6 => 'มิถุนายน',
+    7 => 'กรกฎาคม',
+    8 => 'สิงหาคม',
+    9 => 'กันยายน',
+    10 => 'ตุลาคม',
+    11 => 'พฤศจิกายน',
+    12 => 'ธันวาคม',
+];
+
+$format_thai_datetime_parts = static function (?string $datetime_value) use ($thai_months): array {
+    $datetime_value = trim((string) $datetime_value);
+
+    if ($datetime_value === '' || strpos($datetime_value, '0000-00-00') === 0) {
+        return ['date' => '-', 'time' => '-'];
+    }
+
+    $timestamp = strtotime($datetime_value);
+
+    if ($timestamp === false) {
+        return ['date' => $datetime_value, 'time' => '-'];
+    }
+
+    $day = (int) date('j', $timestamp);
+    $month = (int) date('n', $timestamp);
+    $year = (int) date('Y', $timestamp) + 543;
+    $month_label = $thai_months[$month] ?? '';
+
+    return [
+        'date' => trim($day . ' ' . $month_label . ' ' . $year),
+        'time' => date('H:i', $timestamp) . ' น.',
+    ];
+};
 
 ob_start();
 ?>
@@ -225,24 +283,25 @@ ob_start();
         <div class="type-urgent">
             <p>ประเภท</p>
             <div class="radio-group-urgent">
-                <input type="radio" name="priority" value="normal" checked id="outgoingPriorityNormal"><label for="outgoingPriorityNormal">ปกติ</label>
-                <input type="radio" name="priority" value="urgent" id="outgoingPriorityUrgent"><label for="outgoingPriorityUrgent">ด่วน</label>
-                <input type="radio" name="priority" value="high" id="outgoingPriorityHigh"><label for="outgoingPriorityHigh">ด่วนมาก</label>
-                <input type="radio" name="priority" value="highest" id="outgoingPriorityHighest"><label for="outgoingPriorityHighest">ด่วนที่สุด</label>
+                <input type="radio" name="extPriority" value="ปกติ" <?= $values['extPriority'] === 'ปกติ' ? 'checked' : '' ?> id="outgoingPriorityNormal"><label for="outgoingPriorityNormal">ปกติ</label>
+                <input type="radio" name="extPriority" value="ด่วน" <?= $values['extPriority'] === 'ด่วน' ? 'checked' : '' ?> id="outgoingPriorityUrgent"><label for="outgoingPriorityUrgent">ด่วน</label>
+                <input type="radio" name="extPriority" value="ด่วนมาก" <?= $values['extPriority'] === 'ด่วนมาก' ? 'checked' : '' ?> id="outgoingPriorityHigh"><label for="outgoingPriorityHigh">ด่วนมาก</label>
+                <input type="radio" name="extPriority" value="ด่วนที่สุด" <?= $values['extPriority'] === 'ด่วนที่สุด' ? 'checked' : '' ?> id="outgoingPriorityHighest"><label for="outgoingPriorityHighest">ด่วนที่สุด</label>
             </div>
         </div>
 
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="create">
-        <input type="hidden" name="order_id" value="">
+        <input type="hidden" name="edit_circular_id" value="<?= $is_edit_mode ? $edit_circular_id : 0 ?>">
 
         <div class="form-group row">
             <div class="input-group">
                 <p><strong>เลขที่หนังสือ</strong></p>
                 <input
                     type="text"
+                    name="extBookNo"
                     class="order-no-display"
-                    value=""
+                    value="<?= h($values['extBookNo']) ?>"
                     placeholder="เช่น สธ 04066/2"
                     required>
             </div>
@@ -250,8 +309,8 @@ ob_start();
                 <p><strong>ลงวันที่</strong></p>
                 <input
                     type="date"
-                    name="effective_date"
-                    value=""
+                    name="extIssuedDate"
+                    value="<?= h($values['extIssuedDate']) ?>"
                     required>
             </div>
         </div>
@@ -261,8 +320,9 @@ ob_start();
                 <p><strong>เรื่อง</strong></p>
                 <input
                     type="text"
+                    name="subject"
                     class="order-no-display"
-                    value=""
+                    value="<?= h($values['subject']) ?>"
                     placeholder="ระบุเรื่องที่จะลงทะเบียนหนังสือเวียน"
                     required>
             </div>
@@ -270,8 +330,9 @@ ob_start();
                 <p><strong>จาก</strong></p>
                 <input
                     type="text"
+                    name="extFromText"
                     class="order-no-display"
-                    value=""
+                    value="<?= h($values['extFromText']) ?>"
                     placeholder="ระบุแหล่งที่มา"
                     required>
             </div>
@@ -282,20 +343,24 @@ ob_start();
                 <p><strong>ถึงกลุ่ม</strong></p>
                 <div class="custom-select-wrapper">
                     <div class="custom-select-trigger">
-                        <p class="select-value">กลุ่มบริหารงานทั่วไป</p>
+                        <p class="select-value"><?= h($selected_group_label) ?></p>
                         <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option" data-value="5">กลุ่มบริหารกิจการนักเรียน</div>
-                        <div class="custom-option selected" data-value="4">กลุ่มบริหารงานทั่วไป</div>
-                        <div class="custom-option" data-value="3">กลุ่มบริหารงานบุคคลและงบประมาณ</div>
-                        <div class="custom-option" data-value="2">กลุ่มบริหารงานวิชาการ</div>
-                        <div class="custom-option" data-value="6">กลุ่มสนับสนุนการสอน</div>
-                        <div class="custom-option" data-value="1">ฝ่ายบริหาร</div>
+                        <?php foreach ($factions as $faction) : ?>
+                            <?php
+                            $faction_id = (string) ((int) ($faction['fID'] ?? 0));
+                            $faction_name = trim((string) ($faction['fName'] ?? ''));
+                            if ($faction_id === '0' || $faction_name === '') {
+                                continue;
+                            }
+                            ?>
+                            <div class="custom-option<?= $selected_group_fid === $faction_id ? ' selected' : '' ?>" data-value="<?= h($faction_id) ?>"><?= h($faction_name) ?></div>
+                        <?php endforeach; ?>
                     </div>
 
-                    <input type="hidden" name="group_fid" value="4">
+                    <input type="hidden" name="extGroupFID" value="<?= h($selected_group_fid) ?>">
                 </div>
             </div>
             <div class="input-group"></div>
@@ -304,17 +369,18 @@ ob_start();
         <div class="form-group">
             <div class="input-group">
                 <p><strong>เกษียณหนังสือ</strong></p>
-                <textarea name="detail" id="memo_editor_compose"></textarea>
+                <textarea name="detail" id="memo_editor_compose"><?= h($values['detail']) ?></textarea>
             </div>
         </div>
 
-        <div class="form-group receive" data-recipients-section="" data-owner-flat-list="true">
+        <div class="form-group receive" data-recipients-section="" data-owner-flat-list="true" data-reviewer-options="<?= h($reviewer_options_json) ?>">
             <label><strong>เสนอ :</strong></label>
             <div class="dropdown-container">
                 <div class="search-input-wrapper" id="recipientToggle">
-                    <input type="text" id="mainInput" class="search-input" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                    <input type="text" id="mainInput" class="search-input" value="<?= h($selected_reviewer_label) ?>" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                 </div>
+                <input type="hidden" name="reviewerPID" value="<?= h($values['reviewerPID']) ?>" data-reviewer-hidden>
 
                 <div class="dropdown-content" id="dropdownContent">
                     <div class="dropdown-header">
@@ -2350,7 +2416,7 @@ ob_start();
         <div class="approval-filter-group">
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input class="form-input" type="search" name="q" value=""
+                <input class="form-input" type="search" name="q" value="<?= h($filter_query) ?>"
                     placeholder="ค้นหาลงทะเบียนรับหนังสือเวียนของฉัน" autocomplete="off">
             </div>
             <div class="room-admin-filter">
@@ -2360,10 +2426,14 @@ ob_start();
                             <?php
                             $status_label = 'ทั้งหมด';
 
-                            if ($filter_status === 'waiting_attachment') {
-                                $status_label = 'รอการแนบไฟล์';
-                            } elseif ($filter_status === 'complete') {
-                                $status_label = 'แนบไฟล์สำเร็จ';
+                            if ($filter_status === 'submitted') {
+                                $status_label = 'รับเข้าแล้ว';
+                            } elseif ($filter_status === 'pending_review') {
+                                $status_label = 'กำลังเสนอ';
+                            } elseif ($filter_status === 'reviewed') {
+                                $status_label = 'พิจารณาแล้ว';
+                            } elseif ($filter_status === 'forwarded') {
+                                $status_label = 'ส่งแล้ว';
                             }
                             echo h($status_label);
                             ?>
@@ -2372,15 +2442,19 @@ ob_start();
                     </div>
 
                     <div class="custom-options">
-                        <div class="custom-option" data-value="all">ทั้งหมด</div>
-                        <div class="custom-option" data-value="waiting_attachment">รอการแนบไฟล์</div>
-                        <div class="custom-option" data-value="complete">แนบไฟล์สำเร็จ</div>
+                        <div class="custom-option<?= $filter_status === 'all' ? ' selected' : '' ?>" data-value="all">ทั้งหมด</div>
+                        <div class="custom-option<?= $filter_status === 'submitted' ? ' selected' : '' ?>" data-value="submitted">รับเข้าแล้ว</div>
+                        <div class="custom-option<?= $filter_status === 'pending_review' ? ' selected' : '' ?>" data-value="pending_review">กำลังเสนอ</div>
+                        <div class="custom-option<?= $filter_status === 'reviewed' ? ' selected' : '' ?>" data-value="reviewed">พิจารณาแล้ว</div>
+                        <div class="custom-option<?= $filter_status === 'forwarded' ? ' selected' : '' ?>" data-value="forwarded">ส่งแล้ว</div>
                     </div>
 
                     <select class="form-input" name="status">
                         <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>ทั้งหมด</option>
-                        <option value="waiting_attachment" <?= $filter_status === 'waiting_attachment' ? 'selected' : '' ?>>รอการแนบไฟล์</option>
-                        <option value="complete" <?= $filter_status === 'complete' ? 'selected' : '' ?>>แนบไฟล์สำเร็จ</option>
+                        <option value="submitted" <?= $filter_status === 'submitted' ? 'selected' : '' ?>>รับเข้าแล้ว</option>
+                        <option value="pending_review" <?= $filter_status === 'pending_review' ? 'selected' : '' ?>>กำลังเสนอ</option>
+                        <option value="reviewed" <?= $filter_status === 'reviewed' ? 'selected' : '' ?>>พิจารณาแล้ว</option>
+                        <option value="forwarded" <?= $filter_status === 'forwarded' ? 'selected' : '' ?>>ส่งแล้ว</option>
                     </select>
                 </div>
             </div>
@@ -2426,40 +2500,60 @@ ob_start();
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div class="circular-my-subject">ำะั้เ้</div>
-                        <div class="circular-my-meta">เลขทะเบียนส่ง ศธ.01234/001</div>
-                    </td>
-                    <td>นางสาวทิพยรัตน์ บุญมณี</td>
-                    <td>
-                        <div class="order-create-datetime">
-                            <span class="order-create-datetime-date">29 มกราคม 2569</span>
-                            <span class="order-create-datetime-time">13:49 น.</span>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="status-pill outgoing-complete">แนบไฟล์สำเร็จ</span>
-                    </td>
-                    <td>
-                        <div class="circular-my-actions">
-                            <button type="submit" class="booking-action-btn secondary">
-                                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
-                                <span class="tooltip">ดึงกลับ</span>
-                            </button>
-
-                            <button class="booking-action-btn secondary js-open-order-edit-modal" type="button" data-outgoing-id="1" data-outgoing-priority-key="normal" title="ดู/แนบไฟล์" aria-label="ดู/แนบไฟล์">
-                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                                <span class="tooltip">ดู/แนบไฟล์</span>
-                            </button>
-
-                            <button class="booking-action-btn secondary js-open-order-view-modal" type="button" data-outgoing-id="1" data-outgoing-priority-key="normal" title="ดูรายละเอียด" aria-label="ดูรายละเอียด">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                <?php if (empty($items)) : ?>
+                    <tr>
+                        <td colspan="5" class="booking-empty">ไม่พบรายการลงทะเบียนรับหนังสือเวียนของฉัน</td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ($items as $item) : ?>
+                        <?php
+                        $circular_id = (int) ($item['circularID'] ?? 0);
+                        $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
+                        $status_meta = $track_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'pending'];
+                        $date_display_parts = $format_thai_datetime_parts((string) (($item['updatedAt'] ?? '') !== '' ? ($item['updatedAt'] ?? '') : ($item['createdAt'] ?? '')));
+                        $book_no = trim((string) ($item['extBookNo'] ?? ''));
+                        $priority_key = outgoing_normalize_priority_key((string) ($item['extPriority'] ?? 'ปกติ'));
+                        $is_editable = $status_key === EXTERNAL_STATUS_SUBMITTED;
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
+                                <?php if ($book_no !== '') : ?>
+                                    <div class="circular-my-meta">เลขที่หนังสือ <?= h($book_no) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= h(trim((string) ($item['extFromText'] ?? '')) !== '' ? (string) ($item['extFromText'] ?? '') : '-') ?></td>
+                            <td>
+                                <div class="order-create-datetime">
+                                    <span class="order-create-datetime-date"><?= h((string) ($date_display_parts['date'] ?? '-')) ?></span>
+                                    <span class="order-create-datetime-time"><?= h((string) ($date_display_parts['time'] ?? '-')) ?></span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>
+                            </td>
+                            <td>
+                                <div class="circular-my-actions">
+                                    <?php if ($is_editable) : ?>
+                                        <a
+                                            class="booking-action-btn secondary"
+                                            href="outgoing-receive.php?tab=track&amp;edit=<?= h((string) $circular_id) ?>"
+                                            title="แก้ไขส่งใหม่"
+                                            aria-label="แก้ไขส่งใหม่">
+                                            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                                            <span class="tooltip">แก้ไขส่งใหม่</span>
+                                        </a>
+                                    <?php else : ?>
+                                        <button class="booking-action-btn secondary js-open-order-view-modal" type="button" data-outgoing-id="<?= h((string) $circular_id) ?>" data-outgoing-priority-key="<?= h($priority_key) ?>" title="ดูรายละเอียด" aria-label="ดูรายละเอียด">
+                                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -4875,6 +4969,32 @@ ob_start();
 
             const initialSelectedPersonIds = new Set();
             const ownerSection = container.querySelector('[data-recipients-section][data-owner-flat-list="true"]');
+            const reviewerHiddenInput = container.querySelector('[data-reviewer-hidden]');
+            const reviewerOptionsRaw = ownerSection?.getAttribute('data-reviewer-options') || '[]';
+            let reviewerOptions = [];
+
+            try {
+                reviewerOptions = JSON.parse(reviewerOptionsRaw);
+            } catch (error) {
+                reviewerOptions = [];
+            }
+
+            const reviewerMap = new Map(
+                Array.isArray(reviewerOptions)
+                    ? reviewerOptions
+                        .map((reviewer) => {
+                            const pid = String(reviewer?.pID || '').trim();
+                            const label = String(reviewer?.label || '').trim();
+                            return pid !== '' && label !== '' ? [pid, label] : null;
+                        })
+                        .filter((entry) => Array.isArray(entry))
+                    : []
+            );
+
+            const initialReviewerPid = String(reviewerHiddenInput?.value || '').trim();
+            if (initialReviewerPid !== '') {
+                initialSelectedPersonIds.add(initialReviewerPid);
+            }
 
             if (ownerSection) {
                 limitOutgoingOwnerDepartmentOptions(ownerSection);
@@ -5054,12 +5174,25 @@ ob_start();
                 });
             };
 
+            const syncReviewerSelection = () => {
+                if (!reviewerHiddenInput) return;
+
+                const selectedReviewer = memberChecks.find((memberCheck) => memberCheck.checked && reviewerMap.has(String(memberCheck.value || '').trim()));
+                const reviewerPid = selectedReviewer ? String(selectedReviewer.value || '').trim() : '';
+                reviewerHiddenInput.value = reviewerPid;
+
+                if (searchInput) {
+                    searchInput.value = reviewerPid !== '' ? (reviewerMap.get(reviewerPid) || '') : '';
+                }
+            };
+
             selectAll?.addEventListener('change', () => {
                 const checked = selectAll.checked;
                 [...groupChecks, ...memberChecks].forEach((el) => {
                     if (!el.disabled) el.checked = checked;
                 });
                 updateSelectAllState();
+                syncReviewerSelection();
             });
 
             groupChecks.forEach((item) => {
@@ -5075,6 +5208,7 @@ ob_start();
                     if (item.checked) setGroupCollapsed(item.closest('.item-group'), false);
                     item.indeterminate = false;
                     updateSelectAllState();
+                    syncReviewerSelection();
                 });
             });
 
@@ -5082,6 +5216,7 @@ ob_start();
                 item.addEventListener('change', () => {
                     syncMemberByPid(item.value || '', item.checked, item);
                     updateSelectAllState();
+                    syncReviewerSelection();
                 });
             });
 
@@ -5102,6 +5237,7 @@ ob_start();
                 });
             });
             updateSelectAllState();
+            syncReviewerSelection();
 
             const recipientModal = container.querySelector('.modal-overlay-recipient');
             const recipientTableBody = container.querySelector('.recipient-table tbody');
