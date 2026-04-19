@@ -101,23 +101,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <p class="link-name">ข่าวประชาสัมพันธ์ </p>
             </a>
         </li>
-
-        <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
-                    <?php if ($sidebar_alerts['internal_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <img src="/public/assets/img/icon/envelope.png" alt="">
-                    <p class="link-name">หนังสือเวียน (ภายใน)</p>
-                </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
-                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
-                <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
-            </ul>
-        </li>
-
+        
         <?php if ($can_access_external_circular_menu): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
@@ -140,6 +124,22 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 </ul>
             </li>
         <?php endif; ?>
+
+        <li class="navigation-links-has-sub">
+            <div class="icon-link">
+                <a href="#">
+                    <?php if ($sidebar_alerts['internal_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
+                    <img src="/public/assets/img/icon/envelope.png" alt="">
+                    <p class="link-name">หนังสือเวียน (ภายใน)</p>
+                </a>
+                <i class="fa-solid fa-caret-down"></i>
+            </div>
+            <ul class="navigation-links-sub-menu">
+                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
+                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
+                <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
+            </ul>
+        </li>
 
         <?php if ($can_manage_external_circular): ?>
             <li>
@@ -273,6 +273,14 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
+        <?php if ($is_admin_user): ?>
+            <li>
+                <a href="personnel-management.php">
+                    <img src="/public/assets/img/icon/user.png" alt="">
+                    <p class="link-name">จัดการบุคลากร</p>
+                </a>
+            </li>
+        <?php endif; ?>
 
         <li>
             <a href="profile.php">

@@ -83,6 +83,20 @@ if (!function_exists('memo_prepare_search')) {
     }
 }
 
+if (!function_exists('memo_reviewer_visibility_sql')) {
+    function memo_reviewer_visibility_sql(string $memoAlias = '', string $routeAlias = 'mr'): string
+    {
+        $memoPrefix = $memoAlias !== '' ? $memoAlias . '.' : '';
+
+        return '(' . $memoPrefix . 'toPID = ? OR EXISTS (
+            SELECT 1
+            FROM ' . MEMO_ROUTE_ENTITY_NAME . ' AS ' . $routeAlias . '
+            WHERE ' . $routeAlias . '.memoID = ' . $memoPrefix . 'memoID
+              AND ' . $routeAlias . '.actorPID = ?
+        ))';
+    }
+}
+
 if (!function_exists('memo_create_record')) {
     function memo_create_record(array $data): int
     {
@@ -235,6 +249,7 @@ if (!function_exists('memo_list_by_creator_page')) {
         $order_by = $status_order_sql . ' ASC, ' . $timeline_order_sql . ' ' . $timeline_direction . ', m.memoID ' . $memo_id_direction;
 
         $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.status, m.toType, m.toPID, m.firstReadAt, m.submittedAt, m.updatedAt, m.createdAt,
+                m.headPID, m.deputyPID, m.directorPID,
                 t.fName AS approverName
             FROM dh_memos AS m
             LEFT JOIN teacher AS t ON m.toPID = t.pID
@@ -278,10 +293,11 @@ if (!function_exists('memo_count_by_reviewer')) {
 
         // Reviewer inbox must not expose drafts or "cancelled-before-submit" records.
         // `submittedAt` may be NULL for legacy rows, so we also allow canonical workflow statuses.
-        $where = 'toPID = ? AND createdByPID <> ? AND deletedAt IS NULL
+        $where = 'createdByPID <> ? AND deletedAt IS NULL
+            AND ' . memo_reviewer_visibility_sql('', 'mr_count') . '
             AND (submittedAt IS NOT NULL OR status IN ("SUBMITTED","IN_REVIEW","RETURNED","APPROVED_UNSIGNED","SIGNED","REJECTED"))';
-        $types = 'ss';
-        $params = [$pID, $pID];
+        $types = 'sss';
+        $params = [$pID, $pID, $pID];
 
         if ($status !== '' && $status !== 'all') {
             $where .= ' AND status = ?';
@@ -321,10 +337,11 @@ if (!function_exists('memo_list_by_reviewer_page')) {
 
         // Reviewer inbox must not expose drafts or "cancelled-before-submit" records.
         // `submittedAt` may be NULL for legacy rows, so we also allow canonical workflow statuses.
-        $where = 'm.toPID = ? AND m.createdByPID <> ? AND m.deletedAt IS NULL
+        $where = 'm.createdByPID <> ? AND m.deletedAt IS NULL
+            AND ' . memo_reviewer_visibility_sql('m', 'mr_page') . '
             AND (m.submittedAt IS NOT NULL OR m.status IN ("SUBMITTED","IN_REVIEW","RETURNED","APPROVED_UNSIGNED","SIGNED","REJECTED"))';
-        $types = 'ss';
-        $params = [$pID, $pID];
+        $types = 'sss';
+        $params = [$pID, $pID, $pID];
 
         if ($status !== '' && $status !== 'all') {
             $where .= ' AND m.status = ?';
@@ -348,7 +365,7 @@ if (!function_exists('memo_list_by_reviewer_page')) {
         }
 
         $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.reviewNote, m.status,
-                m.createdAt, m.firstReadAt, m.submittedAt, m.reviewedAt, m.toType, m.toPID, m.flowStage,
+                m.createdAt, m.firstReadAt, m.submittedAt, m.reviewedAt, m.toType, m.toPID, m.flowMode, m.flowStage,
                 m.createdByPID, m.headPID, m.deputyPID, m.directorPID,
                 c.fName AS creatorName,
                 COALESCE(c.signature, "") AS creatorSignature,
@@ -375,12 +392,13 @@ if (!function_exists('memo_list_reviewer_years')) {
     {
         $sql = 'SELECT DISTINCT m.dh_year
             FROM dh_memos AS m
-            WHERE m.toPID = ? AND m.createdByPID <> ? AND m.deletedAt IS NULL
+            WHERE m.createdByPID <> ? AND m.deletedAt IS NULL
+              AND ' . memo_reviewer_visibility_sql('m', 'mr_year') . '
               AND m.dh_year IS NOT NULL AND m.dh_year >= 2568
               AND (m.submittedAt IS NOT NULL OR m.status IN ("SUBMITTED","IN_REVIEW","RETURNED","APPROVED_UNSIGNED","SIGNED","REJECTED"))
             ORDER BY m.dh_year DESC';
 
-        $rows = db_fetch_all($sql, 'ss', $pID, $pID);
+        $rows = db_fetch_all($sql, 'sss', $pID, $pID, $pID);
         $years = [];
 
         foreach ($rows as $row) {

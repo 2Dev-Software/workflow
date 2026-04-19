@@ -426,7 +426,7 @@ class Calendar {
           hasCar = true;
         }
         if (ev.type === "room" && !hasRoom) {
-          iconContainer.innerHTML += `<img src="public/assets/img/icon/building.png">`;
+          iconContainer.innerHTML += `<img src="public/assets/img/icon/building.png" class="building-icon">`;
           hasRoom = true;
         }
       });

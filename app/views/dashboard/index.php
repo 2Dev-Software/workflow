@@ -13,6 +13,30 @@ $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
 $unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
 $unread_vehicle_bookings = (int) ($dashboard_counts['unread_vehicle_bookings'] ?? 0);
+$dashboard_notifications = array_values(array_filter([
+    [
+        'label' => 'หนังสือเวียน',
+        'count' => $unread_external_circulars,
+    ],
+    [
+        'label' => 'หนังสือเวียน (ภายใน)',
+        'count' => $unread_internal_circulars,
+    ],
+    [
+        'label' => 'บันทึกข้อความ',
+        'count' => $unread_memos,
+    ],
+    [
+        'label' => 'คำสั่งราชการ',
+        'count' => $unread_orders,
+    ],
+    [
+        'label' => 'จองยานพาหนะ',
+        'count' => $unread_vehicle_bookings,
+    ],
+], static function (array $item): bool {
+    return (int) ($item['count'] ?? 0) > 0;
+}));
 
 $visible_shortcuts = array_values(array_filter($dashboard_shortcuts, static function ($shortcut): bool {
     return !empty($shortcut['visible']);
@@ -23,15 +47,13 @@ ob_start();
 <div class="dashboard-container">
     <div class="notification-system">
         <section>
-            <div class="notification-list">
-                <ul>
-                    <li>คุณมี <b>หนังสือเวียน</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_external_circulars) ?></b> ฉบับ</li>
-                    <li>คุณมี <b>หนังสือเวียน (ภายใน)</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_internal_circulars) ?></b> ฉบับ</li>
-                    <li>คุณมี <b>บันทึกข้อความ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_memos) ?></b>ฉบับ</li>
-                    <li>คุณมี <b>คำสั่งราชการ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_orders) ?></b> ฉบับ</li>
-                    <li>คุณมี <b>จองยานพาหนะ</b> ที่ยังไม่อ่าน <b><?= h((string) $unread_vehicle_bookings) ?></b> ฉบับ</li>
-                </ul>
-            </div>
+          <div class="notification-list">
+              <ul>
+                  <?php foreach ($dashboard_notifications as $notification) : ?>
+                      <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> ที่ยังไม่อ่าน <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
+                  <?php endforeach; ?>
+              </ul>
+          </div>
             <a href="#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
                 <p>กดเพื่อดูข่าวประชาสัมพันธ์</p>
