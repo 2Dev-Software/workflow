@@ -90,10 +90,14 @@ ob_start();
                 </div>
                 <div class="info-item">
                     <div class="info-label">เบอร์โทรศัพท์ :</div>
-                    <input class="tel-info-value" type="text" id="phoneInput" name="telephone" value="<?= h($teacher['telephone'] ?? '') ?>" placeholder="กรอกเบอร์โทรศัพท์" inputmode="numeric" pattern="\d{10}" maxlength="10" />
+                    <input class="tel-info-value" type="text" id="pt" name="telephone" value="<?= h($teacher['telephone'] ?? '') ?>" placeholder="กรอกเบอร์โทรศัพท์" inputmode="numeric" pattern="\d{10}" maxlength="10" />
+                    <!-- <input class="tel-info-value" type="text" id="phoneInput" name="telephone" value="<?= h($teacher['telephone'] ?? '') ?>" placeholder="กรอกเบอร์โทรศัพท์" inputmode="numeric" pattern="\d{10}" maxlength="10" /> -->
                 </div>
             </div>
-            <div class="warning-text">* หากข้อมูลส่วนบุคคลผิดพลาด กรุณาติดต่อผู้ดูแลระบบ *</div>
+            <div class="profile-footer">
+                <div class="warning-text">* หากข้อมูลส่วนบุคคลผิดพลาด กรุณาติดต่อผู้ดูแลระบบ *</div>
+                <button class="btn-upload">บันทึกการแก้ไข</button>
+            </div>
         </form>
     </div>
 

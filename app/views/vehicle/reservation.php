@@ -25,6 +25,21 @@ ob_start();
     .fa-solid.fa-xmark {
         cursor: pointer;
     }
+
+    .vehicle-input-content {
+        justify-content: space-between;
+    }
+
+    .vehicle-content .vehicle-companion-control .go-with-dropdown,
+    .modal-overlay-vehicle-edit .vehicle-companion-control .go-with-dropdown {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 1 100%;
+    }
+
+    .vehicle-row.split {
+        grid-template-columns: repeat(2, 1fr);
+    }
 </style>
 
 <div class="content-header">
@@ -51,7 +66,8 @@ ob_start();
             value="<?= htmlspecialchars($requester_pid, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="vehicle_reservation_save" value="1">
         <input type="hidden" name="companionCount" id="companionCount" value="0">
-        <div class="vehicle-row">
+
+        <div class="vehicle-row split">
             <div class="vehicle-input-content">
                 <label>ส่วนราชการ</label>
                 <div class="custom-select-wrapper" id="dept-wrapper">
@@ -83,7 +99,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="vehicle-row">
+        <div class="vehicle-row split">
             <div class="vehicle-input-content">
                 <label>ข้าพเจ้าพร้อมด้วย</label>
                 <div class="vehicle-companion-control">
@@ -103,10 +119,13 @@ ob_start();
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <button class="show-member" type="button">
-                        <p>แสดงผู้เดินทางทั้งหมด</p>
-                    </button>
                 </div>
+            </div>
+            <div class="vehicle-input-content">
+                <label>&nbsp;</label>
+                <button class="show-member" type="button">
+                    <p>แสดงผู้เดินทางทั้งหมด</p>
+                </button>
             </div>
         </div>
 
@@ -144,7 +163,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="vehicle-row">
+        <div class="vehicle-row split">
             <div class="vehicle-input-content">
                 <label for="location">ณ (สถานที่)</label>
                 <input type="text" id="location" name="location" placeholder="ระบุสถานที่ปลายทาง" required>
@@ -160,7 +179,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="vehicle-row">
+        <div class="vehicle-row split">
             <div class="vehicle-input-content">
                 <label for="startDate">ในวันที่</label>
                 <input type="date" id="startDate" name="startDate" required>
@@ -373,7 +392,7 @@ ob_start();
             <input type="hidden" name="requesterPID"
                 value="<?= htmlspecialchars($requester_pid, ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="companionCount" id="vehicleEditCompanionCount" value="0">
-            <div class="vehicle-row">
+            <div class="vehicle-row split">
                 <div class="vehicle-input-content">
                     <label>ส่วนราชการ</label>
                     <div class="custom-select-wrapper is-disabled" id="vehicleEditDeptWrapper">
@@ -404,7 +423,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="vehicle-row">
+            <div class="vehicle-row split">
                 <div class="vehicle-input-content">
                     <label>ข้าพเจ้าพร้อมด้วย</label>
                     <div class="vehicle-companion-control">
@@ -412,11 +431,13 @@ ob_start();
                             <input type="text" id="vehicleDetailCompanionSummary" placeholder="ไม่มีผู้ร่วมเดินทาง"
                                 autocomplete="off" readonly disabled>
                         </div>
-
-                        <button id="openShowMemberVehicle" class="show-member" type="button">
-                            <p>แสดงผู้เดินทางทั้งหมด</p>
-                        </button>
                     </div>
+                </div>
+                <div class="vehicle-input-content">
+                    <label>&nbsp;</label>
+                    <button id="openShowMemberVehicle" class="show-member" type="button">
+                        <p>แสดงผู้เดินทางทั้งหมด</p>
+                    </button>
                 </div>
             </div>
 
@@ -454,7 +475,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="vehicle-row">
+            <div class="vehicle-row split">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditLocation">ณ (สถานที่)</label>
                     <input type="text" id="vehicleEditLocation" name="location" placeholder="ระบุสถานที่ปลายทาง" disabled>
@@ -470,7 +491,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="vehicle-row">
+            <div class="vehicle-row split">
                 <div class="vehicle-input-content">
                     <label for="vehicleEditStartDate">ในวันที่</label>
                     <input type="date" id="vehicleEditStartDate" name="startDate" disabled>
@@ -747,9 +768,8 @@ ob_start();
 
         function renderPassengerSummary(names) {
             if (!companionSummaryInput) return;
-            const normalized = Array.isArray(names)
-                ? Array.from(new Set(names.map((name) => String(name || '').trim()).filter(Boolean)))
-                : [];
+            const normalized = Array.isArray(names) ?
+                Array.from(new Set(names.map((name) => String(name || '').trim()).filter(Boolean))) : [];
             const otherCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
 
             if (normalized.length === 0 && otherCount <= 0) {
@@ -808,11 +828,9 @@ ob_start();
                 event.preventDefault();
                 companionModalList.innerHTML = '';
                 const companionNames = currentBooking && Array.isArray(currentBooking.companionNames) ?
-                    Array.from(new Set(currentBooking.companionNames.map((name) => String(name || '').trim()).filter(Boolean))) :
-                    [];
+                    Array.from(new Set(currentBooking.companionNames.map((name) => String(name || '').trim()).filter(Boolean))) : [];
                 const otherPassengerNames = currentBooking && currentBooking.otherPassengerNames ?
-                    String(currentBooking.otherPassengerNames).split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean) :
-                    [];
+                    String(currentBooking.otherPassengerNames).split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean) : [];
                 const otherPassengerCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
 
                 if (companionNames.length > 0 || otherPassengerNames.length > 0 || otherPassengerCount > 0) {
