@@ -42,7 +42,11 @@ $send_modal_summary = (array) ($send_modal_summary ?? [
 ]);
 $send_picker_factions = (array) ($send_picker_factions ?? []);
 $send_picker_roles = (array) ($send_picker_roles ?? []);
+$send_picker_all_teachers = (array) ($send_picker_all_teachers ?? []);
 $send_picker_teachers = (array) ($send_picker_teachers ?? []);
+if ($send_picker_all_teachers === []) {
+    $send_picker_all_teachers = $send_picker_teachers;
+}
 $send_picker_faction_member_map = (array) ($send_picker_faction_member_map ?? []);
 $send_picker_role_member_map = (array) ($send_picker_role_member_map ?? []);
 $selected_send_faction_ids = array_map('strval', (array) ($send_modal_values['faction_ids'] ?? []));
@@ -53,11 +57,12 @@ $send_is_selected = static function (string $value, array $selected): bool {
 };
 $send_teacher_name_map = [];
 $send_teacher_faction_map = [];
+$send_teacher_department_map = [];
 $send_faction_groups = [];
 $send_department_groups = [];
 $send_special_groups = [];
 
-foreach ($send_picker_teachers as $send_teacher_row) {
+foreach ($send_picker_all_teachers as $send_teacher_row) {
     $send_pid = trim((string) ($send_teacher_row['pID'] ?? ''));
 
     if ($send_pid === '') {
@@ -65,6 +70,7 @@ foreach ($send_picker_teachers as $send_teacher_row) {
     }
     $send_teacher_name_map[$send_pid] = trim((string) ($send_teacher_row['fName'] ?? ''));
     $send_teacher_faction_map[$send_pid] = trim((string) ($send_teacher_row['factionName'] ?? ''));
+    $send_teacher_department_map[$send_pid] = trim((string) ($send_teacher_row['departmentName'] ?? ''));
 }
 
 foreach ($send_picker_factions as $send_faction_row) {
@@ -88,14 +94,23 @@ foreach ($send_picker_factions as $send_faction_row) {
             continue;
         }
 
+        $member_department = trim((string) ($send_teacher_department_map[$member_pid] ?? ''));
+        $member_faction = trim((string) ($send_teacher_faction_map[$member_pid] ?? $faction_name));
+        if ($member_faction === '') {
+            $member_faction = $faction_name;
+        }
+
         $member_rows[] = [
             'pID' => $member_pid,
             'name' => $member_name,
+            'department' => $member_department,
+            'faction' => $member_faction,
         ];
         $member_payload[] = [
             'pID' => $member_pid,
             'name' => $member_name,
-            'faction' => $faction_name,
+            'department' => $member_department,
+            'faction' => $member_faction,
         ];
         $member_pid_list[] = $member_pid;
     }
@@ -140,6 +155,8 @@ foreach ($send_picker_teachers as $send_teacher_row) {
     $department_index[$department_key]['members'][$member_pid] = [
         'pID' => $member_pid,
         'name' => $member_name,
+        'department' => $department_name,
+        'faction' => trim((string) ($send_teacher_faction_map[$member_pid] ?? '')),
     ];
 }
 
@@ -162,10 +179,17 @@ foreach ($department_index as $department_row) {
             continue;
         }
 
+        $member_department = trim((string) ($department_member['department'] ?? $department_name));
+        if ($member_department === '') {
+            $member_department = $department_name;
+        }
+        $member_faction = trim((string) ($department_member['faction'] ?? ''));
+
         $member_payload[] = [
             'pID' => $member_pid,
             'name' => $member_name,
-            'faction' => $department_name,
+            'department' => $member_department,
+            'faction' => $member_faction,
         ];
         $member_pid_list[] = $member_pid;
     }
@@ -198,7 +222,7 @@ $special_group_name = 'หัวหน้ากลุ่มสาระ';
 $special_member_payload = [];
 $special_member_pid_list = [];
 
-foreach ($send_picker_teachers as $send_teacher_row) {
+foreach ($send_picker_all_teachers as $send_teacher_row) {
     $member_pid = trim((string) ($send_teacher_row['pID'] ?? ''));
     $member_name = trim((string) ($send_teacher_row['fName'] ?? ''));
     $position_id = (int) ($send_teacher_row['positionID'] ?? 0);
@@ -212,10 +236,14 @@ foreach ($send_picker_teachers as $send_teacher_row) {
         continue;
     }
 
+    $member_department = trim((string) ($send_teacher_row['departmentName'] ?? $send_teacher_department_map[$member_pid] ?? ''));
+    $member_faction = trim((string) ($send_teacher_row['factionName'] ?? $send_teacher_faction_map[$member_pid] ?? ''));
+
     $special_member_payload[$member_pid] = [
         'pID' => $member_pid,
         'name' => $member_name,
-        'faction' => $special_group_name,
+        'department' => $member_department,
+        'faction' => $member_faction,
     ];
     $special_member_pid_list[] = $member_pid;
 }
@@ -1549,9 +1577,14 @@ ob_start();
                                                                             <?php
                                                                             $member_pid = trim((string) ($faction_member['pID'] ?? ''));
                                                                             $member_name = trim((string) ($faction_member['name'] ?? ''));
+                                                                            $member_department = trim((string) ($faction_member['department'] ?? ''));
+                                                                            $member_faction = trim((string) ($faction_member['faction'] ?? $faction_name));
 
                                                                             if ($member_pid === '' || $member_name === '') {
                                                                                 continue;
+                                                                            }
+                                                                            if ($member_faction === '') {
+                                                                                $member_faction = $faction_name;
                                                                             }
                                                                             ?>
                                                                             <li>
@@ -1562,6 +1595,8 @@ ob_start();
                                                                                         data-member-group-key="faction-<?= h($faction_id) ?>"
                                                                                         data-member-name="<?= h($member_name) ?>"
                                                                                         data-group-label="<?= h($faction_name) ?>"
+                                                                                        data-member-department="<?= h($member_department) ?>"
+                                                                                        data-member-faction="<?= h($member_faction) ?>"
                                                                                         data-member-pids="<?= h($member_pid) ?>"
                                                                                         data-recipient-option="person"
                                                                                         name="person_ids[]"
@@ -1637,9 +1672,14 @@ ob_start();
                                                                         <?php
                                                                         $member_pid = trim((string) ($department_member['pID'] ?? ''));
                                                                         $member_name = trim((string) ($department_member['name'] ?? ''));
+                                                                        $member_department = trim((string) ($department_member['department'] ?? $department_name));
+                                                                        $member_faction = trim((string) ($department_member['faction'] ?? ''));
 
                                                                         if ($member_pid === '' || $member_name === '') {
                                                                             continue;
+                                                                        }
+                                                                        if ($member_department === '') {
+                                                                            $member_department = $department_name;
                                                                         }
                                                                         ?>
                                                                         <li>
@@ -1650,6 +1690,8 @@ ob_start();
                                                                                     data-member-group-key="<?= h($department_group_key) ?>"
                                                                                     data-member-name="<?= h($member_name) ?>"
                                                                                     data-group-label="<?= h($department_name) ?>"
+                                                                                    data-member-department="<?= h($member_department) ?>"
+                                                                                    data-member-faction="<?= h($member_faction) ?>"
                                                                                     data-member-pids="<?= h($member_pid) ?>"
                                                                                     data-recipient-option="person"
                                                                                     name="person_ids[]"
@@ -1722,6 +1764,8 @@ ob_start();
                                                                         <?php
                                                                         $member_pid = trim((string) ($special_member['pID'] ?? ''));
                                                                         $member_name = trim((string) ($special_member['name'] ?? ''));
+                                                                        $member_department = trim((string) ($special_member['department'] ?? ''));
+                                                                        $member_faction = trim((string) ($special_member['faction'] ?? ''));
 
                                                                         if ($member_pid === '' || $member_name === '') {
                                                                             continue;
@@ -1735,6 +1779,8 @@ ob_start();
                                                                                     data-member-group-key="<?= h($special_group_key) ?>"
                                                                                     data-member-name="<?= h($member_name) ?>"
                                                                                     data-group-label="<?= h($special_group_name) ?>"
+                                                                                    data-member-department="<?= h($member_department) ?>"
+                                                                                    data-member-faction="<?= h($member_faction) ?>"
                                                                                     data-member-pids="<?= h($member_pid) ?>"
                                                                                     data-recipient-option="person"
                                                                                     name="person_ids[]"
@@ -1785,8 +1831,15 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <button type="submit" form="modalOrderSendMainForm" id="modalOrderSendSubmitBtn">
-                    <p>ส่งคำส่งต่อ</p>
+                <button
+                    type="submit"
+                    form="modalOrderSendMainForm"
+                    id="modalOrderSendSubmitBtn"
+                    data-confirm="ยืนยันการส่งคำสั่งราชการต่อตามรายชื่อผู้รับที่เลือกใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการส่งคำสั่งราชการต่อ"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">
+                    <p>ส่งคำสั่งต่อ</p>
                 </button>
 
             </div>
@@ -2020,7 +2073,9 @@ ob_start();
 
 
             <div class="footer-modal">
-                <button type="submit" form="modalOrderEditForm">
+                <button
+                    type="submit"
+                    form="modalOrderEditForm">
                     <p>บันทึกการแก้ไข</p>
                 </button>
             </div>
@@ -2240,6 +2295,7 @@ ob_start();
 
             renderFiles();
             return {
+                getSelectedCount: () => selectedFiles.length,
                 reset: resetFiles,
             };
         }
@@ -2257,6 +2313,7 @@ ob_start();
         const modalOrderEffectiveDate = document.getElementById('modalOrderEffectiveDate');
         const modalOrderDate = document.getElementById('modalOrderDate');
         const modalOrderIssuer = document.getElementById('modalOrderIssuer');
+        const modalOrderEditForm = document.getElementById('modalOrderEditForm');
         const modalOrderGroupFid = document.getElementById('modalOrderGroupFid');
         const modalExistingFileList = document.getElementById('existingFileListContainer_modal');
         const modalOrderGroupWrapper = document.getElementById('modalOrderGroupWrapper');
@@ -2811,14 +2868,17 @@ ob_start();
             }
 
             const recipientsMap = new Map();
-            const addRecipient = (pid, name, faction) => {
+            const addRecipient = (pid, name, department, faction) => {
                 const key = String(pid || '').trim();
                 if (key === '') return;
                 if (recipientsMap.has(key)) return;
+                const departmentValue = String(department || '').trim();
+                const factionValue = String(faction || '').trim();
+                const groupLabel = departmentValue !== '' ? departmentValue : (factionValue !== '' ? factionValue : '-');
                 recipientsMap.set(key, {
                     pid: key,
                     name: (name || '-').trim() || '-',
-                    faction: (faction || '-').trim() || '-',
+                    group: groupLabel,
                 });
             };
 
@@ -2831,25 +2891,35 @@ ob_start();
                 }
                 if (!Array.isArray(members)) return;
                 members.forEach((member) => {
-                    addRecipient(member && member.pID ? String(member.pID) : '', member && member.name ? String(member.name) : '-', item.getAttribute('data-group-label') || '-');
+                    addRecipient(
+                        member && member.pID ? String(member.pID) : '',
+                        member && member.name ? String(member.name) : '-',
+                        member && member.department ? String(member.department) : '',
+                        member && member.faction ? String(member.faction) : (item.getAttribute('data-group-label') || '-')
+                    );
                 });
             });
 
             checkedMembers.forEach((item) => {
-                addRecipient(item.value || '', item.getAttribute('data-member-name') || '-', item.getAttribute('data-group-label') || '-');
+                addRecipient(
+                    item.value || '',
+                    item.getAttribute('data-member-name') || '-',
+                    item.getAttribute('data-member-department') || '',
+                    item.getAttribute('data-member-faction') || item.getAttribute('data-group-label') || '-'
+                );
             });
 
             const uniqueRecipients = Array.from(recipientsMap.values());
             uniqueRecipients.sort((a, b) => {
-                if (a.faction === b.faction) {
+                if (a.group === b.group) {
                     return a.name.localeCompare(b.name, 'th');
                 }
-                return a.faction.localeCompare(b.faction, 'th');
+                return a.group.localeCompare(b.group, 'th');
             });
 
             uniqueRecipients.forEach((recipient, index) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td>${index + 1}</td><td>${escapeHtml(recipient.name)}</td><td>${escapeHtml(recipient.faction)}</td>`;
+                row.innerHTML = `<td>${index + 1}</td><td>${escapeHtml(recipient.name)}</td><td>${escapeHtml(recipient.group)}</td>`;
                 modalOrderSendRecipientTableBody.appendChild(row);
             });
         };
@@ -3086,6 +3156,57 @@ ob_start();
             if (orderEditModal) {
                 orderEditModal.style.display = 'none';
             }
+        });
+
+        let modalOrderEditConfirmApproved = false;
+        modalOrderEditForm?.addEventListener('submit', (event) => {
+            if (modalOrderEditConfirmApproved) {
+                modalOrderEditConfirmApproved = false;
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const selectedCount = Number(modalAttachmentUpload?.getSelectedCount?.() || 0);
+            if (selectedCount <= 0) {
+                const alertsApi = window.AppAlerts && typeof window.AppAlerts.fire === 'function' ? window.AppAlerts : null;
+                if (alertsApi) {
+                    alertsApi.fire({
+                        type: 'warning',
+                        title: 'แจ้งเตือน',
+                        message: 'กรุณาอัปโหลดไฟล์คำสั่งราชการก่อนบันทึกการแก้ไข',
+                    });
+                } else {
+                    window.alert('กรุณาอัปโหลดไฟล์คำสั่งราชการก่อนบันทึกการแก้ไข');
+                }
+                return;
+            }
+
+            if (typeof modalOrderEditForm.reportValidity === 'function' && !modalOrderEditForm.reportValidity()) {
+                return;
+            }
+
+            const confirmApi = window.AppAlerts && typeof window.AppAlerts.confirm === 'function' ? window.AppAlerts : null;
+            const confirmPromise = confirmApi ?
+                confirmApi.confirm('ยืนยันการบันทึกการแก้ไขและแนบไฟล์คำสั่งราชการนี้ใช่หรือไม่?', {
+                    title: 'ยืนยันการบันทึกการแก้ไข',
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                }) :
+                Promise.resolve(window.confirm('ยืนยันการบันทึกการแก้ไข\nยืนยันการบันทึกการแก้ไขและแนบไฟล์คำสั่งราชการนี้ใช่หรือไม่?'));
+
+            confirmPromise.then((approved) => {
+                if (!approved) {
+                    return;
+                }
+                modalOrderEditConfirmApproved = true;
+                if (typeof modalOrderEditForm.requestSubmit === 'function') {
+                    modalOrderEditForm.requestSubmit();
+                    return;
+                }
+                modalOrderEditForm.submit();
+            });
         });
 
         document.addEventListener('click', (event) => {

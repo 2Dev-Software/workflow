@@ -222,7 +222,11 @@ if (!function_exists('order_update_draft_with_attachments')) {
         $new_count = order_count_new_uploads($files);
         $existing_count = count(order_get_attachments($orderID));
 
-        if ($new_count > 0 && ($existing_count + $new_count) > 5) {
+        if ($new_count <= 0) {
+            throw new RuntimeException('กรุณาอัปโหลดไฟล์คำสั่งราชการก่อนบันทึกการแก้ไข');
+        }
+
+        if (($existing_count + $new_count) > 5) {
             throw new RuntimeException('แนบไฟล์ได้สูงสุด 5 ไฟล์');
         }
 
@@ -372,8 +376,8 @@ if (!function_exists('order_send')) {
             )));
             $recipientPIDs = array_values(array_unique(array_filter(
                 $raw_pids,
-                static function (string $pid) use ($senderPID): bool {
-                    return $pid !== '' && $pid !== $senderPID;
+                static function (string $pid): bool {
+                    return $pid !== '';
                 }
             )));
 
