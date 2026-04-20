@@ -31,7 +31,7 @@ ob_start();
     <div class="button-container vehicle">
         <button class="tab-btn active"
             onclick="openTab('vehicleReservationForm', event)">จองยานพาหนะ</button>
-        <button class="tab-btn" onclick="openTab('vehicleHistory', event)">ประวัติการจอง</button>
+        <button class="tab-btn" onclick="openTab('vehicleHistory', event)">รายการจองของฉัน</button>
     </div>
 </div>
 
@@ -144,8 +144,20 @@ ob_start();
             </div>
 
             <div class="vehicle-input-content">
+                <label for="startTime">เวลาเริ่มต้น</label>
+                <input type="time" id="startTime" name="startTime" required>
+            </div>
+        </div>
+
+        <div class="vehicle-row">
+            <div class="vehicle-input-content">
                 <label for="endDate">ถึงวันที่</label>
                 <input type="date" id="endDate" name="endDate" required>
+            </div>
+
+            <div class="vehicle-input-content">
+                <label for="endTime">เวลาสิ้นสุด</label>
+                <input type="time" id="endTime" name="endTime" required>
             </div>
 
             <div class="vehicle-input-content">
@@ -154,18 +166,6 @@ ob_start();
                     <i class="fa-regular fa-calendar"></i>
                     <p data-day-count aria-live="polite">-</p>
                 </div>
-            </div>
-        </div>
-
-        <div class="vehicle-row">
-            <div class="vehicle-input-content">
-                <label for="startTime">เวลาเริ่มต้น</label>
-                <input type="time" id="startTime" name="startTime" required>
-            </div>
-
-            <div class="vehicle-input-content">
-                <label for="endTime">เวลาสิ้นสุด</label>
-                <input type="time" id="endTime" name="endTime" required>
             </div>
         </div>
 
@@ -437,8 +437,20 @@ ob_start();
                 </div>
 
                 <div class="vehicle-input-content">
+                    <label for="vehicleEditStartTime">เวลาเริ่มต้น</label>
+                    <input type="time" id="vehicleEditStartTime" name="startTime" disabled>
+                </div>
+            </div>
+
+            <div class="vehicle-row">
+                <div class="vehicle-input-content">
                     <label for="vehicleEditEndDate">ถึงวันที่</label>
                     <input type="date" id="vehicleEditEndDate" name="endDate" disabled>
+                </div>
+
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditEndTime">เวลาสิ้นสุด</label>
+                    <input type="time" id="vehicleEditEndTime" name="endTime" disabled>
                 </div>
 
                 <div class="vehicle-input-content">
@@ -447,18 +459,6 @@ ob_start();
                         <i class="fa-regular fa-calendar"></i>
                         <p data-day-count aria-live="polite">-</p>
                     </div>
-                </div>
-            </div>
-
-            <div class="vehicle-row">
-                <div class="vehicle-input-content">
-                    <label for="vehicleEditStartTime">เวลาเริ่มต้น</label>
-                    <input type="time" id="vehicleEditStartTime" name="startTime" disabled>
-                </div>
-
-                <div class="vehicle-input-content">
-                    <label for="vehicleEditEndTime">เวลาสิ้นสุด</label>
-                    <input type="time" id="vehicleEditEndTime" name="endTime" disabled>
                 </div>
             </div>
 

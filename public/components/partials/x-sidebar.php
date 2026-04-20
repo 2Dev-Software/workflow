@@ -96,7 +96,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
         </li>
 
         <li>
-            <a href="#news-paper">
+            <a href="dashboard.php#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
                 <p class="link-name">ข่าวประชาสัมพันธ์ </p>
             </a>
@@ -135,9 +135,9 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
-                <li><a href="circular-notice.php">หนังสือเวียน</a></li>
+                <li><a href="circular-notice.php">กล่องหนังสือเวียน</a></li>
                 <li><a href="circular-archive.php">หนังสือเวียนที่จัดเก็บ</a></li>
+                <li><a href="circular-compose.php">ส่งหนังสือเวียน</a></li>
             </ul>
         </li>
 
@@ -160,9 +160,9 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="memo.php">บันทึกข้อความ</a></li>
                 <li><a href="memo-inbox.php">กล่องบันทึกข้อความ</a></li>
                 <li><a href="memo-archive.php">บันทึกข้อความที่จัดเก็บ</a></li>
+                <li><a href="memo.php">บันทึกข้อความ</a></li>
             </ul>
         </li>
 
@@ -176,9 +176,9 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <i class="fa-solid fa-caret-down"></i>
             </div>
             <ul class="navigation-links-sub-menu">
-                <li><a href="orders-create.php">ออกเลขคำสั่งราชการ</a></li>
                 <li><a href="orders-inbox.php">กล่องคำสั่งราชการ</a></li>
                 <li><a href="orders-archive.php">คำสั่งราชการที่จัดเก็บ</a></li>
+                <li><a href="orders-create.php">ออกเลขคำสั่งราชการ</a></li>
             </ul>
         </li>
 

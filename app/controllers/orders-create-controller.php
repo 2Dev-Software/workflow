@@ -295,7 +295,9 @@ if (!function_exists('orders_create_index')) {
                     $target_order = order_get_for_owner($send_modal_open_order_id, $current_pid);
                     $target_status = strtoupper(trim((string) ($target_order['status'] ?? '')));
 
-                    if (!$target_order || ($post_action !== 'share' && !in_array($target_status, [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true))) {
+                    $is_share_allowed_status = in_array($target_status, [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true);
+
+                    if (!$target_order || !$is_share_allowed_status) {
                         $alert = [
                             'type' => 'danger',
                             'title' => 'ไม่พบคำสั่งหรือไม่มีสิทธิ์ดำเนินการ',
@@ -457,7 +459,7 @@ if (!function_exists('orders_create_index')) {
                             $alert = [
                                 'type' => 'success',
                                 'title' => 'บันทึกออกเลขแล้ว',
-                                'message' => $created_order_no !== '' ? ('เลขที่คำสั่ง ' . $created_order_no) : ('เลขที่รายการ #' . $orderID),
+                                'message' => $created_order_no !== '' ? ('คำสั่งที่ ' . $created_order_no) : ('เลขที่รายการ #' . $orderID),
                             ];
                             $values = [
                                 'subject' => '',

@@ -2327,7 +2327,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const score = requiredParams.length;
+    // Prefer page-level navigation over in-page anchors so section links do not steal active state.
+    const score = requiredParams.length * 2 + (linkUrl.hash === "" ? 1 : 0);
 
     if (score > bestScore) {
       bestScore = score;

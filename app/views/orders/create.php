@@ -393,6 +393,10 @@ $parse_order_meta = static function (?string $detail_text): array {
 ob_start();
 ?>
 <style>
+    .content-order.create .order-create-subject-group {
+        width: 100%;
+    }
+
     .circular-track-modal-host {
         width: 0;
         height: 0;
@@ -1074,15 +1078,7 @@ ob_start();
         <?php endif; ?>
 
         <div class="form-group row">
-            <div class="input-group">
-                <p><strong>คำสั่งที่</strong></p>
-                <input
-                    type="text"
-                    class="order-no-display"
-                    value="<?= h($display_order_no !== '' ? $display_order_no : '-') ?>"
-                    disabled>
-            </div>
-            <div class="input-group">
+            <div class="input-group order-create-subject-group">
                 <p><strong>เรื่อง</strong></p>
                 <input
                     type="text"
@@ -1142,7 +1138,13 @@ ob_start();
 
         <div class="form-group button">
             <div class="input-group">
-                <button class="submit" type="submit">
+                <button
+                    class="submit"
+                    type="submit"
+                    data-confirm="<?= h($is_edit_mode ? 'ยืนยันการบันทึกการแก้ไขคำสั่งราชการนี้ใช่หรือไม่?' : 'ยืนยันการบันทึกออกเลขคำสั่งราชการนี้ใช่หรือไม่?') ?>"
+                    data-confirm-title="<?= h($is_edit_mode ? 'ยืนยันการบันทึกการแก้ไข' : 'ยืนยันการบันทึกออกเลข') ?>"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">
                     <p><?= h($submit_label) ?></p>
                 </button>
             </div>
@@ -1278,6 +1280,7 @@ ob_start();
                         $show_attach_action = $order_id > 0 && $status_key === ORDER_STATUS_WAITING_ATTACHMENT;
                         $show_send_action = $order_id > 0 && $status_key === ORDER_STATUS_COMPLETE;
                         $show_recipients_action = $order_id > 0 && $status_key === ORDER_STATUS_SENT;
+                        $show_share_action = $order_id > 0 && in_array($status_key, [ORDER_STATUS_COMPLETE, ORDER_STATUS_SENT], true);
                         $read_done_for_row = 0;
                         $read_total_for_row = 0;
                         if ($show_recipients_action) {
@@ -1293,9 +1296,11 @@ ob_start();
                         ?>
                         <tr>
                             <td>
-                                <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
                                 <?php if ($order_no !== '') : ?>
-                                    <div class="circular-my-meta">เลขที่คำสั่ง <?= h($order_no) ?></div>
+                                    <div class="circular-my-subject">คำสั่งที่ <?= h($order_no) ?></div>
+                                    <div class="circular-my-meta"><?= h((string) ($item['subject'] ?? '-')) ?></div>
+                                <?php else : ?>
+                                    <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -1312,7 +1317,7 @@ ob_start();
                             </td>
                             <td>
                                 <div class="circular-my-actions booking-action-group">
-                                    <?php if ($order_id > 0) : ?>
+                                    <?php if ($show_share_action) : ?>
                                         <?php if ($share_url !== '') : ?>
                                             <button
                                                 class="booking-action-btn secondary"
