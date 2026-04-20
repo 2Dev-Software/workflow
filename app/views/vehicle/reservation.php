@@ -81,25 +81,27 @@ ob_start();
         <div class="vehicle-row">
             <div class="vehicle-input-content">
                 <label>ข้าพเจ้าพร้อมด้วย</label>
-                <div class="go-with-dropdown">
-                    <input type="text" id="searchInput" placeholder="ค้นหารายชื่อคุณครู" autocomplete="off"
-                        onkeyup="filterDropdown()" onclick="openDropdown()" />
+                <div class="vehicle-companion-control">
+                    <div class="go-with-dropdown">
+                        <input type="text" id="searchInput" placeholder="ค้นหารายชื่อคุณครู" autocomplete="off"
+                            onkeyup="filterDropdown()" onclick="openDropdown()" />
 
-                    <div id="myDropdown" class="go-with-dropdown-content">
-                        <?php foreach ($vehicle_teachers as $teacher_item): ?>
-                            <label class="dropdown-item">
-                                <input type="checkbox"
-                                    name="companionIds[]"
-                                    value="<?= htmlspecialchars($teacher_item['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-name="<?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?>">
-                                <p><?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?></p>
-                            </label>
-                        <?php endforeach; ?>
+                        <div id="myDropdown" class="go-with-dropdown-content">
+                            <?php foreach ($vehicle_teachers as $teacher_item): ?>
+                                <label class="dropdown-item">
+                                    <input type="checkbox"
+                                        name="companionIds[]"
+                                        value="<?= htmlspecialchars($teacher_item['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                        data-name="<?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <p><?= htmlspecialchars($teacher_item['name'], ENT_QUOTES, 'UTF-8') ?></p>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
+                    <button class="show-member" type="button">
+                        <p>แสดงผู้เดินทางทั้งหมด</p>
+                    </button>
                 </div>
-                <button class="show-member" type="button">
-                    <p>แสดงผู้เดินทางทั้งหมด</p>
-                </button>
             </div>
         </div>
 
@@ -385,14 +387,16 @@ ob_start();
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
                     <label>ข้าพเจ้าพร้อมด้วย</label>
-                    <div class="go-with-dropdown">
-                        <input type="text" id="vehicleDetailCompanionSummary" placeholder="ไม่มีผู้ร่วมเดินทาง"
-                            autocomplete="off" readonly disabled>
-                    </div>
+                    <div class="vehicle-companion-control">
+                        <div class="go-with-dropdown">
+                            <input type="text" id="vehicleDetailCompanionSummary" placeholder="ไม่มีผู้ร่วมเดินทาง"
+                                autocomplete="off" readonly disabled>
+                        </div>
 
-                    <button id="openShowMemberVehicle" class="show-member" type="button">
-                        <p>แสดงผู้เดินทางทั้งหมด</p>
-                    </button>
+                        <button id="openShowMemberVehicle" class="show-member" type="button">
+                            <p>แสดงผู้เดินทางทั้งหมด</p>
+                        </button>
+                    </div>
                 </div>
             </div>
 
