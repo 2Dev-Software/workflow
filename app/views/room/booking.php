@@ -126,6 +126,13 @@ $body_attrs = [
 
 ob_start();
 ?>
+
+<style>
+    .content-area .tab-content.active {
+        display: grid;
+    }
+</style>
+
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
     <p>จองสถานที่/ห้อง</p>
@@ -133,13 +140,22 @@ ob_start();
 
 <div class="content-area booking-page" data-room-booking data-delete-endpoint="public/api/room-booking-delete.php"
     data-check-endpoint="public/api/room-booking-check.php" data-csrf="<?= h(csrf_token()) ?>">
-    <div class="booking-layout">
+
+    <div class="tabs-container setting-page">
+        <div class="button-container vehicle">
+            <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
+                onclick="openTab('booking', event)">สร้างการจอง</button>
+            <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+                onclick="openTab('bookingMine', event)">การจองของฉัน</button>
+        </div>
+    </div>
+
+    <div class="booking-layout tab-content active" id="booking">
         <section class="booking-card booking-form-card">
             <div class="booking-card-header">
                 <div class="booking-card-title-group">
                     <h2 class="booking-card-title">สร้างรายการจอง</h2>
                 </div>
-                <span class="booking-status-tag">เปิดให้จอง</span>
             </div>
 
             <form class="booking-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'room-booking.php') ?>">
@@ -268,7 +284,6 @@ ob_start();
                         data-confirm-cancel="ยกเลิก">บันทึกการจอง</button>
                 </div>
 
-                <p class="booking-note">* ระบบจะส่งคำขอให้ผู้ดูแลพิจารณาอนุมัติ</p>
             </form>
         </section>
 
@@ -306,34 +321,13 @@ ob_start();
                     </div>
                 </div>
             </div>
-
-            <!-- <div class="booking-summary">
-                <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_total)
-                        ?> รายการ</h3>
-                    <p>รายการจองทั้งหมด</p>
-                </div>
-                <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_approved_total)
-                        ?> รายการ</h3>
-                    <p>อนุมัติแล้ว</p>
-                </div>
-                <div class="booking-summary-item">
-                    <h3><?php //h((string) $room_booking_pending_total)
-                        ?> รายการ</h3>
-                    <p>รออนุมัติ</p>
-                </div>
-            </div> -->
         </section>
     </div>
 
-    <section class="booking-card booking-list-card booking-list-row">
+    <section class="booking-card booking-list-card booking-list-row tab-content" id="bookingMine">
         <div class="booking-card-header">
             <div class="booking-card-title-group">
                 <h2 class="booking-card-title">รายการจองของฉัน</h2>
-                <?php if ($my_booking_subtitle !== '') : ?>
-                    <p class="booking-card-subtitle"><?= h($my_booking_subtitle) ?></p>
-                <?php endif; ?>
             </div>
         </div>
 

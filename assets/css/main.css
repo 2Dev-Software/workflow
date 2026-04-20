@@ -3771,6 +3771,21 @@ select {
   margin-top: 20px;
 }
 
+.content-area #phoneForm .btn-upload {
+  width: auto;
+  padding: 0 10px;
+  height: 40px;
+  font-size:var(--font-size-body-1);
+  margin: 20px 0 0;
+}
+
+.content-area .profile-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
 .modal-overlay .preview-container.rectangle-preview {
   width: auto;
   height: auto;
@@ -7031,6 +7046,7 @@ select {
 }
 
 @media (max-width: 768px) {
+
   .vehicle-content .vehicle-companion-control,
   .modal-overlay-vehicle-edit .vehicle-companion-control {
     flex-direction: column;
