@@ -10,6 +10,18 @@ if ($dh_year_value <= 0) {
     $dh_year_value = (int) date('Y') + 543;
 }
 ?>
+
+<style>
+    .modal-title,
+    .close-modal-btn {
+        color:var(--color-secondary) !important
+    }
+
+    .modal-header {
+        margin: 0 40px;
+    }
+</style>
+
 <!DOCTYPE html>
 <html lang="th">
 <?php require_once __DIR__ . '/../../../public/components/x-head.php'; ?>

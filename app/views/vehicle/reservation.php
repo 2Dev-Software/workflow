@@ -21,6 +21,11 @@ $alert = $vehicle_reservation_alert;
 ob_start();
 ?>
 
+<style>
+    .fa-solid.fa-xmark {
+        cursor: pointer;
+    }
+</style>
 
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
