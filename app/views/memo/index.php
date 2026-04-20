@@ -42,6 +42,60 @@ if ($current_sender_faction_name === '') {
 $signature_src = trim((string) ($current_user['signature'] ?? ''));
 $current_name = trim((string) ($current_user['fName'] ?? ''));
 $current_position = trim((string) ($current_user['position_name'] ?? ''));
+$parse_upload_size_to_bytes = static function (string $value): int {
+    $value = trim($value);
+
+    if ($value === '') {
+        return 0;
+    }
+
+    $unit = strtolower(substr($value, -1));
+    $number = (float) $value;
+
+    return match ($unit) {
+        'g' => (int) round($number * 1024 * 1024 * 1024),
+        'm' => (int) round($number * 1024 * 1024),
+        'k' => (int) round($number * 1024),
+        default => (int) round((float) $value),
+    };
+};
+$format_upload_limit_label = static function (int $bytes): string {
+    if ($bytes <= 0) {
+        return '0B';
+    }
+
+    if ($bytes >= 1024 * 1024 * 1024) {
+        $value = $bytes / (1024 * 1024 * 1024);
+        $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+        return $formatted . 'GB';
+    }
+
+    if ($bytes >= 1024 * 1024) {
+        $value = $bytes / (1024 * 1024);
+        $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+        return $formatted . 'MB';
+    }
+
+    if ($bytes >= 1024) {
+        $value = $bytes / 1024;
+        $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+        return $formatted . 'KB';
+    }
+
+    return $bytes . 'B';
+};
+$memo_upload_max_size_bytes = $parse_upload_size_to_bytes((string) ini_get('upload_max_filesize'));
+$memo_post_max_size_bytes = $parse_upload_size_to_bytes((string) ini_get('post_max_size'));
+
+if ($memo_post_max_size_bytes > 0 && ($memo_upload_max_size_bytes <= 0 || $memo_post_max_size_bytes < $memo_upload_max_size_bytes)) {
+    $memo_upload_max_size_bytes = $memo_post_max_size_bytes;
+}
+
+if ($memo_upload_max_size_bytes <= 0) {
+    $memo_upload_max_size_bytes = 100 * 1024 * 1024;
+}
+
+$memo_upload_max_size_label = $format_upload_limit_label($memo_upload_max_size_bytes);
 $selected_factions = array_map('strval', (array) ($values['faction_ids'] ?? []));
 $selected_people = array_map('strval', (array) ($values['person_ids'] ?? []));
 $selected_primary_pid = (string) ($selected_people[0] ?? '');
@@ -615,8 +669,8 @@ ob_start();
                         $deputy_note_b64 = base64_encode((string) ($memo['deputyNote'] ?? ''));
                         $director_note_b64 = base64_encode((string) ($memo['directorNote'] ?? ''));
                         $can_download_pdf = in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
-                        $memo_pdf_download_href = $memo_id > 0
-                            ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id) . '&download=1')
+                        $memo_pdf_view_href = $memo_id > 0
+                            ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id))
                             : '';
 
                         if ($memo_files_json === false) {
@@ -685,12 +739,14 @@ ob_start();
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
-                                    <?php if ($can_download_pdf && $memo_pdf_download_href !== '') : ?>
+                                    <?php if ($can_download_pdf && $memo_pdf_view_href !== '') : ?>
                                         <a
                                             class="booking-action-btn secondary"
-                                            href="<?= h($memo_pdf_download_href) ?>">
+                                            href="<?= h($memo_pdf_view_href) ?>"
+                                            target="_blank"
+                                            rel="noopener">
                                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-                                            <span class="tooltip">ดาวน์โหลด PDF</span>
+                                            <span class="tooltip">ดู PDF</span>
                                         </a>
                                     <?php endif; ?>
                                 <?php elseif ($status === 'DRAFT') : ?>
@@ -759,12 +815,14 @@ ob_start();
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
-                                    <?php if ($can_download_pdf && $memo_pdf_download_href !== '') : ?>
+                                    <?php if ($can_download_pdf && $memo_pdf_view_href !== '') : ?>
                                         <a
                                             class="booking-action-btn secondary"
-                                            href="<?= h($memo_pdf_download_href) ?>">
+                                            href="<?= h($memo_pdf_view_href) ?>"
+                                            target="_blank"
+                                            rel="noopener">
                                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-                                            <span class="tooltip">ดาวน์โหลด PDF</span>
+                                            <span class="tooltip">ดู PDF</span>
                                         </a>
                                     <?php endif; ?>
                                 <?php endif; ?>
@@ -1044,8 +1102,8 @@ ob_start();
                                         <p>เพิ่มไฟล์</p>
                                     </button>
                                 </div>
-                                <input type="file" id="attachment" name="attachments[]" class="file-input" multiple="" accept=".pdf,image/png,image/jpeg" hidden="">
-                                <p class="form-error hidden" id="attachmentError">แนบได้สูงสุด 5 ไฟล์</p>
+                                <input type="file" id="attachment" name="attachments[]" class="file-input" multiple="" accept=".pdf,image/png,image/jpeg" hidden="" data-max-size-bytes="<?= h((string) $memo_upload_max_size_bytes) ?>" data-max-size-label="<?= h($memo_upload_max_size_label) ?>">
+                                <p class="form-error hidden" id="attachmentError">รองรับเฉพาะ PDF, JPG, PNG ขนาดไม่เกิน <?= h($memo_upload_max_size_label) ?></p>
                             </div>
 
                             <div class="file-list" id="attachmentList" aria-live="polite">
@@ -1174,7 +1232,7 @@ ob_start();
         </div>
 
         <div class="footer-modal">
-            <button type="submit" form="memoSuggestForm">
+            <button type="submit" form="memoSuggestForm" id="memoSuggestSubmitButton">
                 <p>เสนอแฟ้ม</p>
             </button>
         </div>
@@ -2146,6 +2204,7 @@ ob_start();
 
     const closeViewBtn = document.getElementById('closeModalView');
     const closeSuggBtn = document.getElementById('closeModalSugg');
+    const memoSuggestSubmitButton = document.getElementById('memoSuggestSubmitButton');
 
     const openViewBtns = document.querySelectorAll('.js-open-view-modal');
     const openSuggBtns = document.querySelectorAll('.js-open-suggest-modal');
@@ -2220,6 +2279,19 @@ ob_start();
         }
 
         alert(safeMessage);
+    };
+    const confirmSuggestSubmit = () => {
+        const message = 'ยืนยันการเสนอแฟ้มบันทึกข้อความใช่หรือไม่?';
+
+        if (window.AppAlerts && typeof window.AppAlerts.confirm === 'function') {
+            return window.AppAlerts.confirm(message, {
+                title: 'ยืนยันการเสนอแฟ้ม',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+            });
+        }
+
+        return Promise.resolve(window.confirm('ยืนยันการเสนอแฟ้ม\n' + message));
     };
     const resetSuggestRecipientDropdownUi = () => {
         if (!suggModal) {
@@ -2823,6 +2895,8 @@ ob_start();
         });
     });
 
+    let suggestSubmitConfirmed = false;
+
     suggestForm?.addEventListener('submit', (event) => {
         const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
 
@@ -2839,7 +2913,41 @@ ob_start();
         if ((normalizedExistingAttachmentCount + uploadedCount) < 1) {
             event.preventDefault();
             showSuggestValidationAlert('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
+            return;
         }
+
+        if (suggestSubmitConfirmed) {
+            suggestSubmitConfirmed = false;
+            return;
+        }
+
+        event.preventDefault();
+
+        confirmSuggestSubmit().then((confirmed) => {
+            if (!confirmed) {
+                return;
+            }
+
+            if (window.tinymce && typeof window.tinymce.triggerSave === 'function') {
+                window.tinymce.triggerSave();
+            }
+
+            suggestSubmitConfirmed = true;
+
+            if (memoSuggestSubmitButton && typeof memoSuggestSubmitButton.click === 'function') {
+                memoSuggestSubmitButton.click();
+                return;
+            }
+
+            if (typeof suggestForm.requestSubmit === 'function') {
+                suggestForm.requestSubmit();
+                return;
+            }
+
+            suggestForm.submit();
+        }).catch(() => {
+            suggestSubmitConfirmed = false;
+        });
     });
 
     closeViewBtn?.addEventListener('click', () => {

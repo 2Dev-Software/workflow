@@ -98,73 +98,73 @@ ob_start();
             <div class="dashboard-content">
                 <a href="outgoing-receive.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/member.png" alt="">
+                        <img src="public/assets/img/icon/member.png" alt="">
                         <p><strong>ลงทะเบียนรับ</strong></p>
                     </div>
                 </a>
                 <a href="outgoing.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/clipboard.png" alt="">
+                        <img src="public/assets/img/icon/clipboard.png" alt="">
                         <p><strong>ออกเลขทะเบียนส่ง</strong></p>
                     </div>
                 </a>
                 <a href="memo.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/memo.png" alt="">
+                        <img src="public/assets/img/icon/memo.png" alt="">
                         <p><strong>บันทึกข้อความ</strong></p>
                     </div>
                 </a>
                 <a href="circular-compose.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/envelope.png" alt="">
+                        <img src="public/assets/img/icon/envelope.png" alt="">
                         <p><strong>ส่งหนังสือเวียน</strong></p>
                     </div>
                 </a>
                 <a href="orders-create.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/files.png" alt="">
+                        <img src="public/assets/img/icon/files.png" alt="">
                         <p><strong>คำสั่งราชการ</strong></p>
                     </div>
                 </a>
                 <a href="vehicle-reservation.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/car.png" alt="">
+                        <img src="public/assets/img/icon/car.png" alt="">
                         <p><strong>การจองพาหนะ</strong></p>
                     </div>
                 </a>
                 <a href="room-booking.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/building.png" alt="">
+                        <img src="public/assets/img/icon/building.png" alt="">
                         <p><strong>การจองสถานที่/ห้อง</strong></p>
                     </div>
                 </a>
                 <a href="repairs.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/repair.png" alt="">
+                        <img src="public/assets/img/icon/repair.png" alt="">
                         <p><strong>แจ้งเหตุซ่อมแซม</strong></p>
                     </div>
                 </a>
                 <a href="certificates.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/certificate.png" alt="">
+                        <img src="public/assets/img/icon/certificate.png" alt="">
                         <p><strong>ออกเลขเกียรติบัตร</strong></p>
                     </div>
                 </a>
                 <a href="teacher-phone-directory.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/phone.png" alt="">
+                        <img src="public/assets/img/icon/phone.png" alt="">
                         <p><strong>สมุดโทรศัพท์</strong></p>
                     </div>
                 </a>
                 <a href="profile.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/user.png" alt="">
+                        <img src="public/assets/img/icon/user.png" alt="">
                         <p><strong>โปรไฟล์</strong></p>
                     </div>
                 </a>
                 <a href="setting.php">
                     <div class="card-shortcut">
-                        <img src="/public/assets/img/icon/setting.png" alt="">
+                        <img src="public/assets/img/icon/setting.png" alt="">
                         <p><strong>การตั้งค่า</strong></p>
                     </div>
                 </a>

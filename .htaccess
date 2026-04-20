@@ -19,7 +19,7 @@ AddDefaultCharset UTF-8
 Options -Indexes
 
 # ป้องกันการเข้าถึงไฟล์ Sensitive หรือไฟล์ Config
-<FilesMatch "^\.(env|git|gitignore|composer|lock|json|yml|xml)$">
+<FilesMatch "^(\.env(\..*)?|\.(git|gitignore|user\.ini)|composer\.(json|lock)|phpunit\.xml|phpstan\.neon(\.dist)?|php-cs-fixer\.dist\.php)$">
     Require all denied
 </FilesMatch>
 
@@ -54,7 +54,7 @@ RewriteRule ^([^\.]+)$ $1.php [NC,L]
 # ERROR HANDLING
 # ----------------------------------------------------------------------
 
-# ควรสร้างไฟล์ error.php ไว้ในโฟลเดอร์ public เพื่อรองรับการแสดงผล
+# ใช้ไฟล์ error.php ที่ root ของโปรเจกต์สำหรับรองรับการแสดงผล
 ErrorDocument 403 /error.php?code=403
 ErrorDocument 404 /error.php?code=404
 ErrorDocument 500 /error.php?code=500

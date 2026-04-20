@@ -1533,13 +1533,29 @@ const fileInput = document.getElementById("attachment");
 const attachmentList = document.getElementById("attachmentList");
 const attachmentError = document.getElementById("attachmentError");
 const MAX_ATTACHMENTS = 5;
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+const DEFAULT_MAX_ATTACHMENT_SIZE = 100 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = [
   "application/pdf",
   "image/jpeg",
   "image/png",
 ];
 let selectedAttachments = [];
+
+function getAttachmentMaxSize() {
+  const datasetValue = Number(fileInput?.dataset.maxSizeBytes || "");
+  if (Number.isFinite(datasetValue) && datasetValue > 0) {
+    return datasetValue;
+  }
+  return DEFAULT_MAX_ATTACHMENT_SIZE;
+}
+
+function getAttachmentMaxSizeLabel() {
+  const datasetLabel = String(fileInput?.dataset.maxSizeLabel || "").trim();
+  if (datasetLabel !== "") {
+    return datasetLabel;
+  }
+  return "100MB";
+}
 
 function getExistingAttachments() {
   if (!attachmentList) return [];
@@ -1768,13 +1784,16 @@ function renderAttachmentList() {
 
 function addAttachments(files) {
   if (!files || files.length === 0) return;
+  const maxAttachmentSize = getAttachmentMaxSize();
+  const maxAttachmentSizeLabel = getAttachmentMaxSizeLabel();
   const existingKeys = new Set(
     selectedAttachments.map(
       (file) => `${file.name}-${file.size}-${file.lastModified}`
     )
   );
 
-  let hasInvalid = false;
+  let hasInvalidType = false;
+  let hasOversize = false;
   let hitLimit = false;
   const existingAttachmentCount = getExistingAttachments().length;
 
@@ -1785,12 +1804,12 @@ function addAttachments(files) {
     }
 
     if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
-      hasInvalid = true;
+      hasInvalidType = true;
       return;
     }
 
-    if (file.size > MAX_ATTACHMENT_SIZE) {
-      hasInvalid = true;
+    if (file.size > maxAttachmentSize) {
+      hasOversize = true;
       return;
     }
 
@@ -1805,8 +1824,12 @@ function addAttachments(files) {
 
   if (hitLimit) {
     setAttachmentError(`แนบได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์`);
-  } else if (hasInvalid) {
-    setAttachmentError("รองรับเฉพาะ PDF, JPG, PNG ขนาดไม่เกิน 10MB");
+  } else if (hasInvalidType && hasOversize) {
+    setAttachmentError(`รองรับเฉพาะ PDF, JPG, PNG และไฟล์ต้องมีขนาดไม่เกิน ${maxAttachmentSizeLabel}`);
+  } else if (hasOversize) {
+    setAttachmentError(`ไฟล์ต้องมีขนาดไม่เกิน ${maxAttachmentSizeLabel}`);
+  } else if (hasInvalidType) {
+    setAttachmentError("รองรับเฉพาะ PDF, JPG, PNG");
   } else {
     setAttachmentError("");
   }

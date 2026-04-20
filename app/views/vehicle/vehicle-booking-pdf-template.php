@@ -70,12 +70,15 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
         margin: 0 0 4pt 0;
       }
       .header-table,
-      .signature-table {
+      .signature-table,
+      .approval-sign {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
       }
       .header-table td,
-      .signature-table td {
+      .signature-table td,
+      .approval-sign td {
         vertical-align: top;
       }
 	    .title {
@@ -102,16 +105,25 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
       .signature-table {
         margin: 16pt 0 12pt 0;
       }
-      .signature-spacer {
-        width: 55%;
+      .signature-spacer,
+      .approval-sign-spacer {
+        width: 36%;
       }
-      .sig-block {
-        width: 45%;
+      .sig-block,
+      .approval-sign-block {
+        width: 64%;
         text-align: center;
       }
       .sig-meta {
         display: inline-block;
-        min-width: 180pt;
+        min-width: 200pt;
+        text-align: center;
+      }
+      .approval-sign-block .sig-name,
+      .approval-sign-block .sig-role {
+        width: 200pt;
+        margin-left: auto;
+        margin-right: auto;
         text-align: center;
       }
 	    .sig-img {
@@ -146,16 +158,7 @@ if (!function_exists('vehicle_booking_pdf_render_html')) {
         min-height: 58pt;
       }
       .approval-sign {
-        width: 100%;
-        border-collapse: collapse;
         margin-top: 8pt;
-      }
-      .approval-sign-spacer {
-        width: 36%;
-      }
-      .approval-sign-block {
-        width: 64%;
-        text-align: center;
       }
       .note {
         margin: 0 0 7pt 0;

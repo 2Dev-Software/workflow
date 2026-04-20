@@ -90,14 +90,14 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
     <div class="navigation-links">
         <li>
             <a href="dashboard.php">
-                <img src="/public/assets/img/icon/home.png" alt="">
+                <img src="public/assets/img/icon/home.png" alt="">
                 <p class="link-name">หน้าหลัก</p>
             </a>
         </li>
 
         <li>
             <a href="#news-paper">
-                <img src="/public/assets/img/icon/news-paper.png" alt="">
+                <img src="public/assets/img/icon/news-paper.png" alt="">
                 <p class="link-name">ข่าวประชาสัมพันธ์ </p>
             </a>
         </li>
@@ -107,7 +107,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <div class="icon-link">
                     <a href="#">
                         <?php if ($sidebar_alerts['external_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                        <img src="/public/assets/img/icon/files.png" alt="">
+                        <img src="public/assets/img/icon/files.png" alt="">
                         <p class="link-name">หนังสือเวียน</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
@@ -129,7 +129,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <div class="icon-link">
                 <a href="#">
                     <?php if ($sidebar_alerts['internal_circular']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <img src="/public/assets/img/icon/envelope.png" alt="">
+                    <img src="public/assets/img/icon/envelope.png" alt="">
                     <p class="link-name">หนังสือเวียน (ภายใน)</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -144,7 +144,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
         <?php if ($can_manage_external_circular): ?>
             <li>
                 <a href="outgoing.php">
-                    <img src="/public/assets/img/icon/clipboard.png" alt="">
+                    <img src="public/assets/img/icon/clipboard.png" alt="">
                     <p class="link-name">ออกเลขทะเบียนส่ง</p>
                 </a>
             </li>
@@ -154,7 +154,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <div class="icon-link">
                 <a href="#">
                     <?php if ($sidebar_alerts['memo']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <img src="/public/assets/img/icon/memo.png" alt="">
+                    <img src="public/assets/img/icon/memo.png" alt="">
                     <p class="link-name">บันทึกข้อความ</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -170,7 +170,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <div class="icon-link">
                 <a href="#">
                     <?php if ($sidebar_alerts['orders']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                     <img src="/public/assets/img/icon/files.png" alt="">
+                     <img src="public/assets/img/icon/files.png" alt="">
                     <p class="link-name">คำสั่งราชการ</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -187,7 +187,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <div class="icon-link">
                     <a href="#">
                         <?php if ($sidebar_alerts['room']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                         <img src="/public/assets/img/icon/building.png" alt="">
+                         <img src="public/assets/img/icon/building.png" alt="">
                         <p class="link-name">การจองสถานที่/ห้อง</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
@@ -202,7 +202,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <li>
                 <a href="room-booking.php">
                     <?php if ($sidebar_alerts['room']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <i class="fa-solid fa-building"></i>
+                    <img src="public/assets/img/icon/building.png" alt="">
                     <p class="link-name">จองสถานที่/ห้อง</p>
                 </a>
             </li>
@@ -212,7 +212,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <li>
                 <a href="vehicle-reservation-approval.php">
                     <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <i class="fa-solid fa-car"></i>
+                    <img src="public/assets/img/icon/building.png" alt="">
                     <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
             </li>
@@ -221,7 +221,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <div class="icon-link">
                     <a href="#">
                         <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                        <img src="/public/assets/img/icon/car.png" alt="">
+                        <img src="public/assets/img/icon/car.png" alt="">
                         <p class="link-name">การจองยานพาหนะ</p>
                     </a>
                     <i class="fa-solid fa-caret-down"></i>
@@ -235,7 +235,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
         <?php elseif ($is_director_or_acting): ?>
             <li>
                 <a href="vehicle-reservation-approval.php">
-                    <i class="fa-solid fa-car"></i>
+                    <img src="public/assets/img/icon/car.png" alt="">
                     <p class="link-name">อนุมัติการจองยานพาหนะ</p>
                 </a>
             </li>
@@ -243,7 +243,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <li>
                 <a href="vehicle-reservation.php">
                     <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <i class="fa-solid fa-car"></i>
+                    <img src="public/assets/img/icon/car.png" alt="">
                     <p class="link-name">จองยานพาหนะ</p>
                 </a>
             </li>
@@ -252,7 +252,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             <div class="icon-link">
                 <a href="#">
                     <?php if ($sidebar_alerts['repairs']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <img src="/public/assets/img/icon/repair.png" alt="">
+                    <img src="public/assets/img/icon/repair.png" alt="">
                     <p class="link-name">แจ้งเหตุซ่อมแซม</p>
                 </a>
                 <i class="fa-solid fa-caret-down"></i>
@@ -269,14 +269,14 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
         </li>
         <li>
             <a href="teacher-phone-directory.php">
-                <img src="/public/assets/img/icon/phone.png" alt="">
+                <img src="public/assets/img/icon/phone.png" alt="">
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
         <?php if ($is_admin_user): ?>
             <li>
                 <a href="personnel-management.php">
-                    <img src="/public/assets/img/icon/user.png" alt="">
+                    <img src="public/assets/img/icon/personnel-management.png" alt="">
                     <p class="link-name">จัดการบุคลากร</p>
                 </a>
             </li>
@@ -284,14 +284,14 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
 
         <li>
             <a href="profile.php">
-                 <img src="/public/assets/img/icon/user.png" alt="">
+                 <img src="public/assets/img/icon/user.png" alt="">
                 <p class="link-name">โปรไฟล์</p>
             </a>
         </li>
         <?php if ($can_access_settings): ?>
             <li>
                 <a href="setting.php">
-                    <img src="/public/assets/img/icon/setting.png" alt="">
+                    <img src="public/assets/img/icon/setting.png" alt="">
                     <p class="link-name">การตั้งค่า</p>
                 </a>
             </li>

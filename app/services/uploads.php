@@ -78,6 +78,94 @@ if (!function_exists('upload_scan_for_viruses')) {
     }
 }
 
+if (!function_exists('upload_parse_ini_size_to_bytes')) {
+    function upload_parse_ini_size_to_bytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+
+        return match ($unit) {
+            'g' => (int) round($number * 1024 * 1024 * 1024),
+            'm' => (int) round($number * 1024 * 1024),
+            'k' => (int) round($number * 1024),
+            default => (int) round((float) $value),
+        };
+    }
+}
+
+if (!function_exists('upload_format_bytes_label')) {
+    function upload_format_bytes_label(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '0B';
+        }
+
+        if ($bytes >= 1024 * 1024 * 1024) {
+            $value = $bytes / (1024 * 1024 * 1024);
+            $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+            return $formatted . 'GB';
+        }
+
+        if ($bytes >= 1024 * 1024) {
+            $value = $bytes / (1024 * 1024);
+            $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+            return $formatted . 'MB';
+        }
+
+        if ($bytes >= 1024) {
+            $value = $bytes / 1024;
+            $formatted = fmod($value, 1.0) === 0.0 ? number_format($value, 0) : number_format($value, 1);
+            return $formatted . 'KB';
+        }
+
+        return $bytes . 'B';
+    }
+}
+
+if (!function_exists('upload_runtime_max_bytes')) {
+    function upload_runtime_max_bytes(int $fallback): int
+    {
+        $runtime_limit = upload_parse_ini_size_to_bytes((string) ini_get('upload_max_filesize'));
+        $post_limit = upload_parse_ini_size_to_bytes((string) ini_get('post_max_size'));
+
+        if ($post_limit > 0 && ($runtime_limit <= 0 || $post_limit < $runtime_limit)) {
+            $runtime_limit = $post_limit;
+        }
+
+        if ($runtime_limit <= 0) {
+            return $fallback;
+        }
+
+        if ($fallback <= 0) {
+            return $runtime_limit;
+        }
+
+        return min($fallback, $runtime_limit);
+    }
+}
+
+if (!function_exists('upload_error_message')) {
+    function upload_error_message(int $error): string
+    {
+        return match ($error) {
+            UPLOAD_ERR_INI_SIZE => 'ไฟล์แนบเกินขนาดที่ระบบรองรับ',
+            UPLOAD_ERR_FORM_SIZE => 'ไฟล์แนบเกินขนาดที่แบบฟอร์มรองรับ',
+            UPLOAD_ERR_PARTIAL => 'อัปโหลดไฟล์ไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง',
+            UPLOAD_ERR_NO_FILE => 'ไม่พบไฟล์ที่อัปโหลด',
+            UPLOAD_ERR_NO_TMP_DIR => 'ไม่พบโฟลเดอร์ชั่วคราวสำหรับอัปโหลดไฟล์',
+            UPLOAD_ERR_CANT_WRITE => 'ไม่สามารถบันทึกไฟล์ลงเซิร์ฟเวอร์ได้',
+            UPLOAD_ERR_EXTENSION => 'การอัปโหลดไฟล์ถูกหยุดโดยระบบ',
+            default => 'อัปโหลดไฟล์ไม่สำเร็จ',
+        };
+    }
+}
+
 if (!function_exists('upload_store_files')) {
     function upload_store_files(
         array $files,
@@ -97,7 +185,7 @@ if (!function_exists('upload_store_files')) {
         }
 
         $max_files = (int) ($options['max_files'] ?? 5);
-        $max_size = (int) ($options['max_size'] ?? (5 * 1024 * 1024));
+        $max_size = upload_runtime_max_bytes((int) ($options['max_size'] ?? (100 * 1024 * 1024)));
         $base_dir = (string) ($options['base_dir'] ?? (__DIR__ . '/../../storage/uploads'));
 
         $allowed = (array) ($options['allowed_mimes'] ?? upload_allowed_mimes());
@@ -123,14 +211,14 @@ if (!function_exists('upload_store_files')) {
             $error = (int) $file['error'];
 
             if ($error !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('อัปโหลดไฟล์ไม่สำเร็จ');
+                throw new RuntimeException(upload_error_message($error));
             }
 
             $tmp = (string) $file['tmp_name'];
             $size = (int) $file['size'];
 
             if ($size <= 0 || $size > $max_size) {
-                throw new RuntimeException('ขนาดไฟล์เกินกำหนด');
+                throw new RuntimeException('ขนาดไฟล์ต้องไม่เกิน ' . upload_format_bytes_label($max_size));
             }
 
             $mime = $finfo ? finfo_file($finfo, $tmp) : (string) $file['type'];

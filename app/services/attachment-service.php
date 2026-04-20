@@ -23,7 +23,7 @@ if (!function_exists('attachment_store')) {
             return [false, null, 'ไม่สามารถอัปโหลดไฟล์ได้'];
         }
 
-        $max_size = (int) app_env('UPLOAD_MAX_BYTES', 10 * 1024 * 1024);
+        $max_size = (int) app_env('UPLOAD_MAX_BYTES', 100 * 1024 * 1024);
 
         if (($file['size'] ?? 0) > $max_size) {
             return [false, null, 'ไฟล์มีขนาดใหญ่เกินกำหนด'];
