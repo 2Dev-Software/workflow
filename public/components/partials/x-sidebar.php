@@ -276,7 +276,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
         <?php if ($is_admin_user): ?>
             <li>
                 <a href="personnel-management.php">
-                    <img src="public/assets/img/icon/personnel-management.png" alt="">
+                    <img src="public/assets/img/icon/personnel.png" alt="">
                     <p class="link-name">จัดการบุคลากร</p>
                 </a>
             </li>
