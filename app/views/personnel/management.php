@@ -79,6 +79,23 @@ ob_start();
         vertical-align: top;
     }
 
+    .personnel-admin-page .personnel-admin-table th:nth-child(-n + 4),
+    .personnel-admin-page .personnel-admin-table td:nth-child(-n + 4) {
+        text-align: left;
+    }
+
+    .personnel-admin-page .personnel-admin-table th:nth-child(n + 5),
+    .personnel-admin-page .personnel-admin-table td:nth-child(n + 5) {
+        text-align: center;
+    }
+
+    .personnel-admin-page #personnelEditPidDisplay:disabled {
+        background-color: #fff;
+        color: inherit;
+        opacity: 1;
+        -webkit-text-fill-color: currentColor;
+    }
+
     .room-admin-modal .form-group.full {
         flex-direction: row;
         gap: 20px;
@@ -234,12 +251,7 @@ ob_start();
     <section class="booking-card booking-list-card room-admin-card">
         <div class="booking-card-header">
             <div class="booking-card-title-group">
-                <h2 class="booking-card-title">รายการบุคลากร</h2>
-                <div class="room-admin-member-count personnel-summary-line">
-                    ทั้งหมด <?= h((string) count($personnel_rows)) ?> คน
-                    | กำลังใช้งาน <?= h((string) $active_count) ?> คน
-                    | ปิดใช้งาน <?= h((string) $inactive_count) ?> คน
-                </div>
+                <h2 class="booking-card-title">รายชื่อบุคลากรภายในโรงเรียน</h2>
             </div>
             <div class="room-admin-actions" data-personnel-filter>
                 <div class="room-admin-search">
@@ -339,7 +351,7 @@ ob_start();
                                     <div class="room-admin-room-name"><?= h($name !== '' ? $name : '-') ?></div>
                                 </td>
                                 <td>
-                                    <div class="room-admin-room-name"><?= h($faction_name !== '' ? $faction_name : 'ไม่กำหนด') ?></div>
+                                    <div class="room-admin-room-name"><?= h($faction_name !== '' ? $faction_name : '-') ?></div>
                                 </td>
                                 <td>
                                     <div class="room-admin-room-name"><?= h($position_display) ?></div>
@@ -436,37 +448,20 @@ ob_start();
                             <label class="form-label" for="">วิทยฐานะ</label>
                             <div class="custom-select-wrapper">
                                 <div class="custom-select-trigger">
-                                    <p class="select-value">ไม่กำหนด</p>
+                                    <p class="select-value"><?= h((string) ($level_options[1] ?? 'ไม่กำหนด')) ?></p>
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
                                 <div class="custom-options">
-                                    <?php foreach ($department_options as $id => $label) : ?>
-                                        <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
+                                    <?php foreach ($level_options as $id => $label) : ?>
+                                        <div class="custom-option <?= (int) $id === 1 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                     <?php endforeach; ?>
                                 </div>
-                                <input type="hidden" name="dID" value="0">
+                                <input type="hidden" name="lID" value="1">
                             </div>
                         </div>
                         <div class="form-group">
                             <div class="input-group">
                                 <label class="form-label" for="">ตำแหน่ง</label>
-                                <div class="custom-select-wrapper">
-                                    <div class="custom-select-trigger">
-                                        <p class="select-value">ไม่กำหนด</p>
-                                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                                    </div>
-                                    <div class="custom-options">
-                                        <?php foreach ($legacy_position_options as $id => $label) : ?>
-                                            <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <input type="hidden" name="oID" value="0">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <div class="input-group">
-                                <label class="form-label" for="">หน้าที่ในระบบ</label>
                                 <div class="custom-select-wrapper">
                                     <div class="custom-select-trigger">
                                         <p class="select-value">ไม่กำหนด</p>
@@ -481,25 +476,65 @@ ob_start();
                                 </div>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <label class="form-label" for="">ประเภทบุคลากร</label>
+                                <div class="custom-select-wrapper">
+                                    <div class="custom-select-trigger">
+                                        <p class="select-value">ไม่กำหนด</p>
+                                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="custom-options">
+                                        <?php foreach ($legacy_position_options as $id => $label) : ?>
+                                            <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <input type="hidden" name="oID" value="0">
+                                </div>
+                            </div>
+                        </div>
 
-                        <div class="form-group full" data-recipients-section="" data-owner-flat-list="true" data-reviewer-options="[{&quot;pID&quot;:&quot;1820500005169&quot;,&quot;label&quot;:&quot;นางสาวศริญญา  ผั้วผดุง (รองรักษาราชการแทน)&quot;},{&quot;pID&quot;:&quot;1820500004103&quot;,&quot;label&quot;:&quot;นายยุทธนา สุวรรณวิสุทธิ์ (รองผู้อำนวยการ)&quot;},{&quot;pID&quot;:&quot;3430200354125&quot;,&quot;label&quot;:&quot;นายไกรวิชญ์ อ่อนแก้ว (รองผู้อำนวยการ)&quot;}]">
+                        <div class="form-group full" data-personnel-role-section>
                             <label><strong>บทบาท :</strong></label>
                             <div class="dropdown-container">
-                                <div class="search-input-wrapper" id="recipientToggle">
-                                    <input type="text" id="mainInput" class="search-input" value="เลือกผู้พิจารณา" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                                <div class="search-input-wrapper">
+                                    <input type="text" class="search-input" value="เลือกบทบาท" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
-                                <input type="hidden" name="reviewerPID" value="" data-reviewer-hidden="">
 
-                                <div class="dropdown-content" id="dropdownContent">
+                                <div class="dropdown-content">
                                     <div class="dropdown-header">
                                         <label class="select-all-box">
-                                            <input type="checkbox" id="selectAll">เลือกทั้งหมด
+                                            <input type="checkbox" data-role-select-all>เลือกทั้งหมด
                                         </label>
                                     </div>
 
                                     <div class="dropdown-list">
-                                        <?php if (!empty($factions)) : ?>
+                                        <div class="category-group">
+                                            <div class="category-title">
+                                                <span>บทบาท</span>
+                                            </div>
+                                            <div class="category-items">
+                                                <?php foreach ($role_rows as $role_row) : ?>
+                                                    <?php
+                                                    $role_id = (int) ($role_row['id'] ?? 0);
+                                                    $role_name = trim((string) ($role_row['name'] ?? ''));
+
+                                                    if ($role_id <= 0 || $role_name === '') {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <label class="item role-item">
+                                                        <input type="checkbox" class="role-checkbox"
+                                                            name="role_ids[]" value="<?= h((string) $role_id) ?>"
+                                                            data-role-name="<?= h($role_name) ?>"
+                                                            <?= in_array($role_id, $form_role_ids, true) ? 'checked' : '' ?>>
+                                                        <span class="item-title"><?= h($role_name) ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <?php if (false && !empty($factions)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>หน่วยงาน</span>
@@ -596,7 +631,7 @@ ob_start();
                                             </div>
                                         <?php endif; ?>
 
-                                        <?php if (!empty($department_groups)) : ?>
+                                        <?php if (false && !empty($department_groups)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>กลุ่มสาระ</span>
@@ -680,7 +715,7 @@ ob_start();
                                             </div>
                                         <?php endif; ?>
 
-                                        <?php if (!empty($special_groups)) : ?>
+                                        <?php if (false && !empty($special_groups)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>อื่นๆ</span>
@@ -767,20 +802,20 @@ ob_start();
                                 </div>
                             </div>
                             <div class="sent-notice-selected">
-                                <button id="btnShowRecipients" type="button">
-                                    <p>แสดงผู้รับทั้งหมด</p>
+                                <button type="button">
+                                    <p>แสดงบทบาทที่เลือก</p>
                                 </button>
                             </div>
                         </div>
 
-                        <div id="recipientModal" class="modal-overlay-recipient">
+                        <div class="modal-overlay-recipient">
                             <div class="modal-container">
                                 <div class="modal-header">
                                     <div class="modal-title">
                                         <i class="fa-solid fa-users" aria-hidden="true"></i>
-                                        <span>รายชื่อผู้รับหนังสือเวียน</span>
+                                        <span>บทบาทที่เลือก</span>
                                     </div>
-                                    <button class="modal-close" id="closeModalBtn" type="button">
+                                    <button class="modal-close" type="button">
                                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                                     </button>
                                 </div>
@@ -789,11 +824,10 @@ ob_start();
                                         <thead>
                                             <tr>
                                                 <th>ลำดับ</th>
-                                                <th>ชื่อจริง-นามสกุล</th>
-                                                <th>กลุ่ม/ฝ่าย</th>
+                                                <th>ชื่อบทบาท</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="recipientTableBody"></tbody>
+                                        <tbody></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -820,7 +854,11 @@ ob_start();
             </div>
             <div class="footer-modal">
                 <form method="POST" action="" class="orders-send-form">
-                    <button type="submit" form="personnelAddForm">
+                    <button type="submit" form="personnelAddForm"
+                        data-confirm="ยืนยันการเพิ่มบุคลากรใหม่ใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึกข้อมูล"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">
                         <p>บันทึกข้อมูล</p>
                     </button>
                 </form>
@@ -844,19 +882,16 @@ ob_start();
                     <?= csrf_field() ?>
                     <input type="hidden" name="personnel_action" value="update">
                     <input type="hidden" name="original_pid" id="personnelEditOriginalPid" value="<?= h((string) ($edit_values['original_pid'] ?? '')) ?>">
+                    <input type="hidden" name="pID" id="personnelEditPid" value="<?= h((string) ($edit_values['pID'] ?? '')) ?>">
 
                     <div class="personnel-form-grid">
                         <div class="form-group">
                             <label class="form-label" for="">เลขประจำตัวประชาชน</label>
-                            <input class="form-input" type="text" id="" name="pID" value="" inputmode="numeric" maxlength="13" required>
+                            <input class="form-input" type="text" id="personnelEditPidDisplay" value="" inputmode="numeric" maxlength="13" disabled>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="">ชื่อจริง-นามสกุล</label>
-                            <input class="form-input" type="text" id="" name="fName" value="" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="">รหัสผ่าน</label>
-                            <input class="form-input" type="text" id="" name="passWord" value="" required>
+                            <input class="form-input" type="text" id="personnelEditName" name="fName" value="" required>
                         </div>
                         <div class="form-group">
                             <div class="input-group">
@@ -871,7 +906,7 @@ ob_start();
                                             <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <input type="hidden" name="fID" value="0">
+                                    <input type="hidden" name="fID" value="0" id="personnelEditFaction">
                                 </div>
                             </div>
                         </div>
@@ -888,7 +923,7 @@ ob_start();
                                             <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <input type="hidden" name="dID" value="0">
+                                    <input type="hidden" name="dID" value="0" id="personnelEditDepartment">
                                 </div>
                             </div>
                         </div>
@@ -900,11 +935,11 @@ ob_start();
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
                                 <div class="custom-options">
-                                    <?php foreach ($department_options as $id => $label) : ?>
+                                    <?php foreach ($level_options as $id => $label) : ?>
                                         <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                     <?php endforeach; ?>
                                 </div>
-                                <input type="hidden" name="dID" value="0">
+                                <input type="hidden" name="lID" value="0" id="personnelEditLevel">
                             </div>
                         </div>
                         <div class="form-group">
@@ -916,71 +951,88 @@ ob_start();
                                         <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                     </div>
                                     <div class="custom-options">
-                                        <?php foreach ($legacy_position_options as $id => $label) : ?>
+                                        <?php foreach ($position_options as $id => $label) : ?>
                                             <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <input type="hidden" name="oID" value="0">
+                                    <input type="hidden" name="positionID" value="0" id="personnelEditPosition">
                                 </div>
                             </div>
                         </div>
                         <div class="form-group">
                             <div class="input-group">
-                                <label class="form-label" for="">หน้าที่ในระบบ</label>
+                                <label class="form-label" for="">ประเภทบุคลากร</label>
                                 <div class="custom-select-wrapper">
                                     <div class="custom-select-trigger">
                                         <p class="select-value">ไม่กำหนด</p>
                                         <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                     </div>
                                     <div class="custom-options">
-                                        <?php foreach ($position_options as $id => $label) : ?>
+                                        <?php foreach ($legacy_position_options as $id => $label) : ?>
                                             <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <input type="hidden" name="positionID" value="0">
+                                    <input type="hidden" name="oID" value="0" id="personnelEditLegacyPosition">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label" for="">เบอร์โทรศัพท์</label>
-                            <input class="form-input" type="tel" name="telephone" value="" inputmode="numeric" maxlength="10">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label" for="">สถานะการใช้งาน</label>
                             <div class="custom-select-wrapper">
                                 <div class="custom-select-trigger">
-                                    <p class="select-value">ไม่กำหนด</p>
+                                    <p class="select-value">กำลังใช้งาน</p>
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
                                 <div class="custom-options">
-                                    <?php foreach ($department_options as $id => $label) : ?>
-                                        <div class="custom-option <?= $id == 0 ? 'selected' : '' ?>" data-value="<?= h((string) $id) ?>"><?= h((string) $label) ?></div>
-                                    <?php endforeach; ?>
+                                    <div class="custom-option selected" data-value="1">กำลังใช้งาน</div>
+                                    <div class="custom-option" data-value="0">ปิดใช้งาน</div>
                                 </div>
-                                <input type="hidden" name="dID" value="0">
+                                <input type="hidden" name="status" value="1" id="personnelEditStatus">
                             </div>
                         </div>
 
-                        <div class="form-group full" data-recipients-section="" data-owner-flat-list="true" data-reviewer-options="[{&quot;pID&quot;:&quot;1820500005169&quot;,&quot;label&quot;:&quot;นางสาวศริญญา  ผั้วผดุง (รองรักษาราชการแทน)&quot;},{&quot;pID&quot;:&quot;1820500004103&quot;,&quot;label&quot;:&quot;นายยุทธนา สุวรรณวิสุทธิ์ (รองผู้อำนวยการ)&quot;},{&quot;pID&quot;:&quot;3430200354125&quot;,&quot;label&quot;:&quot;นายไกรวิชญ์ อ่อนแก้ว (รองผู้อำนวยการ)&quot;}]">
+                        <div class="form-group full" data-personnel-role-section>
                             <label><strong>บทบาท :</strong></label>
                             <div class="dropdown-container">
-                                <div class="search-input-wrapper" id="recipientToggle">
-                                    <input type="text" id="mainInput" class="search-input" value="เลือกผู้พิจารณา" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
+                                <div class="search-input-wrapper">
+                                    <input type="text" class="search-input" value="เลือกบทบาท" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
-                                <input type="hidden" name="reviewerPID" value="" data-reviewer-hidden="">
 
-                                <div class="dropdown-content" id="dropdownContent">
+                                <div class="dropdown-content">
                                     <div class="dropdown-header">
                                         <label class="select-all-box">
-                                            <input type="checkbox" id="selectAll">เลือกทั้งหมด
+                                            <input type="checkbox" data-role-select-all>เลือกทั้งหมด
                                         </label>
                                     </div>
 
                                     <div class="dropdown-list">
-                                        <?php if (!empty($factions)) : ?>
+                                        <div class="category-group">
+                                            <div class="category-title">
+                                                <span>บทบาท</span>
+                                            </div>
+                                            <div class="category-items">
+                                                <?php foreach ($role_rows as $role_row) : ?>
+                                                    <?php
+                                                    $role_id = (int) ($role_row['id'] ?? 0);
+                                                    $role_name = trim((string) ($role_row['name'] ?? ''));
+
+                                                    if ($role_id <= 0 || $role_name === '') {
+                                                        continue;
+                                                    }
+                                                    ?>
+                                                    <label class="item role-item">
+                                                        <input type="checkbox" class="role-checkbox"
+                                                            name="role_ids[]" value="<?= h((string) $role_id) ?>"
+                                                            data-role-name="<?= h($role_name) ?>"
+                                                            <?= in_array($role_id, $edit_role_ids, true) ? 'checked' : '' ?>>
+                                                        <span class="item-title"><?= h($role_name) ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <?php if (false && !empty($factions)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>หน่วยงาน</span>
@@ -1077,7 +1129,7 @@ ob_start();
                                             </div>
                                         <?php endif; ?>
 
-                                        <?php if (!empty($department_groups)) : ?>
+                                        <?php if (false && !empty($department_groups)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>กลุ่มสาระ</span>
@@ -1161,7 +1213,7 @@ ob_start();
                                             </div>
                                         <?php endif; ?>
 
-                                        <?php if (!empty($special_groups)) : ?>
+                                        <?php if (false && !empty($special_groups)) : ?>
                                             <div class="category-group">
                                                 <div class="category-title">
                                                     <span>อื่นๆ</span>
@@ -1250,20 +1302,20 @@ ob_start();
                             </div>
 
                             <div class="sent-notice-selected">
-                                <button id="btnShowRecipients" type="button">
-                                    <p>แสดงผู้รับทั้งหมด</p>
+                                <button type="button">
+                                    <p>แสดงบทบาทที่เลือก</p>
                                 </button>
                             </div>
                         </div>
 
-                        <div id="recipientModal" class="modal-overlay-recipient">
+                        <div class="modal-overlay-recipient">
                             <div class="modal-container">
                                 <div class="modal-header">
                                     <div class="modal-title">
                                         <i class="fa-solid fa-users" aria-hidden="true"></i>
-                                        <span>รายชื่อผู้รับหนังสือเวียน</span>
+                                        <span>บทบาทที่เลือก</span>
                                     </div>
-                                    <button class="modal-close" id="closeModalBtn" type="button">
+                                    <button class="modal-close" type="button">
                                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                                     </button>
                                 </div>
@@ -1272,11 +1324,10 @@ ob_start();
                                         <thead>
                                             <tr>
                                                 <th>ลำดับ</th>
-                                                <th>ชื่อจริง-นามสกุล</th>
-                                                <th>กลุ่ม/ฝ่าย</th>
+                                                <th>ชื่อบทบาท</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="recipientTableBody"></tbody>
+                                        <tbody></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -1304,7 +1355,11 @@ ob_start();
             </div>
             <div class="footer-modal">
                 <form method="POST" action="" class="orders-send-form">
-                    <button type="submit" form="personnelEditForm">
+                    <button type="submit" form="personnelEditForm"
+                        data-confirm="ยืนยันการบันทึกข้อมูลบุคลากรใช่หรือไม่?"
+                        data-confirm-title="ยืนยันการบันทึกข้อมูล"
+                        data-confirm-ok="ยืนยัน"
+                        data-confirm-cancel="ยกเลิก">
                         <p>บันทึกข้อมูล</p>
                     </button>
                 </form>
@@ -1373,6 +1428,10 @@ ob_start();
             form.querySelectorAll('input[name="role_ids[]"]').forEach((checkbox) => {
                 checkbox.checked = roleIds.includes(String(checkbox.value || '').trim());
             });
+
+            if (typeof form.__personnelRoleSync === 'function') {
+                form.__personnelRoleSync();
+            }
         };
 
         const setupSignature = (container) => {
@@ -1428,18 +1487,43 @@ ob_start();
                     field.value = String(value || '');
                 };
 
+                const setCustomSelectValue = (selector, value) => {
+                    const field = editForm.querySelector(selector);
+                    if (!field) return;
+
+                    const normalizedValue = String(value || '');
+                    field.value = normalizedValue;
+
+                    const wrapper = field.closest('.custom-select-wrapper');
+                    if (!wrapper) return;
+
+                    let selectedLabel = '';
+                    wrapper.querySelectorAll('.custom-option').forEach((option) => {
+                        const isSelected = String(option.getAttribute('data-value') || '') === normalizedValue;
+                        option.classList.toggle('selected', isSelected);
+
+                        if (isSelected) {
+                            selectedLabel = String(option.textContent || '').trim();
+                        }
+                    });
+
+                    const valueLabel = wrapper.querySelector('.select-value');
+                    if (valueLabel && selectedLabel !== '') {
+                        valueLabel.textContent = selectedLabel;
+                    }
+                };
+
                 setValue('#personnelEditOriginalPid', row.getAttribute('data-pid') || '');
                 setValue('#personnelEditPid', row.getAttribute('data-pid') || '');
+                setValue('#personnelEditPidDisplay', row.getAttribute('data-pid') || '');
                 setValue('#personnelEditName', row.getAttribute('data-name') || '');
-                setValue('#personnelEditFaction', row.getAttribute('data-fid') || '0');
-                setValue('#personnelEditDepartment', row.getAttribute('data-did') || '0');
-                setValue('#personnelEditLevel', row.getAttribute('data-lid') || '0');
-                setValue('#personnelEditLegacyPosition', row.getAttribute('data-oid') || '0');
-                setValue('#personnelEditPosition', row.getAttribute('data-position-id') || '0');
-                setValue('#personnelEditTelephone', row.getAttribute('data-telephone') || '');
+                setCustomSelectValue('#personnelEditFaction', row.getAttribute('data-fid') || '0');
+                setCustomSelectValue('#personnelEditDepartment', row.getAttribute('data-did') || '0');
+                setCustomSelectValue('#personnelEditLevel', row.getAttribute('data-lid') || '0');
+                setCustomSelectValue('#personnelEditLegacyPosition', row.getAttribute('data-oid') || '0');
+                setCustomSelectValue('#personnelEditPosition', row.getAttribute('data-position-id') || '0');
                 setValue('#personnelEditLineId', row.getAttribute('data-line-id') || '');
-                setValue('#personnelEditStatus', row.getAttribute('data-status-value') || '1');
-                setValue('#personnelEditPassword', '');
+                setCustomSelectValue('#personnelEditStatus', row.getAttribute('data-status-value') || '1');
                 setRoleSelections(editForm, row.getAttribute('data-role-ids') || '');
 
                 const signaturePath = row.getAttribute('data-signature') || '';
@@ -1528,6 +1612,130 @@ ob_start();
                 }
             });
         };
+
+        function setupPersonnelRoleDropdown(container) {
+            if (!container) return;
+
+            const section = container.querySelector('[data-personnel-role-section]');
+            if (!section) return;
+
+            const dropdown = section.querySelector('.dropdown-content');
+            const toggle = section.querySelector('.search-input-wrapper');
+            const searchInput = section.querySelector('.search-input');
+            const selectAll = section.querySelector('[data-role-select-all]');
+            const roleChecks = Array.from(section.querySelectorAll('.role-checkbox'));
+            const roleItems = Array.from(section.querySelectorAll('.role-item'));
+            const roleModal = container.querySelector('.modal-overlay-recipient');
+            const roleTableBody = container.querySelector('.recipient-table tbody');
+            const showRolesButton = container.querySelector('.sent-notice-selected button');
+            const closeModalBtn = container.querySelector('.modal-close');
+
+            const setDropdownVisible = (visible) => dropdown?.classList.toggle('show', visible);
+            const roleName = (checkbox) => String(checkbox?.getAttribute('data-role-name') || '').trim();
+            const selectedRoleChecks = () => roleChecks.filter((checkbox) => checkbox.checked);
+
+            const filterRoles = (query) => {
+                const normalizedQuery = String(query || '').trim().toLowerCase();
+                roleItems.forEach((item) => {
+                    const text = String(item.textContent || '').trim().toLowerCase();
+                    item.style.display = normalizedQuery === '' || text.includes(normalizedQuery) ? '' : 'none';
+                });
+            };
+
+            const updateSelectAllState = () => {
+                if (!selectAll) return;
+                const checkedCount = selectedRoleChecks().length;
+                selectAll.checked = roleChecks.length > 0 && checkedCount === roleChecks.length;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < roleChecks.length;
+            };
+
+            const updateSummary = () => {
+                if (!searchInput) return;
+                const selectedNames = selectedRoleChecks().map(roleName).filter((name) => name !== '');
+                searchInput.value = selectedNames.length > 0 ? selectedNames.join(', ') : 'เลือกบทบาท';
+            };
+
+            const syncState = () => {
+                updateSelectAllState();
+                updateSummary();
+            };
+
+            container.__personnelRoleSync = syncState;
+
+            toggle?.addEventListener('click', (event) => {
+                event.stopPropagation();
+                setDropdownVisible(!dropdown?.classList.contains('show'));
+            });
+
+            document.addEventListener('click', (event) => {
+                if (dropdown && !dropdown.contains(event.target) && !toggle?.contains(event.target)) {
+                    setDropdownVisible(false);
+                    syncState();
+                }
+            });
+
+            searchInput?.addEventListener('focus', () => {
+                setDropdownVisible(true);
+                if (selectedRoleChecks().length > 0) {
+                    searchInput.value = '';
+                    filterRoles('');
+                }
+            });
+
+            searchInput?.addEventListener('input', () => {
+                setDropdownVisible(true);
+                filterRoles(searchInput.value);
+            });
+
+            roleChecks.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    filterRoles('');
+                    syncState();
+                });
+            });
+
+            selectAll?.addEventListener('change', () => {
+                roleChecks.forEach((checkbox) => {
+                    checkbox.checked = selectAll.checked;
+                });
+                filterRoles('');
+                syncState();
+            });
+
+            const renderSelectedRoles = () => {
+                if (!roleTableBody) return;
+                const selected = selectedRoleChecks();
+                roleTableBody.innerHTML = '';
+
+                if (selected.length === 0) {
+                    roleTableBody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding: 16px;">ไม่มีบทบาทที่เลือก</td></tr>';
+                    return;
+                }
+
+                selected.forEach((checkbox, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${index + 1}</td><td>${roleName(checkbox) || '-'}</td>`;
+                    roleTableBody.appendChild(row);
+                });
+            };
+
+            showRolesButton?.addEventListener('click', () => {
+                renderSelectedRoles();
+                roleModal?.classList.add('active');
+            });
+
+            closeModalBtn?.addEventListener('click', () => {
+                roleModal?.classList.remove('active');
+            });
+
+            roleModal?.addEventListener('click', (event) => {
+                if (event.target === roleModal) {
+                    roleModal.classList.remove('active');
+                }
+            });
+
+            syncState();
+        }
 
         function setupRecipientDropdown(container) {
             if (!container) return;
@@ -1873,12 +2081,12 @@ ob_start();
 
         const addModalContainer = document.getElementById('personnelAddForm');
         if (addModalContainer) {
-            setupRecipientDropdown(addModalContainer);
+            setupPersonnelRoleDropdown(addModalContainer);
         }
 
         const editModalContainer = document.getElementById('personnelEditForm');
         if (editModalContainer) {
-            setupRecipientDropdown(editModalContainer);
+            setupPersonnelRoleDropdown(editModalContainer);
         }
     });
 </script>

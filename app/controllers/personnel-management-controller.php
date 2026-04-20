@@ -169,6 +169,176 @@ if (!function_exists('personnel_management_validate_form')) {
     }
 }
 
+if (!function_exists('personnel_management_sanitize_log_payload')) {
+    function personnel_management_sanitize_log_payload(array $data): array
+    {
+        $payload = $data;
+        unset($payload['passWord']);
+
+        if (isset($payload['picture'])) {
+            $payload['hasPicture'] = trim((string) $payload['picture']) !== '';
+            unset($payload['picture']);
+        }
+
+        if (isset($payload['signature'])) {
+            $payload['hasSignature'] = trim((string) $payload['signature']) !== '';
+            unset($payload['signature']);
+        }
+
+        return $payload;
+    }
+}
+
+if (!function_exists('personnel_management_uploaded_file')) {
+    function personnel_management_uploaded_file(array $field_names): ?array
+    {
+        foreach ($field_names as $field_name) {
+            $field_name = trim((string) $field_name);
+
+            if ($field_name === '' || !isset($_FILES[$field_name]) || !is_array($_FILES[$field_name])) {
+                continue;
+            }
+
+            $file = $_FILES[$field_name];
+            $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+            if ($error === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            return $file;
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('personnel_management_upload_error_message')) {
+    function personnel_management_upload_error_message(int $error): string
+    {
+        return match ($error) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'ไฟล์มีขนาดใหญ่เกินกว่าที่ระบบกำหนด',
+            UPLOAD_ERR_PARTIAL => 'อัปโหลดไฟล์ไม่สมบูรณ์ กรุณาลองใหม่อีกครั้ง',
+            UPLOAD_ERR_NO_TMP_DIR => 'ระบบไม่พบพื้นที่พักไฟล์อัปโหลด',
+            UPLOAD_ERR_CANT_WRITE => 'ระบบไม่สามารถเขียนไฟล์อัปโหลดได้',
+            UPLOAD_ERR_EXTENSION => 'อัปโหลดไฟล์ถูกหยุดโดยส่วนขยายของระบบ',
+            default => 'อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+        };
+    }
+}
+
+if (!function_exists('personnel_management_store_image_upload')) {
+    function personnel_management_store_image_upload(array $field_names, string $pid, string $asset_type, array &$stored_files): ?string
+    {
+        $file = personnel_management_uploaded_file($field_names);
+
+        if ($file === null) {
+            return null;
+        }
+
+        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException(personnel_management_upload_error_message($error));
+        }
+
+        $safe_pid = preg_replace('/\D+/', '', $pid);
+
+        if ($safe_pid === '') {
+            throw new RuntimeException('ไม่พบรหัสบุคลากรสำหรับจัดเก็บไฟล์');
+        }
+
+        $allowed_types = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+        ];
+        $max_size = 2 * 1024 * 1024;
+        $size = (int) ($file['size'] ?? 0);
+
+        if ($size <= 0 || $size > $max_size) {
+            throw new RuntimeException('รองรับไฟล์รูปภาพขนาดไม่เกิน 2MB');
+        }
+
+        $tmp_name = (string) ($file['tmp_name'] ?? '');
+
+        if ($tmp_name === '' || !is_uploaded_file($tmp_name)) {
+            throw new RuntimeException('ไม่พบไฟล์อัปโหลดที่ถูกต้อง');
+        }
+
+        $mime_type = '';
+
+        if (class_exists('finfo')) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime_type = (string) $finfo->file($tmp_name);
+        }
+
+        if ($mime_type === '') {
+            $mime_type = (string) ($file['type'] ?? '');
+        }
+
+        if (!isset($allowed_types[$mime_type])) {
+            throw new RuntimeException('รองรับเฉพาะไฟล์ .jpg และ .png');
+        }
+
+        $base_dir = dirname(__DIR__, 2) . '/assets/img';
+        $sub_dir = $asset_type === 'profile' ? 'profile' : 'signature';
+        $target_dir = $base_dir . '/' . $sub_dir . '/' . $safe_pid;
+
+        if (!is_dir($target_dir) && !mkdir($target_dir, 0755, true)) {
+            throw new RuntimeException('ไม่สามารถสร้างโฟลเดอร์จัดเก็บไฟล์ได้');
+        }
+
+        $filename_prefix = $asset_type === 'profile' ? 'profile' : 'signature';
+        $filename = $filename_prefix . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $allowed_types[$mime_type];
+        $target_path = $target_dir . '/' . $filename;
+
+        if (!move_uploaded_file($tmp_name, $target_path)) {
+            throw new RuntimeException('ไม่สามารถบันทึกไฟล์อัปโหลดได้');
+        }
+
+        @chmod($target_path, 0644);
+        $stored_files[] = $target_path;
+
+        return 'assets/img/' . $sub_dir . '/' . $safe_pid . '/' . $filename;
+    }
+}
+
+if (!function_exists('personnel_management_cleanup_uploaded_files')) {
+    function personnel_management_cleanup_uploaded_files(array $stored_files): void
+    {
+        foreach ($stored_files as $path) {
+            $path = (string) $path;
+
+            if ($path !== '' && is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+}
+
+if (!function_exists('personnel_management_existing_assets')) {
+    function personnel_management_existing_assets(string $pid): array
+    {
+        $row = db_fetch_one(
+            'SELECT picture, signature FROM teacher WHERE pID = ? LIMIT 1',
+            's',
+            $pid
+        );
+
+        if (!$row) {
+            return [
+                'picture' => '',
+                'signature' => '',
+            ];
+        }
+
+        return [
+            'picture' => trim((string) ($row['picture'] ?? '')),
+            'signature' => trim((string) ($row['signature'] ?? '')),
+        ];
+    }
+}
+
 if (!function_exists('personnel_management_fetch_rows')) {
     function personnel_management_fetch_rows(): array
     {
@@ -244,22 +414,15 @@ if (!function_exists('personnel_management_update')) {
             $data['oID'],
             $data['positionID'],
             rbac_format_role_ids($data['roleIDs']),
-            $data['telephone'],
             $data['picture'],
             $data['signature'] !== '' ? $data['signature'] : null,
             $data['LineID'],
             $data['status'],
         ];
-        $types = 'siiiiisssssi';
+        $types = 'siiiiissssi';
         $sql = 'UPDATE teacher
                 SET fName = ?, fID = ?, dID = ?, lID = ?, oID = ?, positionID = ?, roleID = ?,
-                    telephone = ?, picture = ?, signature = ?, LineID = ?, status = ?';
-
-        if ($data['passWord'] !== '') {
-            $sql .= ', passWord = ?';
-            $params[] = $data['passWord'];
-            $types .= 's';
-        }
+                    picture = ?, signature = ?, LineID = ?, status = ?';
 
         $sql .= ' WHERE pID = ?';
         $params[] = $original_pid;
@@ -311,6 +474,10 @@ if (!function_exists('personnel_management_index')) {
         $edit_values = (array) ($_SESSION['personnel_management_edit'] ?? []);
         unset($_SESSION['personnel_management_edit']);
 
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            audit_log('personnel', 'ACCESS', 'SUCCESS', 'page', 'personnel-management');
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $redirect_url = 'personnel-management.php';
             $set_alert = static function (array $alert_payload, string $modal_key = '', array $values = []) use ($redirect_url): void {
@@ -359,13 +526,42 @@ if (!function_exists('personnel_management_index')) {
 
             if ($validation_alert !== null) {
                 audit_log('personnel', $is_create ? 'CREATE' : 'UPDATE', 'FAIL', 'teacher', $normalized['pID'] !== '' ? $normalized['pID'] : null, $validation_alert['message'], [
-                    'form' => $normalized,
+                    'form' => personnel_management_sanitize_log_payload($normalized),
                 ]);
                 $set_alert($validation_alert, $is_create ? 'personnelAddModal' : 'personnelEditModal', $normalized);
             }
 
+            $stored_files = [];
+            $transaction_started = false;
+
             try {
                 db_begin();
+                $transaction_started = true;
+
+                $existing_assets = $is_update
+                    ? personnel_management_existing_assets(trim((string) ($normalized['original_pid'] ?? '')))
+                    : [
+                        'picture' => trim((string) ($normalized['picture'] ?? '')),
+                        'signature' => trim((string) ($normalized['signature'] ?? '')),
+                    ];
+
+                $uploaded_picture = personnel_management_store_image_upload(
+                    ['picture_file', 'profile_image', 'profile_file'],
+                    $normalized['pID'],
+                    'profile',
+                    $stored_files
+                );
+                $uploaded_signature = personnel_management_store_image_upload(
+                    ['signature_file'],
+                    $normalized['pID'],
+                    'signature',
+                    $stored_files
+                );
+
+                $normalized['picture'] = $uploaded_picture
+                    ?? ($is_update ? $existing_assets['picture'] : trim((string) ($normalized['picture'] ?? '')));
+                $normalized['signature'] = $uploaded_signature
+                    ?? ($is_update ? $existing_assets['signature'] : trim((string) ($normalized['signature'] ?? '')));
 
                 if ($is_create) {
                     personnel_management_insert($connection, $normalized);
@@ -374,10 +570,13 @@ if (!function_exists('personnel_management_index')) {
                 }
 
                 db_commit();
+                $transaction_started = false;
 
                 audit_log('personnel', $is_create ? 'CREATE' : 'UPDATE', 'SUCCESS', 'teacher', $normalized['pID'], null, [
                     'status' => $normalized['status'],
                     'roles' => rbac_format_role_ids($normalized['roleIDs']),
+                    'uploadedPicture' => $uploaded_picture !== null,
+                    'uploadedSignature' => $uploaded_signature !== null,
                 ]);
 
                 $set_alert([
@@ -386,7 +585,10 @@ if (!function_exists('personnel_management_index')) {
                     'message' => $normalized['fName'],
                 ]);
             } catch (Throwable $e) {
-                db_rollback();
+                if ($transaction_started) {
+                    db_rollback();
+                }
+                personnel_management_cleanup_uploaded_files($stored_files);
                 audit_log('personnel', $is_create ? 'CREATE' : 'UPDATE', 'FAIL', 'teacher', $normalized['pID'] !== '' ? $normalized['pID'] : null, $e->getMessage());
                 $set_alert([
                     'type' => 'danger',
