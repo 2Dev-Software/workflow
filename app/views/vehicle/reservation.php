@@ -105,6 +105,22 @@ ob_start();
             </div>
         </div>
 
+        <div class="vehicle-row">
+            <div class="vehicle-input-content">
+                <label for="otherPassengerCount">จำนวนบุคลากรอื่นๆ</label>
+                <input type="number" id="otherPassengerCount" name="otherPassengerCount" min="0" step="1" value="0"
+                    inputmode="numeric" placeholder="ระบุจำนวนบุคลากรอื่นๆ">
+            </div>
+        </div>
+
+        <div class="vehicle-row">
+            <div class="vehicle-input-content">
+                <label for="otherPassengerNames">รายชื่อบุคลากร</label>
+                <textarea id="otherPassengerNames" name="otherPassengerNames" rows="3"
+                    placeholder="พิมพ์รายชื่อบุคลากรอื่นๆ ตัวอย่าง นายภวพล ธรรมลังกา, นายรัชพล ธูปทอง"></textarea>
+            </div>
+        </div>
+
         <div id="memberModal" class="custom-modal">
             <div class="custom-modal-content">
                 <div class="member-header">
@@ -130,7 +146,7 @@ ob_start();
             </div>
 
             <div class="vehicle-input-content">
-                <label>มีคนนั่งจำนวน</label>
+                <label>มีคนนั่งจำนวนทั้งสิ้น</label>
                 <div class="calculated-field" id="passengerCountDisplay">
                     <i class="fa-solid fa-users" aria-hidden="true"></i>
                     <p data-passenger-count aria-live="polite">1 คน</p>
@@ -374,7 +390,6 @@ ob_start();
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <p class="form-error hidden" id="vehicleEditDepartmentError">กรุณาเลือกส่วนราชการ</p>
                 </div>
 
                 <div class="vehicle-input-content">
@@ -397,6 +412,22 @@ ob_start();
                             <p>แสดงผู้เดินทางทั้งหมด</p>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <div class="vehicle-row">
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditOtherPassengerCount">จำนวนบุคลากรอื่นๆ</label>
+                    <input type="number" id="vehicleEditOtherPassengerCount" name="otherPassengerCount" min="0" step="1"
+                        value="0" inputmode="numeric" disabled>
+                </div>
+            </div>
+
+            <div class="vehicle-row">
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditOtherPassengerNames">รายชื่อบุคลากร</label>
+                    <textarea id="vehicleEditOtherPassengerNames" name="otherPassengerNames" rows="3"
+                        placeholder="ไม่มีรายชื่อบุคลากร" disabled></textarea>
                 </div>
             </div>
 
@@ -425,7 +456,7 @@ ob_start();
                 </div>
 
                 <div class="vehicle-input-content">
-                    <label>มีคนนั่งจำนวน</label>
+                    <label>มีคนนั่งจำนวนทั้งสิ้น</label>
                     <div class="calculated-field" id="vehicleEditPassengerCountDisplay">
                         <i class="fa-solid fa-users" aria-hidden="true"></i>
                         <p data-passenger-count aria-live="polite">1 คน</p>
@@ -531,6 +562,8 @@ ob_start();
             writeDate: document.getElementById('vehicleEditWriteDate'),
             purpose: document.getElementById('vehicleEditPurpose'),
             location: document.getElementById('vehicleEditLocation'),
+            otherPassengerCount: document.getElementById('vehicleEditOtherPassengerCount'),
+            otherPassengerNames: document.getElementById('vehicleEditOtherPassengerNames'),
             passengerCount: document.getElementById('vehicleEditPassengerCount'),
             passengerCountDisplay: modal.querySelector('#vehicleEditPassengerCountDisplay [data-passenger-count]'),
             startDate: document.getElementById('vehicleEditStartDate'),
@@ -689,6 +722,8 @@ ob_start();
             if (fieldMap.writeDate) fieldMap.writeDate.value = '';
             if (fieldMap.purpose) fieldMap.purpose.value = '';
             if (fieldMap.location) fieldMap.location.value = '';
+            if (fieldMap.otherPassengerCount) fieldMap.otherPassengerCount.value = '0';
+            if (fieldMap.otherPassengerNames) fieldMap.otherPassengerNames.value = '';
             if (fieldMap.passengerCount) fieldMap.passengerCount.value = '1';
             if (fieldMap.passengerCountDisplay) fieldMap.passengerCountDisplay.textContent = '1 คน';
             if (companionSummaryInput) companionSummaryInput.value = '';
@@ -710,14 +745,15 @@ ob_start();
             const normalized = Array.isArray(names)
                 ? Array.from(new Set(names.map((name) => String(name || '').trim()).filter(Boolean)))
                 : [];
+            const otherCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
 
-            if (normalized.length === 0) {
+            if (normalized.length === 0 && otherCount <= 0) {
                 companionSummaryInput.value = '';
                 companionSummaryInput.placeholder = 'ไม่มีผู้ร่วมเดินทาง';
                 return;
             }
 
-            companionSummaryInput.value = `จำนวน ${normalized.length} รายชื่อ`;
+            companionSummaryInput.value = `จำนวน ${normalized.length + Math.max(0, otherCount)} รายชื่อ`;
         }
 
         function fillModal(data) {
@@ -729,6 +765,14 @@ ob_start();
             if (fieldMap.writeDate) fieldMap.writeDate.value = data.writeDate || '';
             if (fieldMap.purpose) fieldMap.purpose.value = data.purpose || '';
             if (fieldMap.location) fieldMap.location.value = data.location || '';
+            if (fieldMap.otherPassengerCount) {
+                fieldMap.otherPassengerCount.value = String(data.otherPassengerCount || 0);
+            }
+            if (fieldMap.otherPassengerNames) {
+                const otherCount = Number(data.otherPassengerCount || 0);
+                fieldMap.otherPassengerNames.value = data.otherPassengerNames ||
+                    (otherCount > 0 ? `ไม่ได้ระบุรายชื่อ (จำนวน ${otherCount} คน)` : '');
+            }
 
             const startAt = data.startAt || '';
             const endAt = data.endAt || '';
@@ -761,14 +805,28 @@ ob_start();
                 const companionNames = currentBooking && Array.isArray(currentBooking.companionNames) ?
                     Array.from(new Set(currentBooking.companionNames.map((name) => String(name || '').trim()).filter(Boolean))) :
                     [];
+                const otherPassengerNames = currentBooking && currentBooking.otherPassengerNames ?
+                    String(currentBooking.otherPassengerNames).split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean) :
+                    [];
+                const otherPassengerCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
 
-                if (companionNames.length > 0) {
+                if (companionNames.length > 0 || otherPassengerNames.length > 0 || otherPassengerCount > 0) {
                     const ul = document.createElement('ul');
                     companionNames.forEach((nameText) => {
                         const li = document.createElement('li');
                         li.textContent = nameText;
                         ul.appendChild(li);
                     });
+                    otherPassengerNames.forEach((nameText) => {
+                        const li = document.createElement('li');
+                        li.textContent = nameText;
+                        ul.appendChild(li);
+                    });
+                    if (otherPassengerNames.length === 0 && otherPassengerCount > 0) {
+                        const li = document.createElement('li');
+                        li.textContent = `บุคลากรอื่นๆ จำนวน ${otherPassengerCount} คน`;
+                        ul.appendChild(li);
+                    }
                     companionModalList.appendChild(ul);
                 } else {
                     companionModalList.innerHTML = '<p style="text-align:center; color:#FF5050;">ยังไม่ได้เลือกรายชื่อผู้เดินทาง</p>';

@@ -229,6 +229,12 @@ if (!function_exists('vehicle_reservation_index')) {
                     $companion_names[] = $name;
                 }
             }
+            $passenger_count = (int) ($booking_item['passengerCount'] ?? 0);
+            $other_passenger_count = (int) ($booking_item['otherPassengerCount'] ?? 0);
+
+            if ($other_passenger_count <= 0 && $passenger_count > 0) {
+                $other_passenger_count = max(0, $passenger_count - count($companion_ids) - 1);
+            }
             $attachments = $vehicle_booking_attachments[(string) $booking_id] ?? [];
 
             $updated_at_value = trim((string) ($booking_item['updatedAt'] ?? ''));
@@ -243,7 +249,9 @@ if (!function_exists('vehicle_reservation_index')) {
                 'writeDate' => (string) ($booking_item['writeDate'] ?? ''),
                 'purpose' => (string) ($booking_item['purpose'] ?? ''),
                 'location' => (string) ($booking_item['location'] ?? ''),
-                'passengerCount' => (int) ($booking_item['passengerCount'] ?? 0),
+                'passengerCount' => $passenger_count,
+                'otherPassengerCount' => $other_passenger_count,
+                'otherPassengerNames' => (string) ($booking_item['otherPassengerNames'] ?? ''),
                 'startAt' => (string) ($booking_item['startAt'] ?? ''),
                 'endAt' => (string) ($booking_item['endAt'] ?? ''),
                 'fuelSource' => (string) ($booking_item['fuelSource'] ?? ''),

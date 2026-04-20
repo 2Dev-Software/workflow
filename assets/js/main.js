@@ -1365,6 +1365,8 @@ const departmentWrapper = document.getElementById("dept-wrapper");
 const departmentError = document.getElementById("departmentError");
 const companionCountInput = document.getElementById("companionCount");
 const passengerCountInput = document.getElementById("passengerCount");
+const otherPassengerCountInput = document.getElementById("otherPassengerCount");
+const otherPassengerNamesInput = document.getElementById("otherPassengerNames");
 const passengerCountDisplay = document.querySelector(
   "#passengerCountDisplay [data-passenger-count]"
 );
@@ -1383,13 +1385,13 @@ function updateCompanionCount() {
   const checkedBoxes = memberDropdown.querySelectorAll(
     'input[type="checkbox"]:checked'
   );
+  const otherPassengerCount = otherPassengerCountInput
+    ? Math.max(0, parseInt(otherPassengerCountInput.value || "0", 10) || 0)
+    : 0;
+  const minPassengers = checkedBoxes.length + otherPassengerCount + 1;
   companionCountInput.value = String(checkedBoxes.length);
   if (passengerCountInput) {
-    const minPassengers = checkedBoxes.length + 1;
-    const currentValue = parseInt(passengerCountInput.value || "0", 10);
-    if (!currentValue || currentValue < minPassengers) {
-      passengerCountInput.value = String(minPassengers);
-    }
+    passengerCountInput.value = String(minPassengers);
   }
   if (passengerCountDisplay) {
     const value = passengerCountInput
@@ -1470,6 +1472,28 @@ if (passengerCountInput) {
     passengerCountInput.setCustomValidity("");
   });
 }
+if (otherPassengerCountInput) {
+  otherPassengerCountInput.addEventListener("input", function () {
+    const value = Math.max(
+      0,
+      parseInt(otherPassengerCountInput.value || "0", 10) || 0
+    );
+    otherPassengerCountInput.value = String(value);
+    otherPassengerCountInput.setCustomValidity("");
+    if (otherPassengerNamesInput) {
+      otherPassengerNamesInput.setCustomValidity("");
+    }
+    updateCompanionCount();
+  });
+}
+if (otherPassengerNamesInput) {
+  otherPassengerNamesInput.addEventListener("input", function () {
+    otherPassengerNamesInput.setCustomValidity("");
+    if (otherPassengerCountInput) {
+      otherPassengerCountInput.setCustomValidity("");
+    }
+  });
+}
 
 if (vehicleForm) {
   vehicleForm.addEventListener("submit", function (e) {
@@ -1482,7 +1506,13 @@ if (vehicleForm) {
 
     if (passengerCountInput && companionCountInput) {
       const companionCount = parseInt(companionCountInput.value || "0", 10);
-      const minPassengers = companionCount + 1;
+      const otherPassengerCount = otherPassengerCountInput
+        ? Math.max(0, parseInt(otherPassengerCountInput.value || "0", 10) || 0)
+        : 0;
+      const otherPassengerNames = otherPassengerNamesInput
+        ? otherPassengerNamesInput.value.trim()
+        : "";
+      const minPassengers = companionCount + otherPassengerCount + 1;
       const currentValue = parseInt(passengerCountInput.value || "0", 10);
       if (currentValue < minPassengers) {
         passengerCountInput.setCustomValidity(
@@ -1491,6 +1521,21 @@ if (vehicleForm) {
         hasError = true;
       } else {
         passengerCountInput.setCustomValidity("");
+      }
+
+      if (otherPassengerCount > 0 && otherPassengerNames === "") {
+        otherPassengerNamesInput.setCustomValidity(
+          "กรุณาระบุรายชื่อบุคลากร"
+        );
+        hasError = true;
+      } else if (otherPassengerNames !== "" && otherPassengerCount <= 0) {
+        otherPassengerCountInput.setCustomValidity(
+          "กรุณาระบุจำนวนบุคลากรอื่นๆ"
+        );
+        hasError = true;
+      } else {
+        if (otherPassengerNamesInput) otherPassengerNamesInput.setCustomValidity("");
+        if (otherPassengerCountInput) otherPassengerCountInput.setCustomValidity("");
       }
     }
 
@@ -2065,11 +2110,22 @@ document.addEventListener("DOMContentLoaded", function () {
     const checkedBoxes = document.querySelectorAll(
       '#myDropdown input[type="checkbox"]:checked'
     );
+    const otherPassengerNames = otherPassengerNamesInput
+      ? otherPassengerNamesInput.value
+          .split(/\r?\n|,/)
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : [];
 
-    if (checkedBoxes.length > 0) {
+    if (checkedBoxes.length > 0 || otherPassengerNames.length > 0) {
       const ul = document.createElement("ul");
       checkedBoxes.forEach(function (checkbox) {
         const nameText = checkbox.nextElementSibling.innerText;
+        const li = document.createElement("li");
+        li.textContent = nameText;
+        ul.appendChild(li);
+      });
+      otherPassengerNames.forEach(function (nameText) {
         const li = document.createElement("li");
         li.textContent = nameText;
         ul.appendChild(li);

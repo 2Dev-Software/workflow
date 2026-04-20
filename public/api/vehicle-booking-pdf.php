@@ -296,6 +296,8 @@ $optional_columns = [
     'fuelSource',
     'writeDate',
     'companionIds',
+    'otherPassengerCount',
+    'otherPassengerNames',
     'requesterDisplayName',
     'assignedByPID',
     'assignedAt',
@@ -499,6 +501,27 @@ if (!empty($companion_names)) {
     $companion_label = implode(', ', $companion_names);
 }
 
+$other_passenger_count = (int) ($row['otherPassengerCount'] ?? 0);
+
+if ($other_passenger_count <= 0) {
+    $other_passenger_count = max(0, (int) ($row['passengerCount'] ?? 0) - count($companion_ids) - 1);
+}
+
+$other_passenger_names = trim((string) ($row['otherPassengerNames'] ?? ''));
+$other_passenger_label = '';
+
+if ($other_passenger_names !== '') {
+    $other_passenger_lines = preg_split('/\r\n|\r|\n|,/', $other_passenger_names) ?: [];
+    $other_passenger_lines = array_values(array_filter(array_map(
+        static fn ($name): string => trim((string) $name),
+        $other_passenger_lines
+    )));
+
+    if (!empty($other_passenger_lines)) {
+        $other_passenger_label = implode(', ', $other_passenger_lines);
+    }
+}
+
 $vehicle_plate = trim((string) ($row['vehiclePlate'] ?? ''));
 $vehicle_type = trim((string) ($row['vehicleType'] ?? ''));
 $vehicle_model = trim((string) ($row['vehicleModel'] ?? ''));
@@ -631,8 +654,21 @@ $requester_department_label = $normalize_inline_text($requester_department !== '
 $purpose_label = $normalize_inline_text($purpose !== '' ? $purpose : '-');
 $location_label = $normalize_inline_text($location !== '' ? $location : '-');
 $companion_label = $normalize_inline_text($companion_label);
+$other_passenger_label = $normalize_inline_text($other_passenger_label);
 $requester_name = $normalize_inline_text($requester_name !== '' ? $requester_name : '-');
-$companion_inline = $companion_label !== '' ? ('พร้อมด้วย ' . $companion_label . ' ') : '';
+$passenger_parts = [];
+
+if ($companion_label !== '') {
+    $passenger_parts[] = $companion_label;
+}
+
+if ($other_passenger_label !== '') {
+    $passenger_parts[] = 'บุคลากรอื่นๆ ' . $other_passenger_label;
+} elseif ($other_passenger_count > 0) {
+    $passenger_parts[] = 'บุคลากรอื่นๆ จำนวน ' . $other_passenger_count . ' คน';
+}
+
+$companion_inline = !empty($passenger_parts) ? ('พร้อมด้วย ' . implode(', ', $passenger_parts) . ' ') : '';
 
 $paragraph_lines = [];
 $paragraph_lines[] = trim('ข้าพเจ้า ' . ($requester_name !== '' ? $requester_name : '-') . ' ตำแหน่ง ' . $requester_position_label

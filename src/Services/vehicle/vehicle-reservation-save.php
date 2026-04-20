@@ -235,11 +235,31 @@ $companion_ids = array_values(array_filter(
 ));
 
 $companion_count = count($companion_ids);
+$other_passenger_count = filter_input(INPUT_POST, 'otherPassengerCount', FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 0],
+]);
+$other_passenger_count = $other_passenger_count !== false && $other_passenger_count !== null
+    ? (int) $other_passenger_count
+    : 0;
+$other_passenger_names = trim((string) ($_POST['otherPassengerNames'] ?? ''));
+$other_passenger_names = preg_replace("/\r\n|\r/", "\n", $other_passenger_names) ?? '';
+$other_passenger_names = trim(preg_replace("/[ \t]+/", ' ', $other_passenger_names) ?? $other_passenger_names);
+
+if ($other_passenger_count > 0 && $other_passenger_names === '') {
+    $abort('warning', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุรายชื่อบุคลากร', 'other_passenger_names_required', [
+        'otherPassengerCount' => $other_passenger_count,
+    ]);
+}
+
+if ($other_passenger_count === 0 && $other_passenger_names !== '') {
+    $abort('warning', 'ข้อมูลไม่ครบถ้วน', 'กรุณาระบุจำนวนบุคลากรอื่นๆ', 'other_passenger_count_required');
+}
+
 $passenger_input = filter_input(INPUT_POST, 'passengerCount', FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
 $passenger_input = $passenger_input ? (int) $passenger_input : 0;
-$min_passengers = max(1, $companion_count + 1);
+$min_passengers = max(1, $companion_count + $other_passenger_count + 1);
 $passenger_count = $passenger_input > 0 ? max($passenger_input, $min_passengers) : $min_passengers;
 
 $companion_ids_json = null;
@@ -398,6 +418,8 @@ if ($write_date !== '') {
     $add_param('writeDate', 's', $write_date);
 }
 $add_param('companionCount', 'i', $companion_count);
+$add_param('otherPassengerCount', 'i', $other_passenger_count);
+$add_param('otherPassengerNames', 's', $other_passenger_names);
 
 if ($companion_ids_json !== null) {
     $add_param('companionIds', 's', $companion_ids_json);
@@ -542,6 +564,7 @@ if (function_exists('audit_log')) {
         'fuelSource' => $fuel_source,
         'passengerCount' => $passenger_count,
         'companionCount' => $companion_count,
+        'otherPassengerCount' => $other_passenger_count,
         'attachmentCount' => count($uploaded_files),
     ]);
 }

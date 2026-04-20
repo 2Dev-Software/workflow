@@ -122,6 +122,8 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
         'fuelSource',
         'writeDate',
         'companionCount',
+        'otherPassengerCount',
+        'otherPassengerNames',
         'companionIds',
         'requesterDisplayName',
         'attachmentFileID',

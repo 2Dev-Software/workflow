@@ -198,6 +198,8 @@ $optional_columns = [
     'fuelSource',
     'writeDate',
     'companionCount',
+    'otherPassengerCount',
+    'otherPassengerNames',
     'companionIds',
     'requesterDisplayName',
     'attachmentFileID',
