@@ -96,7 +96,13 @@ ob_start();
             </div>
             <div class="profile-footer">
                 <div class="warning-text">* หากข้อมูลส่วนบุคคลผิดพลาด กรุณาติดต่อผู้ดูแลระบบ *</div>
-                <button class="btn-upload">บันทึกการแก้ไข</button>
+                <button
+                    type="submit"
+                    class="btn-upload"
+                    data-confirm="ยืนยันการบันทึกข้อมูลโปรไฟล์ใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการบันทึก"
+                    data-confirm-ok="ยืนยัน"
+                    data-confirm-cancel="ยกเลิก">บันทึก</button>
             </div>
         </form>
     </div>

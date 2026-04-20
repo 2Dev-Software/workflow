@@ -3773,7 +3773,7 @@ select {
 
 .content-area #phoneForm .btn-upload {
   width: auto;
-  padding: 0 10px;
+  padding: 0 50px;
   height: 40px;
   font-size:var(--font-size-body-1);
   margin: 20px 0 0;
