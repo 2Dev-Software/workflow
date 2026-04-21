@@ -152,7 +152,7 @@ try {
                 $audit_fail('insert_prepare_failed', null, [
                     'error' => mysqli_error($connection),
                 ]);
-                $set_room_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเพิ่มห้องได้ในขณะนี้');
+                $set_room_alert('danger', 'ระบบขัดข้อง', 'ไม่สามารถเพิ่มสถานที่/ห้องได้ในขณะนี้');
             } else {
                 mysqli_stmt_bind_param($stmt, 'sss', $room_name, $room_status, $room_note);
                 mysqli_stmt_execute($stmt);
@@ -166,10 +166,10 @@ try {
                             'roomName' => $room_name,
                         ]);
                     }
-                    $set_room_alert('success', 'เพิ่มห้องสำเร็จ', 'บันทึกห้องใหม่เรียบร้อยแล้ว');
+                    $set_room_alert('success', 'เพิ่มสถานที่/ห้องสำเร็จ', 'บันทึกสถานที่/ห้องใหม่เรียบร้อยแล้ว');
                 } else {
                     $audit_fail('no_rows_affected');
-                    $set_room_alert('warning', 'ไม่สามารถเพิ่มห้อง', 'กรุณาลองใหม่อีกครั้ง');
+                    $set_room_alert('warning', 'ไม่สามารถเพิ่มสถานที่/ห้อง', 'กรุณาลองใหม่อีกครั้ง');
                 }
             }
         } else {

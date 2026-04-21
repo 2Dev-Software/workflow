@@ -124,7 +124,7 @@ ob_start();
                     </div>
                 </div>
                 <input type="hidden" name="room" value="<?= h($room_filter_room) ?>" data-room-filter-room>
-                <button type="button" class="btn-confirm" data-room-modal-open="roomAddModal">เพิ่มห้องใหม่</button>
+                <button type="button" class="btn-confirm" data-room-modal-open="roomAddModal">เพิ่มสถานที่/ห้องใหม่</button>
             </form>
         </div>
 
@@ -279,14 +279,14 @@ ob_start();
     <div class="modal-content room-admin-modal">
         <header class="modal-header">
             <div class="modal-title">
-                <span>เพิ่มห้องใหม่</span>
+                <span>เพิ่มสถานที่/ห้องใหม่</span>
             </div>
             <div class="close-modal-btn" data-room-modal-close="roomAddModal">
                 <i class="fa-solid fa-xmark"></i>
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
+            <form id="roomAddForm" class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="room_action" value="add">
                 <div class="form-group full">
@@ -321,31 +321,17 @@ ob_start();
                     <label class="form-label">หมายเหตุ</label>
                     <textarea class="form-input" name="room_note" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
-                <!-- <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-room-modal-close="roomAddModal">ยกเลิก</button>
-                    <button
-                        type="submit"
-                        class="btn-confirm"
-                        data-confirm="ยืนยันการบันทึกห้องใหม่ใช่หรือไม่?"
-                        data-confirm-title="ยืนยันการบันทึก"
-                        data-confirm-ok="ยืนยัน"
-                        data-confirm-cancel="ยกเลิก">บันทึกห้องใหม่</button>
-                </div> -->
             </form>
         </div>
         <div class="footer-modal">
-            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
-
-                <button type="submit"
-                    data-confirm="ยืนยันการบันทึกห้องใหม่ใช่หรือไม่?"
-                    data-confirm-title="ยืนยันการบันทึก"
-                    data-confirm-ok="ยืนยัน"
-                    data-confirm-cancel="ยกเลิก">
-                    <p>บันทึกห้องใหม่</p>
-                </button>
-
-            </form>
-
+            <button type="submit"
+                form="roomAddForm"
+                data-confirm="ยืนยันการบันทึกสถานที่/ห้องใหม่ใช่หรือไม่?"
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">
+                <p>บันทึก</p>
+            </button>
         </div>
     </div>
 </div>
@@ -361,7 +347,7 @@ ob_start();
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
+            <form id="roomEditForm" class="room-admin-form" method="POST" action="<?= h($room_management_post_action) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="room_action" value="edit">
                 <input type="hidden" name="room_id" data-room-edit-id>
@@ -395,31 +381,17 @@ ob_start();
                     <label class="form-label">หมายเหตุ</label>
                     <textarea class="form-input" name="room_note" rows="3" data-room-edit-note placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
                 </div>
-                <!-- <div class="room-admin-modal-actions">
-                    <button type="button" class="btn-outline" data-room-modal-close="roomEditModal">ยกเลิก</button>
-                    <button
-                        type="submit"
-                        class="btn-confirm"
-                        data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลห้องใช่หรือไม่?"
-                        data-confirm-title="ยืนยันการบันทึก"
-                        data-confirm-ok="ยืนยัน"
-                        data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div> -->
             </form>
         </div>
         <div class="footer-modal">
-            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
-
-                <button type="submit" form=""
+            <button type="submit"
+                form="roomEditForm"
                 data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลห้องใช่หรือไม่?"
-                        data-confirm-title="ยืนยันการบันทึก"
-                        data-confirm-ok="ยืนยัน"
-                        data-confirm-cancel="ยกเลิก">
-                    <p>บันทึก</p>
-                </button>
-
-            </form>
-
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">
+                <p>บันทึก</p>
+            </button>
         </div>
     </div>
 </div>
