@@ -17,17 +17,18 @@ if (!function_exists('dashboard_resolve_access')) {
         $position_id = (int) ($current_user['positionID'] ?? 0);
 
         $connection = db_connection();
+        $strict_role_ids = $actor_pid !== '' ? rbac_get_user_role_ids($connection, $actor_pid) : $role_ids;
 
-        $is_admin_user = in_array(1, $role_ids, true);
-        $is_registry_user = in_array(2, $role_ids, true);
-        $is_vehicle_user = in_array(3, $role_ids, true);
-        $is_facility_user = in_array(5, $role_ids, true);
+        $is_admin_user = in_array(1, $strict_role_ids, true);
+        $is_registry_user = in_array(2, $strict_role_ids, true);
+        $is_vehicle_user = in_array(3, $strict_role_ids, true);
+        $is_facility_user = in_array(5, $strict_role_ids, true);
 
         if ($actor_pid !== '') {
             $is_admin_user = rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;
-            $is_registry_user = rbac_user_has_role($connection, $actor_pid, ROLE_REGISTRY) || $is_registry_user;
-            $is_vehicle_user = rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE) || $is_vehicle_user;
-            $is_facility_user = rbac_user_has_role($connection, $actor_pid, ROLE_FACILITY) || $is_facility_user;
+            $is_registry_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_REGISTRY)) || $is_registry_user;
+            $is_vehicle_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE)) || $is_vehicle_user;
+            $is_facility_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_FACILITY)) || $is_facility_user;
         }
 
         $acting_pid = (string) (system_get_acting_director_pid() ?? '');

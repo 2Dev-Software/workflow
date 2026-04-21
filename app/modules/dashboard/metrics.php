@@ -195,6 +195,10 @@ if (!function_exists('dashboard_count_vehicle_notifications')) {
             return 0;
         }
 
+        if (!empty($access['is_admin_user'])) {
+            return 0;
+        }
+
         $statuses = [];
 
         // Vehicle officers should be notified only when a requester has just submitted a booking.
