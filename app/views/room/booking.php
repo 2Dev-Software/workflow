@@ -219,9 +219,9 @@ ob_start();
                     <div class="form-group">
                         <label class="form-label">ช่วงเวลา</label>
                         <!-- <input class="form-input" type="time" name="startTime" required> -->
-                        <div class="tp-wrapper">
-                            <input id="timeInput" class="tp-input" readonly value="00:00">
-                            <div class="tp-dropdown" id="timeDropdown">
+                        <div class="tp-wrapper" data-time-target="startTime">
+                            <input id="roomStartTimeDisplay" class="tp-input" readonly value="00:00">
+                            <div class="tp-dropdown" id="roomStartTimeDropdown">
                                 <div class="tp-list">
                                     <div class="tp-col tp-hour"></div>
                                     <div class="tp-col tp-minute"></div>
@@ -229,6 +229,7 @@ ob_start();
                             </div>
                             <i class="fa-solid fa-clock"></i>
                         </div>
+                        <input type="hidden" id="startTime" name="startTime" value="">
                     </div>
 
                     <div class="form-group">
@@ -239,9 +240,9 @@ ob_start();
                     <div class="form-group">
                         <label class="form-label">ถึง</label>
                         <!-- <input class="form-input" type="time" name="endTime" required> -->
-                        <div class="tp-wrapper">
-                            <input id="timeInput" class="tp-input" readonly value="00:00">
-                            <div class="tp-dropdown" id="timeDropdown">
+                        <div class="tp-wrapper" data-time-target="endTime">
+                            <input id="roomEndTimeDisplay" class="tp-input" readonly value="00:00">
+                            <div class="tp-dropdown" id="roomEndTimeDropdown">
                                 <div class="tp-list">
                                     <div class="tp-col tp-hour"></div>
                                     <div class="tp-col tp-minute"></div>
@@ -249,6 +250,7 @@ ob_start();
                             </div>
                             <i class="fa-solid fa-clock"></i>
                         </div>
+                        <input type="hidden" id="endTime" name="endTime" value="">
                     </div>
 
                     <div class="form-group full">
