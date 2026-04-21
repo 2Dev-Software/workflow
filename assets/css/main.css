@@ -551,6 +551,86 @@ select {
   }
 }
 
+.tp-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tp-wrapper i {
+  position: absolute;
+  right: 20px;
+  color: var(--color-secondary);
+}
+
+.tp-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-size: var(--font-size-body-1);
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
+  background-color: var(--color-neutral-lightest);
+  text-align: start;
+  cursor: pointer;
+}
+
+.tp-input:focus {
+  outline: none;
+}
+
+.tp-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 25%;
+  border: 1px solid var(--color-secondary);
+  border-radius: 6px;
+  background: var(--color-neutral-lightest);
+  display: none;
+  z-index: 11;
+}
+
+.tp-list {
+  display: flex;
+  height: 250px;
+}
+
+.tp-col {
+  flex: 1;
+  overflow-y: auto;
+  border-right: 1px solid rgba(var(--rgb-secondary), 0.25);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tp-col::-webkit-scrollbar {
+  display: none;
+}
+
+.tp-col:last-child {
+  border-right: none;
+}
+
+.tp-item {
+  color: var(--color-secondary);
+  font-size: var(--font-size-desc-1);
+  padding: 6px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tp-item:hover {
+  background-color: rgba(var(--rgb-primary-dark), 0.1);
+}
+
+.tp-item-active {
+  background-color: rgba(var(--rgb-primary-dark), 0.25);
+}
+
 /* =========================================
    RESPONSIVE: DESKTOP (>= 1024px)
    Modules: login, dashboard, profile, setting, room, vehicle, circulars, approvals
@@ -941,8 +1021,6 @@ select {
   border: 1px solid rgba(var(--rgb-secondary), 0.4);
   box-shadow: 0 2px 6px rgba(var(--rgb-secondary), 0.18);
 }
-
-
 
 .success .alert-header {
   background: var(--color-success);
@@ -3575,24 +3653,22 @@ select {
 }
 
 .content-area .info-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   margin-bottom: 20px;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 40px 70px;
+  gap: 40px;
 }
 
 .content-area .info-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .content-area .info-label {
   font-size: var(--font-size-body-1);
   color: var(--color-secondary);
-  margin-right: 30px;
+  margin-right: 0px;
 }
 
 .content-area .warning-text {
@@ -3602,8 +3678,7 @@ select {
 }
 
 .content-area .info-value {
-  min-width: 250px;
-  max-width: 335px;
+  width: 60%;
   height: 40px;
   background-color: var(--color-neutral-medium);
   border-radius: 8px;
@@ -3624,7 +3699,7 @@ select {
 }
 
 .content-area .tel-info-value {
-  width: 200px;
+  width: 60%;
   height: 40px;
   background-color: var(--color-neutral-lightest);
   border-radius: 8px;
@@ -3775,7 +3850,7 @@ select {
   width: auto;
   padding: 0 10px;
   height: 40px;
-  font-size:var(--font-size-body-1);
+  font-size: var(--font-size-body-1);
   margin: 20px 0 0;
 }
 
@@ -4296,7 +4371,7 @@ select {
 }
 
 .booking-form .form-input {
-  height: 44px;
+  height: 40px;
 }
 
 .booking-form .booking-textarea {
@@ -5694,9 +5769,9 @@ select {
 }
 
 .room-admin-form {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .room-admin-form .form-group {
@@ -5715,6 +5790,7 @@ select {
 
 .room-admin-form .form-group.full {
   margin: 10px 0;
+  grid-column: 1 / -1;
 }
 
 .room-admin-modal .form-group {

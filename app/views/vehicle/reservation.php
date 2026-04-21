@@ -187,7 +187,17 @@ ob_start();
 
             <div class="vehicle-input-content">
                 <label for="startTime">เวลาเริ่มต้น</label>
-                <input type="time" id="startTime" name="startTime" required>
+                <!-- <input type="time" id="startTime" name="startTime" required> -->
+                <div class="tp-wrapper">
+                    <input id="timeInput" class="tp-input" readonly value="00:00">
+                    <div class="tp-dropdown" id="timeDropdown">
+                        <div class="tp-list">
+                            <div class="tp-col tp-hour"></div>
+                            <div class="tp-col tp-minute"></div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-clock"></i>
+                </div>
             </div>
         </div>
 
@@ -199,7 +209,17 @@ ob_start();
 
             <div class="vehicle-input-content">
                 <label for="endTime">เวลาสิ้นสุด</label>
-                <input type="time" id="endTime" name="endTime" required>
+                <!-- <input type="time" id="endTime" name="endTime" required> -->
+                <div class="tp-wrapper">
+                    <input id="timeInput" class="tp-input" readonly value="00:00">
+                    <div class="tp-dropdown" id="timeDropdown">
+                        <div class="tp-list">
+                            <div class="tp-col tp-hour"></div>
+                            <div class="tp-col tp-minute"></div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-clock"></i>
+                </div>
             </div>
 
             <div class="vehicle-input-content">
