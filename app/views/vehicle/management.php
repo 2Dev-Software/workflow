@@ -337,37 +337,37 @@ ob_start();
             <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>" id="vehicleAddForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="vehicle_action" value="add">
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ประเภทยานพาหนะ</label>
                     <input class="form-input" type="text" name="vehicle_type" maxlength="50" required
                         placeholder="เช่น รถตู้, รถกระบะ" value="<?= h((string) $form_values['vehicleType']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ทะเบียนรถ</label>
                     <input class="form-input" type="text" name="vehicle_plate" maxlength="50" required
                         placeholder="เช่น กข 1234" value="<?= h((string) $form_values['vehiclePlate']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ยี่ห้อรถ</label>
                     <input class="form-input" type="text" name="vehicle_brand" maxlength="100"
                         placeholder="เช่น Toyota" value="<?= h((string) $form_values['vehicleBrand']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">รุ่นรถ</label>
                     <input class="form-input" type="text" name="vehicle_model" maxlength="100"
                         placeholder="เช่น Commuter" value="<?= h((string) $form_values['vehicleModel']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">สีรถ</label>
                     <input class="form-input" type="text" name="vehicle_color" maxlength="50"
                         placeholder="เช่น ขาว" value="<?= h((string) $form_values['vehicleColor']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ความจุที่นั่ง</label>
                     <input class="form-input" type="number" name="vehicle_capacity" min="1" max="99"
                         value="<?= h((string) ($form_values['vehicleCapacity'] ?? 4)) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">สถานะ</label>
                     <div class="custom-select-wrapper">
                         <div class="custom-select-trigger">
@@ -418,37 +418,37 @@ ob_start();
                 <?= csrf_field() ?>
                 <input type="hidden" name="vehicle_action" value="edit">
                 <input type="hidden" name="vehicle_id" value="<?= h((string) ($edit_values['vehicleID'] ?? 0)) ?>" data-vehicle-edit-id>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ประเภทยานพาหนะ</label>
                     <input class="form-input" type="text" name="vehicle_type" maxlength="50" required
                         data-vehicle-edit-type value="<?= h((string) $edit_values['vehicleType']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ทะเบียนรถ</label>
                     <input class="form-input" type="text" name="vehicle_plate" maxlength="50" required
                         data-vehicle-edit-plate value="<?= h((string) $edit_values['vehiclePlate']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ยี่ห้อรถ</label>
                     <input class="form-input" type="text" name="vehicle_brand" maxlength="100"
                         data-vehicle-edit-brand value="<?= h((string) $edit_values['vehicleBrand']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">รุ่นรถ</label>
                     <input class="form-input" type="text" name="vehicle_model" maxlength="100"
                         data-vehicle-edit-model value="<?= h((string) $edit_values['vehicleModel']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">สีรถ</label>
                     <input class="form-input" type="text" name="vehicle_color" maxlength="50"
                         data-vehicle-edit-color value="<?= h((string) $edit_values['vehicleColor']) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">ความจุที่นั่ง</label>
                     <input class="form-input" type="number" name="vehicle_capacity" min="1" max="99"
                         data-vehicle-edit-capacity value="<?= h((string) ($edit_values['vehicleCapacity'] ?? 4)) ?>">
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label class="form-label">สถานะ</label>
                     <select class="form-input" name="vehicle_status" required data-vehicle-edit-status>
                         <?php foreach ($status_options as $status_option) : ?>

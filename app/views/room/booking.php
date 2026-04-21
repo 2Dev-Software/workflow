@@ -218,8 +218,16 @@ ob_start();
 
                     <div class="form-group">
                         <label class="form-label">ช่วงเวลา</label>
-                        <div class="booking-time-range">
-                            <input class="form-input" type="time" name="startTime" required>
+                        <!-- <input class="form-input" type="time" name="startTime" required> -->
+                        <div class="tp-wrapper">
+                            <input id="timeInput" class="tp-input" readonly value="00:00">
+                            <div class="tp-dropdown" id="timeDropdown">
+                                <div class="tp-list">
+                                    <div class="tp-col tp-hour"></div>
+                                    <div class="tp-col tp-minute"></div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-clock"></i>
                         </div>
                     </div>
 
@@ -230,19 +238,18 @@ ob_start();
 
                     <div class="form-group">
                         <label class="form-label">ถึง</label>
-                        <div class="booking-time-range">
-                            <input class="form-input" type="time" name="endTime" required>
+                        <!-- <input class="form-input" type="time" name="endTime" required> -->
+                        <div class="tp-wrapper">
+                            <input id="timeInput" class="tp-input" readonly value="00:00">
+                            <div class="tp-dropdown" id="timeDropdown">
+                                <div class="tp-list">
+                                    <div class="tp-col tp-hour"></div>
+                                    <div class="tp-col tp-minute"></div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-clock"></i>
                         </div>
                     </div>
-
-                    <!-- <div class="form-group">
-                        <label class="form-label">ช่วงเวลา</label>
-                        <div class="booking-time-range">
-                            <input class="form-input" type="time" name="startTime" required>
-                            <span>ถึง</span>
-                            <input class="form-input" type="time" name="endTime" required>
-                        </div>
-                    </div> -->
 
                     <div class="form-group full">
                         <label class="form-label" for="bookingCapacity">จำนวนผู้เข้าร่วม</label>
