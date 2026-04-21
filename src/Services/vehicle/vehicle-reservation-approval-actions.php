@@ -31,7 +31,7 @@ if (!($connection instanceof mysqli)) {
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-$vehicle_columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings');
+$vehicle_columns = vehicle_reservation_ensure_other_passenger_columns($connection);
 $vehicle_master_columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicles');
 $vehicle_supports_soft_delete = vehicle_reservation_has_column($vehicle_master_columns, 'deletedAt');
 $vehicle_supports_status = vehicle_reservation_has_column($vehicle_master_columns, 'vehicleStatus');

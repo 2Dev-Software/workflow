@@ -441,7 +441,7 @@ if (is_array($attachments) && isset($attachments['name']) && is_array($attachmen
     }
 }
 
-$vehicle_columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings');
+$vehicle_columns = vehicle_reservation_ensure_other_passenger_columns($connection);
 $set_fields = ['dh_year = ?', 'startAt = ?', 'endAt = ?'];
 $values = [$vehicle_year, $start_at, $end_at];
 $types = 'iss';

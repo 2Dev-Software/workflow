@@ -656,25 +656,24 @@ $location_label = $normalize_inline_text($location !== '' ? $location : '-');
 $companion_label = $normalize_inline_text($companion_label);
 $other_passenger_label = $normalize_inline_text($other_passenger_label);
 $requester_name = $normalize_inline_text($requester_name !== '' ? $requester_name : '-');
-$passenger_parts = [];
+$companion_inline = '';
+$additional_passenger_inline = '';
 
 if ($companion_label !== '') {
-    $passenger_parts[] = $companion_label;
+    $companion_inline = 'พร้อมด้วย ' . $companion_label . ' ';
 }
 
 if ($other_passenger_label !== '') {
-    $passenger_parts[] = 'บุคลากรอื่นๆ ' . $other_passenger_label;
+    $additional_passenger_inline = 'และมีบุคลากรเพิ่มเติม ดังต่อไปนี้ ' . $other_passenger_label . ' ';
 } elseif ($other_passenger_count > 0) {
-    $passenger_parts[] = 'บุคลากรอื่นๆ จำนวน ' . $other_passenger_count . ' คน';
+    $additional_passenger_inline = 'และมีบุคลากรเพิ่มเติม ดังต่อไปนี้ จำนวน ' . $other_passenger_count . ' คน ';
 }
-
-$companion_inline = !empty($passenger_parts) ? ('พร้อมด้วย ' . implode(', ', $passenger_parts) . ' ') : '';
 
 $paragraph_lines = [];
 $paragraph_lines[] = trim('ข้าพเจ้า ' . ($requester_name !== '' ? $requester_name : '-') . ' ตำแหน่ง ' . $requester_position_label
     . ($requester_department_label !== '' ? (' ' . $requester_department_label) : '')
     . ' สังกัด ' . $school_name);
-$paragraph_lines[] = trim($companion_inline . 'ขออนุญาตใช้รถเพื่อ ' . $purpose_label);
+$paragraph_lines[] = trim($companion_inline . $additional_passenger_inline . 'ขออนุญาตใช้รถเพื่อ ' . $purpose_label);
 $paragraph_lines[] = trim('ณ ' . $location_label . ' มีคนนั่ง ' . $passengers . ' คน');
 $paragraph_lines[] = trim('ตั้งแต่วันที่ ' . $format_thai_date($start_date) . ' เวลา ' . $format_thai_time($start_at) . ' น. ถึงวันที่ ' . $format_thai_date($end_date) . ' เวลา ' . $format_thai_time($end_at) . ' น.');
 $paragraph_lines[] = trim('จำนวน ' . $day_count_label . ' วัน โดยใช้น้ำมันเชื้อเพลิงจาก ' . $fuel);

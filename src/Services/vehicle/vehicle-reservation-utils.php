@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 if (!function_exists('vehicle_reservation_get_table_columns')) {
-    function vehicle_reservation_get_table_columns(mysqli $connection, string $table = 'dh_vehicle_bookings'): array
+    function vehicle_reservation_get_table_columns(mysqli $connection, string $table = 'dh_vehicle_bookings', bool $refresh = false): array
     {
         static $cached = [];
         $table = trim($table);
@@ -12,7 +12,7 @@ if (!function_exists('vehicle_reservation_get_table_columns')) {
             return [];
         }
 
-        if (isset($cached[$table])) {
+        if (!$refresh && isset($cached[$table])) {
             return $cached[$table];
         }
 
@@ -41,5 +41,40 @@ if (!function_exists('vehicle_reservation_has_column')) {
     function vehicle_reservation_has_column(array $columns, string $column): bool
     {
         return in_array($column, $columns, true);
+    }
+}
+
+if (!function_exists('vehicle_reservation_ensure_other_passenger_columns')) {
+    function vehicle_reservation_ensure_other_passenger_columns(mysqli $connection): array
+    {
+        $columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings', true);
+
+        if (!vehicle_reservation_has_column($columns, 'otherPassengerCount')) {
+            $sql = "ALTER TABLE `dh_vehicle_bookings` ADD COLUMN `otherPassengerCount` int(11) NOT NULL DEFAULT 0 AFTER `companionCount`";
+
+            try {
+                if (!mysqli_query($connection, $sql)) {
+                    error_log('Database Error: ' . mysqli_error($connection));
+                }
+            } catch (mysqli_sql_exception $exception) {
+                error_log('Database Exception: ' . $exception->getMessage());
+            }
+        }
+
+        $columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings', true);
+
+        if (!vehicle_reservation_has_column($columns, 'otherPassengerNames')) {
+            $sql = "ALTER TABLE `dh_vehicle_bookings` ADD COLUMN `otherPassengerNames` text DEFAULT NULL AFTER `otherPassengerCount`";
+
+            try {
+                if (!mysqli_query($connection, $sql)) {
+                    error_log('Database Error: ' . mysqli_error($connection));
+                }
+            } catch (mysqli_sql_exception $exception) {
+                error_log('Database Exception: ' . $exception->getMessage());
+            }
+        }
+
+        return vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings', true);
     }
 }

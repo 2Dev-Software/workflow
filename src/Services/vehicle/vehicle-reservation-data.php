@@ -92,7 +92,7 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
         $year = (int) date('Y') + 543;
     }
 
-    $columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings');
+    $columns = vehicle_reservation_ensure_other_passenger_columns($connection);
     $select_fields = [
         'b.bookingID',
         'b.dh_year',

@@ -168,7 +168,7 @@ try {
     error_log('Database Exception: ' . $exception->getMessage());
 }
 
-$vehicle_columns = vehicle_reservation_get_table_columns($connection, 'dh_vehicle_bookings');
+$vehicle_columns = vehicle_reservation_ensure_other_passenger_columns($connection);
 $select_fields = [
     'b.bookingID',
     'b.dh_year',

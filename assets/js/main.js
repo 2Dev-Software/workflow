@@ -2520,6 +2520,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const timeDropdown = wrapper.querySelector(".tp-dropdown");
         const hourColumn = wrapper.querySelector(".tp-hour");
         const minuteColumn = wrapper.querySelector(".tp-minute");
+        const targetId = wrapper.getAttribute("data-time-target") || "";
+        const targetInput = targetId ? document.getElementById(targetId) : null;
 
         let selectedHour = "--";
         let selectedMinute = "--";
@@ -2566,7 +2568,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         function update() {
-            timeInput.value = `${selectedHour}:${selectedMinute}`;
+            const displayValue = `${selectedHour}:${selectedMinute}`;
+            const isCompleteTime = /^\d{2}$/.test(selectedHour) && /^\d{2}$/.test(selectedMinute);
+
+            timeInput.value = displayValue;
+
+            if (targetInput) {
+                targetInput.value = isCompleteTime ? displayValue : "";
+                targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
 
             wrapper.querySelectorAll(".tp-hour .tp-item").forEach(el => {
                 el.classList.toggle("tp-item-active", el.textContent === selectedHour);

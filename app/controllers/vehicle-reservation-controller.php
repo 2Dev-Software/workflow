@@ -202,12 +202,20 @@ if (!function_exists('vehicle_reservation_index')) {
                     $companion_names[] = $name;
                 }
             }
-            $passenger_count = (int) ($booking_item['passengerCount'] ?? 0);
+            $stored_passenger_count = (int) ($booking_item['passengerCount'] ?? 0);
             $other_passenger_count = (int) ($booking_item['otherPassengerCount'] ?? 0);
+            $other_passenger_names = (string) ($booking_item['otherPassengerNames'] ?? '');
+            $other_passenger_name_count = count(array_filter(
+                preg_split('/\r\n|\r|\n|,/', $other_passenger_names) ?: [],
+                static fn ($name): bool => trim((string) $name) !== ''
+            ));
 
-            if ($other_passenger_count <= 0 && $passenger_count > 0) {
-                $other_passenger_count = max(0, $passenger_count - count($companion_ids) - 1);
+            if ($other_passenger_count <= 0 && $other_passenger_name_count > 0) {
+                $other_passenger_count = $other_passenger_name_count;
+            } elseif ($other_passenger_count <= 0 && $stored_passenger_count > 0) {
+                $other_passenger_count = max(0, $stored_passenger_count - count($companion_ids) - 1);
             }
+            $passenger_count = max(1, count($companion_ids) + max(0, $other_passenger_count) + 1);
             $attachments = $vehicle_booking_attachments[(string) $booking_id] ?? [];
 
             $updated_at_value = trim((string) ($booking_item['updatedAt'] ?? ''));
@@ -223,8 +231,9 @@ if (!function_exists('vehicle_reservation_index')) {
                 'purpose' => (string) ($booking_item['purpose'] ?? ''),
                 'location' => (string) ($booking_item['location'] ?? ''),
                 'passengerCount' => $passenger_count,
+                'companionCount' => count($companion_ids),
                 'otherPassengerCount' => $other_passenger_count,
-                'otherPassengerNames' => (string) ($booking_item['otherPassengerNames'] ?? ''),
+                'otherPassengerNames' => $other_passenger_names,
                 'startAt' => (string) ($booking_item['startAt'] ?? ''),
                 'endAt' => (string) ($booking_item['endAt'] ?? ''),
                 'fuelSource' => (string) ($booking_item['fuelSource'] ?? ''),

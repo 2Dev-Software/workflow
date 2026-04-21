@@ -188,9 +188,9 @@ ob_start();
             <div class="vehicle-input-content">
                 <label for="startTime">เวลาเริ่มต้น</label>
                 <!-- <input type="time" id="startTime" name="startTime" required> -->
-                <div class="tp-wrapper">
-                    <input id="timeInput" class="tp-input" readonly value="00:00">
-                    <div class="tp-dropdown" id="timeDropdown">
+                <div class="tp-wrapper" data-time-target="startTime">
+                    <input id="startTimeDisplay" class="tp-input" readonly value="00:00">
+                    <div class="tp-dropdown" id="startTimeDropdown">
                         <div class="tp-list">
                             <div class="tp-col tp-hour"></div>
                             <div class="tp-col tp-minute"></div>
@@ -198,6 +198,7 @@ ob_start();
                     </div>
                     <i class="fa-solid fa-clock"></i>
                 </div>
+                <input type="hidden" id="startTime" name="startTime" value="">
             </div>
         </div>
 
@@ -210,9 +211,9 @@ ob_start();
             <div class="vehicle-input-content">
                 <label for="endTime">เวลาสิ้นสุด</label>
                 <!-- <input type="time" id="endTime" name="endTime" required> -->
-                <div class="tp-wrapper">
-                    <input id="timeInput" class="tp-input" readonly value="00:00">
-                    <div class="tp-dropdown" id="timeDropdown">
+                <div class="tp-wrapper" data-time-target="endTime">
+                    <input id="endTimeDisplay" class="tp-input" readonly value="00:00">
+                    <div class="tp-dropdown" id="endTimeDropdown">
                         <div class="tp-list">
                             <div class="tp-col tp-hour"></div>
                             <div class="tp-col tp-minute"></div>
@@ -220,6 +221,7 @@ ob_start();
                     </div>
                     <i class="fa-solid fa-clock"></i>
                 </div>
+                <input type="hidden" id="endTime" name="endTime" value="">
             </div>
 
             <div class="vehicle-input-content">
@@ -786,19 +788,44 @@ ob_start();
             closeCompanionModal();
         }
 
-        function renderPassengerSummary(names) {
-            if (!companionSummaryInput) return;
-            const normalized = Array.isArray(names) ?
-                Array.from(new Set(names.map((name) => String(name || '').trim()).filter(Boolean))) : [];
-            const otherCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
+        function countOtherPassengerNames(value) {
+            return String(value || '')
+                .split(/\r?\n|,/)
+                .map((name) => name.trim())
+                .filter(Boolean)
+                .length;
+        }
 
-            if (normalized.length === 0 && otherCount <= 0) {
+        function resolveCompanionCount(data) {
+            if (Array.isArray(data?.companionIds)) {
+                return data.companionIds.map((id) => String(id || '').trim()).filter(Boolean).length;
+            }
+
+            return Math.max(0, Number(data?.companionCount || 0));
+        }
+
+        function resolveOtherPassengerCount(data) {
+            const storedOtherCount = Math.max(0, Number(data?.otherPassengerCount || 0));
+            const nameCount = countOtherPassengerNames(data?.otherPassengerNames || '');
+
+            return storedOtherCount > 0 ? storedOtherCount : nameCount;
+        }
+
+        function renderPassengerSummary(data) {
+            if (!companionSummaryInput) return;
+            const companionCount = resolveCompanionCount(data);
+
+            if (companionCount <= 0) {
                 companionSummaryInput.value = '';
                 companionSummaryInput.placeholder = 'ไม่มีผู้ร่วมเดินทาง';
                 return;
             }
 
-            companionSummaryInput.value = `จำนวน ${normalized.length + Math.max(0, otherCount)} รายชื่อ`;
+            companionSummaryInput.value = `จำนวน ${companionCount} รายชื่อ`;
+        }
+
+        function resolvePassengerCount(data) {
+            return Math.max(1, resolveCompanionCount(data) + resolveOtherPassengerCount(data) + 1);
         }
 
         function fillModal(data) {
@@ -827,7 +854,7 @@ ob_start();
             if (fieldMap.endTime) fieldMap.endTime.value = endAt ? endAt.split(' ')[1].slice(0, 5) : '';
             updateModalDayCount();
 
-            const passengerValue = data.passengerCount || Math.max(1, (data.companionIds || []).length + 1);
+            const passengerValue = resolvePassengerCount(data);
             if (fieldMap.passengerCount) fieldMap.passengerCount.value = String(passengerValue);
             if (fieldMap.passengerCountDisplay) {
                 fieldMap.passengerCountDisplay.textContent = passengerValue > 0 ? `${passengerValue} คน` : '-';
@@ -839,7 +866,7 @@ ob_start();
                 });
             }
 
-            renderPassengerSummary(data.companionNames || []);
+            renderPassengerSummary(data);
             renderAttachmentList(false);
         }
 
@@ -849,25 +876,19 @@ ob_start();
                 companionModalList.innerHTML = '';
                 const companionNames = currentBooking && Array.isArray(currentBooking.companionNames) ?
                     Array.from(new Set(currentBooking.companionNames.map((name) => String(name || '').trim()).filter(Boolean))) : [];
-                const otherPassengerNames = currentBooking && currentBooking.otherPassengerNames ?
-                    String(currentBooking.otherPassengerNames).split(/\r?\n|,/).map((name) => name.trim()).filter(Boolean) : [];
-                const otherPassengerCount = currentBooking ? Number(currentBooking.otherPassengerCount || 0) : 0;
+                const companionCount = currentBooking ? resolveCompanionCount(currentBooking) : 0;
+                const missingCompanionCount = Math.max(0, companionCount - companionNames.length);
 
-                if (companionNames.length > 0 || otherPassengerNames.length > 0 || otherPassengerCount > 0) {
+                if (companionCount > 0) {
                     const ul = document.createElement('ul');
                     companionNames.forEach((nameText) => {
                         const li = document.createElement('li');
                         li.textContent = nameText;
                         ul.appendChild(li);
                     });
-                    otherPassengerNames.forEach((nameText) => {
+                    if (missingCompanionCount > 0) {
                         const li = document.createElement('li');
-                        li.textContent = nameText;
-                        ul.appendChild(li);
-                    });
-                    if (otherPassengerNames.length === 0 && otherPassengerCount > 0) {
-                        const li = document.createElement('li');
-                        li.textContent = `บุคลากรอื่นๆ จำนวน ${otherPassengerCount} คน`;
+                        li.textContent = `ผู้ร่วมเดินทางที่เลือก จำนวน ${missingCompanionCount} คน`;
                         ul.appendChild(li);
                     }
                     companionModalList.appendChild(ul);
