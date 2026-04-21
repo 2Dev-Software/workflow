@@ -23,12 +23,14 @@ if (!function_exists('dashboard_resolve_access')) {
         $is_registry_user = in_array(2, $strict_role_ids, true);
         $is_vehicle_user = in_array(3, $strict_role_ids, true);
         $is_facility_user = in_array(5, $strict_role_ids, true);
+        $is_repair_staff_user = in_array(7, $strict_role_ids, true);
 
         if ($actor_pid !== '') {
             $is_admin_user = rbac_user_has_role($connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;
             $is_registry_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_REGISTRY)) || $is_registry_user;
             $is_vehicle_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_VEHICLE)) || $is_vehicle_user;
             $is_facility_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_FACILITY)) || $is_facility_user;
+            $is_repair_staff_user = (!$is_admin_user && rbac_user_has_role($connection, $actor_pid, ROLE_REPAIR)) || $is_repair_staff_user;
         }
 
         $acting_pid = (string) (system_get_acting_director_pid() ?? '');
@@ -40,10 +42,13 @@ if (!function_exists('dashboard_resolve_access')) {
             'is_registry_user' => $is_registry_user,
             'is_vehicle_user' => $is_vehicle_user,
             'is_facility_user' => $is_facility_user,
+            'is_repair_staff_user' => $is_repair_staff_user,
             'is_director_or_acting' => $is_director_or_acting,
             'can_manage_external_circular' => $is_admin_user || $is_registry_user,
             'can_manage_room_module' => $is_admin_user || $is_facility_user,
             'can_manage_vehicle_module' => $is_admin_user || $is_vehicle_user,
+            'can_approve_repair_module' => $is_admin_user || $is_repair_staff_user,
+            'can_manage_repair_module' => $is_admin_user,
             'can_access_settings' => $is_admin_user || $is_registry_user,
         ];
     }

@@ -238,20 +238,15 @@ if (!function_exists('dashboard_count_vehicle_notifications')) {
 if (!function_exists('dashboard_count_repair_notifications')) {
     function dashboard_count_repair_notifications(mysqli $connection, array $access): int
     {
-        if (
-            empty($access['can_manage_repair_module'])
-            && empty($access['is_repair_staff_user'])
-            && empty($access['is_facility_user'])
-            && empty($access['is_admin_user'])
-        ) {
-            return 0;
-        }
-
         if (!db_table_exists($connection, 'dh_repair_requests')) {
             return 0;
         }
 
-        $where = "status = 'PENDING'";
+        if (!empty($access['is_admin_user']) || empty($access['is_repair_staff_user'])) {
+            return 0;
+        }
+
+        $where = "status IN ('PENDING', 'IN_PROGRESS')";
 
         if (db_column_exists($connection, 'dh_repair_requests', 'deletedAt')) {
             $where .= ' AND deletedAt IS NULL';

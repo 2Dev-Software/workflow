@@ -18,18 +18,19 @@ if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
 }
 
 $sidebar_connection = db_connection();
-$is_admin_user = in_array(1, $role_ids, true);
-$is_registry_user = in_array(2, $role_ids, true);
-$is_vehicle_user = in_array(3, $role_ids, true);
-$is_facility_user = in_array(5, $role_ids, true);
-$is_repair_staff_user = in_array($repair_staff_role_id, $role_ids, true);
+$strict_role_ids = $actor_pid !== '' ? rbac_get_user_role_ids($sidebar_connection, $actor_pid) : $role_ids;
+$is_admin_user = in_array(1, $strict_role_ids, true);
+$is_registry_user = in_array(2, $strict_role_ids, true);
+$is_vehicle_user = in_array(3, $strict_role_ids, true);
+$is_facility_user = in_array(5, $strict_role_ids, true);
+$is_repair_staff_user = in_array($repair_staff_role_id, $strict_role_ids, true);
 
 if ($actor_pid !== '') {
     $is_admin_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_ADMIN) || $is_admin_user;
-    $is_registry_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY) || $is_registry_user;
-    $is_vehicle_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_VEHICLE) || $is_vehicle_user;
-    $is_facility_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_FACILITY) || $is_facility_user;
-    $is_repair_staff_user = rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REPAIR) || $is_repair_staff_user;
+    $is_registry_user = (!$is_admin_user && rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REGISTRY)) || $is_registry_user;
+    $is_vehicle_user = (!$is_admin_user && rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_VEHICLE)) || $is_vehicle_user;
+    $is_facility_user = (!$is_admin_user && rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_FACILITY)) || $is_facility_user;
+    $is_repair_staff_user = (!$is_admin_user && rbac_user_has_role($sidebar_connection, $actor_pid, ROLE_REPAIR)) || $is_repair_staff_user;
 }
 
 $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
@@ -40,7 +41,8 @@ $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
 $can_approve_vehicle_module = $is_admin_user || $is_vehicle_user || $is_director_or_acting;
 $can_manage_vehicle_records = $is_admin_user;
 $can_access_settings = $is_admin_user || $is_registry_user;
-$can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_staff_user;
+$can_approve_repair_module = $is_admin_user || $is_repair_staff_user;
+$can_manage_repair_module = $is_admin_user;
 
 $director_inbox_type = ($acting_pid !== '' && $acting_pid === $actor_pid)
     ? 'acting_principal_inbox'
@@ -57,6 +59,7 @@ $sidebar_access = [
     'can_manage_vehicle_module' => $can_manage_vehicle_module,
     'can_approve_vehicle_module' => $can_approve_vehicle_module,
     'can_manage_vehicle_records' => $can_manage_vehicle_records,
+    'can_approve_repair_module' => $can_approve_repair_module,
     'can_manage_repair_module' => $can_manage_repair_module,
 ];
 $sidebar_counts = $actor_pid !== '' ? dashboard_counts($actor_pid, $sidebar_access) : dashboard_zero_counts();
@@ -239,25 +242,33 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 </a>
             </li>
         <?php endif; ?>
-        <li class="navigation-links-has-sub">
-            <div class="icon-link">
-                <a href="#">
+        <?php if ($can_approve_repair_module): ?>
+            <li class="navigation-links-has-sub">
+                <div class="icon-link">
+                    <a href="#">
+                        <?php if ($sidebar_alerts['repairs']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
+                        <img src="public/assets/img/icon/repair.png" alt="">
+                        <p class="link-name">แจ้งเหตุซ่อมแซม</p>
+                    </a>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+                <ul class="navigation-links-sub-menu">
+                    <li><a href="repairs.php">แจ้งเหตุซ่อมแซม</a></li>
+                    <li><a href="repairs-approval.php">อนุมัติการซ่อมแซม</a></li>
+                    <?php if ($can_manage_repair_module): ?>
+                        <li><a href="repairs-management.php">จัดการงานซ่อม</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
+        <?php else: ?>
+            <li>
+                <a href="repairs.php">
                     <?php if ($sidebar_alerts['repairs']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
                     <img src="public/assets/img/icon/repair.png" alt="">
                     <p class="link-name">แจ้งเหตุซ่อมแซม</p>
                 </a>
-                <i class="fa-solid fa-caret-down"></i>
-            </div>
-            <ul class="navigation-links-sub-menu">
-                <li><a href="repairs.php">แจ้งเหตุซ่อมแซม</a></li>
-                <?php if ($can_manage_repair_module): ?>
-                    <li><a href="repairs-approval.php">อนุมัติการซ่อมแซม</a></li>
-                <?php endif; ?>
-                <?php if ($is_admin_user): ?>
-                    <li><a href="repairs-management.php">จัดการงานซ่อม</a></li>
-                <?php endif; ?>
-            </ul>
-        </li>
+            </li>
+        <?php endif; ?>
         <li>
             <a href="teacher-phone-directory.php">
                 <img src="public/assets/img/icon/phone.png" alt="">

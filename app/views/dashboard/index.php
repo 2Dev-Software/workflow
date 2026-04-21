@@ -15,9 +15,11 @@ $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
 $unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
 $vehicle_notifications = (int) ($dashboard_counts['vehicle_notifications'] ?? $dashboard_counts['unread_vehicle_bookings'] ?? 0);
+$repair_notifications = (int) ($dashboard_counts['repair_notifications'] ?? 0);
 
 if ($dashboard_is_admin) {
     $vehicle_notifications = 0;
+    $repair_notifications = 0;
 }
 $dashboard_notifications = array_values(array_filter([
     [
@@ -39,6 +41,11 @@ $dashboard_notifications = array_values(array_filter([
     [
         'label' => 'จองยานพาหนะ',
         'count' => $vehicle_notifications,
+        'message' => 'ที่ต้องดำเนินการ',
+    ],
+    [
+        'label' => 'แจ้งเหตุซ่อมแซม',
+        'count' => $repair_notifications,
         'message' => 'ที่ต้องดำเนินการ',
     ],
 ], static function (array $item): bool {
