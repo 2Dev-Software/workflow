@@ -37,6 +37,8 @@ $can_manage_external_circular = $is_admin_user || $is_registry_user;
 $can_access_external_circular_menu = $can_manage_external_circular || $is_director_or_acting;
 $can_manage_room_module = $is_admin_user || $is_facility_user;
 $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
+$can_approve_vehicle_module = $is_admin_user || $is_vehicle_user || $is_director_or_acting;
+$can_manage_vehicle_records = $is_admin_user;
 $can_access_settings = $is_admin_user || $is_registry_user;
 $can_manage_repair_module = $is_admin_user || $is_facility_user || $is_repair_staff_user;
 
@@ -53,6 +55,8 @@ $sidebar_access = [
     'can_manage_external_circular' => $can_manage_external_circular,
     'can_manage_room_module' => $can_manage_room_module,
     'can_manage_vehicle_module' => $can_manage_vehicle_module,
+    'can_approve_vehicle_module' => $can_approve_vehicle_module,
+    'can_manage_vehicle_records' => $can_manage_vehicle_records,
     'can_manage_repair_module' => $can_manage_repair_module,
 ];
 $sidebar_counts = $actor_pid !== '' ? dashboard_counts($actor_pid, $sidebar_access) : dashboard_zero_counts();
@@ -101,7 +105,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <p class="link-name">ข่าวประชาสัมพันธ์ </p>
             </a>
         </li>
-        
+
         <?php if ($can_access_external_circular_menu): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
@@ -208,15 +212,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             </li>
         <?php endif; ?>
 
-        <?php if ($is_director_or_acting): ?>
-            <li>
-                <a href="vehicle-reservation-approval.php">
-                    <?php if ($sidebar_alerts['vehicle']): ?><span class="red-dot-alert pulse-shadow"></span><?php endif; ?>
-                    <img src="public/assets/img/icon/building.png" alt="">
-                    <p class="link-name">อนุมัติการจองยานพาหนะ</p>
-                </a>
-            </li>
-        <?php elseif ($can_manage_vehicle_module): ?>
+        <?php if ($can_approve_vehicle_module): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -229,15 +225,10 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <ul class="navigation-links-sub-menu">
                     <li><a href="vehicle-reservation.php">จองยานพาหนะ</a></li>
                     <li><a href="vehicle-reservation-approval.php">อนุมัติการจองยานพาหนะ</a></li>
-                    <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
+                    <?php if ($can_manage_vehicle_records): ?>
+                        <li><a href="vehicle-management.php">จัดการยานพาหนะ</a></li>
+                    <?php endif; ?>
                 </ul>
-            </li>
-        <?php elseif ($is_director_or_acting): ?>
-            <li>
-                <a href="vehicle-reservation-approval.php">
-                    <img src="public/assets/img/icon/car.png" alt="">
-                    <p class="link-name">อนุมัติการจองยานพาหนะ</p>
-                </a>
             </li>
         <?php else: ?>
             <li>
@@ -273,6 +264,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <p class="link-name">สมุดโทรศัพท์</p>
             </a>
         </li>
+
         <?php if ($is_admin_user): ?>
             <li>
                 <a href="personnel-management.php">

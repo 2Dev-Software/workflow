@@ -6,43 +6,16 @@ require_once __DIR__ . '/../views/view.php';
 require_once __DIR__ . '/../../src/Services/auth/auth-guard.php';
 require_once __DIR__ . '/../../src/Services/security/security-service.php';
 require_once __DIR__ . '/../../src/Services/teacher/teacher-profile.php';
-require_once __DIR__ . '/../../src/Services/system/exec-duty-current.php';
 require_once __DIR__ . '/../../src/Services/system/system-year.php';
 require_once __DIR__ . '/../../src/Services/vehicle/vehicle-reservation-data.php';
-require_once __DIR__ . '/../modules/audit/logger.php';
 
 if (!function_exists('vehicle_reservation_index')) {
     function vehicle_reservation_index(): void
     {
-        global $connection, $teacher, $dh_year, $exec_duty_current_status, $exec_duty_current_pid;
+        global $connection, $teacher, $dh_year;
 
         $teacher_name = (string) ($teacher['fName'] ?? '');
         $current_pid = (string) ($_SESSION['pID'] ?? '');
-
-        $position_id = (int) ($teacher['positionID'] ?? 0);
-        $acting_pid = '';
-
-        if (($exec_duty_current_status ?? 0) === 2 && !empty($exec_duty_current_pid)) {
-            $acting_pid = (string) $exec_duty_current_pid;
-        }
-        $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $current_pid);
-
-        if ($is_director_or_acting) {
-            if (function_exists('audit_log')) {
-                audit_log('vehicle', 'RESERVATION_ACCESS', 'DENY', null, null, 'director_or_acting_cannot_book', [
-                    'positionID' => $position_id,
-                    'actingPID' => $acting_pid !== '' ? $acting_pid : null,
-                ]);
-            }
-            $_SESSION['vehicle_approval_alert'] = [
-                'type' => 'warning',
-                'title' => 'ไม่มีสิทธิ์จองยานพาหนะ',
-                'message' => 'บัญชีผู้บริหารสามารถทำรายการอนุมัติการจองยานพาหนะเท่านั้น',
-                'button_label' => 'รับทราบ',
-            ];
-            header('Location: vehicle-reservation-approval.php', true, 302);
-            exit();
-        }
 
         $currentThaiYear = (int) date('Y') + 543;
         $dh_year_value = (int) ($dh_year !== '' ? $dh_year : $currentThaiYear);

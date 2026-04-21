@@ -23,13 +23,13 @@ if (!function_exists('vehicle_management_index')) {
         $current_pid = (string) ($current_user['pID'] ?? '');
         $connection = db_connection();
 
-        $is_vehicle_officer = rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN, ROLE_VEHICLE]);
+        $is_vehicle_manager = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
 
-        if (!$is_vehicle_officer && in_array((int) ($current_user['roleID'] ?? 0), [1, 3], true)) {
-            $is_vehicle_officer = true;
+        if (!$is_vehicle_manager && in_array((int) ($current_user['roleID'] ?? 0), [1], true)) {
+            $is_vehicle_manager = true;
         }
 
-        if (!$is_vehicle_officer) {
+        if (!$is_vehicle_manager) {
             if (function_exists('audit_log')) {
                 audit_log('vehicle', 'ACCESS', 'DENY', null, null, 'vehicle_management_access_denied');
             }

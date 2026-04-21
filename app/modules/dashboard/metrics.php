@@ -196,11 +196,12 @@ if (!function_exists('dashboard_count_vehicle_notifications')) {
 
         $statuses = [];
 
-        if (!empty($access['is_vehicle_user']) || !empty($access['can_manage_vehicle_module']) || !empty($access['is_admin_user'])) {
+        // Vehicle officers should be notified only when a requester has just submitted a booking.
+        if (!empty($access['is_vehicle_user'])) {
             $statuses[] = 'PENDING';
-            $statuses[] = 'ASSIGNED';
         }
 
+        // Executives should be notified only when a booking is waiting for final approval.
         if (!empty($access['is_director_or_acting'])) {
             $statuses[] = 'ASSIGNED';
         }

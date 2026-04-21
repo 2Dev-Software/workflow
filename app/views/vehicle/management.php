@@ -334,7 +334,7 @@ ob_start();
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>">
+            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>" id="vehicleAddForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="vehicle_action" value="add">
                 <div class="form-group full">
@@ -371,57 +371,34 @@ ob_start();
                     <label class="form-label">สถานะ</label>
                     <div class="custom-select-wrapper">
                         <div class="custom-select-trigger">
-                            <p id="select-value">พร้อมใช้งาน</p>
+                            <p class="select-value"><?= h((string) ($form_values['vehicleStatus'] ?? ($status_options[0] ?? 'พร้อมใช้งาน'))) ?></p>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
 
                         <div class="custom-options">
-                            <div class="custom-option" data-value="">อยู่ระหว่างใช้งาน</div>
-                            <div class="custom-option" data-value="">ส่งซ่อม</div>
-                            <div class="custom-option" data-value="">ไม่พร้อมใช้งาน</div>
+                            <?php foreach ($status_options as $status_option) : ?>
+                                <div class="custom-option <?= $status_option === $form_values['vehicleStatus'] ? 'selected' : '' ?>" data-value="<?= h((string) $status_option) ?>">
+                                    <?= h((string) $status_option) ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
 
-                        <select class="form-input" name="status">
-                            <option value="all">ทุกสถานะ</option>
-                            <option value="pending" <?= $vehicle_approval_status === 'pending' ? 'selected' : '' ?>>รออนุมัติ</option>
-                            <option value="approved" <?= $vehicle_approval_status === 'approved' ? 'selected' : '' ?>>อนุมัติแล้ว</option>
-                            <option value="rejected" <?= $vehicle_approval_status === 'rejected' ? 'selected' : '' ?>>ไม่อนุมัติ/ยกเลิก</option>
-                        </select>
+                        <input type="hidden" name="vehicle_status" value="<?= h((string) ($form_values['vehicleStatus'] ?? ($status_options[0] ?? 'พร้อมใช้งาน'))) ?>">
                     </div>
-                    <!-- <select class="form-input" name="vehicle_status" required>
-                        <?php //foreach ($status_options as $status_option) :
-                        ?>
-                            <option value="<?php //h((string) $status_option)
-                                            ?>" <?php //$status_option === $form_values['vehicleStatus'] ? 'selected' : ''
-                                                ?>>
-                                <?php //h((string) $status_option)
-                                ?>
-                            </option>
-                        <?php //endforeach;
-                        ?>
-                    </select> -->
                 </div>
-                <!-- <div class="room-admin-modal-actions">
-                    <button
-                        type="submit"
-                        class="btn-confirm"
-                        data-confirm="ยืนยันการบันทึกข้อมูลยานพาหนะใหม่ใช่หรือไม่?"
-                        data-confirm-title="ยืนยันการบันทึก"
-                        data-confirm-ok="ยืนยัน"
-                        data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div> -->
             </form>
         </div>
 
         <div class="footer-modal">
-            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
-
-                <button type="submit" form="">
-                    <p>บันทึก</p>
-                </button>
-
-            </form>
-
+            <button
+                type="submit"
+                form="vehicleAddForm"
+                data-confirm="ยืนยันการบันทึกข้อมูลยานพาหนะใหม่ใช่หรือไม่?"
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">
+                <p>บันทึก</p>
+            </button>
         </div>
     </div>
 </div>
@@ -437,7 +414,7 @@ ob_start();
             </div>
         </header>
         <div class="modal-body room-admin-modal-body">
-            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>">
+            <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'vehicle-management.php') ?>" id="vehicleEditForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="vehicle_action" value="edit">
                 <input type="hidden" name="vehicle_id" value="<?= h((string) ($edit_values['vehicleID'] ?? 0)) ?>" data-vehicle-edit-id>
@@ -481,26 +458,18 @@ ob_start();
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <!-- <div class="room-admin-modal-actions">
-                    <button
-                        type="submit"
-                        class="btn-confirm"
-                        data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลยานพาหนะใช่หรือไม่?"
-                        data-confirm-title="ยืนยันการบันทึก"
-                        data-confirm-ok="ยืนยัน"
-                        data-confirm-cancel="ยกเลิก">บันทึก</button>
-                </div> -->
             </form>
         </div>
         <div class="footer-modal">
-            <form method="POST" action="" class="orders-send-form" id="modalOrderSendForm">
-
-                <button type="submit" form="">
-                    <p>บันทึก</p>
-                </button>
-
-            </form>
-
+            <button
+                type="submit"
+                form="vehicleEditForm"
+                data-confirm="ยืนยันการบันทึกการเปลี่ยนแปลงข้อมูลยานพาหนะใช่หรือไม่?"
+                data-confirm-title="ยืนยันการบันทึก"
+                data-confirm-ok="ยืนยัน"
+                data-confirm-cancel="ยกเลิก">
+                <p>บันทึก</p>
+            </button>
         </div>
     </div>
 </div>
