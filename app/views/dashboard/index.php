@@ -8,11 +8,17 @@ $dashboard_current_date_label = trim((string) ($dashboard_current_date_label ?? 
 $dashboard_name = trim((string) ($dashboard_user['fName'] ?? ''));
 $dashboard_position = trim((string) ($dashboard_user['position_name'] ?? ''));
 $dashboard_role = trim((string) ($dashboard_user['role_name'] ?? ''));
+$dashboard_role_ids = array_filter(array_map('intval', preg_split('/\s*,\s*/', trim((string) ($dashboard_user['roleID'] ?? ''))) ?: []));
+$dashboard_is_admin = in_array(1, $dashboard_role_ids, true) || str_contains($dashboard_role, 'ผู้ดูแลระบบ');
 $unread_external_circulars = (int) ($dashboard_counts['unread_external_circulars'] ?? $dashboard_counts['unread_circulars'] ?? 0);
 $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars'] ?? 0);
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
 $unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
 $vehicle_notifications = (int) ($dashboard_counts['vehicle_notifications'] ?? $dashboard_counts['unread_vehicle_bookings'] ?? 0);
+
+if ($dashboard_is_admin) {
+    $vehicle_notifications = 0;
+}
 $dashboard_notifications = array_values(array_filter([
     [
         'label' => 'หนังสือเวียน',
