@@ -19,6 +19,7 @@ $teacher_directory_order_by = (string) $teacher_directory_order_by;
 $teacher_directory_order_map = [
     'fName' => 't.fName ASC',
     'position' => 't.positionID ASC, t.fName ASC',
+    'executive_duty' => 'CASE WHEN t.positionID IN (1, 9, 2, 3, 4) THEN FIELD(t.positionID, 1, 9, 2, 3, 4) ELSE 99 END ASC, t.positionID ASC, t.fName ASC',
 ];
 $teacher_directory_order_sql = $teacher_directory_order_map[$teacher_directory_order_by] ?? $teacher_directory_order_map['fName'];
 

@@ -19,7 +19,7 @@ if (!function_exists('setting_index')) {
         $teacher_directory_filter_did = 12;
         $teacher_directory_per_page = 'all';
         $teacher_directory_query = '';
-        $teacher_directory_order_by = 'position';
+        $teacher_directory_order_by = 'executive_duty';
         require_once __DIR__ . '/../../src/Services/teacher/teacher-directory.php';
 
         $currentThaiYear = (int) date('Y') + 543;

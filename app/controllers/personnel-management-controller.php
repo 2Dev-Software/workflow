@@ -49,6 +49,23 @@ if (!function_exists('personnel_management_option_rows')) {
     }
 }
 
+if (!function_exists('personnel_management_position_option_rows')) {
+    function personnel_management_position_option_rows(): array
+    {
+        $connection = db_connection();
+
+        if (!db_table_exists($connection, 'dh_positions')) {
+            return [];
+        }
+
+        return db_fetch_all(
+            'SELECT positionID AS id, positionName AS name
+             FROM dh_positions
+             ORDER BY FIELD(positionID, 1, 9, 2, 3, 4, 5, 6, 7, 8), positionID ASC'
+        );
+    }
+}
+
 if (!function_exists('personnel_management_option_map')) {
     function personnel_management_option_map(array $rows): array
     {
@@ -451,7 +468,7 @@ if (!function_exists('personnel_management_index')) {
         $department_rows = personnel_management_option_rows('department', 'dID', 'dName');
         $level_rows = personnel_management_option_rows('level', 'lID', 'lName');
         $legacy_position_rows = personnel_management_option_rows('position', 'oID', 'oName');
-        $position_rows = personnel_management_option_rows('dh_positions', 'positionID', 'positionName');
+        $position_rows = personnel_management_position_option_rows();
         $role_rows = personnel_management_option_rows('dh_roles', 'roleID', 'roleName');
 
         $option_maps = [
