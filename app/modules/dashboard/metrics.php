@@ -14,6 +14,7 @@ if (!function_exists('dashboard_zero_counts')) {
             'unread_memos' => 0,
             'unread_orders' => 0,
             'unread_vehicle_bookings' => 0,
+            'vehicle_notifications' => 0,
             'external_circular_notifications' => 0,
             'room_notifications' => 0,
             'repair_notifications' => 0,
@@ -297,7 +298,8 @@ if (!function_exists('dashboard_counts')) {
         $counts['unread_orders'] = dashboard_count_unread_orders($connection, $pID);
         $counts['external_circular_notifications'] = dashboard_count_external_circular_notifications($connection, $pID, $access);
         $counts['room_notifications'] = dashboard_count_room_notifications($connection, $access);
-        $counts['unread_vehicle_bookings'] = dashboard_count_vehicle_notifications($connection, $access);
+        $counts['vehicle_notifications'] = dashboard_count_vehicle_notifications($connection, $access);
+        $counts['unread_vehicle_bookings'] = $counts['vehicle_notifications'];
         $counts['repair_notifications'] = dashboard_count_repair_notifications($connection, $access);
         $counts['pending_manager'] = dashboard_count_pending_bookings($connection);
         $counts['pending_approvals'] = $counts['pending_manager'];

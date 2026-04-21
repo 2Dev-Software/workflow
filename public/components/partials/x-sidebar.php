@@ -71,7 +71,7 @@ $sidebar_alerts = [
     'memo' => (int) ($sidebar_counts['unread_memos'] ?? 0) > 0,
     'orders' => (int) ($sidebar_counts['unread_orders'] ?? 0) > 0,
     'room' => (int) ($sidebar_counts['room_notifications'] ?? 0) > 0,
-    'vehicle' => (int) ($sidebar_counts['unread_vehicle_bookings'] ?? 0) > 0,
+    'vehicle' => (int) ($sidebar_counts['vehicle_notifications'] ?? $sidebar_counts['unread_vehicle_bookings'] ?? 0) > 0,
     'repairs' => (int) ($sidebar_counts['repair_notifications'] ?? 0) > 0,
 ];
 $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ?? 0) > 0

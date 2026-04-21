@@ -12,7 +12,7 @@ $unread_external_circulars = (int) ($dashboard_counts['unread_external_circulars
 $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars'] ?? 0);
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
 $unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
-$unread_vehicle_bookings = (int) ($dashboard_counts['unread_vehicle_bookings'] ?? 0);
+$vehicle_notifications = (int) ($dashboard_counts['vehicle_notifications'] ?? $dashboard_counts['unread_vehicle_bookings'] ?? 0);
 $dashboard_notifications = array_values(array_filter([
     [
         'label' => 'หนังสือเวียน',
@@ -32,7 +32,8 @@ $dashboard_notifications = array_values(array_filter([
     ],
     [
         'label' => 'จองยานพาหนะ',
-        'count' => $unread_vehicle_bookings,
+        'count' => $vehicle_notifications,
+        'message' => 'ที่ต้องดำเนินการ',
     ],
 ], static function (array $item): bool {
     return (int) ($item['count'] ?? 0) > 0;
@@ -49,9 +50,13 @@ ob_start();
         <section>
           <div class="notification-list">
               <ul>
-                  <?php foreach ($dashboard_notifications as $notification) : ?>
-                      <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> ที่ยังไม่อ่าน <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
-                  <?php endforeach; ?>
+                  <?php if ($dashboard_notifications === []) : ?>
+                      <li>ไม่พบรายการเอกสารที่ต้องดำเนินการ</li>
+                  <?php else : ?>
+                      <?php foreach ($dashboard_notifications as $notification) : ?>
+                          <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?> <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
+                      <?php endforeach; ?>
+                  <?php endif; ?>
               </ul>
           </div>
             <a href="#news-paper">
