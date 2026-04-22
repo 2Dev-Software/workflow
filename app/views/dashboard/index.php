@@ -15,10 +15,12 @@ $unread_external_circulars = (int) ($dashboard_counts['unread_external_circulars
 $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars'] ?? 0);
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
 $unread_orders = (int) ($dashboard_counts['unread_orders'] ?? 0);
+$room_notifications = (int) ($dashboard_counts['room_notifications'] ?? 0);
 $vehicle_notifications = (int) ($dashboard_counts['vehicle_notifications'] ?? $dashboard_counts['unread_vehicle_bookings'] ?? 0);
 $repair_notifications = (int) ($dashboard_counts['repair_notifications'] ?? 0);
 
 if ($dashboard_is_admin) {
+    $room_notifications = 0;
     $vehicle_notifications = 0;
     $repair_notifications = 0;
 }
@@ -38,6 +40,11 @@ $dashboard_notifications = array_values(array_filter([
     [
         'label' => 'คำสั่งราชการ',
         'count' => $unread_orders,
+    ],
+    [
+        'label' => 'จองสถานที่/ห้อง',
+        'count' => $room_notifications,
+        'message' => 'ที่ต้องดำเนินการ',
     ],
     [
         'label' => 'จองยานพาหนะ',

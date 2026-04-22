@@ -40,6 +40,19 @@ ob_start();
     .vehicle-row.split {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    hr {
+        background-color: var(--color-secondary);
+        height: 4px;
+        border: none;
+        margin: 0 0 40px;
+    }
+
+    .sec-header {
+        display:flex;
+        align-items: center;
+        gap: 20px;
+    }
 </style>
 
 <div class="content-header">
@@ -402,6 +415,7 @@ ob_start();
                 <p>รายละเอียดการจองยานพาหนะ</p>
             </div>
             <div class="sec-header">
+                <span class="status-pill approved">ลบคำร้องสำเร็จ</span>
                 <i class="fa-solid fa-xmark" data-vehicle-modal-close="vehicleBookingDetailModal"></i>
             </div>
         </div>
@@ -572,6 +586,18 @@ ob_start();
 
                 <div class="file-list" id="vehicleAttachmentList" aria-live="polite"></div>
             </div>
+
+            <hr>
+
+            <div class="vehicle-row">
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditPurpose">รายละเอียดการ<label style="color: var(--color-success)">อนุมัติการจอง</label></label>
+                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุรายละเอียดการอนุมัติการจอง"></textarea>
+                    <label for="vehicleEditPurpose">รายละเอียดการ<label style="color: var(--color-danger)">ไม่อนุมัติการจอง</label></label>
+                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุรายละเอียดการไม่อนุมัติการจอง"></textarea>
+                </div>
+            </div>
+
         </form>
 
     </div>
