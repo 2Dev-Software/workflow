@@ -64,20 +64,41 @@ if ($dashboard_calendar_events_json === false) {
 
 ob_start();
 ?>
+
+<style>
+    .modal-header {
+        margin: 0 40px;
+    }
+
+    .modal-title {
+        color: var(--color-secondary);
+    }
+
+    .close-modal-btn {
+        color: var(--color-secondary);
+    }
+
+    @media (max-width: 1023px) {
+        .modal-header {
+            margin: 0;
+        }
+    }
+</style>
+
 <div class="dashboard-container">
     <div class="notification-system">
         <section>
-          <div class="notification-list">
-              <ul>
-                  <?php if ($dashboard_notifications === []) : ?>
-                      <li>ไม่พบรายการเอกสารที่ต้องดำเนินการ</li>
-                  <?php else : ?>
-                      <?php foreach ($dashboard_notifications as $notification) : ?>
-                          <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?> <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
-                      <?php endforeach; ?>
-                  <?php endif; ?>
-              </ul>
-          </div>
+            <div class="notification-list">
+                <ul>
+                    <?php if ($dashboard_notifications === []) : ?>
+                        <li>ไม่พบรายการเอกสารที่ต้องดำเนินการ</li>
+                    <?php else : ?>
+                        <?php foreach ($dashboard_notifications as $notification) : ?>
+                            <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?> <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </ul>
+            </div>
             <a href="#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
                 <p>กดเพื่อดูข่าวประชาสัมพันธ์</p>
