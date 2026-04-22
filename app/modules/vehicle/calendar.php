@@ -8,6 +8,13 @@ if (!function_exists('vehicle_booking_events')) {
     function vehicle_booking_events(int $year): array
     {
         $events = [];
+
+        $connection = db_connection();
+
+        if (!db_table_exists($connection, 'dh_vehicle_bookings')) {
+            return $events;
+        }
+
         $sql = 'SELECT b.bookingID, b.startAt, b.endAt, b.status, b.requesterPID,
                 v.vehiclePlate, v.vehicleType,
                 t.fName AS requesterName
@@ -22,7 +29,7 @@ if (!function_exists('vehicle_booking_events')) {
         foreach ($rows as $row) {
             $status = strtoupper((string) ($row['status'] ?? ''));
 
-            if ($status !== 'APPROVED') {
+            if (!in_array($status, ['APPROVED', 'COMPLETED'], true)) {
                 continue;
             }
 
