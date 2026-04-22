@@ -337,6 +337,60 @@ if (!function_exists('memo_infer_chain_stage_by_actor')) {
     }
 }
 
+if (!function_exists('memo_owner_can_edit_before_head_forward')) {
+    function memo_owner_can_edit_before_head_forward(array $memo, string $actorPID, ?array $routes = null): bool
+    {
+        $actorPID = trim($actorPID);
+
+        if ($actorPID === '' || trim((string) ($memo['createdByPID'] ?? '')) !== $actorPID) {
+            return false;
+        }
+
+        if (!memo_is_chain_mode($memo)) {
+            return false;
+        }
+
+        $status = strtoupper(trim((string) ($memo['status'] ?? '')));
+
+        if (!in_array($status, [MEMO_STATUS_SUBMITTED, MEMO_STATUS_IN_REVIEW], true)) {
+            return false;
+        }
+
+        $flowStage = strtoupper(trim((string) ($memo['flowStage'] ?? '')));
+
+        if ($flowStage !== 'HEAD') {
+            return false;
+        }
+
+        $headPID = trim((string) ($memo['headPID'] ?? ''));
+        $toPID = trim((string) ($memo['toPID'] ?? ''));
+
+        if ($headPID === '') {
+            $headPID = $toPID;
+        }
+
+        if ($headPID === '' || ($toPID !== '' && $toPID !== $headPID)) {
+            return false;
+        }
+
+        if ($routes === null) {
+            $memoID = (int) ($memo['memoID'] ?? 0);
+            $routes = $memoID > 0 ? memo_list_routes($memoID) : [];
+        }
+
+        foreach ($routes as $route) {
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+            $routeActorPID = trim((string) ($route['actorPID'] ?? ''));
+
+            if ($action === 'FORWARD' && $routeActorPID === $headPID) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
 if (!function_exists('memo_resolve_next_chain_reviewer')) {
     function memo_resolve_next_chain_reviewer(array $memo, string $currentStage): array
     {
@@ -464,7 +518,9 @@ if (!function_exists('memo_update_draft')) {
 
             $status = (string) ($memo['status'] ?? '');
 
-            if (!in_array($status, [MEMO_STATUS_DRAFT, MEMO_STATUS_RETURNED], true)) {
+            $canOwnerEditBeforeHeadForward = memo_owner_can_edit_before_head_forward($memo, $actorPID);
+
+            if (!in_array($status, [MEMO_STATUS_DRAFT, MEMO_STATUS_RETURNED], true) && !$canOwnerEditBeforeHeadForward) {
                 throw new RuntimeException('แก้ไขได้เฉพาะรายการ ร่าง/ตีกลับแก้ไข');
             }
 
@@ -475,15 +531,21 @@ if (!function_exists('memo_update_draft')) {
             }
 
             $update_payload = [
-                'writeDate' => $data['writeDate'] ?? null,
                 'subject' => $subject,
                 'detail' => $data['detail'] ?? null,
-                'toType' => $data['toType'] ?? null,
-                'toPID' => $data['toPID'] ?? null,
                 'updatedByPID' => $actorPID,
             ];
 
-            $flow_mode = strtoupper(trim((string) ($data['flowMode'] ?? '')));
+            if (array_key_exists('writeDate', $data)) {
+                $update_payload['writeDate'] = $data['writeDate'] ?? null;
+            }
+
+            if (!$canOwnerEditBeforeHeadForward) {
+                $update_payload['toType'] = $data['toType'] ?? null;
+                $update_payload['toPID'] = $data['toPID'] ?? null;
+            }
+
+            $flow_mode = $canOwnerEditBeforeHeadForward ? '' : strtoupper(trim((string) ($data['flowMode'] ?? '')));
 
             if ($flow_mode !== '') {
                 if (!in_array($flow_mode, ['CHAIN', 'DIRECT'], true)) {

@@ -249,6 +249,7 @@ if (!function_exists('memo_list_by_creator_page')) {
         $order_by = $status_order_sql . ' ASC, ' . $timeline_order_sql . ' ' . $timeline_direction . ', m.memoID ' . $memo_id_direction;
 
         $sql = 'SELECT m.memoID, m.memoNo, m.writeDate, m.subject, m.detail, m.status, m.toType, m.toPID, m.firstReadAt, m.submittedAt, m.updatedAt, m.createdAt,
+                m.createdByPID, m.flowMode, m.flowStage,
                 m.headPID, m.deputyPID, m.directorPID,
                 t.fName AS approverName
             FROM dh_memos AS m

@@ -669,6 +669,7 @@ ob_start();
                         $deputy_note_b64 = base64_encode((string) ($memo['deputyNote'] ?? ''));
                         $director_note_b64 = base64_encode((string) ($memo['directorNote'] ?? ''));
                         $can_download_pdf = in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
+                        $can_edit_and_submit = $status === 'DRAFT' || !empty($memo['ownerCanEditBeforeHeadForward']);
                         $memo_pdf_view_href = $memo_id > 0
                             ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id))
                             : '';
@@ -702,7 +703,39 @@ ob_start();
                                 <span class="detail-subtext"><?= h($updated_time_line) ?></span>
                             </td>
                             <td>
-                                <?php if ($status === 'CANCELLED' || $status === 'SUBMITTED') : ?>
+                                <?php if ($can_edit_and_submit) : ?>
+                                    <button
+                                        type="button"
+                                        class="booking-action-btn secondary js-open-suggest-modal"
+                                        data-memo-id="<?= h((string) $memo_id) ?>"
+                                        data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
+                                        data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
+                                        data-memo-attachments="<?= h((string) $attachment_count) ?>"
+                                        data-memo-to="<?= h($to_label) ?>"
+                                        data-memo-owner-edit-before-head-forward="<?= !empty($memo['ownerCanEditBeforeHeadForward']) ? '1' : '0' ?>"
+                                        data-files="<?= h($memo_files_json) ?>">
+                                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                                        <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
+                                    </button>
+
+                                    <?php if ($status === 'DRAFT') : ?>
+                                        <form method="POST" class="enterprise-inline-form">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="cancel">
+                                            <input type="hidden" name="memo_id" value="<?= h((string) $memo_id) ?>">
+                                            <button
+                                                type="submit"
+                                                class="booking-action-btn danger"
+                                                data-confirm="ยืนยันการลบข้อมูลรายการนี้ใช่หรือไม่"
+                                                data-confirm-title="ยืนยันการลบข้อมูล"
+                                                data-confirm-ok="ยืนยัน"
+                                                data-confirm-cancel="ยกเลิก">
+                                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                                <span class="tooltip danger">ลบข้อมูล</span>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                <?php elseif ($status === 'CANCELLED' || $status === 'SUBMITTED') : ?>
                                     <button
                                         type="button"
                                         class="booking-action-btn secondary js-open-view-modal"
@@ -749,35 +782,6 @@ ob_start();
                                             <span class="tooltip">ดู PDF</span>
                                         </a>
                                     <?php endif; ?>
-                                <?php elseif ($status === 'DRAFT') : ?>
-                                    <button
-                                        type="button"
-                                        class="booking-action-btn secondary js-open-suggest-modal"
-                                        data-memo-id="<?= h((string) $memo_id) ?>"
-                                        data-memo-subject="<?= h($subject !== '' ? $subject : '-') ?>"
-                                        data-memo-detail="<?= h($detail !== '' ? $detail : '-') ?>"
-                                        data-memo-attachments="<?= h((string) $attachment_count) ?>"
-                                        data-memo-to="<?= h($to_label) ?>"
-                                        data-files="<?= h($memo_files_json) ?>">
-                                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-                                        <span class="tooltip">แก้ไข / เสนอแฟ้ม</span>
-                                    </button>
-
-                                    <form method="POST" class="enterprise-inline-form">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action" value="cancel">
-                                        <input type="hidden" name="memo_id" value="<?= h((string) $memo_id) ?>">
-                                        <button
-                                            type="submit"
-                                            class="booking-action-btn danger"
-                                            data-confirm="ยืนยันการลบข้อมูลรายการนี้ใช่หรือไม่"
-                                            data-confirm-title="ยืนยันการลบข้อมูล"
-                                            data-confirm-ok="ยืนยัน"
-                                            data-confirm-cancel="ยกเลิก">
-                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                            <span class="tooltip danger">ลบข้อมูล</span>
-                                        </button>
-                                    </form>
                                 <?php else : ?>
                                     <button
                                         type="button"
@@ -2838,6 +2842,7 @@ ob_start();
             const memoSubject = String(btn.getAttribute('data-memo-subject') || '').trim();
             const memoDetail = String(btn.getAttribute('data-memo-detail') || '').trim();
             const memoAttachmentCount = Number(btn.getAttribute('data-memo-attachments') || '0');
+            const isOwnerEditBeforeHeadForward = String(btn.getAttribute('data-memo-owner-edit-before-head-forward') || '') === '1';
             let memoFiles = [];
             const detailValue = memoDetail !== '' ? memoDetail : '-';
 
@@ -2870,6 +2875,7 @@ ob_start();
                     ? memoFiles.length
                     : (Number.isFinite(memoAttachmentCount) && memoAttachmentCount > 0 ? memoAttachmentCount : 0);
                 suggestForm.dataset.existingAttachmentCount = String(normalizedAttachmentCount);
+                suggestForm.dataset.ownerEditBeforeHeadForward = isOwnerEditBeforeHeadForward ? '1' : '0';
             }
             if (suggestAttachmentInput) {
                 suggestAttachmentInput.value = '';
@@ -2899,20 +2905,11 @@ ob_start();
 
     suggestForm?.addEventListener('submit', (event) => {
         const selectedRadio = suggestRecipientRadios.find((radio) => radio.checked) || null;
+        const isOwnerEditBeforeHeadForward = suggestForm.dataset.ownerEditBeforeHeadForward === '1';
 
-        if (!selectedRadio) {
+        if (!isOwnerEditBeforeHeadForward && !selectedRadio) {
             event.preventDefault();
             showSuggestValidationAlert('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
-            return;
-        }
-
-        const uploadedCount = suggestAttachmentInput && suggestAttachmentInput.files ? suggestAttachmentInput.files.length : 0;
-        const existingAttachmentCount = Number(suggestForm.dataset.existingAttachmentCount || '0');
-        const normalizedExistingAttachmentCount = Number.isFinite(existingAttachmentCount) && existingAttachmentCount > 0 ? existingAttachmentCount : 0;
-
-        if ((normalizedExistingAttachmentCount + uploadedCount) < 1) {
-            event.preventDefault();
-            showSuggestValidationAlert('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
             return;
         }
 

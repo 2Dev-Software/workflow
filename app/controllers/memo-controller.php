@@ -215,6 +215,12 @@ if (!function_exists('memo_owner_enrich_creator_memos')) {
                 $memos[$index][$prefix . 'Note'] = memo_owner_latest_note_by_actor($routes, $stagePID);
                 $memos[$index][$prefix . 'Action'] = memo_owner_latest_review_action_by_actor($routes, $stagePID);
             }
+
+            $memos[$index]['ownerCanEditBeforeHeadForward'] = memo_owner_can_edit_before_head_forward(
+                $memo,
+                (string) ($memo['createdByPID'] ?? ''),
+                $routes
+            );
         }
 
         return $memos;
@@ -396,6 +402,9 @@ if (!function_exists('memo_index')) {
                             $submit_to_pid_raw = $_POST['memo_to_pid'] ?? '';
                             $submit_to_pid = is_string($submit_to_pid_raw) ? trim($submit_to_pid_raw) : '';
                             $uploaded_files = isset($_FILES['attachments']) && is_array($_FILES['attachments']) ? $_FILES['attachments'] : [];
+                            $memo_before_submit = memo_get($memo_id);
+                            $can_edit_before_head_forward = is_array($memo_before_submit)
+                                && memo_owner_can_edit_before_head_forward($memo_before_submit, $current_pid);
                             $allowed_submit_to_pids = array_fill_keys(
                                 array_map(
                                     static fn(array $teacher): string => (string) ($teacher['pID'] ?? ''),
@@ -404,52 +413,42 @@ if (!function_exists('memo_index')) {
                                 true
                             );
 
-                            if ($submit_to_pid === '' || !preg_match('/^\\d{1,13}$/', $submit_to_pid)) {
-                                throw new RuntimeException('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
-                            }
-                            if (!isset($allowed_submit_to_pids[$submit_to_pid])) {
-                                throw new RuntimeException('ผู้รับเอกสารไม่ถูกต้อง');
+                            if (!$can_edit_before_head_forward) {
+                                if ($submit_to_pid === '' || !preg_match('/^\\d{1,13}$/', $submit_to_pid)) {
+                                    throw new RuntimeException('กรุณาเลือกผู้รับเอกสารอย่างน้อย 1 คน');
+                                }
+                                if (!isset($allowed_submit_to_pids[$submit_to_pid])) {
+                                    throw new RuntimeException('ผู้รับเอกสารไม่ถูกต้อง');
+                                }
                             }
                             if (!memo_has_meaningful_content($submit_detail)) {
                                 throw new RuntimeException('กรุณากรอกรายละเอียด');
                             }
 
-                            $uploaded_count = 0;
-                            $upload_errors = $uploaded_files['error'] ?? [];
+                            $update_data = [
+                                'subject' => $submit_subject,
+                                'detail' => $submit_detail,
+                            ];
 
-                            if (is_array($upload_errors)) {
-                                foreach ($upload_errors as $upload_error) {
-                                    if ((int) $upload_error === UPLOAD_ERR_OK) {
-                                        $uploaded_count++;
-                                    }
-                                }
-                            } elseif ($upload_errors !== null && (int) $upload_errors === UPLOAD_ERR_OK) {
-                                $uploaded_count = 1;
-                            }
-
-                            $existing_attachment_count = count(memo_get_attachments($memo_id));
-
-                            if (($existing_attachment_count + $uploaded_count) < 1) {
-                                throw new RuntimeException('กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนเสนอแฟ้ม');
+                            if (!$can_edit_before_head_forward) {
+                                $update_data['toType'] = 'PERSON';
+                                $update_data['toPID'] = $submit_to_pid;
+                                $update_data['flowMode'] = 'DIRECT';
                             }
 
                             memo_update_draft(
                                 $memo_id,
                                 $current_pid,
-                                [
-                                    'subject' => $submit_subject,
-                                    'detail' => $submit_detail,
-                                    'toType' => 'PERSON',
-                                    'toPID' => $submit_to_pid,
-                                    'flowMode' => 'DIRECT',
-                                ],
+                                $update_data,
                                 $uploaded_files
                             );
 
-                            memo_submit($memo_id, $current_pid);
+                            if (!$can_edit_before_head_forward) {
+                                memo_submit($memo_id, $current_pid);
+                            }
                             $alert = [
                                 'type' => 'success',
-                                'title' => 'ส่งเสนอแฟ้มเรียบร้อย',
+                                'title' => $can_edit_before_head_forward ? 'บันทึกการแก้ไขแล้ว' : 'ส่งเสนอแฟ้มเรียบร้อย',
                                 'message' => '',
                             ];
                         } elseif ($post_action === 'recall') {
