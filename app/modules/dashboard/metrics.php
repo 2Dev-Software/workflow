@@ -166,11 +166,7 @@ if (!function_exists('dashboard_count_unread_orders')) {
 if (!function_exists('dashboard_count_room_notifications')) {
     function dashboard_count_room_notifications(mysqli $connection, array $access): int
     {
-        if (
-            empty($access['can_manage_room_module'])
-            && empty($access['is_facility_user'])
-            && empty($access['is_admin_user'])
-        ) {
+        if (!empty($access['is_admin_user']) || empty($access['is_facility_user'])) {
             return 0;
         }
 
@@ -178,13 +174,18 @@ if (!function_exists('dashboard_count_room_notifications')) {
             return 0;
         }
 
-        $where = "status = 'PENDING'";
+        $pending_status = room_booking_status_to_db($connection, 0);
+        $where = 'status = ?';
 
         if (db_column_exists($connection, 'dh_room_bookings', 'deletedAt')) {
             $where .= ' AND deletedAt IS NULL';
         }
 
-        $row = db_fetch_one('SELECT COUNT(*) AS total FROM dh_room_bookings WHERE ' . $where);
+        $row = db_fetch_one(
+            'SELECT COUNT(*) AS total FROM dh_room_bookings WHERE ' . $where,
+            $pending_status['type'],
+            $pending_status['value']
+        );
 
         return (int) ($row['total'] ?? 0);
     }
