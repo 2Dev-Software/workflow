@@ -790,6 +790,50 @@ ob_start();
                         <p class="timeline-header">สถานะของงานซ่อมแซม</p>
                     </div>
 
+                    <div class="form-group">
+                        <label><b>ไฟล์เอกสารแนบจากระบบ</b></label>
+                        <section class="upload-layout">
+                            <div class="file-list" id="repairApprovalDetailFileList">
+                                <div class="file-item-wrapper">
+                                    <div class="file-banner">
+                                        <div class="file-info">
+                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
+                                            <div class="file-text"><span class="file-name">ch01-updated-260127.pdf</span><span class="file-type">1268.4 KB</span></div>
+                                        </div>
+                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=2" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=2&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="file-item-wrapper">
+                                    <div class="file-banner">
+                                        <div class="file-info">
+                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
+                                            <div class="file-text"><span class="file-name">DS and Algo-Algorithm Analysis 2025.pdf</span><span class="file-type">1963.1 KB</span></div>
+                                        </div>
+                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=3" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=3&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="file-item-wrapper">
+                                    <div class="file-banner">
+                                        <div class="file-info">
+                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
+                                            <div class="file-text"><span class="file-name">DS and Algo-Stack-Queue 2023.pdf</span><span class="file-type">1735.9 KB</span></div>
+                                        </div>
+                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=4" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=4&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
                 </form>
             </div>
 

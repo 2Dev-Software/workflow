@@ -221,6 +221,10 @@ ob_start();
         width: 100%;
         justify-content: center;
     }
+
+    label strong {
+        color: var(--color-danger);
+    }
 </style>
 
 <div class="content-header">
@@ -634,6 +638,23 @@ ob_start();
                         <textarea id="repairApprovalDecisionSummary" name="" rows="4" placeholder="ระบุรายละเอียดการดำเนินงานของเจ้าหน้าที่"></textarea>
                     </div>
 
+                    <div class="vehicle-row file-sec">
+                        <div class="vehicle-input-content">
+                            <label>แนบเอกสาร <strong>(แนบเอกสารได้สูงสุด 5 ไฟล์)</strong></label>
+                            <div>
+                                <button type="button" class="btn btn-upload-small"
+                                    onclick="document.getElementById('attachment').click()">
+                                    <p>เพิ่มไฟล์</p>
+                                </button>
+                            </div>
+                            <input type="file" id="attachment" name="attachments[]" class="file-input" multiple
+                                accept=".pdf,image/png,image/jpeg" hidden>
+                            <p class="form-error hidden" id="attachmentError">แนบได้สูงสุด 5 ไฟล์</p>
+                        </div>
+
+                        <div class="file-list" id="attachmentList" aria-live="polite"></div>
+                    </div>
+
                 </form>
             </div>
 
@@ -715,11 +736,11 @@ ob_start();
             const iconWrap = document.createElement('div');
             iconWrap.className = 'file-icon';
             const mime = String(file?.mimeType || '').toLowerCase();
-            iconWrap.innerHTML = mime.includes('pdf')
-                ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
-                : mime.includes('image')
-                    ? '<i class="fa-solid fa-file-image" aria-hidden="true"></i>'
-                    : '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+            iconWrap.innerHTML = mime.includes('pdf') ?
+                '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>' :
+                mime.includes('image') ?
+                '<i class="fa-solid fa-file-image" aria-hidden="true"></i>' :
+                '<i class="fa-solid fa-file" aria-hidden="true"></i>';
 
             const text = document.createElement('div');
             text.className = 'file-text';
@@ -787,9 +808,9 @@ ob_start();
         };
 
         const isAllowedTargetStatus = (value) => {
-            return value === ''
-                || (activeRepairStatus !== pendingStatus && value === activeRepairStatus)
-                || getAllowedTargetStatuses().includes(value);
+            return value === '' ||
+                (activeRepairStatus !== pendingStatus && value === activeRepairStatus) ||
+                getAllowedTargetStatuses().includes(value);
         };
 
         const confirmTransitionSubmit = () => {
@@ -890,9 +911,9 @@ ob_start();
             const normalizedStatusKey = String(statusKey || pendingStatus).trim().toUpperCase();
             const isPending = normalizedStatusKey === pendingStatus;
             const nextSelectValue = isPending ? '' : normalizedStatusKey;
-            const nextLabel = isPending
-                ? placeholderStatusLabel
-                : (statusLabel || statusLabels[normalizedStatusKey] || '-');
+            const nextLabel = isPending ?
+                placeholderStatusLabel :
+                (statusLabel || statusLabels[normalizedStatusKey] || '-');
 
             activeRepairStatus = normalizedStatusKey;
             renderStatusChoices();
