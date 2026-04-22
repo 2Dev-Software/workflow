@@ -78,6 +78,113 @@ if (!function_exists('upload_scan_for_viruses')) {
     }
 }
 
+if (!function_exists('upload_normalize_extension_list')) {
+    /**
+     * @param mixed $extensions
+     * @return array<int, string>
+     */
+    function upload_normalize_extension_list(mixed $extensions): array
+    {
+        $items = is_array($extensions) ? $extensions : [$extensions];
+        $normalized = [];
+
+        foreach ($items as $extension) {
+            $extension = strtolower(ltrim(trim((string) $extension), '.'));
+
+            if ($extension !== '') {
+                $normalized[] = $extension;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+}
+
+if (!function_exists('upload_extension_matches')) {
+    function upload_extension_matches(mixed $allowedExtensions, string $extension): bool
+    {
+        $extension = strtolower(ltrim(trim($extension), '.'));
+
+        if ($extension === '') {
+            return false;
+        }
+
+        return in_array($extension, upload_normalize_extension_list($allowedExtensions), true);
+    }
+}
+
+if (!function_exists('upload_first_allowed_extension')) {
+    function upload_first_allowed_extension(mixed $allowedExtensions): string
+    {
+        return upload_normalize_extension_list($allowedExtensions)[0] ?? 'bin';
+    }
+}
+
+if (!function_exists('upload_mime_for_extension')) {
+    /**
+     * @param array<string, mixed> $allowedMimes
+     */
+    function upload_mime_for_extension(array $allowedMimes, string $extension): string
+    {
+        foreach ($allowedMimes as $mime => $allowedExtensions) {
+            if (upload_extension_matches($allowedExtensions, $extension)) {
+                return (string) $mime;
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('upload_detect_mime_type')) {
+    /**
+     * @param array<string, mixed> $file
+     * @param array<string, mixed> $allowedMimes
+     */
+    function upload_detect_mime_type(array $file, string $tmpPath, array $allowedMimes): string
+    {
+        if (defined('FILEINFO_MIME_TYPE') && function_exists('finfo_open') && function_exists('finfo_file')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+
+            if ($finfo !== false) {
+                $detected = @finfo_file($finfo, $tmpPath);
+
+                if (function_exists('finfo_close')) {
+                    @finfo_close($finfo);
+                }
+
+                if (is_string($detected) && isset($allowedMimes[$detected])) {
+                    return $detected;
+                }
+            }
+        }
+
+        if (function_exists('mime_content_type')) {
+            $detected = @mime_content_type($tmpPath);
+
+            if (is_string($detected) && isset($allowedMimes[$detected])) {
+                return $detected;
+            }
+        }
+
+        $clientMime = strtolower(trim((string) ($file['type'] ?? '')));
+
+        if ($clientMime !== '' && isset($allowedMimes[$clientMime])) {
+            return $clientMime;
+        }
+
+        $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+
+        foreach ($allowedMimes as $mime => $allowedExtensions) {
+            if (upload_extension_matches($allowedExtensions, $extension)) {
+                return (string) $mime;
+            }
+        }
+
+        return '';
+    }
+}
+
 if (!function_exists('upload_parse_ini_size_to_bytes')) {
     function upload_parse_ini_size_to_bytes(string $value): int
     {
@@ -205,8 +312,6 @@ if (!function_exists('upload_store_files')) {
         $connection = db_connection();
         $stored = [];
 
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-
         foreach ($normalized as $file) {
             $error = (int) $file['error'];
 
@@ -221,18 +326,29 @@ if (!function_exists('upload_store_files')) {
                 throw new RuntimeException('ขนาดไฟล์ต้องไม่เกิน ' . upload_format_bytes_label($max_size));
             }
 
-            $mime = $finfo ? finfo_file($finfo, $tmp) : (string) $file['type'];
-            $mime = $mime ?: (string) $file['type'];
+            $mime = upload_detect_mime_type($file, $tmp, $allowed);
 
             if (!isset($allowed[$mime])) {
                 throw new RuntimeException('ชนิดไฟล์ไม่รองรับ');
+            }
+
+            $original_extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+
+            if (!upload_extension_matches($allowed[$mime], $original_extension)) {
+                $mime_from_extension = upload_mime_for_extension($allowed, $original_extension);
+
+                if ($mime_from_extension === '') {
+                    throw new RuntimeException('นามสกุลไฟล์ไม่รองรับ');
+                }
+
+                $mime = $mime_from_extension;
             }
 
             if (!upload_scan_for_viruses($tmp)) {
                 throw new RuntimeException('ไฟล์ไม่ผ่านการตรวจสอบความปลอดภัย');
             }
 
-            $extension = $allowed[$mime];
+            $extension = $original_extension !== '' ? $original_extension : upload_first_allowed_extension($allowed[$mime]);
             $hash = hash_file('sha256', $tmp);
             $filename = bin2hex(random_bytes(16)) . '.' . $extension;
 
@@ -286,8 +402,6 @@ if (!function_exists('upload_store_files')) {
                 'fileSize' => $size,
             ];
         }
-
-        // finfo objects are freed automatically (PHP 8.5+), no explicit close needed.
 
         return $stored;
     }
