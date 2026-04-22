@@ -200,6 +200,7 @@ $faction_members = [];
 $department_groups = [];
 $executive_members = [];
 $subject_head_members = [];
+$recipient_group_display_map = [];
 
 foreach ($teachers as $teacher) {
     $fid = (int) ($teacher['fID'] ?? 0);
@@ -208,6 +209,7 @@ foreach ($teachers as $teacher) {
     $pid = trim((string) ($teacher['pID'] ?? ''));
     $name = trim((string) ($teacher['fName'] ?? ''));
     $department_name = trim((string) ($teacher['departmentName'] ?? ''));
+    $faction_name = $fid > 0 ? trim((string) ($faction_name_map[$fid] ?? '')) : '';
 
     if ($pid === '' || $name === '') {
         continue;
@@ -238,13 +240,16 @@ foreach ($teachers as $teacher) {
     }
 
     $normalized_department_name = preg_replace('/\s+/u', '', $department_name);
+    $has_subject_group = $did > 0
+        && $department_name !== ''
+        && strpos((string) $normalized_department_name, 'ผู้บริหาร') === false
+        && strpos((string) $normalized_department_name, 'ฝ่ายบริหาร') === false;
 
-    if (
-        $did > 0 &&
-        $department_name !== '' &&
-        strpos((string) $normalized_department_name, 'ผู้บริหาร') === false &&
-        strpos((string) $normalized_department_name, 'ฝ่ายบริหาร') === false
-    ) {
+    $recipient_group_display_map[$pid] = $has_subject_group
+        ? $department_name
+        : ($faction_name !== '' ? $faction_name : '');
+
+    if ($has_subject_group) {
         if (!isset($department_groups[$did])) {
             $department_groups[$did] = [
                 'dID' => $did,
@@ -841,10 +846,12 @@ ob_start();
                                     $member_payload = [];
 
                                     foreach ($members as $member) {
+                                        $member_pid = (string) ($member['pID'] ?? '');
                                         $member_payload[] = [
-                                            'pID' => (string) ($member['pID'] ?? ''),
+                                            'pID' => $member_pid,
                                             'name' => (string) ($member['name'] ?? ''),
                                             'faction' => $faction_name,
+                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $faction_name),
                                         ];
                                     }
                                     $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -902,6 +909,7 @@ ob_start();
                                                                 data-member-group-key="faction-<?= h($fid_value) ?>"
                                                                 data-member-name="<?= h($member_name) ?>"
                                                                 data-group-label="<?= h($faction_name) ?>"
+                                                                data-preferred-group-label="<?= h((string) ($recipient_group_display_map[$member_pid] ?? $faction_name)) ?>"
                                                                 name="person_ids[]" value="<?= h($member_pid) ?>" <?= h($is_selected($member_pid, $selected_people) ? 'checked' : '') ?>>
                                                             <span class="member-name"><?= h($member_name) ?></span>
                                                         </label>
@@ -949,6 +957,7 @@ ob_start();
                                             'pID' => $member_pid,
                                             'name' => $member_name,
                                             'faction' => $department_name,
+                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $department_name),
                                         ];
                                     }
 
@@ -987,6 +996,7 @@ ob_start();
                                                             data-member-group-key="<?= h($group_key) ?>"
                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                             data-group-label="<?= h($department_name) ?>"
+                                                            data-preferred-group-label="<?= h((string) ($recipient_group_display_map[(string) ($member['pID'] ?? '')] ?? $department_name)) ?>"
                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                     </label>
@@ -1033,6 +1043,7 @@ ob_start();
                                             'pID' => $member_pid,
                                             'name' => $member_name,
                                             'faction' => $group_name,
+                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $group_name),
                                         ];
                                     }
 
@@ -1071,6 +1082,7 @@ ob_start();
                                                             data-member-group-key="<?= h($group_key) ?>"
                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                             data-group-label="<?= h($group_name) ?>"
+                                                            data-preferred-group-label="<?= h((string) ($recipient_group_display_map[(string) ($member['pID'] ?? '')] ?? $group_name)) ?>"
                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                     </label>
@@ -1568,10 +1580,12 @@ ob_start();
                                                     $member_payload = [];
 
                                                     foreach ($members as $member) {
+                                                        $member_pid = (string) ($member['pID'] ?? '');
                                                         $member_payload[] = [
-                                                            'pID' => (string) ($member['pID'] ?? ''),
+                                                            'pID' => $member_pid,
                                                             'name' => (string) ($member['name'] ?? ''),
                                                             'faction' => $faction_name,
+                                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $faction_name),
                                                         ];
                                                     }
                                                     $member_payload_json = json_encode($member_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
@@ -1622,6 +1636,7 @@ ob_start();
                                                                                 data-member-group-key="<?= h($edit_group_key) ?>"
                                                                                 data-member-name="<?= h($member_name) ?>"
                                                                                 data-group-label="<?= h($faction_name) ?>"
+                                                                                data-preferred-group-label="<?= h((string) ($recipient_group_display_map[$member_pid] ?? $faction_name)) ?>"
                                                                                 name="person_ids[]" value="<?= h($member_pid) ?>" <?= h($is_selected($member_pid, $selected_people) ? 'checked' : '') ?>>
                                                                             <span class="member-name"><?= h($member_name) ?></span>
                                                                         </label>
@@ -1664,6 +1679,7 @@ ob_start();
                                                             'pID' => $member_pid,
                                                             'name' => $member_name,
                                                             'faction' => $department_name,
+                                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $department_name),
                                                         ];
                                                     }
 
@@ -1700,6 +1716,7 @@ ob_start();
                                                                             data-member-group-key="<?= h($edit_group_key) ?>"
                                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                                             data-group-label="<?= h($department_name) ?>"
+                                                                            data-preferred-group-label="<?= h((string) ($recipient_group_display_map[(string) ($member['pID'] ?? '')] ?? $department_name)) ?>"
                                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
                                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                                     </label>
@@ -1741,6 +1758,7 @@ ob_start();
                                                             'pID' => $member_pid,
                                                             'name' => $member_name,
                                                             'faction' => $group_name,
+                                                            'preferredGroup' => (string) ($recipient_group_display_map[$member_pid] ?? $group_name),
                                                         ];
                                                     }
 
@@ -1776,6 +1794,7 @@ ob_start();
                                                                             data-member-group-key="<?= h($edit_group_key) ?>"
                                                                             data-member-name="<?= h((string) ($member['name'] ?? '')) ?>"
                                                                             data-group-label="<?= h($group_name) ?>"
+                                                                            data-preferred-group-label="<?= h((string) ($recipient_group_display_map[(string) ($member['pID'] ?? '')] ?? $group_name)) ?>"
                                                                             name="person_ids[]" value="<?= h((string) ($member['pID'] ?? '')) ?>" <?= h($is_selected((string) ($member['pID'] ?? ''), $selected_people) ? 'checked' : '') ?>>
                                                                         <span class="member-name"><?= h((string) ($member['name'] ?? '')) ?></span>
                                                                     </label>
@@ -2433,10 +2452,18 @@ ob_start();
                         members = [];
                     }
                     if (!Array.isArray(members)) return;
-                    members.forEach((member) => addRecipient(member?.pID, member?.name, item.getAttribute('data-group-label')));
+                    members.forEach((member) => addRecipient(
+                        member?.pID,
+                        member?.name,
+                        member?.preferredGroup || member?.faction || item.getAttribute('data-group-label')
+                    ));
                 });
 
-                checkedMembers.forEach((item) => addRecipient(item.value, item.getAttribute('data-member-name'), item.getAttribute('data-group-label')));
+                checkedMembers.forEach((item) => addRecipient(
+                    item.value,
+                    item.getAttribute('data-member-name'),
+                    item.getAttribute('data-preferred-group-label') || item.getAttribute('data-group-label')
+                ));
 
                 const uniqueRecipients = Array.from(recipientsMap.values()).sort((a, b) => a.faction === b.faction ? a.name.localeCompare(b.name, 'th') : a.faction.localeCompare(b.faction, 'th'));
                 uniqueRecipients.forEach((recipient, index) => {
