@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../db/db.php';
+require_once __DIR__ . '/../../../src/Services/room/room-booking-utils.php';
+require_once __DIR__ . '/../vehicle/calendar.php';
 
 if (!function_exists('dashboard_zero_counts')) {
     function dashboard_zero_counts(): array
@@ -275,6 +277,137 @@ if (!function_exists('dashboard_count_pending_bookings')) {
         }
 
         return $pending_room + $pending_vehicle;
+    }
+}
+
+if (!function_exists('dashboard_merge_calendar_events')) {
+    function dashboard_merge_calendar_events(array $base, array $incoming): array
+    {
+        foreach ($incoming as $date_key => $events) {
+            if (!isset($base[$date_key])) {
+                $base[$date_key] = [];
+            }
+
+            $base[$date_key] = array_merge((array) $base[$date_key], (array) $events);
+        }
+
+        ksort($base);
+
+        return $base;
+    }
+}
+
+if (!function_exists('dashboard_room_calendar_events')) {
+    function dashboard_room_calendar_events(mysqli $connection, int $dh_year): array
+    {
+        if (!db_table_exists($connection, 'dh_room_bookings')) {
+            return [];
+        }
+
+        $columns = room_booking_get_table_columns($connection, 'dh_room_bookings');
+        $select_fields = [
+            'b.roomBookingID',
+            'b.requesterPID',
+            'b.roomID',
+            'b.startDate',
+            'b.endDate',
+            'b.startTime',
+            'b.endTime',
+            'b.attendeeCount',
+            'b.status',
+            'b.createdAt',
+        ];
+        $optional_columns = [
+            'dh_year',
+            'bookingTopic',
+            'bookingDetail',
+            'requesterDisplayName',
+            'deletedAt',
+        ];
+
+        foreach ($optional_columns as $column) {
+            if (room_booking_has_column($columns, $column)) {
+                $select_fields[] = 'b.' . $column;
+            }
+        }
+
+        $select_fields[] = 'req.fName AS requester_name';
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if (room_booking_has_column($columns, 'deletedAt')) {
+            $where[] = 'b.deletedAt IS NULL';
+        }
+
+        if (room_booking_has_column($columns, 'dh_year')) {
+            $where[] = 'b.dh_year = ?';
+            $types .= 'i';
+            $params[] = $dh_year;
+        }
+
+        $sql = 'SELECT ' . implode(', ', array_values(array_unique($select_fields))) . '
+            FROM dh_room_bookings AS b
+            LEFT JOIN teacher AS req ON b.requesterPID = req.pID';
+
+        if ($where !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY b.startDate ASC, b.startTime ASC, b.roomBookingID ASC';
+
+        try {
+            $rows = db_fetch_all($sql, $types, ...$params);
+        } catch (Throwable $exception) {
+            error_log('Dashboard room calendar events failed: ' . $exception->getMessage());
+
+            return [];
+        }
+
+        $bookings = [];
+
+        foreach ($rows as $row) {
+            $status = room_booking_status_to_int($connection, $row['status'] ?? 0);
+
+            if ($status !== 1) {
+                continue;
+            }
+
+            $requester_name = trim((string) ($row['requester_name'] ?? ''));
+
+            if ($requester_name === '') {
+                $requester_name = trim((string) ($row['requesterDisplayName'] ?? ''));
+            }
+
+            $row['status'] = $status;
+            $row['requesterName'] = $requester_name !== '' ? $requester_name : '-';
+            $row['startTime'] = room_booking_normalize_time($row['startTime'] ?? '');
+            $row['endTime'] = room_booking_normalize_time($row['endTime'] ?? '');
+
+            if (empty($row['endDate'])) {
+                $row['endDate'] = $row['startDate'];
+            }
+
+            $bookings[] = $row;
+        }
+
+        return room_booking_build_events($bookings, room_booking_get_room_map($connection));
+    }
+}
+
+if (!function_exists('dashboard_calendar_events')) {
+    function dashboard_calendar_events(int $dh_year): array
+    {
+        $connection = db_connection();
+        $events = dashboard_room_calendar_events($connection, $dh_year);
+
+        try {
+            $events = dashboard_merge_calendar_events($events, vehicle_booking_events($dh_year));
+        } catch (Throwable $exception) {
+            error_log('Dashboard vehicle calendar events failed: ' . $exception->getMessage());
+        }
+
+        return $events;
     }
 }
 

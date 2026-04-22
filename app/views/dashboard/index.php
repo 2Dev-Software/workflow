@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../helpers.php';
 $dashboard_counts = (array) ($dashboard_counts ?? []);
 $dashboard_shortcuts = (array) ($dashboard_shortcuts ?? []);
 $dashboard_user = (array) ($dashboard_user ?? []);
+$dashboard_calendar_events = (array) ($dashboard_calendar_events ?? []);
 $dashboard_current_date_label = trim((string) ($dashboard_current_date_label ?? ''));
 $dashboard_name = trim((string) ($dashboard_user['fName'] ?? ''));
 $dashboard_position = trim((string) ($dashboard_user['position_name'] ?? ''));
@@ -55,6 +56,11 @@ $dashboard_notifications = array_values(array_filter([
 $visible_shortcuts = array_values(array_filter($dashboard_shortcuts, static function ($shortcut): bool {
     return !empty($shortcut['visible']);
 }));
+$dashboard_calendar_events_json = json_encode($dashboard_calendar_events, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+if ($dashboard_calendar_events_json === false) {
+    $dashboard_calendar_events_json = '{}';
+}
 
 ob_start();
 ?>
@@ -259,10 +265,65 @@ ob_start();
 
                     </div>
                 </div>
+                <textarea id="roomBookingEventsData" class="hidden" aria-hidden="true"><?= h($dashboard_calendar_events_json) ?></textarea>
 
             </aside>
         </section>
     </main>
+
+    <div id="event-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <header class="modal-header">
+                <div class="modal-title">
+                    <span id="modal-date-title">วันที่ ...</span>
+                </div>
+                <div class="close-modal-btn">
+                    <i class="fa-solid fa-xmark" id="close-modal-btn"></i>
+                </div>
+            </header>
+
+            <div class="modal-body">
+                <div id="room-booking-section" class="booking-section">
+                    <h4 class="section-title">ตารางการจองห้องประชุม</h4>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ห้อง</th>
+                                    <th>เวลา</th>
+                                    <th>รายการประชุม</th>
+                                    <th>จำนวน</th>
+                                    <th>ผู้จองห้อง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="room-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="car-booking-section" class="booking-section">
+                    <h4 class="section-title">ตารางการจองรถยนต์</h4>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>ทะเบียนรถ</th>
+                                    <th>เวลา</th>
+                                    <th>รายละเอียด</th>
+                                    <th>ผู้จองรถ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="car-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="no-event-message" class="hidden">
+                    ไม่มีรายการจองในวันนี้
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <?php
 $content = ob_get_clean();

@@ -160,6 +160,7 @@ if (!function_exists('dashboard_index')) {
         $access = dashboard_resolve_access($current_user);
         $shortcuts = dashboard_shortcuts($access);
         $counts = dashboard_counts($current_pid, $access);
+        $dh_year = system_get_dh_year();
 
         view_render('dashboard/index', [
             'dashboard_counts' => $counts,
@@ -167,6 +168,7 @@ if (!function_exists('dashboard_index')) {
             'dashboard_access' => $access,
             'dashboard_user' => $current_user,
             'dashboard_current_date_label' => dashboard_current_thai_date_label(),
+            'dashboard_calendar_events' => dashboard_calendar_events($dh_year),
         ]);
     }
 }
