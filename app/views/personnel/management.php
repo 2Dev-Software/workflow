@@ -96,7 +96,13 @@ ob_start();
         -webkit-text-fill-color: currentColor;
     }
 
-    .room-admin-modal .form-group.full {
+    #personnelAddModal .room-admin-modal,
+    #personnelEditModal .room-admin-modal {
+        overflow: hidden;
+    }
+
+    #personnelAddModal .room-admin-modal .form-group.full,
+    #personnelEditModal .room-admin-modal .form-group.full {
         flex-direction: row;
         gap: 20px;
         align-items: center;
@@ -123,8 +129,33 @@ ob_start();
     }
 
     .personnel-modal-scroll {
-        max-height: calc(100vh - 210px);
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
         overflow-y: auto;
+        padding-bottom: 28px;
+    }
+
+    #personnelAddModal [data-personnel-role-section],
+    #personnelEditModal [data-personnel-role-section] {
+        flex-wrap: wrap;
+    }
+
+    #personnelAddModal [data-personnel-role-section] > label,
+    #personnelEditModal [data-personnel-role-section] > label {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    #personnelAddModal [data-personnel-role-section] .dropdown-container,
+    #personnelEditModal [data-personnel-role-section] .dropdown-container {
+        flex: 0 1 450px;
+        max-width: 100%;
+    }
+
+    #personnelAddModal [data-personnel-role-section] .sent-notice-selected,
+    #personnelEditModal [data-personnel-role-section] .sent-notice-selected {
+        flex: 0 0 auto;
     }
 
     .personnel-role-grid {
@@ -238,6 +269,18 @@ ob_start();
         .signature-content {
             flex-direction: column;
             align-items: flex-start;
+        }
+
+        #personnelAddModal [data-personnel-role-section],
+        #personnelEditModal [data-personnel-role-section] {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        #personnelAddModal [data-personnel-role-section] .dropdown-container,
+        #personnelEditModal [data-personnel-role-section] .dropdown-container {
+            width: 100%;
+            flex-basis: auto;
         }
     }
 </style>
@@ -393,7 +436,7 @@ ob_start();
             </header>
 
             <div class="modal-body room-admin-modal-body personnel-modal-scroll">
-                <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'personnel-management.php') ?>" id="personnelAddForm" enctype="multipart/form-data">
+                <form class="room-admin-form" style="grid-template-columns: none;" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'personnel-management.php') ?>" id="personnelAddForm" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="personnel_action" value="create">
 
@@ -878,7 +921,7 @@ ob_start();
             </header>
 
             <div class="modal-body room-admin-modal-body personnel-modal-scroll">
-                <form class="room-admin-form" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'personnel-management.php') ?>" id="personnelEditForm" enctype="multipart/form-data">
+                <form class="room-admin-form" style="grid-template-columns: none;" method="POST" action="<?= h($_SERVER['PHP_SELF'] ?? 'personnel-management.php') ?>" id="personnelEditForm" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="personnel_action" value="update">
                     <input type="hidden" name="original_pid" id="personnelEditOriginalPid" value="<?= h((string) ($edit_values['original_pid'] ?? '')) ?>">
