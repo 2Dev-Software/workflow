@@ -16,8 +16,8 @@ if (!function_exists('room_management_index')) {
         $current_pid = trim((string) ($current_user['pID'] ?? ($_SESSION['pID'] ?? '')));
         $current_role_id = (int) ($current_user['roleID'] ?? 0);
         $connection = db_connection();
-        $can_manage_rooms = in_array($current_role_id, [1, 5], true)
-            || ($current_pid !== '' && rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN, ROLE_FACILITY]));
+        $can_manage_rooms = in_array($current_role_id, [1], true)
+            || ($current_pid !== '' && rbac_user_has_any_role($connection, $current_pid, [ROLE_ADMIN]));
 
         if (!$can_manage_rooms) {
             if (function_exists('audit_log')) {
