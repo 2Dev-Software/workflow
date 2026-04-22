@@ -36,7 +36,8 @@ if ($actor_pid !== '') {
 $is_director_or_acting = $position_id === 1 || ($acting_pid !== '' && $acting_pid === $actor_pid);
 $can_manage_external_circular = $is_admin_user || $is_registry_user;
 $can_access_external_circular_menu = $can_manage_external_circular || $is_director_or_acting;
-$can_manage_room_module = $is_admin_user || $is_facility_user;
+$can_approve_room_module = $is_admin_user || $is_facility_user;
+$can_manage_room_module = $is_admin_user;
 $can_manage_vehicle_module = $is_admin_user || $is_vehicle_user;
 $can_approve_vehicle_module = $is_admin_user || $is_vehicle_user || $is_director_or_acting;
 $can_manage_vehicle_records = $is_admin_user;
@@ -55,6 +56,7 @@ $sidebar_access = [
     'is_repair_staff_user' => $is_repair_staff_user,
     'is_director_or_acting' => $is_director_or_acting,
     'can_manage_external_circular' => $can_manage_external_circular,
+    'can_approve_room_module' => $can_approve_room_module,
     'can_manage_room_module' => $can_manage_room_module,
     'can_manage_vehicle_module' => $can_manage_vehicle_module,
     'can_approve_vehicle_module' => $can_approve_vehicle_module,
@@ -189,7 +191,7 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
             </ul>
         </li>
 
-        <?php if ($can_manage_room_module): ?>
+        <?php if ($can_approve_room_module): ?>
             <li class="navigation-links-has-sub">
                 <div class="icon-link">
                     <a href="#">
@@ -202,7 +204,9 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
                 <ul class="navigation-links-sub-menu">
                     <li><a href="room-booking.php">จองสถานที่/ห้อง</a></li>
                     <li><a href="room-booking-approval.php">อนุมัติการจองสถานที่/ห้อง</a></li>
-                    <li><a href="room-management.php">จัดการสถานที่/ห้อง</a></li>
+                    <?php if ($can_manage_room_module): ?>
+                        <li><a href="room-management.php">จัดการสถานที่/ห้อง</a></li>
+                    <?php endif; ?>
                 </ul>
             </li>
         <?php else: ?>
