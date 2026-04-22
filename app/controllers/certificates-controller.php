@@ -191,7 +191,7 @@ if (!function_exists('certificates_index')) {
                             'subject' => $form_values['subject'],
                             'groupFID' => (int) $form_values['group_fid'],
                             'createdByPID' => $current_pid,
-                        ], $_FILES['cover_file'] ?? []);
+                        ]);
 
                         $created_certificate = certificate_get($certificate_id) ?? [];
                         $alert = [

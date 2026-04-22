@@ -203,31 +203,6 @@ ob_start();
             </div>
         </div>
 
-        <div class="form-group row label">
-            <div class="input-group">
-                <p><strong>แนบไฟล์เอกสาร</strong></p>
-            </div>
-        </div>
-
-        <div class="form-group row">
-            <section class="upload-layout">
-                <input type="file" id="certiFile" name="cover_file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/vnd.rar"
-                    style="display: none;">
-                <div class="row form-group">
-                    <button class="btn btn-upload-small" type="button" id="btnCertiAddFile">
-                        <p>เพิ่มไฟล์</p>
-                    </button>
-                    <div class="file-hint">
-                        <p>*อัปโหลดได้เฉพาะไฟล์ word, excel, pdf, zip, rar สูงสุดแนบไฟล์ได้ 1 ไฟล์ *</p>
-                    </div>
-                </div>
-                <div class="existing-file-section">
-                    <div class="file-list certificate-file-list" id="certiFileContainer"></div>
-                </div>
-            </section>
-        </div>
-
         <div class="form-group last button">
             <div class="input-group">
                 <button class="submit" type="submit" data-confirm="ยืนยันการบันทึกออกเลขเกียรติบัตรใช่หรือไม่?"
@@ -337,6 +312,7 @@ ob_start();
                         $certificate_id = (int) ($item['certificateID'] ?? 0);
                         $status_key = strtoupper(trim((string) ($item['status'] ?? '')));
                         $status_meta = $certificate_status_map[$status_key] ?? ['label' => ($status_key !== '' ? $status_key : '-'), 'pill' => 'approved'];
+                        $file_action_label = $status_key === 'COMPLETE' ? 'ดูไฟล์' : 'ดู/แนบไฟล์';
                         ?>
                         <tr>
                             <td><?= h((string) ($item['subject'] ?? '-')) ?></td>
@@ -472,10 +448,10 @@ ob_start();
                             <td style="text-align: center;">
                                 <div class="circular-my-actions">
                                     <button class="booking-action-btn secondary js-open-certificate-edit-modal" type="button"
-                                        data-certificate-id="<?= h((string) $certificate_id) ?>" title="ดู/แนบไฟล์"
-                                        aria-label="ดู/แนบไฟล์">
+                                        data-certificate-id="<?= h((string) $certificate_id) ?>" title="<?= h($file_action_label) ?>"
+                                        aria-label="<?= h($file_action_label) ?>">
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                        <span class="tooltip">ดู/แนบไฟล์</span>
+                                        <span class="tooltip"><?= h($file_action_label) ?></span>
                                     </button>
                                 </div>
                             </td>
@@ -545,7 +521,7 @@ ob_start();
                             <input type="file" id="modalCertificateEditFileInput" name="attachments[]"
                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/vnd.rar"
                                 style="display: none;">
-                            <div class="row form-group">
+                            <div class="row form-group" id="modalCertificateEditUploadActions">
                                 <button class="btn btn-upload-small" type="button" id="modalCertificateEditAddFileBtn">
                                     <p>เพิ่มไฟล์</p>
                                 </button>
@@ -563,9 +539,10 @@ ob_start();
                 </form>
             </div>
 
-            <div class="footer-modal">
-                <button type="submit" form="modalCertificateEditForm">
-                    <p>ยืนยัน</p>
+            <div class="footer-modal" id="modalCertificateEditFooter">
+                <button type="submit" form="modalCertificateEditForm" data-confirm="ยืนยันการบันทึกไฟล์เกียรติบัตรใช่หรือไม่?"
+                    data-confirm-title="ยืนยันการบันทึก" data-confirm-ok="ยืนยัน" data-confirm-cancel="ยกเลิก">
+                    <p>บันทึก</p>
                 </button>
             </div>
         </div>
@@ -638,9 +615,6 @@ ob_start();
         const totalInput = document.getElementById('certificateTotalInput');
         const fromInput = document.getElementById('certificateFromNoInput');
         const toInput = document.getElementById('certificateToNoInput');
-        const fileInput = document.getElementById('certiFile');
-        const addFileButton = document.getElementById('btnCertiAddFile');
-        const fileContainer = document.getElementById('certiFileContainer');
         const previewBase = {
             year: <?= (int) ($preview_base['year'] ?? 0) ?>,
             nextSeq: <?= (int) ($preview_base['fromSeq'] ?? 1) ?>,
@@ -670,64 +644,10 @@ ob_start();
             toInput.value = formatCertificateNumber(previewBase.year, toSeq);
         };
 
-        const renderSelectedFile = () => {
-            if (!fileContainer || !fileInput) {
-                return;
-            }
-
-            fileContainer.innerHTML = '';
-
-            if (!fileInput.files || fileInput.files.length === 0) {
-                return;
-            }
-
-            const file = fileInput.files[0];
-            const wrapper = document.createElement('div');
-            wrapper.className = 'file-item-wrapper';
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-            deleteBtn.addEventListener('click', () => {
-                fileInput.value = '';
-                renderSelectedFile();
-            });
-
-            const banner = document.createElement('div');
-            banner.className = 'file-banner';
-
-            const info = document.createElement('div');
-            info.className = 'file-info';
-
-            const icon = document.createElement('div');
-            icon.className = 'file-icon';
-            icon.innerHTML = '<i class="fa-solid fa-file" aria-hidden="true"></i>';
-
-            const text = document.createElement('div');
-            text.className = 'file-text';
-            text.innerHTML = `<div class="file-name">${file.name}</div><div class="file-type">${file.type || 'ไฟล์แนบ'} • ${Math.max(1, Math.round(file.size / 1024))} KB</div>`;
-
-            info.appendChild(icon);
-            info.appendChild(text);
-            banner.appendChild(info);
-            wrapper.appendChild(deleteBtn);
-            wrapper.appendChild(banner);
-            fileContainer.appendChild(wrapper);
-        };
-
         renderPreviewRange();
 
         if (totalInput) {
             totalInput.addEventListener('input', renderPreviewRange);
-        }
-
-        if (addFileButton && fileInput) {
-            addFileButton.addEventListener('click', () => fileInput.click());
-        }
-
-        if (fileInput) {
-            fileInput.addEventListener('change', renderSelectedFile);
         }
 
         const setupFilterForm = (formId) => {
@@ -795,13 +715,16 @@ ob_start();
         const editGroupField = document.getElementById('modalCertificateEditGroup');
         const editFileInput = document.getElementById('modalCertificateEditFileInput');
         const editAddFileButton = document.getElementById('modalCertificateEditAddFileBtn');
+        const editUploadActions = document.getElementById('modalCertificateEditUploadActions');
         const editFileList = document.getElementById('modalCertificateEditFileList');
         const editRemoveInputs = document.getElementById('modalCertificateEditRemoveInputs');
+        const editFooter = document.getElementById('modalCertificateEditFooter');
         let editExistingFiles = [];
         let removedEditFileIds = [];
+        let editIsReadonly = false;
 
         const buildDownloadUrl = (certificateId, fileId) => {
-            return `/public/api/file-download.php?module=certificates&entity_id=${encodeURIComponent(String(certificateId))}&file_id=${encodeURIComponent(String(fileId))}`;
+            return `public/api/file-download.php?module=certificates&entity_id=${encodeURIComponent(String(certificateId))}&file_id=${encodeURIComponent(String(fileId))}`;
         };
 
         const formatFileSizeLabel = (bytes) => {
@@ -904,9 +827,19 @@ ob_start();
         const resetEditModalState = () => {
             editExistingFiles = [];
             removedEditFileIds = [];
+            editIsReadonly = false;
 
             if (editFileInput) {
                 editFileInput.value = '';
+                editFileInput.disabled = false;
+            }
+
+            if (editUploadActions) {
+                editUploadActions.style.display = '';
+            }
+
+            if (editFooter) {
+                editFooter.style.display = '';
             }
 
             syncEditRemoveInputs();
@@ -928,19 +861,22 @@ ob_start();
                 const wrapper = document.createElement('div');
                 wrapper.className = 'file-item-wrapper';
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-                deleteBtn.addEventListener('click', () => {
-                    if (fileId !== '' && !removedEditFileIds.includes(fileId)) {
-                        removedEditFileIds.push(fileId);
-                    }
+                if (!editIsReadonly) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+                    deleteBtn.addEventListener('click', () => {
+                        if (fileId !== '' && !removedEditFileIds.includes(fileId)) {
+                            removedEditFileIds.push(fileId);
+                        }
 
-                    editExistingFiles = editExistingFiles.filter((existingFile) => String(existingFile.fileID || '').trim() !== fileId);
-                    syncEditRemoveInputs();
-                    renderEditAttachmentList(certificateId);
-                });
+                        editExistingFiles = editExistingFiles.filter((existingFile) => String(existingFile.fileID || '').trim() !== fileId);
+                        syncEditRemoveInputs();
+                        renderEditAttachmentList(certificateId);
+                    });
+                    wrapper.appendChild(deleteBtn);
+                }
 
                 const banner = document.createElement('div');
                 banner.className = 'file-banner';
@@ -973,7 +909,6 @@ ob_start();
                 actions.appendChild(view);
                 banner.appendChild(info);
                 banner.appendChild(actions);
-                wrapper.appendChild(deleteBtn);
                 wrapper.appendChild(banner);
                 editFileList.appendChild(wrapper);
             });
@@ -982,7 +917,7 @@ ob_start();
                 ? editFileInput.files[0]
                 : null;
 
-            if (selectedFile) {
+            if (selectedFile && !editIsReadonly) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'file-item-wrapper new-file-item';
 
@@ -1076,6 +1011,21 @@ ob_start();
                 fileSize: Number(file.fileSize) || 0,
             })) : [];
 
+            editIsReadonly = String(payload.statusKey || '').toUpperCase() === 'COMPLETE' || editExistingFiles.length > 0;
+
+            if (editFileInput) {
+                editFileInput.disabled = editIsReadonly;
+                editFileInput.value = '';
+            }
+
+            if (editUploadActions) {
+                editUploadActions.style.display = editIsReadonly ? 'none' : '';
+            }
+
+            if (editFooter) {
+                editFooter.style.display = editIsReadonly ? 'none' : '';
+            }
+
             renderEditAttachmentList(certificateId);
             editModal.style.display = 'flex';
         };
@@ -1108,12 +1058,23 @@ ob_start();
         }
 
         if (editAddFileButton && editFileInput) {
-            editAddFileButton.addEventListener('click', () => editFileInput.click());
+            editAddFileButton.addEventListener('click', () => {
+                if (editIsReadonly) {
+                    return;
+                }
+
+                editFileInput.click();
+            });
         }
 
         if (editFileInput) {
             editFileInput.addEventListener('change', () => {
                 const certificateId = editIdField ? editIdField.value : '';
+
+                if (editIsReadonly) {
+                    editFileInput.value = '';
+                    return;
+                }
 
                 if (editFileInput.files && editFileInput.files.length > 0 && editExistingFiles.length > 0) {
                     window.alert('กรุณาลบไฟล์เดิมก่อนเลือกไฟล์ใหม่');
@@ -1141,7 +1102,12 @@ ob_start();
         }
 
         if (editForm) {
-            editForm.addEventListener('submit', () => {
+            editForm.addEventListener('submit', (event) => {
+                if (editIsReadonly) {
+                    event.preventDefault();
+                    return;
+                }
+
                 syncEditRemoveInputs();
             });
         }

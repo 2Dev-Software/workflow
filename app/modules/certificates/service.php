@@ -140,15 +140,7 @@ if (!function_exists('certificate_create_issue')) {
             'groupFID' => $group_fid,
             'createdByPID' => $created_by_pid,
         ]);
-        $normalized_files = array_values(array_filter(
-            upload_normalize_files($files),
-            static function (array $file): bool {
-                return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
-            }
-        ));
-        $final_status = $normalized_files === []
-            ? CERTIFICATE_STATUS_WAITING_ATTACHMENT
-            : CERTIFICATE_STATUS_COMPLETE;
+        $final_status = CERTIFICATE_STATUS_WAITING_ATTACHMENT;
 
         db_begin();
 
@@ -168,12 +160,6 @@ if (!function_exists('certificate_create_issue')) {
                 'updatedByPID' => $created_by_pid,
             ]);
 
-            $stored_attachments = upload_store_files($files, CERTIFICATE_MODULE_NAME, CERTIFICATE_ENTITY_NAME, (string) $certificate_id, $created_by_pid, [
-                'max_files' => 1,
-                'max_size' => 10 * 1024 * 1024,
-                'allowed_mimes' => certificate_allowed_upload_mimes(),
-            ]);
-
             db_commit();
             audit_log('certificates', 'CREATE', 'SUCCESS', CERTIFICATE_ENTITY_NAME, $certificate_id, null, certificate_audit_payload(array_merge($audit_payload, [
                 'certificateFromNo' => $range['fromNo'],
@@ -181,7 +167,7 @@ if (!function_exists('certificate_create_issue')) {
                 'certificateFromSeq' => $range['fromSeq'],
                 'certificateToSeq' => $range['toSeq'],
                 'finalStatus' => $final_status,
-                'attachmentCount' => count($stored_attachments),
+                'attachmentCount' => 0,
             ])));
 
             return $certificate_id;
@@ -222,6 +208,7 @@ if (!function_exists('certificate_build_modal_payload_map')) {
                 'certificateToNo' => trim((string) ($item['certificateToNo'] ?? '')),
                 'subject' => trim((string) ($item['subject'] ?? '')),
                 'groupName' => trim((string) ($item['groupName'] ?? '')),
+                'statusKey' => $status_key,
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
                 'statusPill' => trim((string) ($status_meta['pill'] ?? 'approved')),
                 'attachments' => array_map(static function (array $file): array {
@@ -255,6 +242,16 @@ if (!function_exists('certificate_update_attachments')) {
         }
 
         $existing_attachments = certificate_get_attachments($certificateID);
+
+        if (strtoupper(trim((string) ($certificate['status'] ?? ''))) === CERTIFICATE_STATUS_COMPLETE || $existing_attachments !== []) {
+            audit_log('certificates', 'ATTACH', 'FAIL', CERTIFICATE_ENTITY_NAME, $certificateID, 'attachment_locked', [
+                'actorPID' => $actorPID,
+                'currentStatus' => trim((string) ($certificate['status'] ?? '')),
+                'existingAttachmentCount' => count($existing_attachments),
+            ]);
+            throw new RuntimeException('รายการนี้แนบไฟล์สำเร็จแล้ว ไม่สามารถแก้ไขไฟล์แนบได้');
+        }
+
         $allowed_file_ids = [];
 
         foreach ($existing_attachments as $attachment) {
