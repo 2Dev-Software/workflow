@@ -131,6 +131,24 @@ ob_start();
     .content-area .tab-content.active {
         display: grid;
     }
+
+    .modal-header {
+        margin: 0 40px;
+    }
+
+    .modal-title {
+        color: var(--color-secondary);
+    }
+
+    .close-modal-btn {
+        color: var(--color-secondary);
+    }
+
+    @media (max-width: 1023px) {
+        .modal-header {
+            margin: 0;
+        }
+    }
 </style>
 
 <div class="content-header">
