@@ -144,6 +144,18 @@ ob_start();
         color: var(--color-secondary);
     }
 
+    .booking-detail-modal .modal-header {
+        margin: 0;
+    }
+
+    .booking-detail-modal .modal-header div {
+        color: var(--color-neutral-lightest);
+    }
+
+    .date .event-icons {
+        width: 95%;
+    }
+
     @media (max-width: 1023px) {
         .modal-header {
             margin: 0;
