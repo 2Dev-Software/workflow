@@ -44,6 +44,80 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../app/modules/audit/logger.php';
 
+if (!function_exists('memo_pdf_runtime_report')) {
+    function memo_pdf_runtime_report(string $cache_key): array
+    {
+        $required_extensions = ['mbstring', 'gd'];
+        $missing_extensions = [];
+        $extensions = [];
+
+        foreach ($required_extensions as $extension) {
+            $loaded = extension_loaded($extension);
+            $extensions[$extension] = $loaded;
+
+            if (!$loaded) {
+                $missing_extensions[] = $extension;
+            }
+        }
+
+        $class_map = [
+            'mpdf' => class_exists(Mpdf::class),
+            'config_variables' => class_exists(ConfigVariables::class),
+            'font_variables' => class_exists(FontVariables::class),
+        ];
+
+        $missing_classes = [];
+
+        foreach ($class_map as $label => $loaded) {
+            if (!$loaded) {
+                $missing_classes[] = $label;
+            }
+        }
+
+        $system_temp = (string) sys_get_temp_dir();
+        $temp_dir = rtrim($system_temp, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'workflow-mpdf-memo-' . $cache_key;
+        $temp_dir_ready = false;
+
+        if ($system_temp !== '') {
+            if (!is_dir($temp_dir)) {
+                @mkdir($temp_dir, 0777, true);
+            }
+
+            $temp_dir_ready = is_dir($temp_dir) && is_writable($temp_dir);
+
+            if (!$temp_dir_ready) {
+                $temp_dir = $system_temp;
+                $temp_dir_ready = is_dir($temp_dir) && is_writable($temp_dir);
+            }
+        }
+
+        $errors = [];
+
+        if ($missing_extensions !== []) {
+            $errors[] = 'missing_extensions:' . implode(',', $missing_extensions);
+        }
+
+        if ($missing_classes !== []) {
+            $errors[] = 'missing_classes:' . implode(',', $missing_classes);
+        }
+
+        if (!$temp_dir_ready) {
+            $errors[] = 'temp_dir_not_writable';
+        }
+
+        return [
+            'ready' => $errors === [],
+            'errors' => $errors,
+            'extensions' => $extensions,
+            'classes' => $class_map,
+            'temp_dir' => [
+                'path' => $temp_dir,
+                'writable' => $temp_dir_ready,
+            ],
+        ];
+    }
+}
+
 if (empty($_SESSION['pID'])) {
     if (function_exists('audit_log')) {
         audit_log('security', 'AUTH_REQUIRED', 'DENY', null, null, 'memo_pdf', [], 'GET', 401);
@@ -657,15 +731,33 @@ try {
     }
 
     $cache_key = substr(sha1(implode('|', $font_sig_parts) . '|memo|sarabun|otl=255|winTypo'), 0, 12);
-    $mpdf_tmp = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'workflow-mpdf-memo-' . $cache_key;
+    $runtime_report = memo_pdf_runtime_report($cache_key);
 
-    if (!is_dir($mpdf_tmp)) {
-        @mkdir($mpdf_tmp, 0777, true);
+    if (!$runtime_report['ready']) {
+        $runtime_payload = $audit_payload;
+        $runtime_payload['runtime'] = $runtime_report;
+
+        error_log('Memo PDF runtime not ready: ' . (json_encode($runtime_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'runtime_check_failed'));
+
+        if (function_exists('audit_log')) {
+            audit_log('memo', 'PDF_VIEW', 'FAIL', 'dh_memos', $use_mock ? null : $memo_id, 'pdf_runtime_not_ready', $runtime_payload, 'GET', 500);
+        }
+
+        while (ob_get_level() > $__memo_pdf_initial_ob_level) {
+            ob_end_clean();
+        }
+
+        if (ob_get_level() > 0) {
+            ob_clean();
+        }
+
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo 'PDF runtime is not ready: ' . implode(', ', $runtime_report['errors']);
+        exit();
     }
 
-    if (!is_dir($mpdf_tmp) || !is_writable($mpdf_tmp)) {
-        $mpdf_tmp = sys_get_temp_dir();
-    }
+    $mpdf_tmp = (string) ($runtime_report['temp_dir']['path'] ?? sys_get_temp_dir());
 
     $config_vars = (new ConfigVariables())->getDefaults();
     $font_dirs = $config_vars['fontDir'];
