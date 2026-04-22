@@ -44,14 +44,44 @@ if (!function_exists('health_index')) {
         $checks['max_upload_size'] = ini_get('upload_max_filesize');
         $checks['max_post_size'] = ini_get('post_max_size');
         $checks['timezone'] = date_default_timezone_get();
+        $checks['db_driver'] = 'mysqli';
 
-        $required_extensions = ['mysqli', 'openssl', 'mbstring', 'json', 'fileinfo'];
+        $required_extensions = ['mysqli', 'openssl', 'mbstring', 'json', 'fileinfo', 'gd', 'dom', 'zip', 'pdo_mysql'];
         $extensions = [];
 
         foreach ($required_extensions as $ext) {
             $extensions[$ext] = extension_loaded($ext);
         }
         $checks['extensions'] = $extensions;
+
+        $vendor_autoload = __DIR__ . '/../../vendor/autoload.php';
+        $checks['vendor_autoload'] = is_file($vendor_autoload);
+
+        if ($checks['vendor_autoload']) {
+            require_once $vendor_autoload;
+        }
+
+        $pdf_temp_root = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR);
+        $pdf_temp_probe = $pdf_temp_root !== ''
+            ? $pdf_temp_root . DIRECTORY_SEPARATOR . 'workflow-health-pdf'
+            : '';
+
+        $pdf_temp_ready = $pdf_temp_probe !== ''
+            && (is_dir($pdf_temp_probe) || @mkdir($pdf_temp_probe, 0777, true))
+            && is_writable($pdf_temp_probe);
+
+        $checks['pdf_runtime'] = [
+            'mpdf_class' => class_exists(\Mpdf\Mpdf::class),
+            'config_variables_class' => class_exists(\Mpdf\Config\ConfigVariables::class),
+            'font_variables_class' => class_exists(\Mpdf\Config\FontVariables::class),
+            'mb_regex_encoding' => function_exists('mb_regex_encoding'),
+            'imagecreatetruecolor' => function_exists('imagecreatetruecolor'),
+            'finfo_open' => function_exists('finfo_open'),
+            'temp_dir' => [
+                'path' => $pdf_temp_probe !== '' ? $pdf_temp_probe : sys_get_temp_dir(),
+                'writable' => $pdf_temp_ready,
+            ],
+        ];
 
         view_render('health/index', [
             'checks' => $checks,

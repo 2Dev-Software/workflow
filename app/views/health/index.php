@@ -46,6 +46,10 @@ ob_start();
             <span>Timezone</span>
             <strong><?= h((string) ($checks['timezone'] ?? '')) ?></strong>
         </div>
+        <div class="health-item">
+            <span>DB Driver</span>
+            <strong><?= h((string) ($checks['db_driver'] ?? '')) ?></strong>
+        </div>
     </div>
 
     <div class="card__header">
@@ -58,6 +62,64 @@ ob_start();
                 <strong class="<?= $ok ? 'text-success' : 'text-danger' ?>"><?= $ok ? 'OK' : 'MISSING' ?></strong>
             </div>
         <?php endforeach; ?>
+    </div>
+
+    <div class="card__header">
+        <h3>PDF Runtime</h3>
+    </div>
+    <div class="health-grid">
+        <div class="health-item">
+            <span>Vendor Autoload</span>
+            <strong class="<?= ($checks['vendor_autoload'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['vendor_autoload'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>mPDF Class</span>
+            <strong class="<?= ($checks['pdf_runtime']['mpdf_class'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['mpdf_class'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>ConfigVariables Class</span>
+            <strong class="<?= ($checks['pdf_runtime']['config_variables_class'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['config_variables_class'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>FontVariables Class</span>
+            <strong class="<?= ($checks['pdf_runtime']['font_variables_class'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['font_variables_class'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>mb_regex_encoding()</span>
+            <strong class="<?= ($checks['pdf_runtime']['mb_regex_encoding'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['mb_regex_encoding'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>imagecreatetruecolor()</span>
+            <strong class="<?= ($checks['pdf_runtime']['imagecreatetruecolor'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['imagecreatetruecolor'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>finfo_open()</span>
+            <strong class="<?= ($checks['pdf_runtime']['finfo_open'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['finfo_open'] ?? false) ? 'OK' : 'MISSING' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>PDF Temp Dir</span>
+            <strong class="<?= ($checks['pdf_runtime']['temp_dir']['writable'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                <?= ($checks['pdf_runtime']['temp_dir']['writable'] ?? false) ? 'WRITABLE' : 'NOT WRITABLE' ?>
+            </strong>
+        </div>
+        <div class="health-item">
+            <span>PDF Temp Path</span>
+            <strong><?= h((string) ($checks['pdf_runtime']['temp_dir']['path'] ?? '')) ?></strong>
+        </div>
     </div>
 </section>
 <?php
