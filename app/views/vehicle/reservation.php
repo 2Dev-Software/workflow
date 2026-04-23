@@ -41,7 +41,7 @@ ob_start();
         grid-template-columns: repeat(2, 1fr);
     }
 
-    hr {
+    .vehicle-detail-form hr {
         background-color: var(--color-secondary);
         height: 4px;
         border: none;
