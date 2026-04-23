@@ -551,21 +551,38 @@ ob_start();
                         $can_delete_row = $can_edit_row;
                         $date_parts = $format_thai_datetime_parts((string) ($req['createdAt'] ?? ''));
                         $detail_preview = $truncate_repair_detail((string) ($req['detail'] ?? ''), 80);
-                        $attachment_payload = [];
+                        $requester_attachment_payload = [];
+                        $system_attachment_payload = [];
+                        $requester_pid = trim((string) ($req['requesterPID'] ?? ''));
 
                         foreach ((array) ($request_attachments_map[$repair_id] ?? []) as $file) {
-                            $attachment_payload[] = [
+                            $attachment_payload_item = [
                                 'fileID' => (int) ($file['fileID'] ?? 0),
                                 'fileName' => (string) ($file['fileName'] ?? 'ไฟล์แนบ'),
                                 'mimeType' => (string) ($file['mimeType'] ?? ''),
                                 'fileSize' => (int) ($file['fileSize'] ?? 0),
                             ];
+
+                            $attached_by_pid = trim((string) ($file['attachedByPID'] ?? ''));
+                            $is_system_attachment = $requester_pid !== '' && $attached_by_pid !== '' && $attached_by_pid !== $requester_pid;
+
+                            if ($is_system_attachment) {
+                                $system_attachment_payload[] = $attachment_payload_item;
+                                continue;
+                            }
+
+                            $requester_attachment_payload[] = $attachment_payload_item;
                         }
 
-                        $attachment_json = json_encode($attachment_payload, $json_flags);
+                        $attachment_json = json_encode($requester_attachment_payload, $json_flags);
+                        $system_attachment_json = json_encode($system_attachment_payload, $json_flags);
 
                         if (!is_string($attachment_json)) {
                             $attachment_json = '[]';
+                        }
+
+                        if (!is_string($system_attachment_json)) {
+                            $system_attachment_json = '[]';
                         }
 
                         $timeline_by_status = [];
@@ -692,6 +709,7 @@ ob_start();
                                             data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
                                             data-status-pill="<?= h((string) ($row_status['variant'] ?? 'pending')) ?>"
                                             data-files="<?= h($attachment_json) ?>"
+                                            data-system-files="<?= h($system_attachment_json) ?>"
                                             data-timeline="<?= h($timeline_json) ?>">
                                             <i class="fa-solid fa-eye"></i>
                                             <span class="tooltip">ดูรายละเอียด</span>
@@ -793,44 +811,7 @@ ob_start();
                     <div class="form-group">
                         <label><b>ไฟล์เอกสารแนบจากระบบ</b></label>
                         <section class="upload-layout">
-                            <div class="file-list" id="repairApprovalDetailFileList">
-                                <div class="file-item-wrapper">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">ch01-updated-260127.pdf</span><span class="file-type">1268.4 KB</span></div>
-                                        </div>
-                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=2" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=2&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="file-item-wrapper">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">DS and Algo-Algorithm Analysis 2025.pdf</span><span class="file-type">1963.1 KB</span></div>
-                                        </div>
-                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=3" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=3&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="file-item-wrapper">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">DS and Algo-Stack-Queue 2023.pdf</span><span class="file-type">1735.9 KB</span></div>
-                                        </div>
-                                        <div class="file-actions-group" style="display: flex; gap: 10px;">
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=4" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                            <div class="file-actions"><a href="/public/api/file-download.php?module=repairs&amp;entity_id=2&amp;file_id=4&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="file-list" id="repairSystemDetailFileList"></div>
                         </section>
                     </div>
 
@@ -1333,6 +1314,7 @@ ob_start();
         const detailEquipment = document.getElementById('repairDetailEquipment');
         const detailText = document.getElementById('repairDetailText');
         const detailFileList = document.getElementById('repairDetailFileList');
+        const detailSystemFileList = document.getElementById('repairSystemDetailFileList');
         const detailTimeline = document.getElementById('repairDetailTimeline');
         const detailStatusPill = detailModal ? detailModal.querySelector('.header-modal .status-pill') : null;
 
@@ -1390,20 +1372,20 @@ ob_start();
             return wrapper;
         };
 
-        const renderModalFiles = (files, repairId) => {
-            if (!detailFileList) {
+        const renderModalFiles = (files, repairId, targetList) => {
+            if (!targetList) {
                 return;
             }
 
-            detailFileList.innerHTML = '';
+            targetList.innerHTML = '';
 
             if (!Array.isArray(files) || files.length === 0) {
-                detailFileList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
+                targetList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
                 return;
             }
 
             files.forEach((file) => {
-                detailFileList.appendChild(buildModalFileItem(file, repairId));
+                targetList.appendChild(buildModalFileItem(file, repairId));
             });
         };
 
@@ -1477,11 +1459,18 @@ ob_start();
 
         const openRepairDetailModal = (btn) => {
             let files = [];
+            let systemFiles = [];
             let timeline = [];
             try {
                 files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
             } catch (error) {
                 files = [];
+            }
+
+            try {
+                systemFiles = JSON.parse(String(btn.getAttribute('data-system-files') || '[]'));
+            } catch (error) {
+                systemFiles = [];
             }
 
             try {
@@ -1505,7 +1494,9 @@ ob_start();
                 detailStatusPill.textContent = btn.getAttribute('data-status-label') || '-';
             }
 
-            renderModalFiles(files, String(btn.getAttribute('data-repair-id') || '').trim());
+            const repairId = String(btn.getAttribute('data-repair-id') || '').trim();
+            renderModalFiles(files, repairId, detailFileList);
+            renderModalFiles(systemFiles, repairId, detailSystemFileList);
             renderRepairTimeline(timeline);
 
             if (detailModal) detailModal.style.display = 'flex';
