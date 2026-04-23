@@ -224,7 +224,7 @@ if (!function_exists('repair_get')) {
 if (!function_exists('repair_get_attachments')) {
     function repair_get_attachments(int $repairID): array
     {
-        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
+        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
@@ -253,7 +253,7 @@ if (!function_exists('repair_get_attachments_map')) {
 
         $entity_ids = array_map('strval', array_values($normalized_ids));
         $placeholders = implode(', ', array_fill(0, count($entity_ids), '?'));
-        $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
+        $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID IN (' . $placeholders . ') AND f.deletedAt IS NULL
@@ -280,6 +280,7 @@ if (!function_exists('repair_get_attachments_map')) {
                 'filePath' => (string) ($row['filePath'] ?? ''),
                 'mimeType' => (string) ($row['mimeType'] ?? ''),
                 'fileSize' => (int) ($row['fileSize'] ?? 0),
+                'attachedByPID' => (string) ($row['attachedByPID'] ?? ''),
             ];
         }
 
