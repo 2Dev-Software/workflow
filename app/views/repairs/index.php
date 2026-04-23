@@ -378,7 +378,7 @@ ob_start();
         transform: none;
     }
 
-    hr {
+    .container-circular-notice-sending hr {
         background-color: var(--color-secondary);
         height: 1px;
         border: none;
