@@ -261,6 +261,10 @@ ob_start();
         border-color: #bd0000 !important;
         box-shadow: inset 0 0 0 1px white, inset 0 0 0 3px #bd0000 !important;
     }
+
+    .file-list {
+        margin: 0;
+    }
 </style>
 
 <div class="content-header">
@@ -4559,31 +4563,65 @@ ob_start();
                     </div>
                 </div>
 
-                <div class="file-section" id="modalOutgoingViewFileSection" style="display: none;">
-                    <p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>
-                </div>
-
-                <div class="orders-send-modal-shell orders-send-card">
-
-                    <div id="modalOutgoingViewOwnerSection">
-                        <div class="table-responsive">
-                            <table class="custom-table orders-send-track-table">
-                                <caption>เจ้าของเรื่อง</caption>
-                                <thead>
-                                    <tr>
-                                        <th>ชื่อจริง-นามสกุล</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="modalOutgoingViewOwnerBody">
-                                    <tr>
-                                        <td colspan="1" class="orders-send-track-empty">ไม่พบข้อมูลเจ้าของเรื่อง</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
+                <div class="content-topic-sec">
+                    <div class="more-details">
+                        <p><strong>ผู้ออกเลข</strong></p>
+                        <input type="text" id="" class="order-no-display" value="" disabled>
+                    </div>
+                    <div class="more-details">
+                        <p><strong>เจ้าของเรื่อง</strong></p>
+                        <input type="text" id="" class="order-no-display" value="" disabled>
                     </div>
                 </div>
+
+                <div class="file-section" id="sectionViewCover">
+                    <p><strong>ไฟล์หนังสือนำ</strong></p>
+                    <div class="file-list" id="containerViewCover" aria-live="polite">
+                        <div class="file-item-wrapper" data-file-id="160">
+                            <div class="file-banner">
+                                <div class="file-info">
+                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 16.18.17 (2).png</span><span class="file-type">image/png • 1.6 MB</span></div>
+                                </div>
+                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                            </div>
+                        </div>
+                        <div class="file-item-wrapper" data-file-id="161">
+                            <div class="file-banner">
+                                <div class="file-info">
+                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 17.14.58.png</span><span class="file-type">image/png • 188 KB</span></div>
+                                </div>
+                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="file-section" id="sectionViewAttachments">
+                    <p><strong>ไฟล์เอกสารเพิ่มเติม</strong></p>
+                    <div class="file-list" id="containerViewAttachments" aria-live="polite">
+                        <div class="file-item-wrapper" data-file-id="160">
+                            <div class="file-banner">
+                                <div class="file-info">
+                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 16.18.17 (2).png</span><span class="file-type">image/png • 1.6 MB</span></div>
+                                </div>
+                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                            </div>
+                        </div>
+                        <div class="file-item-wrapper" data-file-id="161">
+                            <div class="file-banner">
+                                <div class="file-info">
+                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 17.14.58.png</span><span class="file-type">image/png • 188 KB</span></div>
+                                </div>
+                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
             </div>
 
@@ -4913,9 +4951,9 @@ ob_start();
                 return;
             }
 
-            if (!Array.isArray(files) || files.length === 0) {
+            if (!Array.isArray(files) || files.length != 0) {
                 modalOutgoingViewFileSection.style.display = 'none';
-                modalOutgoingViewFileSection.innerHTML = '<p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>';
+                modalOutgoingViewFileSection.innerHTML = '<p><strong>ไฟล์หนังสือนำ</strong></p>';
                 return;
             }
 
@@ -4946,7 +4984,7 @@ ob_start();
                 </div>`;
             }).join('');
 
-            modalOutgoingViewFileSection.innerHTML = `<p><strong>ไฟล์เอกสารแนบจากระบบ</strong></p>${fileRowsHtml}`;
+            modalOutgoingViewFileSection.innerHTML = `<p><strong>ไฟล์หนังสือนำ</strong></p>${fileRowsHtml}`;
         };
 
         const renderOutgoingViewOwners = (ownerNames, statusLabel, statusPill) => {
