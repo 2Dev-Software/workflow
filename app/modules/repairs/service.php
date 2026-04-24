@@ -248,7 +248,7 @@ if (!function_exists('repair_timeline_status_label')) {
         $labels = [
             REPAIR_STATUS_PENDING => 'ส่งคำร้องสำเร็จ',
             REPAIR_STATUS_IN_PROGRESS => 'กำลังดำเนินการ',
-            REPAIR_STATUS_COMPLETED => 'เสร็จสิ้น',
+            REPAIR_STATUS_COMPLETED => 'ดำเนินการเสร็จสิ้น',
             REPAIR_STATUS_CANCELLED => 'ยกเลิกคำร้อง',
             REPAIR_STATUS_REJECTED => 'ยกเลิกคำร้อง',
         ];
@@ -264,7 +264,7 @@ if (!function_exists('repair_timeline_title')) {
         $titles = [
             REPAIR_STATUS_PENDING => 'รับเรื่องคำร้องแล้ว',
             REPAIR_STATUS_IN_PROGRESS => 'กำลังดำเนินการ',
-            REPAIR_STATUS_COMPLETED => 'เสร็จสิ้น',
+            REPAIR_STATUS_COMPLETED => 'ดำเนินการเสร็จสิ้น',
             REPAIR_STATUS_CANCELLED => 'ยกเลิกคำร้อง',
             REPAIR_STATUS_REJECTED => 'ยกเลิกคำร้อง',
         ];

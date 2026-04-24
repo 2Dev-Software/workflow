@@ -1,3 +1,11 @@
+<?php
+$asset_version = static function (string $relativePath, string $fallback = '1'): string {
+    $absolutePath = dirname(__DIR__) . '/' . ltrim($relativePath, '/');
+    $modifiedAt = @filemtime($absolutePath);
+
+    return $modifiedAt !== false ? (string) $modifiedAt : $fallback;
+};
+?>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,12 +28,12 @@
     <meta property="og:description" content="แพลตฟอร์มบริหารจัดการโรงเรียนครบวงจร ปลอดภัย ทันสมัย ใช้งานง่าย">
     <meta property="og:image" content="assets/img/favicon/db-sarabun-logo.png">
 
-    <link href="assets/fonts/th-style.css" rel="stylesheet" />
-    <link rel="stylesheet" href="assets/css/tokens.css?v=0.1.0-beta">
-    <link rel="stylesheet" href="assets/css/base.css?v=0.1.0-beta">
-    <link rel="stylesheet" href="assets/css/components.css?v=0.1.0-beta">
-    <link rel="stylesheet" href="assets/css/main.css?v=1.0.0-vehicle-companion">
-    <link rel="stylesheet" href="assets/css/vendor-sweetalert2.min.css?v=0.1.0-beta">
+    <link href="assets/fonts/th-style.css?v=<?= htmlspecialchars($asset_version('assets/fonts/th-style.css'), ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/tokens.css?v=<?= htmlspecialchars($asset_version('assets/css/tokens.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="assets/css/base.css?v=<?= htmlspecialchars($asset_version('assets/css/base.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="assets/css/components.css?v=<?= htmlspecialchars($asset_version('assets/css/components.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="assets/css/main.css?v=<?= htmlspecialchars($asset_version('assets/css/main.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="assets/css/vendor-sweetalert2.min.css?v=<?= htmlspecialchars($asset_version('assets/css/vendor-sweetalert2.min.css'), ENT_QUOTES, 'UTF-8') ?>">
     <script src="https://kit.fontawesome.com/b8df3af368.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>

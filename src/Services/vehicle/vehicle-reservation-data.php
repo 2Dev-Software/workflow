@@ -127,6 +127,7 @@ function vehicle_reservation_get_bookings(mysqli $connection, int $year, string 
         'companionIds',
         'requesterDisplayName',
         'attachmentFileID',
+        'approvalNote',
     ];
 
     foreach ($optional_columns as $column) {

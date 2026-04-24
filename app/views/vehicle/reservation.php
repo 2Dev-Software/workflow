@@ -415,7 +415,7 @@ ob_start();
                 <p>รายละเอียดการจองยานพาหนะ</p>
             </div>
             <div class="sec-header">
-                <span class="status-pill approved">ลบคำร้องสำเร็จ</span>
+                <span class="status-pill pending" id="vehicleBookingDetailStatus">ส่งเอกสารแล้ว</span>
                 <i class="fa-solid fa-xmark" data-vehicle-modal-close="vehicleBookingDetailModal"></i>
             </div>
         </div>
@@ -506,8 +506,8 @@ ob_start();
 
             <div class="vehicle-row">
                 <div class="vehicle-input-content">
-                    <label for="vehicleEditPurpose">ขออนุญาตใช้รถเพื่อ</label>
-                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุวัตถุประสงค์" disabled></textarea>
+                    <label for="vehicleEditBookingPurpose">ขออนุญาตใช้รถเพื่อ</label>
+                    <textarea id="vehicleEditBookingPurpose" name="purpose" rows="5" placeholder="ระบุวัตถุประสงค์" disabled></textarea>
                 </div>
             </div>
 
@@ -589,12 +589,10 @@ ob_start();
 
             <hr>
 
-            <div class="vehicle-row">
+            <div class="vehicle-row" id="vehicleBookingDecisionSection" style="display: none;">
                 <div class="vehicle-input-content">
-                    <label for="vehicleEditPurpose">รายละเอียดการ<label style="color: var(--color-success)">อนุมัติการจอง</label></label>
-                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุรายละเอียดการอนุมัติการจอง"></textarea>
-                    <label for="vehicleEditPurpose">รายละเอียดการ<label style="color: var(--color-danger)">ไม่อนุมัติการจอง</label></label>
-                    <textarea id="vehicleEditPurpose" name="purpose" rows="5" placeholder="ระบุรายละเอียดการไม่อนุมัติการจอง"></textarea>
+                    <label for="vehicleBookingDecisionNote">รายละเอียดการ<span id="vehicleBookingDecisionLabelStatus" style="color: var(--color-success)">อนุมัติการจอง</span></label>
+                    <textarea id="vehicleBookingDecisionNote" rows="5" placeholder="ระบุรายละเอียดการอนุมัติการจอง" disabled></textarea>
                 </div>
             </div>
 
@@ -634,7 +632,7 @@ ob_start();
             departmentDisplay: departmentDisplay,
             departmentOptions: departmentOptions,
             writeDate: document.getElementById('vehicleEditWriteDate'),
-            purpose: document.getElementById('vehicleEditPurpose'),
+            purpose: document.getElementById('vehicleEditBookingPurpose'),
             location: document.getElementById('vehicleEditLocation'),
             otherPassengerCount: document.getElementById('vehicleEditOtherPassengerCount'),
             otherPassengerNames: document.getElementById('vehicleEditOtherPassengerNames'),
@@ -646,6 +644,10 @@ ob_start();
             endTime: document.getElementById('vehicleEditEndTime'),
             fuelRadios: modal.querySelectorAll('input[name="fuelSource"]'),
             dayCount: dayCountDisplay,
+            decisionSection: document.getElementById('vehicleBookingDecisionSection'),
+            decisionLabelStatus: document.getElementById('vehicleBookingDecisionLabelStatus'),
+            decisionNote: document.getElementById('vehicleBookingDecisionNote'),
+            statusBadge: document.getElementById('vehicleBookingDetailStatus'),
         } : {};
 
         const editAttachmentsList = document.getElementById('vehicleAttachmentList');
@@ -811,6 +813,19 @@ ob_start();
                     radio.checked = false;
                 });
             }
+            if (fieldMap.decisionSection) fieldMap.decisionSection.style.display = 'none';
+            if (fieldMap.decisionLabelStatus) {
+                fieldMap.decisionLabelStatus.textContent = 'อนุมัติการจอง';
+                fieldMap.decisionLabelStatus.style.color = 'var(--color-success)';
+            }
+            if (fieldMap.decisionNote) {
+                fieldMap.decisionNote.value = '';
+                fieldMap.decisionNote.placeholder = 'ระบุรายละเอียดการอนุมัติการจอง';
+            }
+            if (fieldMap.statusBadge) {
+                fieldMap.statusBadge.className = 'status-pill pending';
+                fieldMap.statusBadge.textContent = 'ส่งเอกสารแล้ว';
+            }
             closeCompanionModal();
         }
 
@@ -854,6 +869,40 @@ ob_start();
             return Math.max(1, resolveCompanionCount(data) + resolveOtherPassengerCount(data) + 1);
         }
 
+        function renderDecisionNote(data) {
+            if (!fieldMap.decisionSection || !fieldMap.decisionLabelStatus || !fieldMap.decisionNote) return;
+
+            const status = String(data?.status || '').toUpperCase();
+            let label = '';
+            let color = '';
+            let placeholder = '';
+            let note = '';
+
+            if (status === 'APPROVED') {
+                label = 'อนุมัติการจอง';
+                color = 'var(--color-success)';
+                placeholder = 'ระบุรายละเอียดการอนุมัติการจอง';
+                note = String(data?.approvalNote || data?.statusReason || '').trim();
+            } else if (status === 'REJECTED') {
+                label = 'ไม่อนุมัติการจอง';
+                color = 'var(--color-danger)';
+                placeholder = 'ระบุรายละเอียดการไม่อนุมัติการจอง';
+                note = String(data?.statusReason || data?.approvalNote || '').trim();
+            }
+
+            if (note === '') {
+                fieldMap.decisionSection.style.display = 'none';
+                fieldMap.decisionNote.value = '';
+                return;
+            }
+
+            fieldMap.decisionSection.style.display = '';
+            fieldMap.decisionLabelStatus.textContent = label;
+            fieldMap.decisionLabelStatus.style.color = color;
+            fieldMap.decisionNote.placeholder = placeholder;
+            fieldMap.decisionNote.value = note;
+        }
+
         function fillModal(data) {
             if (!data || !form) return;
             currentBooking = data;
@@ -885,6 +934,12 @@ ob_start();
             if (fieldMap.passengerCountDisplay) {
                 fieldMap.passengerCountDisplay.textContent = passengerValue > 0 ? `${passengerValue} คน` : '-';
             }
+            if (fieldMap.statusBadge) {
+                const statusClass = String(data.statusClass || 'pending').trim() || 'pending';
+                const statusLabel = String(data.statusLabel || 'ส่งเอกสารแล้ว').trim() || 'ส่งเอกสารแล้ว';
+                fieldMap.statusBadge.className = `status-pill ${statusClass}`;
+                fieldMap.statusBadge.textContent = statusLabel;
+            }
 
             if (fieldMap.fuelRadios) {
                 fieldMap.fuelRadios.forEach((radio) => {
@@ -894,6 +949,7 @@ ob_start();
 
             renderPassengerSummary(data);
             renderAttachmentList(false);
+            renderDecisionNote(data);
         }
 
         if (companionModalTrigger && companionModalList) {

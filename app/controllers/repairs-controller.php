@@ -83,7 +83,7 @@ if (!function_exists('repairs_status_map')) {
         return [
             REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
             REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
-            REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
+            REPAIR_STATUS_COMPLETED => ['label' => 'ดำเนินการเสร็จสิ้น', 'variant' => 'approved'],
             REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
             REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
         ];
@@ -116,6 +116,55 @@ if (!function_exists('repairs_default_filter_status')) {
     function repairs_default_filter_status(string $mode): string
     {
         return 'all';
+    }
+}
+
+if (!function_exists('repairs_merge_uploaded_attachments')) {
+    /**
+     * @param array<int, array<string, mixed>> $existing
+     * @param array<int, array<string, mixed>> $uploaded
+     * @return array<int, array<string, mixed>>
+     */
+    function repairs_merge_uploaded_attachments(array $existing, array $uploaded, string $attached_by_pid): array
+    {
+        if ($uploaded === []) {
+            return $existing;
+        }
+
+        $merged = [];
+        $known_ids = [];
+
+        foreach ($existing as $file) {
+            $file_id = (int) ($file['fileID'] ?? 0);
+
+            if ($file_id > 0) {
+                $known_ids[$file_id] = true;
+            }
+
+            $merged[] = $file;
+        }
+
+        foreach ($uploaded as $file) {
+            $file_id = (int) ($file['fileID'] ?? 0);
+
+            if ($file_id > 0 && isset($known_ids[$file_id])) {
+                continue;
+            }
+
+            $file['attachedByPID'] = $attached_by_pid;
+
+            if (!isset($file['entityName']) || trim((string) $file['entityName']) === '') {
+                $file['entityName'] = REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME;
+            }
+
+            $merged[] = $file;
+
+            if ($file_id > 0) {
+                $known_ids[$file_id] = true;
+            }
+        }
+
+        return $merged;
     }
 }
 
@@ -257,9 +306,9 @@ if (!function_exists('repairs_transition_actions')) {
             } elseif ($current_status === REPAIR_STATUS_IN_PROGRESS) {
                 $actions[] = [
                     'target_status' => REPAIR_STATUS_COMPLETED,
-                    'label' => 'เสร็จสิ้น',
+                    'label' => 'ดำเนินการเสร็จสิ้น',
                     'variant' => 'primary',
-                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นเสร็จสิ้นใช่หรือไม่?',
+                    'confirm' => 'ยืนยันการเปลี่ยนสถานะเป็นดำเนินการเสร็จสิ้นใช่หรือไม่?',
                     'confirm_title' => 'ยืนยันการปิดงาน',
                 ];
                 $actions[] = [
@@ -357,6 +406,7 @@ if (!function_exists('repairs_handle_mode')) {
         $status_filter_options = repairs_track_status_filters();
         $view_item = null;
         $view_attachments = [];
+        $view_transition_note = '';
         $edit_item = null;
         $edit_attachments = [];
         $default_filter_status = repairs_default_filter_status($mode);
@@ -456,6 +506,7 @@ if (!function_exists('repairs_handle_mode')) {
             $repair_id = (int) ($_POST['repair_id'] ?? 0);
             $target_status = trim((string) ($_POST['target_status'] ?? ''));
             $transition_note = trim((string) ($_POST['transition_note'] ?? ''));
+            $has_transition_attachments = !empty($_FILES['attachments']) && repair_has_uploads((array) $_FILES['attachments']);
             $values = repair_normalize_form_data($_POST);
             $post_audit_payload = [
                 'repairID' => $repair_id > 0 ? $repair_id : null,
@@ -472,7 +523,7 @@ if (!function_exists('repairs_handle_mode')) {
                 'detailLength' => function_exists('mb_strlen')
                     ? mb_strlen((string) ($values['detail'] ?? ''), 'UTF-8')
                     : strlen((string) ($values['detail'] ?? '')),
-                'hasAttachments' => !empty($_FILES['attachments']) && repair_has_uploads((array) $_FILES['attachments']),
+                'hasAttachments' => $has_transition_attachments,
                 'attachmentCount' => !empty($_FILES['attachments']) ? repair_count_uploads((array) $_FILES['attachments']) : 0,
             ];
 
@@ -677,7 +728,7 @@ if (!function_exists('repairs_handle_mode')) {
                     && $current_status !== ''
                     && $current_status !== REPAIR_STATUS_PENDING
                     && $target_status === $current_status
-                    && $transition_note !== '';
+                    && ($transition_note !== '' || $has_transition_attachments);
 
                 if (!$target) {
                     repairs_controller_audit_log($mode, 'TRANSITION', 'FAIL', $repair_id > 0 ? $repair_id : null, 'not_found', $post_audit_payload);
@@ -721,6 +772,9 @@ if (!function_exists('repairs_handle_mode')) {
                         'message' => 'หน้าเจ้าหน้าที่รองรับเฉพาะการเปลี่ยนเป็นกำลังดำเนินการ ดำเนินการเสร็จสิ้น หรือยกเลิกคำร้องเท่านั้น',
                     ];
                 } elseif ($is_same_status_note_update) {
+                    $attachment_upload_error = null;
+                    $uploaded_attachments = [];
+
                     repair_update_record($repair_id, [
                         'updatedAt' => date('Y-m-d H:i:s'),
                     ]);
@@ -733,22 +787,45 @@ if (!function_exists('repairs_handle_mode')) {
                         'note' => $transition_note,
                     ]);
 
-                    $alert = [
+                    if ($has_transition_attachments) {
+                        try {
+                            $uploaded_attachments = upload_store_files($_FILES['attachments'], REPAIR_MODULE_NAME, REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME, (string) $repair_id, $current_pid, [
+                                'max_files' => 5,
+                                'allowed_mimes' => upload_allowed_mimes(),
+                            ]);
+                            repairs_controller_audit_log($mode, 'ATTACH', 'SUCCESS', $repair_id, null, $post_audit_payload);
+                        } catch (RuntimeException $exception) {
+                            $attachment_upload_error = $exception->getMessage();
+                            repairs_controller_audit_log($mode, 'ATTACH', 'FAIL', $repair_id, $attachment_upload_error, $post_audit_payload);
+                        }
+                    }
+
+                    $alert = $attachment_upload_error === null ? [
                         'type' => 'success',
                         'title' => 'บันทึกรายละเอียดแล้ว',
                         'message' => '',
+                    ] : [
+                        'type' => 'warning',
+                        'title' => 'บันทึกรายละเอียดแล้ว',
+                        'message' => 'แต่แนบไฟล์ไม่สำเร็จ: ' . $attachment_upload_error,
                     ];
 
                     if ($mode === 'approval') {
-                        $view_id = 0;
-                        $view_item = null;
-                        $view_attachments = [];
+                        $view_id = $repair_id;
+                        $view_item = repair_get($repair_id);
+                        $view_attachments = repair_get_attachments($repair_id);
+                        $view_attachments = repairs_merge_uploaded_attachments($view_attachments, $uploaded_attachments, $current_pid);
+                        $latest_notes = repair_get_latest_timeline_notes_map([$repair_id]);
+                        $view_transition_note = (string) ($latest_notes[$repair_id] ?? $transition_note);
                     } else {
                         $view_id = $repair_id;
                         $view_item = repair_get($repair_id);
                         $view_attachments = repair_get_attachments($repair_id);
+                        $view_attachments = repairs_merge_uploaded_attachments($view_attachments, $uploaded_attachments, $current_pid);
                     }
                 } else {
+                    $attachment_upload_error = null;
+                    $uploaded_attachments = [];
                     $update_data = [
                         'status' => $target_status,
                     ];
@@ -773,20 +850,41 @@ if (!function_exists('repairs_handle_mode')) {
                         'note' => $transition_note !== '' ? $transition_note : null,
                     ]);
 
-                    $alert = [
+                    if ($has_transition_attachments) {
+                        try {
+                            $uploaded_attachments = upload_store_files($_FILES['attachments'], REPAIR_MODULE_NAME, REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME, (string) $repair_id, $current_pid, [
+                                'max_files' => 5,
+                                'allowed_mimes' => upload_allowed_mimes(),
+                            ]);
+                            repairs_controller_audit_log($mode, 'ATTACH', 'SUCCESS', $repair_id, null, $post_audit_payload);
+                        } catch (RuntimeException $exception) {
+                            $attachment_upload_error = $exception->getMessage();
+                            repairs_controller_audit_log($mode, 'ATTACH', 'FAIL', $repair_id, $attachment_upload_error, $post_audit_payload);
+                        }
+                    }
+
+                    $alert = $attachment_upload_error === null ? [
                         'type' => 'success',
                         'title' => 'อัปเดตสถานะแล้ว',
                         'message' => '',
+                    ] : [
+                        'type' => 'warning',
+                        'title' => 'อัปเดตสถานะแล้ว',
+                        'message' => 'แต่แนบไฟล์ไม่สำเร็จ: ' . $attachment_upload_error,
                     ];
 
                     if ($mode === 'approval') {
-                        $view_id = 0;
-                        $view_item = null;
-                        $view_attachments = [];
+                        $view_id = $repair_id;
+                        $view_item = repair_get($repair_id);
+                        $view_attachments = repair_get_attachments($repair_id);
+                        $view_attachments = repairs_merge_uploaded_attachments($view_attachments, $uploaded_attachments, $current_pid);
+                        $latest_notes = repair_get_latest_timeline_notes_map([$repair_id]);
+                        $view_transition_note = (string) ($latest_notes[$repair_id] ?? $transition_note);
                     } else {
                         $view_id = $repair_id;
                         $view_item = repair_get($repair_id);
                         $view_attachments = repair_get_attachments($repair_id);
+                        $view_attachments = repairs_merge_uploaded_attachments($view_attachments, $uploaded_attachments, $current_pid);
                     }
                 }
             } elseif ($mode !== 'report') {
@@ -929,6 +1027,7 @@ if (!function_exists('repairs_handle_mode')) {
             'current_pid' => $current_pid,
             'view_item' => $view_item,
             'view_attachments' => $view_attachments,
+            'view_transition_note' => $view_transition_note,
             'edit_item' => $edit_item,
             'edit_attachments' => $edit_attachments,
             'page' => $page,

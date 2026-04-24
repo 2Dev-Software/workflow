@@ -59,7 +59,7 @@ $values = array_merge([
 $status_map = (array) ($status_map ?? [
     REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
     REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
-    REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
+    REPAIR_STATUS_COMPLETED => ['label' => 'ดำเนินการเสร็จสิ้น', 'variant' => 'approved'],
     REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
     REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
 ]);
@@ -67,7 +67,7 @@ $status_filter_options = (array) ($status_filter_options ?? [
     'all' => 'ทั้งหมด',
     'pending' => 'ส่งคำร้องสำเร็จ',
     'in_progress' => 'กำลังดำเนินการ',
-    'completed' => 'เสร็จสิ้น',
+    'completed' => 'ดำเนินการเสร็จสิ้น',
     'cancelled' => 'ยกเลิกคำร้อง',
 ]);
 
@@ -561,10 +561,13 @@ ob_start();
                                 'fileName' => (string) ($file['fileName'] ?? 'ไฟล์แนบ'),
                                 'mimeType' => (string) ($file['mimeType'] ?? ''),
                                 'fileSize' => (int) ($file['fileSize'] ?? 0),
+                                'entityName' => (string) ($file['entityName'] ?? ''),
                             ];
 
                             $attached_by_pid = trim((string) ($file['attachedByPID'] ?? ''));
-                            $is_system_attachment = $requester_pid !== '' && $attached_by_pid !== '' && $attached_by_pid !== $requester_pid;
+                            $entity_name = trim((string) ($file['entityName'] ?? ''));
+                            $is_system_attachment = $entity_name === REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME
+                                || ($requester_pid !== '' && $attached_by_pid !== '' && $attached_by_pid !== $requester_pid);
 
                             if ($is_system_attachment) {
                                 $system_attachment_payload[] = $attachment_payload_item;
