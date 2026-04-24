@@ -1738,7 +1738,17 @@ select {
     2px 4px 12px 0 rgba(var(--rgb-neutral-dark), 0.2),
     inset 0 8px 0 0 var(--color-primary);
   display: flex;
-  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.notification-list > p {
+  margin: 0;
+  margin: 20px 0 0 20px;
+  font-size: var(--font-size-body-1);
+  color: var(--color-danger);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .notification-list ul li {
@@ -6343,6 +6353,10 @@ select {
   grid-auto-flow: column;
   gap: calc(6px + 1.7vw);
   margin: 0 0 30px 0;
+}
+
+.vehicle-row.split {
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .vehicle-row.column {
@@ -16524,7 +16538,7 @@ label {
 
   .modal-header {
     min-height: 40px;
-    margin: 0;
+    margin: 0 20px !important;
   }
 
   .modal-title {
@@ -16543,7 +16557,7 @@ label {
   }
 
   .modal-body {
-    padding: 0 20px;
+    padding: 20px;
   }
 
   .booking-section {
@@ -16566,7 +16580,7 @@ label {
   }
 
   .table-responsive th {
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-1);
     font-weight: bold;
     color: var(--color-neutral-lightest);
   }
@@ -17427,6 +17441,10 @@ label {
     padding: 20px 10px 10px;
     width: 100%;
     min-width: 400px;
+  }
+
+  .notification-list > p {
+    font-size: var(--font-size-body-2);
   }
 
   .profile-section {
@@ -25575,6 +25593,7 @@ label {
   .modal-header {
     border-bottom: 1px solid var(--color-secondary);
     min-height: 30px;
+    margin: 0 10px !important;
   }
 
   .modal-title {
@@ -26465,6 +26484,10 @@ label {
   .notification-list {
     padding: 20px 10px 10px;
     min-width: 0px;
+  }
+
+  .notification-list > p {
+    font-size: var(--font-size-desc-1);
   }
 
   .notification-list ul {
@@ -29481,7 +29504,7 @@ label {
   }
 
   .modal-overlay-vehicle-edit label {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     font-weight: bold;
     color: var(--color-secondary);
   }
@@ -29496,11 +29519,11 @@ label {
   .modal-overlay-vehicle-edit select,
   .modal-overlay-vehicle-edit textarea {
     width: 100%;
-    min-height: 30px;
+    min-height: 25px;
     padding: 0 10px;
     background-color: var(--color-neutral-lightest);
     border-radius: 6px;
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
     border: 1px solid rgba(var(--rgb-secondary), 0.5);
     transition: 0.3s;
