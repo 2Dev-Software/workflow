@@ -53,6 +53,12 @@ ob_start();
         align-items: center;
         gap: 20px;
     }
+
+    .booking-table td:nth-child(3) {
+        text-align: start;
+        max-width: 450px;
+        text-wrap: inherit;
+    }
 </style>
 
 <div class="content-header">

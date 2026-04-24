@@ -105,6 +105,7 @@ ob_start();
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </ul>
+                <p onclick="openVehicleDetail()">คุณมีตารางขับรถ</p>
             </div>
             <a href="#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
@@ -353,6 +354,93 @@ ob_start();
         </div>
     </div>
 </div>
+
+<div id="vehicleBookingDetailModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <header class="modal-header">
+            <div class="modal-title">
+                <span id="modal-date-title">ตารางการขับรถของฉัน</span>
+            </div>
+            <div class="close-modal-btn">
+                <i class="fa-solid fa-xmark" id="close-modal-btn" aria-hidden="true"></i>
+            </div>
+        </header>
+
+        <div class="modal-body modal-overlay-vehicle-edit">
+            <div id="car-booking-section" class="booking-section">
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>ทะเบียนรถ</th>
+                                <th>เวลา</th>
+                                <th>รายละเอียด</th>
+                                <th>ผู้จองรถ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="car-table-body">
+                            <tr>
+                                <td>กง 2373</td>
+                                <td>22:49-22:53</td>
+                                <td>รายการจองรถ</td>
+                                <td>นางสาวทิพยรัตน์ บุญมณี</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="no-event-message" class="hidden">
+                ไม่มีรายการจองในวันนี้
+            </div>
+
+            <div class="vehicle-row split">
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditLocation">วันที่เริ่มต้น</label>
+                    <input type="text" id="vehicleEditLocation" name="location" placeholder="03/12/2026" disabled="">
+                </div>
+ 
+                <div class="vehicle-input-content">
+                    <label for="vehicleEditLocation">วันที่สิ้นสุด</label>
+                    <input type="text" id="vehicleEditLocation" name="location" placeholder="03/12/2027" disabled="">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const vehicleModal = document.getElementById('vehicleBookingDetailModal');
+
+        const closeBtn = document.querySelector('[data-vehicle-modal-close="vehicleBookingDetailModal"]');
+
+        window.openVehicleDetail = function() {
+            if (vehicleModal) {
+                vehicleModal.classList.remove('hidden');
+            }
+        };
+
+        window.closeVehicleDetail = function() {
+            if (vehicleModal) {
+                vehicleModal.classList.add('hidden');
+            }
+        };
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeVehicleDetail);
+        }
+
+        if (vehicleModal) {
+            vehicleModal.addEventListener('click', (e) => {
+                if (e.target === vehicleModal) {
+                    closeVehicleDetail();
+                }
+            });
+        }
+    });
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../layout.php';
