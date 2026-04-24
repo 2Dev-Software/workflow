@@ -10,6 +10,7 @@ $total_pages = (int) ($total_pages ?? 1);
 $total_count = (int) ($total_count ?? 0);
 $view_item = $view_item ?? null;
 $view_attachments = (array) ($view_attachments ?? []);
+$view_transition_note = (string) ($view_transition_note ?? '');
 $base_url = (string) ($base_url ?? 'repairs-approval.php');
 $page_title = (string) ($page_title ?? 'ยินดีต้อนรับ');
 $page_subtitle = (string) ($page_subtitle ?? 'แจ้งเหตุซ่อมแซม / อนุมัติการซ่อมแซม');
@@ -25,7 +26,7 @@ $status_filter_options = (array) ($status_filter_options ?? [
     'all' => 'ทั้งหมด',
     'pending' => 'ส่งคำร้องสำเร็จ',
     'in_progress' => 'กำลังดำเนินการ',
-    'completed' => 'เสร็จสิ้น',
+    'completed' => 'ดำเนินการเสร็จสิ้น',
     'cancelled' => 'ยกเลิกคำร้อง',
 ]);
 
@@ -141,7 +142,7 @@ $truncate_detail = static function (?string $detail, int $limit = 80): string {
 $status_map = (array) ($status_map ?? [
     REPAIR_STATUS_PENDING => ['label' => 'ส่งคำร้องสำเร็จ', 'variant' => 'pending'],
     REPAIR_STATUS_IN_PROGRESS => ['label' => 'กำลังดำเนินการ', 'variant' => 'processing'],
-    REPAIR_STATUS_COMPLETED => ['label' => 'เสร็จสิ้น', 'variant' => 'approved'],
+    REPAIR_STATUS_COMPLETED => ['label' => 'ดำเนินการเสร็จสิ้น', 'variant' => 'approved'],
     REPAIR_STATUS_CANCELLED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
     REPAIR_STATUS_REJECTED => ['label' => 'ยกเลิกคำร้อง', 'variant' => 'rejected'],
 ]);
@@ -153,6 +154,52 @@ $pagination_base_url = $base_url;
 
 if ($page > 1) {
     $modal_close_url .= '?page=' . $page;
+}
+
+$build_attachment_payloads = static function (array $attachments, string $requester_pid) use ($json_flags): array {
+    $requester_attachment_payload = [];
+    $official_attachment_payload = [];
+
+    foreach ($attachments as $file) {
+        $payload = [
+            'fileID' => (int) ($file['fileID'] ?? 0),
+            'fileName' => (string) ($file['fileName'] ?? ''),
+            'mimeType' => (string) ($file['mimeType'] ?? ''),
+            'fileSize' => (int) ($file['fileSize'] ?? 0),
+            'entityName' => (string) ($file['entityName'] ?? ''),
+        ];
+
+        $attached_by_pid = trim((string) ($file['attachedByPID'] ?? ''));
+        $entity_name = trim((string) ($file['entityName'] ?? ''));
+        $is_official_attachment = $entity_name === REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME
+            || ($attached_by_pid !== '' && $attached_by_pid !== $requester_pid);
+
+        if (!$is_official_attachment && $attached_by_pid !== '' && $attached_by_pid === $requester_pid) {
+            $requester_attachment_payload[] = $payload;
+        } else {
+            $official_attachment_payload[] = $payload;
+        }
+    }
+
+    $requester_attachment_json = json_encode($requester_attachment_payload, $json_flags);
+    $official_attachment_json = json_encode($official_attachment_payload, $json_flags);
+
+    return [
+        'requester_json' => is_string($requester_attachment_json) ? $requester_attachment_json : '[]',
+        'official_json' => is_string($official_attachment_json) ? $official_attachment_json : '[]',
+    ];
+};
+
+$view_requester_attachment_json = '[]';
+$view_official_attachment_json = '[]';
+
+if (is_array($view_item) && !empty($view_item)) {
+    $view_attachment_payloads = $build_attachment_payloads(
+        $view_attachments,
+        trim((string) ($view_item['requesterPID'] ?? ''))
+    );
+    $view_requester_attachment_json = $view_attachment_payloads['requester_json'];
+    $view_official_attachment_json = $view_attachment_payloads['official_json'];
 }
 
 ob_start();
@@ -334,21 +381,40 @@ ob_start();
                             $timeline_note = (string) ($request_timeline_note_map[$repair_id] ?? '');
                             $created_date_line = $format_thai_date_line((string) ($req['createdAt'] ?? ''));
                             $created_time_line = $format_thai_time_line((string) ($req['createdAt'] ?? ''));
-                            $attachment_payload = [];
+                            $requester_attachment_payload = [];
+                            $official_attachment_payload = [];
 
                             foreach ((array) ($request_attachments_map[$repair_id] ?? []) as $file) {
-                                $attachment_payload[] = [
+                                $payload = [
                                     'fileID' => (int) ($file['fileID'] ?? 0),
                                     'fileName' => (string) ($file['fileName'] ?? ''),
                                     'mimeType' => (string) ($file['mimeType'] ?? ''),
                                     'fileSize' => (int) ($file['fileSize'] ?? 0),
+                                    'entityName' => (string) ($file['entityName'] ?? ''),
                                 ];
+
+                                $attached_by_pid = trim((string) ($file['attachedByPID'] ?? ''));
+                                $requester_pid = trim((string) ($req['requesterPID'] ?? ''));
+                                $entity_name = trim((string) ($file['entityName'] ?? ''));
+                                $is_official_attachment = $entity_name === REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME
+                                    || ($attached_by_pid !== '' && $attached_by_pid !== $requester_pid);
+
+                                if (!$is_official_attachment && $attached_by_pid !== '' && $attached_by_pid === $requester_pid) {
+                                    $requester_attachment_payload[] = $payload;
+                                } else {
+                                    $official_attachment_payload[] = $payload;
+                                }
                             }
 
-                            $attachment_json = json_encode($attachment_payload, $json_flags);
+                            $requester_attachment_json = json_encode($requester_attachment_payload, $json_flags);
+                            $official_attachment_json = json_encode($official_attachment_payload, $json_flags);
 
-                            if (!is_string($attachment_json)) {
-                                $attachment_json = '[]';
+                            if (!is_string($requester_attachment_json)) {
+                                $requester_attachment_json = '[]';
+                            }
+
+                            if (!is_string($official_attachment_json)) {
+                                $official_attachment_json = '[]';
                             }
                             ?>
                             <tr class="approval-row <?= h((string) ($row_status['variant'] ?? 'pending')) ?>">
@@ -384,7 +450,8 @@ ob_start();
                                             data-status-key="<?= h($status_key) ?>"
                                             data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
                                             data-transition-note="<?= h($timeline_note) ?>"
-                                            data-files="<?= h($attachment_json) ?>">
+                                            data-requester-files="<?= h($requester_attachment_json) ?>"
+                                            data-official-files="<?= h($official_attachment_json) ?>">
                                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                             <span class="tooltip">ดูรายละเอียด</span>
                                         </button>
@@ -648,7 +715,7 @@ ob_start();
                                 </button>
                             </div>
                             <input type="file" id="attachment" name="attachments[]" class="file-input" multiple
-                                accept=".pdf,image/png,image/jpeg" hidden>
+                                accept=".pdf,image/png,image/jpeg,.jpg,.jpeg" form="repairApprovalTransitionForm" hidden>
                             <p class="form-error hidden" id="attachmentError">แนบได้สูงสุด 5 ไฟล์</p>
                         </div>
 
@@ -659,7 +726,7 @@ ob_start();
             </div>
 
             <div class="footer-modal">
-                <form method="POST" action="<?= h($base_url) ?>" id="repairApprovalTransitionForm">
+                <form method="POST" action="<?= h($base_url) ?>" id="repairApprovalTransitionForm" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="transition">
                     <input type="hidden" name="repair_id" id="repairApprovalTransitionRepairId" value="">
@@ -671,9 +738,32 @@ ob_start();
                 </form>
             </div>
 
-        </div>
-    </div>
 </div>
+</div>
+</div>
+
+<?php if (is_array($view_item) && !empty($view_item)) : ?>
+    <button
+        type="button"
+        id="repairApprovalAutoOpenTrigger"
+        class="hidden"
+        data-repair-id="<?= h((string) ((int) ($view_item['repairID'] ?? 0))) ?>"
+        data-subject="<?= h((string) ($view_item['subject'] ?? '-')) ?>"
+        data-detail="<?= h((string) ($view_item['detail'] ?? '')) ?>"
+        data-location="<?= h((string) ($view_item['location'] ?? '-')) ?>"
+        data-equipment="<?= h((string) ($view_item['equipment'] ?? '-')) ?>"
+        data-created-at="<?= h($format_thai_datetime((string) ($view_item['createdAt'] ?? ''))) ?>"
+        data-updated-at="<?= h($format_thai_datetime((string) ($view_item['updatedAt'] ?? ''))) ?>"
+        data-resolved-at="<?= h($format_thai_datetime((string) ($view_item['resolvedAt'] ?? ''))) ?>"
+        data-requester-name="<?= h((string) ($view_item['requesterName'] ?? '-')) ?>"
+        data-assigned-to-name="<?= h((string) ($view_item['assignedToName'] ?? '-')) ?>"
+        data-status-key="<?= h((string) ($view_item['status'] ?? REPAIR_STATUS_PENDING)) ?>"
+        data-status-label="<?= h((string) ($detail_status['label'] ?? '-')) ?>"
+        data-transition-note="<?= h($view_transition_note) ?>"
+        data-requester-files="<?= h($view_requester_attachment_json) ?>"
+        data-official-files="<?= h($view_official_attachment_json) ?>">
+    </button>
+<?php endif; ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -689,12 +779,15 @@ ob_start();
         const statusSelect = document.getElementById('repairApprovalDetailStatusSelect');
         const statusOptionsContainer = modal ? modal.querySelector('.custom-options') : null;
         let statusOptions = statusOptionsContainer ? Array.from(statusOptionsContainer.querySelectorAll('.custom-option')) : [];
-        const fileList = document.getElementById('repairApprovalDetailFileList');
+        const requesterFileList = document.getElementById('repairApprovalDetailFileList');
         const decisionSummary = document.getElementById('repairApprovalDecisionSummary');
         const transitionForm = document.getElementById('repairApprovalTransitionForm');
         const transitionRepairId = document.getElementById('repairApprovalTransitionRepairId');
         const transitionTargetStatus = document.getElementById('repairApprovalTransitionTargetStatus');
         const transitionNote = document.getElementById('repairApprovalTransitionNote');
+        const attachmentInput = document.getElementById('attachment');
+        const attachmentError = document.getElementById('attachmentError');
+        const attachmentList = document.getElementById('attachmentList');
         const pendingStatus = '<?= h(REPAIR_STATUS_PENDING) ?>';
         const inProgressStatus = '<?= h(REPAIR_STATUS_IN_PROGRESS) ?>';
         const completedStatus = '<?= h(REPAIR_STATUS_COMPLETED) ?>';
@@ -709,6 +802,11 @@ ob_start();
         };
         let activeRepairStatus = pendingStatus;
         let transitionConfirmApproved = false;
+        const maxApprovalAttachments = 5;
+        const approvalAllowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+        let existingOfficialApprovalFiles = [];
+        let existingApprovalRepairId = '';
+        let selectedApprovalFiles = [];
 
         if (!modal) {
             return;
@@ -721,6 +819,193 @@ ob_start();
             }
 
             return `${(bytes / 1024).toFixed(1)} KB`;
+        };
+
+        const revokeApprovalPreviewUrls = () => {
+            selectedApprovalFiles.forEach((file) => {
+                if (file.previewUrl) {
+                    URL.revokeObjectURL(file.previewUrl);
+                }
+            });
+        };
+
+        const syncApprovalFiles = () => {
+            if (!attachmentInput) {
+                return;
+            }
+
+            const dataTransfer = new DataTransfer();
+            selectedApprovalFiles.forEach((file) => dataTransfer.items.add(file));
+            attachmentInput.files = dataTransfer.files;
+        };
+
+        const setAttachmentError = (message = '') => {
+            if (!attachmentError) {
+                return;
+            }
+
+            if (String(message).trim() === '') {
+                attachmentError.textContent = 'แนบได้สูงสุด 5 ไฟล์';
+                attachmentError.classList.add('hidden');
+                return;
+            }
+
+            attachmentError.textContent = message;
+            attachmentError.classList.remove('hidden');
+        };
+
+        const renderApprovalAttachments = () => {
+            if (!attachmentList) {
+                return;
+            }
+
+            attachmentList.innerHTML = '';
+
+            const hasExistingFiles = Array.isArray(existingOfficialApprovalFiles) && existingOfficialApprovalFiles.length > 0;
+            const hasSelectedFiles = selectedApprovalFiles.length > 0;
+
+            if (!hasExistingFiles && !hasSelectedFiles) {
+                return;
+            }
+
+            if (hasExistingFiles) {
+                existingOfficialApprovalFiles.forEach((file) => {
+                    attachmentList.appendChild(buildModalFileItem(file, existingApprovalRepairId));
+                });
+            }
+
+            selectedApprovalFiles.forEach((file, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'file-item-wrapper';
+
+                const banner = document.createElement('div');
+                banner.className = 'file-banner';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'file-icon';
+                const mime = String(file.type || '').toLowerCase();
+                iconWrap.innerHTML = mime.includes('pdf')
+                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                    : mime.includes('image')
+                        ? '<i class="fa-solid fa-file-image" aria-hidden="true"></i>'
+                        : '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+
+                const text = document.createElement('div');
+                text.className = 'file-text';
+                text.innerHTML = `<span class="file-name">${file.name}</span><span class="file-type">${formatFileSize(file.size) || '-'}</span>`;
+
+                info.appendChild(iconWrap);
+                info.appendChild(text);
+
+                const actions = document.createElement('div');
+                actions.className = 'file-actions-group';
+                actions.style.display = 'flex';
+                actions.style.gap = '10px';
+
+                const viewAction = document.createElement('div');
+                viewAction.className = 'file-actions';
+                const viewLink = document.createElement('a');
+                viewLink.href = file.previewUrl;
+                viewLink.target = '_blank';
+                viewLink.rel = 'noopener';
+                viewLink.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+                viewAction.appendChild(viewLink);
+
+                const deleteAction = document.createElement('div');
+                deleteAction.className = 'file-actions';
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'delete-btn';
+                deleteButton.style.border = 'none';
+                deleteButton.style.background = 'none';
+                deleteButton.style.cursor = 'pointer';
+                deleteButton.style.color = '#dc3545';
+                deleteButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+                deleteButton.addEventListener('click', function() {
+                    if (file.previewUrl) {
+                        URL.revokeObjectURL(file.previewUrl);
+                    }
+                    selectedApprovalFiles = selectedApprovalFiles.filter((_, fileIndex) => fileIndex !== index);
+                    syncApprovalFiles();
+                    renderApprovalAttachments();
+                    setAttachmentError('');
+                });
+                deleteAction.appendChild(deleteButton);
+
+                actions.appendChild(viewAction);
+                actions.appendChild(deleteAction);
+                banner.appendChild(info);
+                banner.appendChild(actions);
+                wrapper.appendChild(banner);
+                attachmentList.appendChild(wrapper);
+            });
+        };
+
+        const resetApprovalAttachments = () => {
+            revokeApprovalPreviewUrls();
+            existingOfficialApprovalFiles = [];
+            existingApprovalRepairId = '';
+            selectedApprovalFiles = [];
+            syncApprovalFiles();
+            if (attachmentInput) {
+                attachmentInput.value = '';
+            }
+            if (attachmentList) {
+                attachmentList.innerHTML = '';
+            }
+            setAttachmentError('');
+        };
+
+        const addApprovalFiles = (fileListInput) => {
+            if (!attachmentInput || !fileListInput) {
+                return;
+            }
+
+            const existingKeys = new Set(selectedApprovalFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+            let hasInvalidType = false;
+            let hitMaxFiles = false;
+
+            Array.from(fileListInput).forEach((file) => {
+                const key = `${file.name}-${file.size}-${file.lastModified}`;
+
+                if (existingKeys.has(key)) {
+                    return;
+                }
+
+                if (!approvalAllowedTypes.includes(String(file.type || '').toLowerCase())) {
+                    hasInvalidType = true;
+                    return;
+                }
+
+                if (selectedApprovalFiles.length >= maxApprovalAttachments) {
+                    hitMaxFiles = true;
+                    return;
+                }
+
+                file.previewUrl = URL.createObjectURL(file);
+                selectedApprovalFiles.push(file);
+                existingKeys.add(key);
+            });
+
+            syncApprovalFiles();
+            renderApprovalAttachments();
+
+            if (selectedApprovalFiles.length > maxApprovalAttachments) {
+                selectedApprovalFiles = selectedApprovalFiles.slice(0, maxApprovalAttachments);
+                syncApprovalFiles();
+                renderApprovalAttachments();
+            }
+
+            if (hasInvalidType) {
+                setAttachmentError('แนบได้เฉพาะไฟล์ PDF, PNG, JPG หรือ JPEG');
+            } else if (hitMaxFiles || (selectedApprovalFiles.length >= maxApprovalAttachments && Array.from(fileListInput).length > maxApprovalAttachments)) {
+                setAttachmentError('แนบได้สูงสุด 5 ไฟล์');
+            } else {
+                setAttachmentError('');
+            }
         };
 
         const buildModalFileItem = (file, repairId) => {
@@ -772,20 +1057,20 @@ ob_start();
             return wrapper;
         };
 
-        const renderModalFiles = (files, repairId) => {
-            if (!fileList) {
+        const renderRequesterFiles = (files, repairId) => {
+            if (!requesterFileList) {
                 return;
             }
 
-            fileList.innerHTML = '';
+            requesterFileList.innerHTML = '';
 
             if (!Array.isArray(files) || files.length === 0) {
-                fileList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
+                requesterFileList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
                 return;
             }
 
             files.forEach((file) => {
-                fileList.appendChild(buildModalFileItem(file, repairId));
+                requesterFileList.appendChild(buildModalFileItem(file, repairId));
             });
         };
 
@@ -934,12 +1219,19 @@ ob_start();
         };
 
         const openModal = (button) => {
-            let files = [];
+            let requesterFiles = [];
+            let officialFiles = [];
 
             try {
-                files = JSON.parse(String(button.getAttribute('data-files') || '[]'));
+                requesterFiles = JSON.parse(String(button.getAttribute('data-requester-files') || '[]'));
             } catch (error) {
-                files = [];
+                requesterFiles = [];
+            }
+
+            try {
+                officialFiles = JSON.parse(String(button.getAttribute('data-official-files') || '[]'));
+            } catch (error) {
+                officialFiles = [];
             }
 
             if (subjectInput) {
@@ -983,12 +1275,17 @@ ob_start();
                 transitionRepairId.value = String(button.getAttribute('data-repair-id') || '').trim();
             }
 
-            renderModalFiles(files, String(button.getAttribute('data-repair-id') || '').trim());
+            resetApprovalAttachments();
+            existingOfficialApprovalFiles = Array.isArray(officialFiles) ? officialFiles : [];
+            existingApprovalRepairId = String(button.getAttribute('data-repair-id') || '').trim();
+            renderRequesterFiles(Array.isArray(requesterFiles) ? requesterFiles : [], existingApprovalRepairId);
+            renderApprovalAttachments();
             modal.classList.remove('hidden');
             modal.style.display = 'flex';
         };
 
         const closeModal = () => {
+            resetApprovalAttachments();
             modal.classList.add('hidden');
             modal.style.display = 'none';
         };
@@ -1057,19 +1354,30 @@ ob_start();
             setSelectedStatusOption(value);
         });
 
+        attachmentInput?.addEventListener('change', function(event) {
+            addApprovalFiles(event.target?.files || []);
+        });
+
         transitionForm?.addEventListener('submit', function(event) {
             const selectedStatus = String(transitionTargetStatus?.value || '').trim().toUpperCase();
             const noteText = String(decisionSummary?.value || '').trim();
             const allowedStatuses = getAllowedTargetStatuses();
             const isSameStatusNoteUpdate = activeRepairStatus !== pendingStatus && selectedStatus === activeRepairStatus;
+            const hasApprovalFiles = selectedApprovalFiles.length > 0;
 
             if (transitionNote) {
                 transitionNote.value = noteText;
             }
 
-            if (isSameStatusNoteUpdate && noteText === '') {
+            if (selectedApprovalFiles.length > maxApprovalAttachments) {
                 event.preventDefault();
-                window.alert('กรุณากรอกรายละเอียดเพิ่มเติม หรือเลือกสถานะอื่น');
+                setAttachmentError('แนบได้สูงสุด 5 ไฟล์');
+                return;
+            }
+
+            if (isSameStatusNoteUpdate && noteText === '' && !hasApprovalFiles) {
+                event.preventDefault();
+                window.alert('กรุณากรอกรายละเอียดเพิ่มเติม แนบไฟล์ หรือเลือกสถานะอื่น');
                 return;
             }
 
@@ -1138,6 +1446,12 @@ ob_start();
                 closeModal();
             }
         });
+
+        const autoOpenTrigger = document.getElementById('repairApprovalAutoOpenTrigger');
+
+        if (autoOpenTrigger) {
+            openModal(autoOpenTrigger);
+        }
     });
 </script>
 <? //php endif; 

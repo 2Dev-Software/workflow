@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../db/db.php';
 
 const REPAIR_MODULE_NAME = 'repairs';
 const REPAIR_ENTITY_NAME = 'dh_repair_requests';
+const REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME = 'dh_repair_requests_official_attachments';
 
 if (!function_exists('repair_build_filters')) {
     function repair_build_filters(?string $requester_pid = null, array $statuses = [], string $alias = '', string $search_query = '', bool $include_soft_deleted = false): array
@@ -224,13 +225,13 @@ if (!function_exists('repair_get')) {
 if (!function_exists('repair_get_attachments')) {
     function repair_get_attachments(int $repairID): array
     {
-        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID
+        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID, r.entityName
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
-            WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL
+            WHERE r.moduleName = ? AND r.entityName IN (?, ?) AND r.entityID = ? AND f.deletedAt IS NULL
             ORDER BY r.refID ASC';
 
-        return db_fetch_all($sql, 'sss', REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, (string) $repairID);
+        return db_fetch_all($sql, 'ssss', REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME, (string) $repairID);
     }
 }
 
@@ -253,14 +254,14 @@ if (!function_exists('repair_get_attachments_map')) {
 
         $entity_ids = array_map('strval', array_values($normalized_ids));
         $placeholders = implode(', ', array_fill(0, count($entity_ids), '?'));
-        $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID
+        $sql = 'SELECT r.entityID, r.entityName, f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.attachedByPID
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
-            WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID IN (' . $placeholders . ') AND f.deletedAt IS NULL
+            WHERE r.moduleName = ? AND r.entityName IN (?, ?) AND r.entityID IN (' . $placeholders . ') AND f.deletedAt IS NULL
             ORDER BY CAST(r.entityID AS UNSIGNED) ASC, r.refID ASC';
 
-        $types = 'ss' . str_repeat('s', count($entity_ids));
-        $rows = db_fetch_all($sql, $types, REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, ...$entity_ids);
+        $types = 'sss' . str_repeat('s', count($entity_ids));
+        $rows = db_fetch_all($sql, $types, REPAIR_MODULE_NAME, REPAIR_ENTITY_NAME, REPAIR_OFFICIAL_ATTACHMENT_ENTITY_NAME, ...$entity_ids);
         $attachments_map = [];
 
         foreach ($rows as $row) {
@@ -281,6 +282,7 @@ if (!function_exists('repair_get_attachments_map')) {
                 'mimeType' => (string) ($row['mimeType'] ?? ''),
                 'fileSize' => (int) ($row['fileSize'] ?? 0),
                 'attachedByPID' => (string) ($row['attachedByPID'] ?? ''),
+                'entityName' => (string) ($row['entityName'] ?? ''),
             ];
         }
 

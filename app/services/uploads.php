@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../db/db.php';
 
 if (!function_exists('upload_normalize_files')) {
@@ -273,6 +274,68 @@ if (!function_exists('upload_error_message')) {
     }
 }
 
+if (!function_exists('upload_prepare_writable_directory')) {
+    function upload_prepare_writable_directory(string $path): bool
+    {
+        $path = rtrim(str_replace('\\', '/', trim($path)), '/');
+
+        if ($path === '') {
+            return false;
+        }
+
+        if (!is_dir($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
+            return false;
+        }
+
+        clearstatcache(true, $path);
+
+        if (is_writable($path)) {
+            return true;
+        }
+
+        foreach ([0775, 0777] as $mode) {
+            @chmod($path, $mode);
+            clearstatcache(true, $path);
+
+            if (is_writable($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('upload_resolve_target_directory')) {
+    /**
+     * @return array{absolute: string, relative: string}
+     */
+    function upload_resolve_target_directory(string $baseDir, string $module, string $datePath): array
+    {
+        $baseDir = rtrim(str_replace('\\', '/', $baseDir), '/');
+        $module = trim($module);
+        $datePath = trim(str_replace('\\', '/', $datePath), '/');
+
+        $relativeCandidates = array_values(array_unique([
+            $module . '/' . $datePath,
+            '_runtime/' . $module . '/' . $datePath,
+        ]));
+
+        foreach ($relativeCandidates as $relativeDir) {
+            $absoluteDir = $baseDir . '/' . $relativeDir;
+
+            if (upload_prepare_writable_directory($absoluteDir)) {
+                return [
+                    'absolute' => $absoluteDir,
+                    'relative' => $relativeDir,
+                ];
+            }
+        }
+
+        throw new RuntimeException('ไม่สามารถสร้างโฟลเดอร์อัปโหลดได้');
+    }
+}
+
 if (!function_exists('upload_store_files')) {
     function upload_store_files(
         array $files,
@@ -293,7 +356,8 @@ if (!function_exists('upload_store_files')) {
 
         $max_files = (int) ($options['max_files'] ?? 5);
         $max_size = upload_runtime_max_bytes((int) ($options['max_size'] ?? (100 * 1024 * 1024)));
-        $base_dir = (string) ($options['base_dir'] ?? (__DIR__ . '/../../storage/uploads'));
+        $base_dir = (string) ($options['base_dir'] ?? app_env('UPLOAD_ROOT', __DIR__ . '/../../storage/uploads'));
+        $base_dir = rtrim(str_replace('\\', '/', $base_dir), '/');
 
         $allowed = (array) ($options['allowed_mimes'] ?? upload_allowed_mimes());
         $normalized = upload_normalize_files($files);
@@ -353,11 +417,9 @@ if (!function_exists('upload_store_files')) {
             $filename = bin2hex(random_bytes(16)) . '.' . $extension;
 
             $date_path = date('Y/m');
-            $module_path = rtrim($base_dir, '/\\') . '/' . $module . '/' . $date_path;
-
-            if (!is_dir($module_path) && !mkdir($module_path, 0775, true) && !is_dir($module_path)) {
-                throw new RuntimeException('ไม่สามารถสร้างโฟลเดอร์อัปโหลดได้');
-            }
+            $target_directory = upload_resolve_target_directory($base_dir, $module, $date_path);
+            $module_path = $target_directory['absolute'];
+            $relative_directory = $target_directory['relative'];
 
             $target_path = $module_path . '/' . $filename;
 
@@ -365,7 +427,9 @@ if (!function_exists('upload_store_files')) {
                 throw new RuntimeException('บันทึกไฟล์ไม่สำเร็จ');
             }
 
-            $relative_path = 'storage/uploads/' . $module . '/' . $date_path . '/' . $filename;
+            @chmod($target_path, 0644);
+
+            $relative_path = 'storage/uploads/' . $relative_directory . '/' . $filename;
 
             $stmt = db_query(
                 'INSERT INTO dh_files (fileName, filePath, mimeType, fileSize, checksumSHA256, storageProvider, uploadedByPID)

@@ -243,6 +243,7 @@ if (!function_exists('vehicle_reservation_index')) {
                 'statusLabel' => $status_meta['label'],
                 'statusClass' => $status_meta['class'],
                 'statusReason' => (string) ($booking_item['statusReason'] ?? ''),
+                'approvalNote' => (string) ($booking_item['approvalNote'] ?? ''),
                 'attachments' => $attachments,
                 'createdAt' => (string) ($booking_item['createdAt'] ?? ''),
                 'updatedAt' => $updated_at_value,
