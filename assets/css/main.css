@@ -2012,12 +2012,12 @@ select {
   overflow: visible;
 }
 
-.sidebar.close .navigation-links > li {
+.sidebar.close .navigation-links>li {
   position: relative;
 }
 
-.sidebar.close .navigation-links > li:hover > a .link-name,
-.sidebar.close .navigation-links > li:hover > .icon-link > a .link-name {
+.sidebar.close .navigation-links>li:hover>a .link-name,
+.sidebar.close .navigation-links>li:hover>.icon-link>a .link-name {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -2040,7 +2040,7 @@ select {
   transition: 0s !important;
 }
 
-.sidebar.close .navigation-links .navigation-links-has-sub:hover > .icon-link > a .link-name {
+.sidebar.close .navigation-links .navigation-links-has-sub:hover>.icon-link>a .link-name {
   border-radius: 0 12px 0 0 !important;
 }
 
@@ -10470,46 +10470,50 @@ label {
 
 .urgency-status.normal {
   width: 100px;
-  height: 25px;
+  height: 30px;
   border-radius: 8px;
   background-color: var(--color-success);
   border: 3px solid #00ae2c;
-  font-size: var(--font-size-body-2);
+  font-size: var(--font-size-desc-1);
   color: var(--color-neutral-lightest);
   margin: 0;
+  padding: 0;
 }
 
 .urgency-status.urgen {
   width: 100px;
-  height: 25px;
+  height: 30px;
   border-radius: 8px;
   background-color: var(--color-purple);
   border: 3px solid #9a00af;
-  font-size: var(--font-size-body-2);
+  font-size: var(--font-size-desc-1);
   color: var(--color-neutral-lightest);
   margin: 0;
+  padding: 0;
 }
 
 .urgency-status.very-urgen {
   width: 100px;
-  height: 25px;
+  height: 30px;
   border-radius: 8px;
   background-color: var(--color-orange);
   border: 3px solid #ce6203;
-  font-size: var(--font-size-body-2);
+  font-size: var(--font-size-desc-1);
   color: var(--color-neutral-lightest);
   margin: 0;
+  padding: 0;
 }
 
 .urgency-status.extremly-urgen {
   width: 100px;
-  height: 25px;
+  height: 30px;
   border-radius: 8px;
   background-color: var(--color-danger);
   border: 3px solid #bd0000;
-  font-size: var(--font-size-body-2);
+  font-size: var(--font-size-desc-1);
   color: var(--color-neutral-lightest);
   margin: 0;
+  padding: 0;
 }
 
 .content-circular-notice-index .modal-overlay-circular-notice-index.outside-person {
