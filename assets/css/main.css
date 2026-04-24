@@ -1669,20 +1669,10 @@ select {
 }
 
 .container-login-page .container-notification-section .container-calendar .date .event-icons {
-  width: calc(100% - 8px);
-  left: 4px;
-  right: 4px;
-  justify-content: flex-start;
+  width: 85%;
+  justify-content: space-between;
   gap: 0;
   pointer-events: none;
-}
-
-.container-login-page .container-notification-section .container-calendar .date .event-icons .car-icon {
-  margin-right: auto;
-}
-
-.container-login-page .container-notification-section .container-calendar .date .event-icons .building-icon {
-  margin-left: auto;
 }
 
 .container-notification-section.dashboard .container-calendar .date .event-icons {
@@ -25574,7 +25564,7 @@ label {
     justify-content: space-between;
     flex-direction: row;
     flex-wrap: nowrap;
-    width: calc(30px + 1.5vw);
+    width: 75% !important;
     height: auto;
   }
 
@@ -34458,6 +34448,6 @@ label {
   }
 
   .tabs-container .button-container .tab-btn {
-    border-radius: 10px;
+    border-radius: 6px;
   }
 }
