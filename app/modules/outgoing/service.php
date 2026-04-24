@@ -185,7 +185,7 @@ if (!function_exists('outgoing_create_draft')) {
 }
 
 if (!function_exists('outgoing_attach_files')) {
-    function outgoing_attach_files(int $outgoingID, string $actorPID, array $files, ?string $destinationName = null): void
+    function outgoing_attach_files(int $outgoingID, string $actorPID, array $coverFile, array $attachmentFiles = [], ?string $destinationName = null): void
     {
         $outgoing = outgoing_get($outgoingID);
 
@@ -209,12 +209,19 @@ if (!function_exists('outgoing_attach_files')) {
             throw new RuntimeException('รายการนี้ไม่อยู่ในสถานะรอแนบไฟล์');
         }
 
-        $normalized_files = array_values(array_filter(
-            upload_normalize_files($files),
+        $normalized_cover_files = array_values(array_filter(
+            upload_normalize_files($coverFile),
             static function (array $file): bool {
                 return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
             }
         ));
+        $normalized_attachment_files = array_values(array_filter(
+            upload_normalize_files($attachmentFiles),
+            static function (array $file): bool {
+                return (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            }
+        ));
+        $normalized_files = array_merge($normalized_cover_files, $normalized_attachment_files);
         $incoming_attachment_count = count($normalized_files);
         $audit_payload = outgoing_audit_payload([
             'actorPID' => trim($actorPID),
@@ -222,12 +229,19 @@ if (!function_exists('outgoing_attach_files')) {
             'currentStatus' => $status,
             'existingAttachmentCount' => $existing_count,
             'incomingAttachmentCount' => $incoming_attachment_count,
+            'incomingCoverFileCount' => count($normalized_cover_files),
+            'incomingOptionalFileCount' => count($normalized_attachment_files),
             'destinationName' => $destination_name,
         ]);
 
-        if (empty($normalized_files)) {
-            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'missing_attachments', $audit_payload);
-            throw new RuntimeException('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์');
+        if ($destination_name === '') {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'missing_destination_name', $audit_payload);
+            throw new RuntimeException('กรุณากรอกส่งถึง');
+        }
+
+        if (empty($normalized_cover_files)) {
+            audit_log('outgoing', 'ATTACH', 'FAIL', 'dh_outgoing_letters', $outgoingID, 'missing_cover_file', $audit_payload);
+            throw new RuntimeException('กรุณาแนบไฟล์หนังสือนำ');
         }
 
         if (($existing_count + count($normalized_files)) > 5) {
@@ -240,7 +254,10 @@ if (!function_exists('outgoing_attach_files')) {
         db_begin();
 
         try {
-            upload_store_files($files, OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID, $actorPID, [
+            upload_store_files([
+                'cover_file' => $coverFile,
+                'attachments' => $attachmentFiles,
+            ], OUTGOING_MODULE_NAME, OUTGOING_ENTITY_NAME, (string) $outgoingID, $actorPID, [
                 'max_files' => 5,
             ]);
             $update_data = [
