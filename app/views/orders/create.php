@@ -405,7 +405,7 @@ $parse_order_meta = static function (?string $detail_text): array {
         $meta['order_date'] = trim((string) ($matches[1] ?? ''));
     }
 
-    if (preg_match('/^ผู้ออกเลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
+    if (preg_match('/^ผู้(?:ออก|สร้าง)เลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
         $value = trim((string) ($matches[1] ?? ''));
         $meta['issuer_name'] = $value !== '-' ? $value : '';
     }
@@ -1139,7 +1139,7 @@ ob_start();
 
         <div class="form-group row">
             <div class="input-group">
-                <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
+                <p><strong>ผู้สร้างเลขคำสั่ง</strong></p>
                 <input type="text" class="order-no-display" value="<?= h($issuer_display_name) ?>" disabled>
             </div>
             <div class="input-group">
@@ -1475,7 +1475,7 @@ ob_start();
 
                 <div class="content-topic-sec">
                     <div class="more-details">
-                        <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
+                        <p><strong>ผู้สร้างเลขคำสั่ง</strong></p>
                         <input type="text" id="modalOrderSendIssuer" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
@@ -1883,7 +1883,7 @@ ob_start();
 
                 <div class="content-topic-sec">
                     <div class="more-details">
-                        <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
+                        <p><strong>ผู้สร้างเลขคำสั่ง</strong></p>
                         <input type="text" id="modalOrderViewIssuer" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
@@ -2006,7 +2006,7 @@ ob_start();
 
                     <div class="content-topic-sec">
                         <div class="more-details">
-                            <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
+                            <p><strong>ผู้สร้างเลขคำสั่ง</strong></p>
                             <input type="text" id="modalOrderIssuer" class="order-no-display" placeholder="-" disabled>
                         </div>
                         <div class="more-details">
