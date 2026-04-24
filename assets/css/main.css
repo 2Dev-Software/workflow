@@ -2444,18 +2444,6 @@ select {
   flex-shrink: 0;
 }
 
-/* .teacher-phone-table-control .page-selector select {
-    padding: 8px 15px;
-    border: 1px solid transparent;
-    border-radius: 20px;
-    background-color: var(--color-neutral-lightest);
-    font-size: var(--font-size-body-1);
-    color: var(--color-primary-dark);
-    outline: none;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
-    cursor: pointer;
-  } */
-
 .teacher-phone-table-control .custom-select-wrapper {
   position: relative;
   -webkit-user-select: none;
@@ -17473,71 +17461,32 @@ label {
 
   /* ----- START DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
   .teacher-phone-table-control {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
     gap: 15px;
     margin: 15px 0 25px 0;
   }
 
   .teacher-phone-table-control .search-box {
-    position: relative;
     max-width: 350px;
     width: 100%;
     height: 35px;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
     gap: 10px;
     padding: 0 12px 0 2px;
-    background-color: var(--color-neutral-lightest);
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
     border-radius: 50px;
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    outline: none;
-    border: 1px solid transparent;
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .search-box i {
     width: 35px;
     height: 30px;
-    border-radius: 100%;
-    background-color: var(--color-warning);
-    color: var(--color-neutral-lightest);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .search-box input {
-    border: none;
-    outline: none;
-    width: 100%;
-    height: 100%;
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    background-color: var(--color-neutral-lightest);
     padding: 0 0 3px 0;
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .search-box input::placeholder {
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    background-color: rgba(var(--color-primary-dark), 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: 0.4s;
-  }
-
-  .teacher-phone-table-control .search-box:hover {
-    border: 1px solid var(--color-primary-dark);
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .page-selector {
@@ -17548,121 +17497,49 @@ label {
 
   .teacher-phone-table-control .page-selector p {
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    margin: 0;
   }
 
   .teacher-phone-table-control .custom-select-wrapper {
-    position: relative;
-    -webkit-user-select: none;
-    user-select: none;
     min-width: 90px;
   }
 
   .teacher-phone-table-control .custom-select-trigger {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     padding: 0 12px;
-    border-radius: 20px;
-    background-color: var(--color-neutral-lightest);
-    color: var(--color-primary-dark);
+    border-radius: 12px;
     font-size: var(--font-size-desc-1);
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark, 0, 0, 0), 0.25);
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-  }
-
-  .teacher-phone-table-control .custom-select-trigger:hover {
-    border: 1px solid var(--color-primary-dark);
   }
 
   .teacher-phone-table-control .custom-select-wrapper i {
     font-size: var(--font-size-desc-1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: transform 0.4s;
-  }
-
-  .teacher-phone-table-control .custom-select-wrapper.open i {
-    transform: rotate(180deg);
   }
 
   .teacher-phone-table-control .custom-options {
-    position: absolute;
-    top: 110%;
-    left: 0;
-    right: 0;
-    background: var(--color-neutral-lightest);
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-25px);
-    transition: all 0.2s ease;
-    overflow: hidden;
-  }
-
-  .teacher-phone-table-control .custom-select-wrapper select {
-    display: none;
+    border-radius: 12px;
+    transform: translateY(0px);
   }
 
   .teacher-phone-table-control .custom-select-wrapper.open .custom-options {
-    opacity: 1;
-    visibility: visible;
     transform: translateY(10px);
   }
 
   .teacher-phone-table-control .custom-option {
     padding: 6px 12px;
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .teacher-phone-table-control .custom-option:hover {
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
-  .teacher-phone-table-control .custom-option.selected {
-    font-weight: bold;
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
-  .teacher-phone-table-control .teacher-phone-table-container {
-    width: 100%;
-    overflow-x: hidden;
-    flex-grow: 1;
   }
 
   .teacher-phone-table-container table {
-    width: 100%;
-    border-collapse: collapse;
     margin: 0 0 30px 0;
   }
 
   .teacher-phone-table-container table th {
-    background-color: var(--color-neutral-lightest);
     font-size: var(--font-size-body-2);
-    font-weight: bold;
-    color: var(--color-primary-dark);
-    height: 35px;
+    height: 30px;
     width: 33%;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
   }
 
   .teacher-phone-table-container table th:nth-child(2) {
-    background-color: var(--color-primary-dark);
     font-size: var(--font-size-body-2);
-    font-weight: bold;
-    color: var(--color-neutral-lightest);
-    height: 35px;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+    height: 30px;
   }
 
   .teacher-phone-table-container table th:first-child {
@@ -17675,8 +17552,6 @@ label {
 
   .teacher-phone-table-container table td {
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    text-align: center;
     padding: 10px 4px;
   }
 
@@ -17685,61 +17560,24 @@ label {
     border-right: 4px solid var(--color-neutral-lightest);
   }
 
-  .teacher-phone-table-container tbody tr:nth-child(even) {
-    background-color: rgba(var(--rgb-primary-dark), 0.05);
-  }
-
-  .teacher-phone-table-container tbody tr:hover {
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
   .teacher-phone-footer-control {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: auto;
     padding: 20px 0 0 0;
   }
 
   .teacher-phone-footer-control .count-text {
     font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
   }
 
   .teacher-phone-footer-control .teacher-phone-pagination {
-    display: flex;
     gap: 6px;
-    align-items: center;
   }
 
   .teacher-phone-footer-control .teacher-phone-pagination button {
-    background-color: var(--color-neutral-lightest);
     border: 1px solid transparent;
     width: 35px;
     height: 35px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
     font-size: var(--font-size-desc-1);
-    color: var(--color-neutral-dark);
-    cursor: pointer;
-    transition: 0.4s;
-  }
-
-  .teacher-phone-footer-control .teacher-phone-pagination button:hover {
-    border: 1px solid var(--color-primary-dark);
-  }
-
-  .teacher-phone-footer-control .teacher-phone-pagination button.active {
-    color: var(--color-primary-dark);
-    border: 1px solid var(--color-primary-dark);
-    box-shadow: 0 2px 8px -2px var(--color-primary-dark);
-    cursor: default;
-    pointer-events: none;
-  }
-
-  .teacher-phone-footer-control .teacher-phone-pagination button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
   }
 
   /* ----- END DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
@@ -26862,214 +26700,108 @@ label {
 
   /* ----- START DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
   .teacher-phone-table-control {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin: 10px 0 15px 0;
+    gap: 10px;
+    margin: 5px 0 15px 0;
   }
 
   .teacher-phone-table-control .search-box {
-    position: relative;
-    max-width: 300px;
+    max-width: 200px;
     width: 100%;
     height: 25px;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 5px;
-    padding: 0 10px 0 2px;
-    background-color: var(--color-neutral-lightest);
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
+    gap: 10px;
+    padding: 0 12px 0 2px;
     border-radius: 50px;
-    font-size: var(--font-size-desc-1);
-    color: var(--color-primary-dark);
-    outline: none;
-    border: 1px solid transparent;
-    transition: 0.4s;
+    font-size: var(--font-size-desc-3);
   }
 
   .teacher-phone-table-control .search-box i {
-    width: 22px;
+    width: 25px;
     height: 20px;
-    border-radius: 100%;
-    font-size: var(--font-size-desc-3);
-    background-color: var(--color-warning);
-    color: var(--color-neutral-lightest);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .search-box input {
-    border: none;
-    outline: none;
-    width: 100%;
-    height: 100%;
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
-    background-color: var(--color-neutral-lightest);
-    padding: 0;
-    transition: 0.4s;
+    padding: 0 0 2px 0;
   }
 
   .teacher-phone-table-control .search-box input::placeholder {
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
-    background-color: rgba(var(--color-primary-dark), 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: 0.4s;
-  }
-
-  .teacher-phone-table-control .search-box:hover {
-    border: 1px solid var(--color-primary-dark);
-    transition: 0.4s;
   }
 
   .teacher-phone-table-control .page-selector {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
   }
 
   .teacher-phone-table-control .page-selector p {
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
-    margin: 0;
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 
   .teacher-phone-table-control .custom-select-wrapper {
-    position: relative;
-    -webkit-user-select: none;
-    user-select: none;
     min-width: 70px;
   }
 
   .teacher-phone-table-control .custom-select-trigger {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    border-radius: 20px;
-    background-color: var(--color-neutral-lightest);
-    color: var(--color-primary-dark);
+    padding: 0 6px;
+    height: 25px;
+    border-radius: 6px;
     font-size: var(--font-size-desc-3);
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark, 0, 0, 0), 0.25);
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-  }
-
-  .teacher-phone-table-control .custom-select-trigger:hover {
-    border: 1px solid var(--color-primary-dark);
   }
 
   .teacher-phone-table-control .custom-select-wrapper i {
     font-size: var(--font-size-desc-3);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: transform 0.4s;
-  }
-
-  .teacher-phone-table-control .custom-select-wrapper.open i {
-    transform: rotate(180deg);
   }
 
   .teacher-phone-table-control .custom-options {
-    position: absolute;
-    top: 110%;
-    left: 0;
-    right: 0;
-    background: var(--color-neutral-lightest);
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(var(--rgb-neutral-dark), 0.25);
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-25px);
-    transition: all 0.2s ease;
-    overflow: hidden;
-  }
-
-  .teacher-phone-table-control .custom-select-wrapper select {
-    display: none;
+    border-radius: 6px;
+    transform: translateY(-5px);
   }
 
   .teacher-phone-table-control .custom-select-wrapper.open .custom-options {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(10px);
+    transform: translateY(0px);
   }
 
   .teacher-phone-table-control .custom-option {
-    padding: 3px 12px;
+    padding: 0 6px;
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .teacher-phone-table-control .custom-option:hover {
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
-  .teacher-phone-table-control .custom-option.selected {
-    font-weight: bold;
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
-  .teacher-phone-table-control .teacher-phone-table-container {
-    width: 100%;
-    overflow-x: hidden;
-    flex-grow: 1;
   }
 
   .teacher-phone-table-container table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0 0 30px 0;
+    margin: 0 0 10px 0;
+    min-width: 600px;
+    overflow: hidden;
+    overflow-x: scroll;
+  }
+  
+  .teacher-phone-table-container.component-loading {
+    overflow: hidden;
+    overflow-x: scroll;
+    scrollbar-width: none;
   }
 
   .teacher-phone-table-container table th {
-    background-color: var(--color-neutral-lightest);
     font-size: var(--font-size-desc-2);
-    font-weight: bold;
-    color: var(--color-primary-dark);
-    height: 25px;
+    height: 20px;
     width: 33%;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
   }
 
   .teacher-phone-table-container table th:nth-child(2) {
-    background-color: var(--color-primary-dark);
-    font-size: var(--font-size-desc-2);
-    font-weight: bold;
-    color: var(--color-neutral-lightest);
-    height: 25px;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.2);
+    font-size: var(--font-size-desc-3);
+    height: 20px;
   }
 
   .teacher-phone-table-container table th:first-child {
-    border-top-left-radius: 12px;
+    border-top-left-radius: 6px;
   }
 
   .teacher-phone-table-container table th:last-child {
-    border-top-right-radius: 12px;
+    border-top-right-radius: 6px;
   }
 
   .teacher-phone-table-container table td {
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
-    text-align: center;
-    padding: 5px 4px;
+    padding: 5px 2px;
   }
 
   .teacher-phone-table-container table td:nth-child(2) {
@@ -27077,61 +26809,28 @@ label {
     border-right: 4px solid var(--color-neutral-lightest);
   }
 
-  .teacher-phone-table-container tbody tr:nth-child(even) {
-    background-color: rgba(var(--rgb-primary-dark), 0.05);
-  }
-
-  .teacher-phone-table-container tbody tr:hover {
-    background-color: rgba(var(--rgb-primary-dark), 0.1);
-  }
-
   .teacher-phone-footer-control {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: auto;
-    padding: 20px 0 0 0;
+    padding: 10px 0 0 0;
   }
 
   .teacher-phone-footer-control .count-text {
     font-size: var(--font-size-desc-3);
-    color: var(--color-primary-dark);
   }
 
   .teacher-phone-footer-control .teacher-phone-pagination {
-    display: flex;
-    gap: 6px;
-    align-items: center;
+    gap: 3px;
   }
 
   .teacher-phone-footer-control .teacher-phone-pagination button {
-    background-color: var(--color-neutral-lightest);
     border: 1px solid transparent;
     width: 20px;
     height: 20px;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px 0 rgba(var(--rgb-neutral-dark), 0.25);
-    font-size: var(--font-size-desc-4);
-    color: var(--color-neutral-dark);
-    cursor: pointer;
-    transition: 0.4s;
-  }
-
-  .teacher-phone-footer-control .teacher-phone-pagination button:hover {
-    border: 1px solid var(--color-primary-dark);
+    border-radius: 6px;
+    font-size: var(--font-size-desc-3);
   }
 
   .teacher-phone-footer-control .teacher-phone-pagination button.active {
-    color: var(--color-primary-dark);
-    border: 1px solid var(--color-primary-dark);
-    box-shadow: 0 2px 8px -2px var(--color-primary-dark);
-    cursor: default;
-    pointer-events: none;
-  }
-
-  .teacher-phone-footer-control .teacher-phone-pagination button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+    box-shadow: 0 1px 4px -2px var(--color-primary-dark);
   }
 
   /* ----- END DASH-BOARD-TEACHER-PHONE-DIRECTORY ----- */
