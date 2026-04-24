@@ -78,7 +78,7 @@ $parse_order_meta = static function (?string $detail): array {
         $meta['order_date'] = trim((string) ($matches[1] ?? ''));
     }
 
-    if (preg_match('/^ผู้ออกเลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
+    if (preg_match('/^ผู้(?:ออก|สร้าง)เลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
         $value = trim((string) ($matches[1] ?? ''));
         $meta['issuer_name'] = $value !== '-' ? $value : '';
     }
@@ -146,7 +146,7 @@ $created_at = trim((string) ($item['createdAt'] ?? ''));
             </div>
             <div class="sharing-row">
                 <div class="group">
-                    <label for="">ผู้ออกคำสั่ง</label>
+                    <label for="">ผู้สร้างเลขคำสั่ง</label>
                     <p><?= h($issuer_name !== '' ? $issuer_name : '-') ?></p>
                 </div>
                 <div class="group">

@@ -1,7 +1,5 @@
 <?php
 
-date_default_timezone_set('Asia/Bangkok');
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
@@ -39,6 +37,18 @@ $db_charset = (string) $env('DB_CHARSET', 'utf8mb4');
 $db_collation = (string) $env('DB_COLLATION', 'utf8mb4_general_ci');
 $db_port = (int) $env('DB_PORT', '3306');
 $app_env = strtolower((string) $env('APP_ENV', 'production'));
+$app_timezone = (string) $env('APP_TIMEZONE', 'Asia/Bangkok');
+$db_timezone = (string) $env('DB_TIMEZONE', '+07:00');
+
+if (!in_array($app_timezone, timezone_identifiers_list(), true)) {
+    $app_timezone = 'Asia/Bangkok';
+}
+
+date_default_timezone_set($app_timezone);
+
+if (!preg_match('/^[+-](?:0\d|1[0-4]):[0-5]\d$/', $db_timezone)) {
+    $db_timezone = '+07:00';
+}
 
 if (!preg_match('/^[a-zA-Z0-9_]+$/', $db_charset)) {
     $db_charset = 'utf8mb4';
@@ -108,4 +118,8 @@ if (!@mysqli_query($connection, $set_names_sql)) {
     if ($db_charset !== 'utf8mb4' || $db_collation !== 'utf8mb4_general_ci') {
         @mysqli_query($connection, 'SET NAMES utf8mb4 COLLATE utf8mb4_general_ci');
     }
+}
+
+if (!@mysqli_query($connection, "SET time_zone = '" . $db_timezone . "'")) {
+    error_log('MySQL Timezone Error: ' . mysqli_error($connection));
 }

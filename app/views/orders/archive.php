@@ -247,7 +247,7 @@ ob_start();
                     <p id="orderArchiveModalSubject">-</p>
                 </div>
                 <div class="content-topic-sec">
-                    <p><strong>ผู้ออกคำสั่ง :</strong></p>
+                    <p><strong>ผู้สร้างเลขคำสั่ง :</strong></p>
                     <p id="orderArchiveModalSender">-</p>
                 </div>
                 <div class="content-topic-sec">

@@ -24,7 +24,7 @@ if (!function_exists('orders_issue_build_detail')) {
         $lines = [
             'ทั้งนี้ตั้งแต่วันที่: ' . $effective_date,
             'สั่ง ณ วันที่: ' . $order_date,
-            'ผู้ออกเลขคำสั่ง: ' . ($issuer_name !== '' ? $issuer_name : '-'),
+            'ผู้สร้างเลขคำสั่ง: ' . ($issuer_name !== '' ? $issuer_name : '-'),
             'กลุ่ม: ' . ($group_name !== '' ? $group_name : '-'),
         ];
 
@@ -63,7 +63,7 @@ if (!function_exists('orders_issue_parse_detail')) {
             }
         }
 
-        if (preg_match('/^ผู้ออกเลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
+        if (preg_match('/^ผู้(?:ออก|สร้าง)เลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
             $value = trim((string) ($matches[1] ?? ''));
             $result['issuer_name'] = $value !== '-' ? $value : '';
         }

@@ -206,7 +206,7 @@ if (!function_exists('orders_inbox_index')) {
                 if (preg_match('/^สั่ง ณ วันที่:\s*(.+)$/m', $text, $matches) === 1) {
                     $meta['order_date'] = trim((string) ($matches[1] ?? ''));
                 }
-                if (preg_match('/^ผู้ออกเลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
+                if (preg_match('/^ผู้(?:ออก|สร้าง)เลขคำสั่ง:\s*(.+)$/m', $text, $matches) === 1) {
                     $meta['issuer_name'] = trim((string) ($matches[1] ?? ''));
                 }
                 if (preg_match('/^กลุ่ม:\s*(.+)$/m', $text, $matches) === 1) {

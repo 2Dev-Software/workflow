@@ -309,7 +309,7 @@ ob_start();
 
                 <div class="content-topic-sec">
                     <div class="more-details">
-                        <p><strong>ผู้ออกเลขคำสั่ง</strong></p>
+                        <p><strong>ผู้สร้างเลขคำสั่ง</strong></p>
                         <input type="text" id="modalOrderSendIssuer" class="order-no-display" value="-" disabled>
                     </div>
                     <div class="more-details">
