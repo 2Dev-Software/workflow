@@ -236,7 +236,7 @@ ob_start();
 
     .circular-sender-faction {
         font-size: 12px;
-        color: #111111;
+        color: var(--color-neutral-dark);
     }
 
     #modalSender {
@@ -352,8 +352,7 @@ ob_start();
     <?php if (!$is_outside_view) : ?>
         <form
             id="bulkActionForm"
-            method="POST"
-        >
+            method="POST">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="<?= h($archived ? 'unarchive_selected' : 'archive_selected') ?>">
             <div class="table-circular-notice-index">
@@ -492,7 +491,7 @@ ob_start();
                                 <td>
                                     <div class="circular-action-stack">
                                         <button
-                                            class="button-more-details js-open-circular-modal"
+                                            class="booking-action-btn secondary js-open-circular-modal"
                                             type="button"
                                             data-circular-id="<?= h((string) (int) ($item['circular_id'] ?? 0)) ?>"
                                             data-inbox-id="<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"
@@ -511,9 +510,12 @@ ob_start();
                                             data-consider="<?= h((string) ($item['consider_class'] ?? 'considering')) ?>"
                                             data-files="<?= h($file_json) ?>"
                                             data-received-time="<?= h((string) ($item['delivered_time'] ?? '-')) ?>">
-                                            <p>รายละเอียด</p>
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span class="tooltip">ดูรายละเอียด</span>
                                         </button>
-                                        <a class="button-open-workflow" href="<?= h($detail_workflow_page) ?>?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>">อ่าน/ดำเนินการ</a>
+                                        <a class="booking-action-btn secondary js-open-circular-send-modal" href="<?= h($detail_workflow_page) ?>?inbox_id=<?= h((string) (int) ($item['inbox_id'] ?? 0)) ?>"> <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                            <span class="tooltip">อ่าน/ดำเนินการ</span>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -582,8 +584,7 @@ ob_start();
                             data-confirm="<?= h($archived ? 'ต้องการย้ายหนังสือเวียนนี้กลับไปยังกล่องข้อความหรือไม่' : 'ต้องการจัดเก็บหนังสือเวียนนี้หรือไม่') ?>"
                             data-confirm-title="<?= h($archived ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ') ?>"
                             data-confirm-ok="ยืนยัน"
-                            data-confirm-cancel="ยกเลิก"
-                        >
+                            data-confirm-cancel="ยกเลิก">
                             <p><?= h($archived ? 'ย้ายกลับ' : 'จัดเก็บ') ?></p>
                         </button>
                     </form>
@@ -607,11 +608,11 @@ ob_start();
 
                 <div class="content-modal">
                     <form method="POST" enctype="multipart/form-data" data-validate class="container-circular-notice-sending" id="circularEditForm" style="box-shadow:none; padding: 0;">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="inbox_id" data-send-inbox-id value="">
-                    <input type="hidden" name="circular_id" data-send-circular-id value="">
-                    <input type="hidden" name="action" value="forward">
-                    <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="inbox_id" data-send-inbox-id value="">
+                        <input type="hidden" name="circular_id" data-send-circular-id value="">
+                        <input type="hidden" name="action" value="forward">
+                        <input type="hidden" name="edit_circular_id" id="editTargetCircularId" value="">
 
                         <div class="form-group">
                             <label for="edit_subject"><b>หัวเรื่อง</b></label>
@@ -1370,8 +1371,7 @@ ob_start();
             data-confirm="<?= h($archived ? 'ต้องการย้ายหนังสือเวียนที่เลือกกลับไปยังกล่องข้อความหรือไม่' : 'ต้องการจัดเก็บหนังสือเวียนที่เลือกหรือไม่') ?>"
             data-confirm-title="<?= h($archived ? 'ยืนยันการย้ายกลับ' : 'ยืนยันการจัดเก็บ') ?>"
             data-confirm-ok="ยืนยัน"
-            data-confirm-cancel="ยกเลิก"
-        >
+            data-confirm-cancel="ยกเลิก">
             <i class="fa-solid fa-file-import"></i>
             <p><?= h($archived ? 'ย้ายกลับ' : 'จัดเก็บ') ?></p>
         </button>
@@ -1926,11 +1926,10 @@ ob_start();
 
             form.applyRecipientSelection = (selectedPids) => {
                 const selectedSet = new Set(
-                    Array.isArray(selectedPids)
-                        ? selectedPids
-                              .map((value) => String(value || '').trim())
-                              .filter((value) => value !== '')
-                        : []
+                    Array.isArray(selectedPids) ?
+                    selectedPids
+                    .map((value) => String(value || '').trim())
+                    .filter((value) => value !== '') : []
                 );
 
                 memberChecks.forEach((item) => {
