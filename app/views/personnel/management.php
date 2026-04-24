@@ -79,124 +79,14 @@ ob_start();
         vertical-align: top;
     }
 
-    .personnel-admin-page .personnel-admin-table th:nth-child(-n + 4),
-    .personnel-admin-page .personnel-admin-table td:nth-child(-n + 4) {
-        text-align: left;
-    }
-
-    .personnel-admin-page .personnel-admin-table th:nth-child(n + 5),
-    .personnel-admin-page .personnel-admin-table td:nth-child(n + 5) {
-        text-align: center;
-    }
-
-    .personnel-admin-page #personnelEditPidDisplay:disabled {
-        background-color: #fff;
-        color: inherit;
-        opacity: 1;
-        -webkit-text-fill-color: currentColor;
-    }
-
-    #personnelAddModal .room-admin-modal,
-    #personnelEditModal .room-admin-modal {
-        overflow: hidden;
-    }
-
-    #personnelAddModal .room-admin-modal .form-group.full,
-    #personnelEditModal .room-admin-modal .form-group.full {
-        flex-direction: row;
-        gap: 20px;
-        align-items: center;
-    }
-
-    .personnel-summary-line {
-        color: var(--color-neutral-dark);
-        font-size: var(--font-size-desc-2);
-        line-height: 1.5;
-    }
-
-    .personnel-form-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
-    }
-
     .form-group.full {
         grid-column: 1 / -1;
-    }
-
-    .form-group.full label strong {
-        font-size: var(--font-size-body-1);
-    }
-
-    .personnel-modal-scroll {
-        flex: 1 1 auto;
-        min-height: 0;
-        max-height: none;
-        overflow-y: auto;
-        padding-bottom: 28px;
-    }
-
-    #personnelAddModal [data-personnel-role-section],
-    #personnelEditModal [data-personnel-role-section] {
-        flex-wrap: wrap;
-    }
-
-    #personnelAddModal [data-personnel-role-section] > label,
-    #personnelEditModal [data-personnel-role-section] > label {
-        flex: 0 0 auto;
-        white-space: nowrap;
-    }
-
-    #personnelAddModal [data-personnel-role-section] .dropdown-container,
-    #personnelEditModal [data-personnel-role-section] .dropdown-container {
-        flex: 0 1 450px;
-        max-width: 100%;
-    }
-
-    #personnelAddModal [data-personnel-role-section] .sent-notice-selected,
-    #personnelEditModal [data-personnel-role-section] .sent-notice-selected {
-        flex: 0 0 auto;
-    }
-
-    .personnel-role-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .personnel-role-option {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: 48px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(var(--rgb-primary-dark), 0.18);
-        background: rgba(var(--rgb-neutral-lightest), 0.98);
-        cursor: pointer;
-    }
-
-    .personnel-role-option input {
-        width: 18px;
-        height: 18px;
-        margin: 0;
-    }
-
-    .personnel-form-note {
-        color: var(--color-neutral-dark);
-        font-size: var(--font-size-desc-2);
-        line-height: 1.35;
     }
 
     .input-group {
         flex-direction: column;
         align-items: flex-start;
         gap: 0;
-    }
-
-    .room-admin-modal .form-input {
-        max-height: 50px;
-        border-radius: 6px;
     }
 
     .search-input-wrapper .search-input:focus,
@@ -223,7 +113,7 @@ ob_start();
         display: flex;
         gap: 20px;
         align-items: center;
-        margin-top: 10px;
+        margin-top: 0;
     }
 
     .signature-box {
@@ -248,11 +138,6 @@ ob_start();
         display: none;
     }
 
-    .no-signature-text {
-        color: var(--color-neutral-dark);
-        font-size: var(--font-size-body-2);
-    }
-
     .signature-field {
         display: flex;
         flex-direction: column;
@@ -260,12 +145,6 @@ ob_start();
     }
 
     @media (max-width: 900px) {
-
-        .personnel-form-grid,
-        .personnel-role-grid {
-            grid-template-columns: 1fr;
-        }
-
         .signature-content {
             flex-direction: column;
             align-items: flex-start;
@@ -279,7 +158,7 @@ ob_start();
 
         #personnelAddModal [data-personnel-role-section] .dropdown-container,
         #personnelEditModal [data-personnel-role-section] .dropdown-container {
-            width: 100%;
+            width: 50%;
             flex-basis: auto;
         }
     }
