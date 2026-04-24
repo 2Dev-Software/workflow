@@ -69,6 +69,51 @@ if ($dashboard_calendar_events_json === false) {
     $dashboard_calendar_events_json = '{}';
 }
 
+$dashboard_vehicle_schedule = [];
+
+foreach ($dashboard_calendar_events as $event_date => $events) {
+    if (!is_array($events)) {
+        continue;
+    }
+
+    foreach ($events as $event) {
+        if (!is_array($event) || (string) ($event['type'] ?? '') !== 'car') {
+            continue;
+        }
+
+        $booking_id = trim((string) ($event['bookingId'] ?? ''));
+        $schedule_key = $booking_id !== ''
+            ? $booking_id
+            : sha1((string) $event_date . '|' . (string) ($event['title'] ?? '') . '|' . (string) ($event['time'] ?? '') . '|' . (string) ($event['owner'] ?? ''));
+
+        if (isset($dashboard_vehicle_schedule[$schedule_key])) {
+            continue;
+        }
+
+        $dashboard_vehicle_schedule[$schedule_key] = [
+            'title' => trim((string) ($event['title'] ?? '-')) ?: '-',
+            'start_date' => trim((string) ($event['startDate'] ?? '')) ?: (string) $event_date,
+            'end_date' => trim((string) ($event['endDate'] ?? '')) ?: (string) $event_date,
+            'start_key' => trim((string) ($event['startKey'] ?? '')) ?: (string) $event_date,
+            'time' => trim((string) ($event['time'] ?? '-')) ?: '-',
+            'owner' => trim((string) ($event['owner'] ?? '-')) ?: '-',
+        ];
+    }
+}
+
+uasort($dashboard_vehicle_schedule, static function (array $left, array $right): int {
+    $left_key = (string) ($left['start_key'] ?? '');
+    $right_key = (string) ($right['start_key'] ?? '');
+
+    if ($left_key === $right_key) {
+        return strcmp((string) ($left['time'] ?? ''), (string) ($right['time'] ?? ''));
+    }
+
+    return strcmp($left_key, $right_key);
+});
+
+$dashboard_vehicle_schedule = array_values($dashboard_vehicle_schedule);
+
 ob_start();
 ?>
 
@@ -85,6 +130,30 @@ ob_start();
         color: var(--color-secondary);
     }
 
+    .custom-table td {
+        text-align: start !important;
+    }
+
+    .custom-table th:nth-child(3) {
+        width: 15% !important;
+    }
+
+    .custom-table th:nth-child(4) {
+        border-right: 3px solid var(--color-neutral-lightest);
+    }
+
+    #event-modal-overlay .custom-table th:nth-child(3) {
+        width: 50% !important;
+    }
+
+    #room-booking-section .custom-table th:nth-child(5) {
+        width: 20%;
+    }
+
+    #room-booking-section .custom-table th:nth-child(4) {
+        width: 0;
+    }
+
     @media (max-width: 1023px) {
         .modal-header {
             margin: 0;
@@ -97,15 +166,20 @@ ob_start();
         <section>
             <div class="notification-list">
                 <ul>
-                    <?php if ($dashboard_notifications === []) : ?>
+                    <?php if ($dashboard_vehicle_schedule !== []): ?>
+                        <li onclick="openVehicleDetail()">คุณมีตารางขับรถ</li>
+                    <?php endif; ?>
+                    <?php if ($dashboard_notifications === [] && $dashboard_vehicle_schedule === []): ?>
                         <li>ไม่พบรายการเอกสารที่ต้องดำเนินการ</li>
-                    <?php else : ?>
-                        <?php foreach ($dashboard_notifications as $notification) : ?>
-                            <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b> <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?> <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ</li>
+                    <?php else: ?>
+                        <?php foreach ($dashboard_notifications as $notification): ?>
+                            <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b>
+                                <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?>
+                                <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ
+                            </li>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </ul>
-                <p onclick="openVehicleDetail()">คุณมีตารางขับรถ</p>
             </div>
             <a href="#news-paper">
                 <img src="public/assets/img/icon/news-paper.png" alt="">
@@ -123,9 +197,9 @@ ob_start();
             ?>
             <section>
                 <div class="profile-image">
-                    <?php if ($profile_picture !== '') : ?>
+                    <?php if ($profile_picture !== ''): ?>
                         <img src="<?= h($profile_picture) ?>" alt="Profile image">
-                    <?php else : ?>
+                    <?php else: ?>
                         <i class="fa-solid fa-user"></i>
                     <?php endif; ?>
                 </div>
@@ -294,7 +368,8 @@ ob_start();
 
                     </div>
                 </div>
-                <textarea id="roomBookingEventsData" class="hidden" aria-hidden="true"><?= h($dashboard_calendar_events_json) ?></textarea>
+                <textarea id="roomBookingEventsData" class="hidden"
+                    aria-hidden="true"><?= h($dashboard_calendar_events_json) ?></textarea>
 
             </aside>
         </section>
@@ -359,51 +434,49 @@ ob_start();
     <div class="modal-content">
         <header class="modal-header">
             <div class="modal-title">
-                <span id="modal-date-title">ตารางการขับรถของฉัน</span>
+                <span id="vehicle-driving-title">ตารางการขับรถของฉัน</span>
             </div>
             <div class="close-modal-btn">
-                <i class="fa-solid fa-xmark" id="close-modal-btn" aria-hidden="true"></i>
+                <i class="fa-solid fa-xmark" id="vehicle-driving-close-btn" data-vehicle-modal-close="vehicleBookingDetailModal" aria-hidden="true"></i>
             </div>
         </header>
 
         <div class="modal-body modal-overlay-vehicle-edit">
-            <div id="car-booking-section" class="booking-section">
+            <div id="vehicle-driving-section" class="booking-section">
                 <div class="table-responsive">
                     <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>ทะเบียนรถ</th>
+                                <th>วันที่เริ่มต้น</th>
+                                <th>วันที่สิ้นสุด</th>
                                 <th>เวลา</th>
-                                <th>รายละเอียด</th>
                                 <th>ผู้จองรถ</th>
                             </tr>
                         </thead>
-                        <tbody id="car-table-body">
-                            <tr>
-                                <td>กง 2373</td>
-                                <td>22:49-22:53</td>
-                                <td>รายการจองรถ</td>
-                                <td>นางสาวทิพยรัตน์ บุญมณี</td>
-                            </tr>
+                        <tbody id="vehicle-driving-table-body">
+                            <?php if ($dashboard_vehicle_schedule === []): ?>
+                                <tr>
+                                    <td colspan="5" class="enterprise-empty">ไม่มีรายการขับรถ</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($dashboard_vehicle_schedule as $schedule): ?>
+                                    <tr>
+                                        <td><?= h((string) ($schedule['title'] ?? '-')) ?></td>
+                                        <td><?= h((string) ($schedule['start_date'] ?? '-')) ?></td>
+                                        <td><?= h((string) ($schedule['end_date'] ?? '-')) ?></td>
+                                        <td><?= h((string) ($schedule['time'] ?? '-')) ?></td>
+                                        <td><?= h((string) ($schedule['owner'] ?? '-')) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div id="no-event-message" class="hidden">
+            <div id="vehicle-driving-empty-message" class="hidden">
                 ไม่มีรายการจองในวันนี้
-            </div>
-
-            <div class="vehicle-row split">
-                <div class="vehicle-input-content">
-                    <label for="vehicleEditLocation">วันที่เริ่มต้น</label>
-                    <input type="text" id="vehicleEditLocation" name="location" placeholder="03/12/2026" disabled="">
-                </div>
- 
-                <div class="vehicle-input-content">
-                    <label for="vehicleEditLocation">วันที่สิ้นสุด</label>
-                    <input type="text" id="vehicleEditLocation" name="location" placeholder="03/12/2027" disabled="">
-                </div>
             </div>
 
         </div>
@@ -416,13 +489,13 @@ ob_start();
 
         const closeBtn = document.querySelector('[data-vehicle-modal-close="vehicleBookingDetailModal"]');
 
-        window.openVehicleDetail = function() {
+        window.openVehicleDetail = function () {
             if (vehicleModal) {
                 vehicleModal.classList.remove('hidden');
             }
         };
 
-        window.closeVehicleDetail = function() {
+        window.closeVehicleDetail = function () {
             if (vehicleModal) {
                 vehicleModal.classList.add('hidden');
             }
