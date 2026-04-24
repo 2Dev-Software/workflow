@@ -356,7 +356,7 @@ ob_start();
                         <div class="content-topic-sec">
                             <p><strong>ความเร่งด่วน :</strong></p>
                             <button class="urgency-status normal" id="modalUrgency">
-                                <p>ปกติ</p>
+                                <label>ปกติ</label>
                             </button>
                         </div>
                         <div class="content-topic-sec">
