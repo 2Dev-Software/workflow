@@ -54,6 +54,8 @@ if (!function_exists('vehicle_booking_events')) {
             }
 
             $timeRange = $startDate->format('H:i') . '-' . $endDate->format('H:i');
+            $startDateDisplay = $startDate->format('d/m/') . ((int) $startDate->format('Y') + 543);
+            $endDateDisplay = $endDate->format('d/m/') . ((int) $endDate->format('Y') + 543);
             $detail = 'รายการจองรถ';
             $owner = (string) ($row['requesterName'] ?? '-');
 
@@ -61,9 +63,14 @@ if (!function_exists('vehicle_booking_events')) {
                 'bookingId' => (string) ($row['bookingID'] ?? ''),
                 'type' => 'car',
                 'title' => $title,
+                'startDate' => $startDateDisplay,
+                'endDate' => $endDateDisplay,
+                'startKey' => $startDate->format('Y-m-d'),
+                'endKey' => $endDate->format('Y-m-d'),
                 'time' => $timeRange,
                 'detail' => $detail,
                 'owner' => $owner,
+                'requesterPid' => (string) ($row['requesterPID'] ?? ''),
                 'status' => $status,
             ];
 
