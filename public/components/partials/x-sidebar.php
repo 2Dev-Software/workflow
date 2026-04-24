@@ -306,7 +306,11 @@ $sidebar_alerts['home'] = (int) ($sidebar_counts['unread_external_circulars'] ??
     </div>
 
     <div class="logout-section">
-        <a href="logout.php" class="logout-btn">
+        <a href="logout.php" class="logout-btn"
+            data-confirm="ยืนยันการออกจากระบบใช่หรือไม่?"
+            data-confirm-title="ยืนยันการออกจากระบบ"
+            data-confirm-ok="ยืนยัน"
+            data-confirm-cancel="ยกเลิก">
             <i class="fa-solid fa-right-from-bracket"></i>
             <p>ออกจากระบบ</p>
         </a>

@@ -271,6 +271,7 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
                     'fileSize' => (int) ($file['fileSize'] ?? 0),
                 ];
             }, (array) ($attachments_map[(string) $outgoing_id] ?? []));
+            $cover_files = $attachments !== [] ? [array_shift($attachments)] : [];
 
             $payload_map[(string) $outgoing_id] = [
                 'outgoingID' => $outgoing_id,
@@ -285,7 +286,9 @@ if (!function_exists('outgoing_build_view_modal_payload_map')) {
                 'status' => $status_key,
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
                 'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
-                'attachments' => $attachments,
+                'coverFiles' => $cover_files,
+                'attachmentFiles' => $attachments,
+                'attachments' => array_merge($cover_files, $attachments),
             ];
         }
 
@@ -480,7 +483,7 @@ if (!function_exists('outgoing_index')) {
                         ];
                     } else {
                         try {
-                            outgoing_attach_files($outgoing_id, $current_pid, $_FILES['attachments'] ?? [], $destination_name);
+                            outgoing_attach_files($outgoing_id, $current_pid, $_FILES['cover_file'] ?? [], $_FILES['attachments'] ?? [], $destination_name);
                             $alert = [
                                 'type' => 'success',
                                 'title' => 'แนบไฟล์เรียบร้อย',
@@ -506,7 +509,6 @@ if (!function_exists('outgoing_index')) {
         }
 
         $active_dh_year = system_get_dh_year();
-        $preview_outgoing_no = outgoing_preview_number($active_dh_year);
         $track_status_map = [
             OUTGOING_STATUS_WAITING_ATTACHMENT => ['label' => 'รอการแนบไฟล์', 'pill' => 'pending'],
             OUTGOING_STATUS_COMPLETE => ['label' => 'แนบไฟล์สำเร็จ', 'pill' => 'outgoing-complete'],
@@ -564,7 +566,6 @@ if (!function_exists('outgoing_index')) {
             'filter_sort' => $filter_sort,
             'is_track_active' => $is_track_active,
             'active_dh_year' => $active_dh_year,
-            'preview_outgoing_no' => $preview_outgoing_no,
             'issuer_name' => $issuer_name,
             'form_values' => $form_values,
             'track_status_map' => $track_status_map,

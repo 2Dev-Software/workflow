@@ -15,12 +15,14 @@ if (!function_exists('vehicle_booking_events')) {
             return $events;
         }
 
-        $sql = 'SELECT b.bookingID, b.startAt, b.endAt, b.status, b.requesterPID,
+        $sql = 'SELECT b.bookingID, b.startAt, b.endAt, b.status, b.requesterPID, b.driverPID, b.driverName,
                 v.vehiclePlate, v.vehicleType,
-                t.fName AS requesterName
+                t.fName AS requesterName,
+                drv.fName AS driverFullName
             FROM dh_vehicle_bookings AS b
             LEFT JOIN dh_vehicles AS v ON b.vehicleID = v.vehicleID
             LEFT JOIN teacher AS t ON b.requesterPID = t.pID
+            LEFT JOIN teacher AS drv ON b.driverPID = drv.pID
             WHERE b.deletedAt IS NULL AND b.dh_year = ?
             ORDER BY b.startAt ASC';
 
@@ -58,6 +60,11 @@ if (!function_exists('vehicle_booking_events')) {
             $endDateDisplay = $endDate->format('d/m/') . ((int) $endDate->format('Y') + 543);
             $detail = 'รายการจองรถ';
             $owner = (string) ($row['requesterName'] ?? '-');
+            $driverName = trim((string) ($row['driverFullName'] ?? ''));
+
+            if ($driverName === '') {
+                $driverName = trim((string) ($row['driverName'] ?? ''));
+            }
 
             $event = [
                 'bookingId' => (string) ($row['bookingID'] ?? ''),
@@ -71,6 +78,8 @@ if (!function_exists('vehicle_booking_events')) {
                 'detail' => $detail,
                 'owner' => $owner,
                 'requesterPid' => (string) ($row['requesterPID'] ?? ''),
+                'driverPid' => (string) ($row['driverPID'] ?? ''),
+                'driverName' => $driverName,
                 'status' => $status,
             ];
 

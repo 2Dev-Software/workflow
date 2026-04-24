@@ -9,7 +9,6 @@ $status_filter = strtoupper(trim((string) ($status_filter ?? 'ALL')));
 $filter_status = strtolower($status_filter);
 $summary_counts = (array) ($summary_counts ?? []);
 $attachments_map = (array) ($attachments_map ?? []);
-$preview_outgoing_no = trim((string) ($preview_outgoing_no ?? ''));
 $issuer_name = trim((string) ($issuer_name ?? ''));
 $form_values = array_merge([
     'subject' => '',
@@ -234,6 +233,10 @@ ob_start();
         margin: 0;
     }
 
+    .content-order .form-group.outgoing-subject-row .input-group {
+        width: 100%;
+    }
+
     #modalOrderEditOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-edit-urgent="normal"],
     #modalOrderViewOverlay .type-urgent .radio-group-urgent input[type="radio"].is-active[data-outgoing-view-urgent="normal"] {
         background-color: #00ae2c !important;
@@ -298,15 +301,7 @@ ob_start();
         <input type="hidden" name="action" value="create">
         <input type="hidden" name="order_id" value="">
 
-        <div class="form-group row">
-            <div class="input-group">
-                <p><strong>เลขทะเบียน</strong></p>
-                <input
-                    type="text"
-                    class="order-no-display"
-                    value="<?= h($preview_outgoing_no) ?>"
-                    disabled>
-            </div>
+        <div class="form-group row outgoing-subject-row">
             <div class="input-group">
                 <p><strong>เรื่อง</strong></p>
                 <input
@@ -2504,7 +2499,7 @@ ob_start();
                         </div>
                         <div class="more-details">
                             <p><strong>ส่งถึง</strong></p>
-                            <input type="text" id="modalOutgoingEditIssuer" name="destination_name" class="order-no-display" value="">
+                            <input type="text" id="modalOutgoingEditIssuer" name="destination_name" class="order-no-display" value="" required>
                         </div>
                     </div>
 
@@ -4566,60 +4561,22 @@ ob_start();
                 <div class="content-topic-sec">
                     <div class="more-details">
                         <p><strong>ผู้ออกเลข</strong></p>
-                        <input type="text" id="" class="order-no-display" value="" disabled>
+                        <input type="text" id="modalOutgoingViewIssuerName" class="order-no-display" value="" disabled>
                     </div>
                     <div class="more-details">
                         <p><strong>เจ้าของเรื่อง</strong></p>
-                        <input type="text" id="" class="order-no-display" value="" disabled>
+                        <input type="text" id="modalOutgoingViewOwnerNames" class="order-no-display" value="" disabled>
                     </div>
                 </div>
 
                 <div class="file-section" id="sectionViewCover">
                     <p><strong>ไฟล์หนังสือนำ</strong></p>
-                    <div class="file-list" id="containerViewCover" aria-live="polite">
-                        <div class="file-item-wrapper" data-file-id="160">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 16.18.17 (2).png</span><span class="file-type">image/png • 1.6 MB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="161">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 17.14.58.png</span><span class="file-type">image/png • 188 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="file-list" id="containerViewCover" aria-live="polite"></div>
                 </div>
 
                 <div class="file-section" id="sectionViewAttachments">
                     <p><strong>ไฟล์เอกสารเพิ่มเติม</strong></p>
-                    <div class="file-list" id="containerViewAttachments" aria-live="polite">
-                        <div class="file-item-wrapper" data-file-id="160">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 16.18.17 (2).png</span><span class="file-type">image/png • 1.6 MB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                        <div class="file-item-wrapper" data-file-id="161">
-                            <div class="file-banner">
-                                <div class="file-info">
-                                    <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                    <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 17.14.58.png</span><span class="file-type">image/png • 188 KB</span></div>
-                                </div>
-                                <div class="file-actions"><a href="javascript:void(0)" class="action-btn" title="ดูตัวอย่าง"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="file-list" id="containerViewAttachments" aria-live="polite"></div>
                 </div>
 
 
@@ -4679,7 +4636,12 @@ ob_start();
         const modalOutgoingViewSubject = document.getElementById('modalOutgoingViewSubject');
         const modalOutgoingViewEffectiveDate = document.getElementById('modalOutgoingViewEffectiveDate');
         const modalOutgoingViewIssuer = document.getElementById('modalOutgoingViewIssuer');
-        const modalOutgoingViewFileSection = document.getElementById('modalOutgoingViewFileSection');
+        const modalOutgoingViewIssuerName = document.getElementById('modalOutgoingViewIssuerName');
+        const modalOutgoingViewOwnerNames = document.getElementById('modalOutgoingViewOwnerNames');
+        const modalOutgoingViewCoverSection = document.getElementById('sectionViewCover');
+        const modalOutgoingViewCoverList = document.getElementById('containerViewCover');
+        const modalOutgoingViewAttachmentSection = document.getElementById('sectionViewAttachments');
+        const modalOutgoingViewAttachmentList = document.getElementById('containerViewAttachments');
         const modalOutgoingViewOwnerBody = document.getElementById('modalOutgoingViewOwnerBody');
         const modalOutgoingViewUrgentRadios = viewModal ? Array.from(viewModal.querySelectorAll('[data-outgoing-view-urgent]')) : [];
         let outgoingEditModalData = {};
@@ -4946,18 +4908,18 @@ ob_start();
             scheduleOutgoingPrioritySync(modalOutgoingEditUrgentRadios, resolveOutgoingPriorityKey(payload, fallbackPriorityKey));
         };
 
-        const renderOutgoingViewFiles = (outgoingId, files) => {
-            if (!modalOutgoingViewFileSection) {
+        const renderOutgoingViewFileList = (section, container, outgoingId, files, emptyText) => {
+            if (!section || !container) {
                 return;
             }
 
-            if (!Array.isArray(files) || files.length != 0) {
-                modalOutgoingViewFileSection.style.display = 'none';
-                modalOutgoingViewFileSection.innerHTML = '<p><strong>ไฟล์หนังสือนำ</strong></p>';
+            if (!Array.isArray(files) || files.length === 0) {
+                section.style.display = '';
+                container.innerHTML = `<p class="existing-file-empty">${escapeHtml(emptyText)}</p>`;
                 return;
             }
 
-            modalOutgoingViewFileSection.style.display = '';
+            section.style.display = '';
             const safeOutgoingId = encodeURIComponent(String(outgoingId || '').trim());
             const fileRowsHtml = files.map((file) => {
                 const fileId = encodeURIComponent(String(file?.fileID || ''));
@@ -4984,7 +4946,24 @@ ob_start();
                 </div>`;
             }).join('');
 
-            modalOutgoingViewFileSection.innerHTML = `<p><strong>ไฟล์หนังสือนำ</strong></p>${fileRowsHtml}`;
+            container.innerHTML = fileRowsHtml;
+        };
+
+        const renderOutgoingViewFiles = (outgoingId, coverFiles, attachmentFiles) => {
+            renderOutgoingViewFileList(
+                modalOutgoingViewCoverSection,
+                modalOutgoingViewCoverList,
+                outgoingId,
+                Array.isArray(coverFiles) ? coverFiles : [],
+                'ไม่พบไฟล์หนังสือนำ'
+            );
+            renderOutgoingViewFileList(
+                modalOutgoingViewAttachmentSection,
+                modalOutgoingViewAttachmentList,
+                outgoingId,
+                Array.isArray(attachmentFiles) ? attachmentFiles : [],
+                'ไม่พบไฟล์เอกสารเพิ่มเติม'
+            );
         };
 
         const renderOutgoingViewOwners = (ownerNames, statusLabel, statusPill) => {
@@ -5026,10 +5005,16 @@ ob_start();
             if (modalOutgoingViewIssuer) {
                 modalOutgoingViewIssuer.value = '-';
             }
+            if (modalOutgoingViewIssuerName) {
+                modalOutgoingViewIssuerName.value = '-';
+            }
+            if (modalOutgoingViewOwnerNames) {
+                modalOutgoingViewOwnerNames.value = '-';
+            }
 
             setOutgoingPriorityRadio(modalOutgoingViewUrgentRadios, 'normal');
 
-            renderOutgoingViewFiles('', []);
+            renderOutgoingViewFiles('', [], []);
             renderOutgoingViewOwners([], '', 'pending');
         };
 
@@ -5059,8 +5044,15 @@ ob_start();
                 if (modalOutgoingViewIssuer) {
                     modalOutgoingViewIssuer.value = String(payload.destinationName || '').trim() || '-';
                 }
+                if (modalOutgoingViewIssuerName) {
+                    modalOutgoingViewIssuerName.value = String(payload.issuerName || '').trim() || '-';
+                }
+                if (modalOutgoingViewOwnerNames) {
+                    const ownerNames = Array.isArray(payload.ownerNames) ? payload.ownerNames : [];
+                    modalOutgoingViewOwnerNames.value = ownerNames.map((name) => String(name || '').trim()).filter(Boolean).join(', ') || '-';
+                }
 
-                renderOutgoingViewFiles(outgoingId, Array.isArray(payload.attachments) ? payload.attachments : []);
+                renderOutgoingViewFiles(outgoingId, payload.coverFiles, payload.attachmentFiles);
                 renderOutgoingViewOwners(payload.ownerNames, payload.statusLabel, payload.statusPill);
             }
 
@@ -5961,11 +5953,45 @@ ob_start();
         window.__outgoingModalAttachmentUpload = setupFileUpload(
             "fileInput_modal",
             "existingFileListContainer_modal",
-            5, {
+            4, {
                 dropzoneId: "dropzone_modal",
                 addButtonId: "btnAddFiles_modal"
             }
         );
+
+        const outgoingAttachForm = document.getElementById("modalOutgoingAttachForm");
+        const outgoingDestinationInput = document.getElementById("modalOutgoingEditIssuer");
+        const outgoingCoverFileInput = document.getElementById("coverFileInput_modal");
+
+        const showOutgoingAttachAlert = (message) => {
+            const alertsApi = window.AppAlerts && typeof window.AppAlerts.fire === 'function' ? window.AppAlerts : null;
+            if (!alertsApi) {
+                alert(message);
+                return;
+            }
+
+            alertsApi.fire({
+                type: 'warning',
+                title: 'แจ้งเตือน',
+                message,
+            });
+        };
+
+        if (outgoingAttachForm) {
+            outgoingAttachForm.addEventListener("submit", (event) => {
+                if (outgoingDestinationInput && outgoingDestinationInput.value.trim() === "") {
+                    event.preventDefault();
+                    showOutgoingAttachAlert("กรุณากรอกส่งถึง");
+                    outgoingDestinationInput.focus();
+                    return;
+                }
+
+                if (!outgoingCoverFileInput || outgoingCoverFileInput.files.length === 0) {
+                    event.preventDefault();
+                    showOutgoingAttachAlert("กรุณาแนบไฟล์หนังสือนำ");
+                }
+            });
+        }
 
     });
 </script>

@@ -4,13 +4,16 @@ require_once __DIR__ . '/../../helpers.php';
 $dashboard_counts = (array) ($dashboard_counts ?? []);
 $dashboard_shortcuts = (array) ($dashboard_shortcuts ?? []);
 $dashboard_user = (array) ($dashboard_user ?? []);
+$dashboard_access = (array) ($dashboard_access ?? []);
 $dashboard_calendar_events = (array) ($dashboard_calendar_events ?? []);
 $dashboard_current_date_label = trim((string) ($dashboard_current_date_label ?? ''));
 $dashboard_name = trim((string) ($dashboard_user['fName'] ?? ''));
+$dashboard_pid = trim((string) ($dashboard_user['pID'] ?? ($_SESSION['pID'] ?? '')));
 $dashboard_position = trim((string) ($dashboard_user['position_name'] ?? ''));
 $dashboard_role = trim((string) ($dashboard_user['role_name'] ?? ''));
 $dashboard_role_ids = array_filter(array_map('intval', preg_split('/\s*,\s*/', trim((string) ($dashboard_user['roleID'] ?? ''))) ?: []));
 $dashboard_is_admin = in_array(1, $dashboard_role_ids, true) || str_contains($dashboard_role, 'ผู้ดูแลระบบ');
+$dashboard_can_manage_external_circular = !empty($dashboard_access['can_manage_external_circular']) || $dashboard_is_admin;
 $unread_external_circulars = (int) ($dashboard_counts['unread_external_circulars'] ?? $dashboard_counts['unread_circulars'] ?? 0);
 $unread_internal_circulars = (int) ($dashboard_counts['unread_internal_circulars'] ?? 0);
 $unread_memos = (int) ($dashboard_counts['unread_memos'] ?? 0);
@@ -24,37 +27,51 @@ if ($dashboard_is_admin) {
     $vehicle_notifications = 0;
     $repair_notifications = 0;
 }
+
+$external_circular_href = 'outgoing-notice.php?box=clerk&type=external&read=all&sort=newest&view=table1';
+
+if (!empty($dashboard_access['is_director_or_acting']) && empty($dashboard_access['can_manage_external_circular'])) {
+    $external_circular_href = 'outgoing-notice.php?box=director&type=external&read=all&sort=newest&view=table1';
+}
+
 $dashboard_notifications = array_values(array_filter([
     [
         'label' => 'หนังสือเวียน',
         'count' => $unread_external_circulars,
+        'href' => $external_circular_href,
     ],
     [
         'label' => 'หนังสือเวียน (ภายใน)',
         'count' => $unread_internal_circulars,
+        'href' => 'circular-notice.php',
     ],
     [
         'label' => 'บันทึกข้อความ',
         'count' => $unread_memos,
+        'href' => 'memo-inbox.php',
     ],
     [
         'label' => 'คำสั่งราชการ',
         'count' => $unread_orders,
+        'href' => 'orders-inbox.php',
     ],
     [
         'label' => 'จองสถานที่/ห้อง',
         'count' => $room_notifications,
         'message' => 'ที่ต้องดำเนินการ',
+        'href' => 'room-booking-approval.php',
     ],
     [
         'label' => 'จองยานพาหนะ',
         'count' => $vehicle_notifications,
         'message' => 'ที่ต้องดำเนินการ',
+        'href' => 'vehicle-reservation-approval.php',
     ],
     [
         'label' => 'แจ้งเหตุซ่อมแซม',
         'count' => $repair_notifications,
         'message' => 'ที่ต้องดำเนินการ',
+        'href' => 'repairs-approval.php',
     ],
 ], static function (array $item): bool {
     return (int) ($item['count'] ?? 0) > 0;
@@ -78,6 +95,12 @@ foreach ($dashboard_calendar_events as $event_date => $events) {
 
     foreach ($events as $event) {
         if (!is_array($event) || (string) ($event['type'] ?? '') !== 'car') {
+            continue;
+        }
+
+        $driver_pid = trim((string) ($event['driverPid'] ?? ''));
+
+        if ($driver_pid === '' || $dashboard_pid === '' || $driver_pid !== $dashboard_pid) {
             continue;
         }
 
@@ -154,6 +177,15 @@ ob_start();
         width: 0;
     }
 
+    .notification-list ul li a.dashboard-notification-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .notification-list ul li a.dashboard-notification-link b {
+        color: var(--color-danger);
+    }
+
     @media (max-width: 1023px) {
         .modal-header {
             margin: 0;
@@ -173,7 +205,11 @@ ob_start();
                         <li>ไม่พบรายการเอกสารที่ต้องดำเนินการ</li>
                     <?php else: ?>
                         <?php foreach ($dashboard_notifications as $notification): ?>
-                            <li>คุณมี <b><?= h((string) ($notification['label'] ?? '-')) ?></b>
+                            <?php
+                            $notification_label = (string) ($notification['label'] ?? '-');
+                            $notification_href = trim((string) ($notification['href'] ?? ''));
+                            ?>
+                            <li>คุณมี <?php if ($notification_href !== ''): ?><a class="dashboard-notification-link" href="<?= h($notification_href) ?>"><?php endif; ?><b><?= h($notification_label) ?></b><?php if ($notification_href !== ''): ?></a><?php endif; ?>
                                 <?= h((string) ($notification['message'] ?? 'ที่ยังไม่อ่าน')) ?>
                                 <b><?= h((string) ((int) ($notification['count'] ?? 0))) ?></b> ฉบับ
                             </li>
@@ -223,18 +259,20 @@ ob_start();
             </div>
 
             <div class="dashboard-content">
-                <a href="outgoing-receive.php">
-                    <div class="card-shortcut">
-                        <img src="public/assets/img/icon/member.png" alt="">
-                        <p><strong>ลงทะเบียนรับ</strong></p>
-                    </div>
-                </a>
-                <a href="outgoing.php">
-                    <div class="card-shortcut">
-                        <img src="public/assets/img/icon/clipboard.png" alt="">
-                        <p><strong>ออกเลขทะเบียนส่ง</strong></p>
-                    </div>
-                </a>
+                <?php if ($dashboard_can_manage_external_circular): ?>
+                    <a href="outgoing-receive.php">
+                        <div class="card-shortcut">
+                            <img src="public/assets/img/icon/member.png" alt="">
+                            <p><strong>ลงทะเบียนรับ</strong></p>
+                        </div>
+                    </a>
+                    <a href="outgoing.php">
+                        <div class="card-shortcut">
+                            <img src="public/assets/img/icon/clipboard.png" alt="">
+                            <p><strong>ออกเลขทะเบียนส่ง</strong></p>
+                        </div>
+                    </a>
+                <?php endif; ?>
                 <a href="memo.php">
                     <div class="card-shortcut">
                         <img src="public/assets/img/icon/memo.png" alt="">
