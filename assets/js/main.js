@@ -438,7 +438,7 @@ class Calendar {
 
             events.forEach((ev) => {
                 if (this.mode !== "room" && ev.type === "car" && !hasCar) {
-                    iconContainer.innerHTML += `<img src="public/assets/img/icon/car.png" class="car-icon" style="transform:translateY(5px)">`;
+                    iconContainer.innerHTML += `<img src="public/assets/img/icon/car.png" class="car-icon" style="transform:translateY(4px)">`;
                     hasCar = true;
                 }
                 if (ev.type === "room" && !hasRoom) {
