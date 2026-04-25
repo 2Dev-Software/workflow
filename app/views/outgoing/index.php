@@ -2399,10 +2399,10 @@ ob_start();
                         ?>
                         <tr>
                             <td>
-                                <div class="circular-my-subject"><?= h((string) ($item['subject'] ?? '-')) ?></div>
                                 <?php if ($outgoing_no !== '') : ?>
-                                    <div class="circular-my-meta">เลขทะเบียนส่ง <?= h($outgoing_no) ?></div>
+                                    <div class="circular-my-subject">เลขทะเบียนส่ง <?= h($outgoing_no) ?></div>
                                 <?php endif; ?>
+                                <div class="circular-my-meta"><?= h((string) ($item['subject'] ?? '-')) ?></div>
                             </td>
                             <td>
                                 <span class="status-pill <?= h((string) ($status_meta['pill'] ?? 'pending')) ?>"><?= h((string) ($status_meta['label'] ?? '-')) ?></span>

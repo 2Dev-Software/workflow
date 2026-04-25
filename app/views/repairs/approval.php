@@ -1637,7 +1637,7 @@ ob_start();
             info.appendChild(iconWrap);
             info.appendChild(text);
 
-            const fileUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const fileUrl = `public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
             const actions = document.createElement('div');
             actions.className = 'file-actions-group';
             actions.style.display = 'flex';
