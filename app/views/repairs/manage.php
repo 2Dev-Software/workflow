@@ -12,6 +12,15 @@ $repair_candidate_count = (int) ($repair_candidate_count ?? count($repair_candid
 
 ob_start();
 ?>
+
+<style>
+    @media screen and (max-width: 768px) {
+        .room-admin-search {
+            width: 100%;
+        }
+    }
+</style>
+
 <div class="content-header">
     <h1><?= h($page_title) ?></h1>
     <p><?= h($page_subtitle) ?></p>

@@ -297,7 +297,7 @@ ob_start();
         height: 200px;
     }
 
-    .enterprise-card-title {
+    .enterprise-card-title.last {
         margin: 20px 0 0 0;
     }
 
@@ -314,10 +314,6 @@ ob_start();
     .circular-my-table td:nth-child(5) {
         vertical-align: middle;
         text-align: center;
-    }
-
-    .circular-my-table td:nth-child(3) {
-        text-align: left;
     }
 
     .circular-my-table th:nth-child(3),
@@ -366,10 +362,6 @@ ob_start();
         padding: 0;
     }
 
-    .content-modal .container-circular-notice-sending .sender-row {
-        gap: 50px;
-    }
-
     .delete-btn {
         font-size: var(--font-size-body-1);
     }
@@ -383,6 +375,21 @@ ob_start();
         height: 1px;
         border: none;
         margin: 0 0 40px;
+    }
+
+    .content-circular-notice-index {
+        width: 0;
+        height: 0;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    @media screen and (min-width: 769px) and (max-width: 1023px) {
+        .circular-my-table td:nth-child(4) {
+            min-width: 120px;
+        }
     }
 </style>
 
@@ -519,7 +526,7 @@ ob_start();
 
     <div class="enterprise-card-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการแจ้งซ่อมของฉัน</h2>
+            <h2 class="enterprise-card-title last">รายการแจ้งซ่อมของฉัน</h2>
         </div>
     </div>
 
