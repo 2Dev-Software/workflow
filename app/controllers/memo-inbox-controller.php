@@ -118,6 +118,72 @@ if (!function_exists('memo_inbox_resolve_current_reviewer_role')) {
     }
 }
 
+if (!function_exists('memo_inbox_resolve_chain_from_routes')) {
+    function memo_inbox_resolve_chain_from_routes(array $item, array $chain, array $routes): array
+    {
+        $flow_stage = strtoupper(trim((string) ($item['flowStage'] ?? '')));
+        $forward_actors = [];
+        $has_director_review = false;
+        $director_actions = [
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+
+        foreach ($routes as $route) {
+            $actor_pid = trim((string) ($route['actorPID'] ?? ''));
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if ($actor_pid === '') {
+                continue;
+            }
+
+            if ($action === 'FORWARD') {
+                $forward_actors[] = $actor_pid;
+                continue;
+            }
+
+            if ($action === 'APPROVE_UNSIGNED') {
+                $chain['DEPUTY'] = $actor_pid;
+                continue;
+            }
+
+            if (in_array($action, $director_actions, true)) {
+                $chain['DIRECTOR'] = $actor_pid;
+                $has_director_review = true;
+            }
+        }
+
+        if (($flow_stage === 'DIRECTOR' || $has_director_review) && $forward_actors !== []) {
+            $head_pid = trim((string) ($chain['HEAD'] ?? ''));
+            $director_pid = trim((string) ($chain['DIRECTOR'] ?? ''));
+
+            for ($index = count($forward_actors) - 1; $index >= 0; $index--) {
+                $actor_pid = trim((string) ($forward_actors[$index] ?? ''));
+
+                if ($actor_pid === '' || $actor_pid === $head_pid || $actor_pid === $director_pid) {
+                    continue;
+                }
+
+                $chain['DEPUTY'] = $actor_pid;
+                break;
+            }
+        }
+
+        return $chain;
+    }
+}
+
 if (!function_exists('memo_inbox_signature_file_exists')) {
     function memo_inbox_signature_file_exists(string $signature): bool
     {
@@ -422,12 +488,16 @@ if (!function_exists('memo_inbox_enrich_items')) {
         }
 
         $chain_map = [];
+        $routes_map = [];
         $profile_pids = [];
 
         foreach ($items as $index => $item) {
             $memo_id = (int) ($item['memoID'] ?? 0);
+            $routes = $memo_id > 0 ? memo_list_routes($memo_id) : [];
             $chain = memo_inbox_resolve_chain_reviewer_pids($item);
+            $chain = memo_inbox_resolve_chain_from_routes($item, $chain, $routes);
             $chain_map[$memo_id] = $chain;
+            $routes_map[$memo_id] = $routes;
 
             $items[$index]['reviewerRole'] = memo_inbox_resolve_current_reviewer_role($item, $current_pid, $chain);
             $profile_pids[] = trim((string) ($item['createdByPID'] ?? ''));
@@ -441,7 +511,7 @@ if (!function_exists('memo_inbox_enrich_items')) {
         foreach ($items as $index => $item) {
             $memo_id = (int) ($item['memoID'] ?? 0);
             $chain = $chain_map[$memo_id] ?? ['HEAD' => '', 'DEPUTY' => '', 'DIRECTOR' => ''];
-            $routes = $memo_id > 0 ? memo_list_routes($memo_id) : [];
+            $routes = $routes_map[$memo_id] ?? [];
             $creator_pid = trim((string) ($item['createdByPID'] ?? ''));
             $creator_profile = $teacher_profiles[$creator_pid] ?? [];
 

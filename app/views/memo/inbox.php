@@ -948,11 +948,17 @@ ob_start();
             position: String(trigger.dataset[prefix + 'Position'] || '').trim(),
             signature: String(trigger.dataset[prefix + 'Signature'] || '').trim(),
             note: String(trigger.dataset[prefix + 'Note'] || ''),
+            action: String(trigger.dataset[prefix + 'Action'] || '').trim(),
+            hasReviewData: Boolean(
+                String(trigger.dataset[prefix + 'Action'] || '').trim() ||
+                String(trigger.dataset[prefix + 'Note'] || '').trim()
+            ),
             hasAnyData: Boolean(
                 String(trigger.dataset[prefix + 'Pid'] || '').trim() ||
                 String(trigger.dataset[prefix + 'Name'] || '').trim() ||
                 String(trigger.dataset[prefix + 'Position'] || '').trim() ||
                 String(trigger.dataset[prefix + 'Signature'] || '').trim() ||
+                String(trigger.dataset[prefix + 'Action'] || '').trim() ||
                 String(trigger.dataset[prefix + 'Note'] || '').trim()
             ),
         };
@@ -1367,7 +1373,9 @@ ob_start();
         const flowStage = String(trigger.dataset.flowStage || '').toUpperCase();
         const currentToPid = String(trigger.dataset.toPid || '').trim();
         const isCurrentReviewer = reviewerRole !== '' && currentToPid !== '' && currentToPid === currentPid && flowStage === reviewerRole;
-        const stageSequence = stageOrderByRole[reviewerRole] || [];
+        const reviewedStageSequence = stageKeys.filter((stage) => readStagePayload(trigger, stage).hasReviewData);
+        const activeStageSequence = stageOrderByRole[reviewerRole] || [];
+        const stageSequence = Array.from(new Set([...reviewedStageSequence, ...activeStageSequence]));
 
         if (modalMemoIdInput) {
             modalMemoIdInput.value = trigger.dataset.memoId || '';
@@ -1375,7 +1383,7 @@ ob_start();
 
         stageSequence.forEach((stage) => {
             const payload = readStagePayload(trigger, stage);
-            const shouldShow = payload.hasAnyData || stage === reviewerRole;
+            const shouldShow = payload.hasReviewData || (stage === reviewerRole && payload.hasAnyData);
 
             if (!shouldShow) {
                 return;

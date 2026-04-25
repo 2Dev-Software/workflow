@@ -668,9 +668,9 @@ ob_start();
                         $head_note_b64 = base64_encode((string) ($memo['headNote'] ?? ''));
                         $deputy_note_b64 = base64_encode((string) ($memo['deputyNote'] ?? ''));
                         $director_note_b64 = base64_encode((string) ($memo['directorNote'] ?? ''));
-                        $can_download_pdf = in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
+                        $can_preview_pdf = in_array($status, [MEMO_STATUS_APPROVED_UNSIGNED, MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
                         $can_edit_and_submit = $status === 'DRAFT' || !empty($memo['ownerCanEditBeforeHeadForward']);
-                        $memo_pdf_view_href = $memo_id > 0
+                        $memo_pdf_preview_href = $memo_id > 0
                             ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id))
                             : '';
 
@@ -772,10 +772,10 @@ ob_start();
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
-                                    <?php if ($can_download_pdf && $memo_pdf_view_href !== '') : ?>
+                                    <?php if ($can_preview_pdf && $memo_pdf_preview_href !== '') : ?>
                                         <a
                                             class="booking-action-btn secondary"
-                                            href="<?= h($memo_pdf_view_href) ?>"
+                                            href="<?= h($memo_pdf_preview_href) ?>"
                                             target="_blank"
                                             rel="noopener">
                                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
@@ -819,10 +819,10 @@ ob_start();
                                         <i class="fa-solid fa-eye" aria-hidden="true"></i>
                                         <span class="tooltip">ดูรายละเอียด</span>
                                     </button>
-                                    <?php if ($can_download_pdf && $memo_pdf_view_href !== '') : ?>
+                                    <?php if ($can_preview_pdf && $memo_pdf_preview_href !== '') : ?>
                                         <a
                                             class="booking-action-btn secondary"
-                                            href="<?= h($memo_pdf_view_href) ?>"
+                                            href="<?= h($memo_pdf_preview_href) ?>"
                                             target="_blank"
                                             rel="noopener">
                                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
