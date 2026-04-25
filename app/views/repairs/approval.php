@@ -5,6 +5,9 @@ require_once __DIR__ . '/../../auth/csrf.php';
 $requests = (array) ($requests ?? []);
 $request_attachments_map = (array) ($request_attachments_map ?? []);
 $request_timeline_note_map = (array) ($request_timeline_note_map ?? []);
+$all_repair_requests = (array) ($all_repair_requests ?? []);
+$all_request_attachments_map = (array) ($all_request_attachments_map ?? []);
+$all_request_timeline_map = (array) ($all_request_timeline_map ?? []);
 $page = (int) ($page ?? 1);
 $total_pages = (int) ($total_pages ?? 1);
 $total_count = (int) ($total_count ?? 0);
@@ -55,7 +58,11 @@ $format_thai_datetime = static function (?string $datetime) use ($thai_months): 
         return '-';
     }
 
-    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s.u', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    }
 
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
@@ -80,7 +87,11 @@ $format_thai_date_line = static function (?string $datetime) use ($thai_months):
         return '-';
     }
 
-    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s.u', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    }
 
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
@@ -105,7 +116,11 @@ $format_thai_time_line = static function (?string $datetime): string {
         return '-';
     }
 
-    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    $date_obj = DateTime::createFromFormat('Y-m-d H:i:s.u', $datetime);
+
+    if ($date_obj === false) {
+        $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $datetime);
+    }
 
     if ($date_obj === false) {
         $date_obj = DateTime::createFromFormat('Y-m-d H:i', $datetime);
@@ -138,6 +153,69 @@ $truncate_detail = static function (?string $detail, int $limit = 80): string {
     }
 
     return rtrim(substr($detail, 0, $limit)) . '...';
+};
+
+$parse_repair_datetime = static function (?string $datetime): ?DateTime {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || preg_match('/^0000-00-00/u', $datetime) === 1) {
+        return null;
+    }
+
+    foreach (['Y-m-d H:i:s.u', 'Y-m-d H:i:s', 'Y-m-d H:i'] as $format) {
+        $date_obj = DateTime::createFromFormat($format, $datetime);
+
+        if ($date_obj instanceof DateTime) {
+            return $date_obj;
+        }
+    }
+
+    return null;
+};
+
+$format_repair_timeline_datetime = static function (?string $datetime) use ($thai_months, $parse_repair_datetime): string {
+    $datetime = trim((string) $datetime);
+
+    if ($datetime === '' || preg_match('/^0000-00-00/u', $datetime) === 1) {
+        return '-';
+    }
+
+    $date_obj = $parse_repair_datetime($datetime);
+
+    if (!$date_obj instanceof DateTime) {
+        return $datetime;
+    }
+
+    $day = (int) $date_obj->format('j');
+    $month = (int) $date_obj->format('n');
+    $year = (int) $date_obj->format('Y') + 543;
+    $month_label = $thai_months[$month] ?? '';
+
+    return trim('วันที่ ' . $day . ' ' . $month_label . ' พ.ศ.' . $year . ' ' . $date_obj->format('H:i') . ' น.');
+};
+
+$build_repair_timeline_description = static function (array $entry): string {
+    $payload = (array) ($entry['payload'] ?? []);
+    $note = trim((string) ($payload['note'] ?? ''));
+
+    if ($note !== '') {
+        return $note;
+    }
+
+    $event = strtoupper(trim((string) ($entry['event'] ?? '')));
+    $status = strtoupper(trim((string) ($entry['toStatus'] ?? '')));
+
+    if ($event === 'NOTE_UPDATE') {
+        return 'เจ้าหน้าที่อัปเดตรายละเอียดการดำเนินงาน';
+    }
+
+    return match ($status) {
+        REPAIR_STATUS_PENDING => 'ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว',
+        REPAIR_STATUS_IN_PROGRESS => 'เจ้าหน้าที่รับเรื่องและอยู่ระหว่างดำเนินการตรวจสอบหรือซ่อมแซม',
+        REPAIR_STATUS_COMPLETED => 'เจ้าหน้าที่ดำเนินการซ่อมแซมเสร็จสิ้นแล้ว',
+        REPAIR_STATUS_CANCELLED, REPAIR_STATUS_REJECTED => 'คำร้องแจ้งซ่อมถูกยกเลิกแล้ว',
+        default => 'ระบบบันทึกสถานะการดำเนินงานเรียบร้อยแล้ว',
+    };
 };
 
 $status_map = (array) ($status_map ?? [
@@ -571,37 +649,115 @@ ob_start();
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div class="circular-my-subject">กฟหกฟหก</div>
-                    </td>
+                <?php if (empty($all_repair_requests)) : ?>
+                    <tr>
+                        <td colspan="5" class="booking-empty">ยังไม่มีรายการแจ้งซ่อม</td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ($all_repair_requests as $req) : ?>
+                        <?php
+                        $repair_id = (int) ($req['repairID'] ?? 0);
+                        $status_key = (string) ($req['status'] ?? REPAIR_STATUS_PENDING);
+                        $row_status = $status_map[$status_key] ?? ['label' => $status_key !== '' ? $status_key : '-', 'variant' => 'pending'];
+                        $detail_preview = $truncate_detail((string) ($req['detail'] ?? ''), 80);
+                        $created_date_line = $format_thai_date_line((string) ($req['createdAt'] ?? ''));
+                        $created_time_line = $format_thai_time_line((string) ($req['createdAt'] ?? ''));
+                        $attachment_payloads = $build_attachment_payloads(
+                            (array) ($all_request_attachments_map[$repair_id] ?? []),
+                            trim((string) ($req['requesterPID'] ?? ''))
+                        );
+                        $timeline_by_status = [];
 
-                    <td>
-                        <div class="repair-detail-preview">ฟหกฟหก</div>
-                    </td>
+                        foreach ((array) ($all_request_timeline_map[$repair_id] ?? []) as $timeline_item) {
+                            $to_status = strtoupper(trim((string) ($timeline_item['toStatus'] ?? '')));
+                            $status_label = trim((string) ($timeline_item['toLabel'] ?? ''));
+                            $status_key_for_timeline = $to_status !== '' ? $to_status : trim((string) ($timeline_item['title'] ?? ''));
+                            $timeline_actor_name = trim((string) ($timeline_item['actorName'] ?? ''));
+                            $timeline_date = $format_repair_timeline_datetime((string) ($timeline_item['createdAt'] ?? ''));
+                            $should_show_timeline_actor = $to_status !== REPAIR_STATUS_PENDING;
 
-                    <td>
-                        <div class="repair-date-stack">
-                            <div>29 มกราคม 2569</div>
-                            <div class="time">เวลา 12:53 น.</div>
-                        </div>
-                    </td>
+                            if ($status_key_for_timeline === '') {
+                                continue;
+                            }
 
-                    <td>
-                        <span class="status-pill rejected">
-                            ลบคำร้องสำเร็จ </span>
-                    </td>
+                            if ($status_label === '') {
+                                $status_label = trim((string) ($timeline_item['title'] ?? ''));
+                            }
 
-                    <td>
-                        <div class="circular-my-actions">
+                            $timeline_by_status[$status_key_for_timeline] = [
+                                'title' => 'ขั้นตอนดำเนินงาน : ' . ($status_label !== '' ? $status_label : '-'),
+                                'description' => $build_repair_timeline_description((array) $timeline_item),
+                                'date' => $timeline_date . ($should_show_timeline_actor && $timeline_actor_name !== '' ? ' [' . $timeline_actor_name . ']' : ''),
+                            ];
+                        }
 
-                            <button class="booking-action-btn secondary js-open-repair-detail-modal" type="button" data-repair-id="1" data-subject="กฟหกฟหก" data-detail="ฟหกฟหก" data-location="ฟกฟหกฟห" data-equipment="-" data-created-at="29 มกราคม 2569 เวลา 12:53 น." data-updated-at="29 มกราคม 2569 เวลา 13:17 น." data-requester-name="นางสาวทิพยรัตน์ บุญมณี" data-assigned-to-name="-" data-status-label="ลบคำร้องสำเร็จ" data-status-pill="rejected" data-files="[]" data-system-files="[]" data-timeline="[{&quot;title&quot;:&quot;ขั้นตอนดำเนินงาน : ส่งคำร้องสำเร็จ&quot;,&quot;description&quot;:&quot;ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว&quot;,&quot;date&quot;:&quot;วันที่ 29 มกราคม พ.ศ.2569 12:53 น.&quot;},{&quot;title&quot;:&quot;ขั้นตอนดำเนินงาน : ลบคำร้องสำเร็จ&quot;,&quot;description&quot;:&quot;ผู้แจ้งลบคำร้องเรียบร้อยแล้ว&quot;,&quot;date&quot;:&quot;วันที่ 29 มกราคม พ.ศ.2569 13:17 น. [นางสาวทิพยรัตน์ บุญมณี]&quot;}]">
-                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
-                                <span class="tooltip">ดูรายละเอียด</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                        if ($timeline_by_status === []) {
+                            $fallback_actor_name = trim((string) ($req['assignedToName'] ?? ''));
+                            $fallback_date = $format_repair_timeline_datetime((string) ($req['createdAt'] ?? ''));
+                            $should_show_fallback_actor = $status_key !== REPAIR_STATUS_PENDING;
+                            $timeline_by_status[$status_key] = [
+                                'title' => 'ขั้นตอนดำเนินงาน : ' . (string) ($row_status['label'] ?? '-'),
+                                'description' => 'ระบบบันทึกสถานะการดำเนินงานเรียบร้อยแล้ว',
+                                'date' => $fallback_date . ($should_show_fallback_actor && $fallback_actor_name !== '' ? ' [' . $fallback_actor_name . ']' : ''),
+                            ];
+                        }
+
+                        $timeline_json = json_encode(array_values($timeline_by_status), $json_flags);
+
+                        if (!is_string($timeline_json)) {
+                            $timeline_json = '[]';
+                        }
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="circular-my-subject"><?= h((string) ($req['subject'] ?? '-')) ?></div>
+                            </td>
+
+                            <td>
+                                <div class="repair-detail-preview"><?= h($detail_preview) ?></div>
+                            </td>
+
+                            <td>
+                                <div class="repair-date-stack">
+                                    <div><?= h($created_date_line) ?></div>
+                                    <div class="time"><?= h($created_time_line) ?></div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="status-pill <?= h((string) ($row_status['variant'] ?? 'pending')) ?>">
+                                    <?= h((string) ($row_status['label'] ?? '-')) ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="circular-my-actions">
+                                    <button
+                                        class="booking-action-btn secondary js-open-repair-detail-modal"
+                                        type="button"
+                                        data-repair-id="<?= h((string) $repair_id) ?>"
+                                        data-subject="<?= h((string) ($req['subject'] ?? '-')) ?>"
+                                        data-detail="<?= h((string) ($req['detail'] ?? '')) ?>"
+                                        data-location="<?= h((string) ($req['location'] ?? '-')) ?>"
+                                        data-equipment="<?= h((string) ($req['equipment'] ?? '-')) ?>"
+                                        data-created-at="<?= h($format_thai_datetime((string) ($req['createdAt'] ?? ''))) ?>"
+                                        data-updated-at="<?= h($format_thai_datetime((string) ($req['updatedAt'] ?? ''))) ?>"
+                                        data-resolved-at="<?= h($format_thai_datetime((string) ($req['resolvedAt'] ?? ''))) ?>"
+                                        data-requester-name="<?= h((string) ($req['requesterName'] ?? '-')) ?>"
+                                        data-assigned-to-name="<?= h((string) ($req['assignedToName'] ?? '-')) ?>"
+                                        data-status-label="<?= h((string) ($row_status['label'] ?? '-')) ?>"
+                                        data-status-pill="<?= h((string) ($row_status['variant'] ?? 'pending')) ?>"
+                                        data-files="<?= h($attachment_payloads['requester_json']) ?>"
+                                        data-system-files="<?= h($attachment_payloads['official_json']) ?>"
+                                        data-timeline="<?= h($timeline_json) ?>">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                        <span class="tooltip">ดูรายละเอียด</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -674,37 +830,12 @@ ob_start();
                     <br>
                     <div class="timeline" id="repairDetailTimeline">
                         <p class="timeline-header">สถานะของงานซ่อมแซม</p>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">ขั้นตอนดำเนินงาน : ส่งคำร้องสำเร็จ</div>
-                                <div class="timeline-desc">ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว</div>
-                                <div class="timeline-date">วันที่ 29 มกราคม พ.ศ.2569 12:53 น.</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-content">
-                                <div class="timeline-title">ขั้นตอนดำเนินงาน : ลบคำร้องสำเร็จ</div>
-                                <div class="timeline-desc">ผู้แจ้งลบคำร้องเรียบร้อยแล้ว</div>
-                                <div class="timeline-date">วันที่ 29 มกราคม พ.ศ.2569 13:17 น. [นางสาวทิพยรัตน์ บุญมณี]</div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="form-group">
                         <label><b>ไฟล์เอกสารแนบจากระบบ</b></label>
                         <section class="upload-layout">
-                            <div class="file-list" id="repairSystemDetailFileList">
-                                <div class="file-list" id="attachmentListView" aria-live="polite">
-                                    <div class="file-banner">
-                                        <div class="file-info">
-                                            <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
-                                            <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 21.38.40.png</span><span class="file-type">image/png</span></div>
-                                        </div>
-                                        <div class="file-actions"><a href="public/api/file-download.php?module=memos&amp;entity_id=64&amp;file_id=173" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
-                                        <div class="file-actions"><a href="public/api/file-download.php?module=memos&amp;entity_id=64&amp;file_id=173&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="file-list" id="repairSystemDetailFileList"></div>
                         </section>
                     </div>
 
@@ -859,92 +990,227 @@ ob_start();
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-        const viewModal = document.getElementById('modalNoticeKeepOverlay');
-        const closeViewBtn = document.getElementById('closeModalNoticeKeep');
-        const editModal = document.getElementById('modalEditOverlay');
-        const closeEditBtn = document.getElementById('closeModalEdit');
+        const detailModal = document.getElementById('modalNoticeKeepOverlay');
+        const closeDetailModalBtn = document.getElementById('closeModalNoticeKeep');
+        const detailSubject = document.getElementById('repairDetailSubject');
+        const detailAssignedTo = document.getElementById('repairDetailAssignedTo');
+        const detailCreatedAt = document.getElementById('repairDetailCreatedAt');
+        const detailUpdatedAt = document.getElementById('repairDetailUpdatedAt');
+        const detailLocation = document.getElementById('repairDetailLocation');
+        const detailEquipment = document.getElementById('repairDetailEquipment');
+        const detailText = document.getElementById('repairDetailText');
+        const detailFileList = document.getElementById('repairDetailFileList');
+        const detailSystemFileList = document.getElementById('repairSystemDetailFileList');
+        const detailTimeline = document.getElementById('repairDetailTimeline');
+        const detailStatusPill = detailModal ? detailModal.querySelector('.header-modal .status-pill') : null;
+
+        const formatFileSize = (size) => {
+            const bytes = Number(size || 0);
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '';
+            }
+            return `${(bytes / 1024).toFixed(1)} KB`;
+        };
+
+        const buildModalFileItem = (file, repairId) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'file-item-wrapper';
+
+            const banner = document.createElement('div');
+            banner.className = 'file-banner';
+
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'file-icon';
+            const mime = String(file?.mimeType || '').toLowerCase();
+            iconWrap.innerHTML = mime.includes('pdf') ? '<i class="fa-solid fa-file-pdf"></i>' : mime.includes('image') ? '<i class="fa-solid fa-file-image"></i>' : '<i class="fa-solid fa-file"></i>';
+
+            const text = document.createElement('div');
+            text.className = 'file-text';
+            text.innerHTML = `<span class="file-name">${file?.fileName || '-'}</span><span class="file-type">${formatFileSize(file?.fileSize) || (file?.mimeType || '')}</span>`;
+
+            info.appendChild(iconWrap);
+            info.appendChild(text);
+
+            const fileUrl = `public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const actions = document.createElement('div');
+            actions.className = 'file-actions-group';
+            actions.style.display = 'flex';
+            actions.style.gap = '10px';
+
+            const viewAction = document.createElement('div');
+            viewAction.className = 'file-actions';
+            viewAction.innerHTML = `<a href="${fileUrl}" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a>`;
+
+            const downloadAction = document.createElement('div');
+            downloadAction.className = 'file-actions';
+            downloadAction.innerHTML = `<a href="${fileUrl}&download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a>`;
+
+            actions.appendChild(viewAction);
+            actions.appendChild(downloadAction);
+
+            banner.appendChild(info);
+            banner.appendChild(actions);
+            wrapper.appendChild(banner);
+
+            return wrapper;
+        };
+
+        const renderModalFiles = (files, repairId, targetList) => {
+            if (!targetList) {
+                return;
+            }
+
+            targetList.innerHTML = '';
+
+            if (!Array.isArray(files) || files.length === 0) {
+                targetList.innerHTML = '<div class="content-details-sec" style="margin: 0;"><p>-</p></div>';
+                return;
+            }
+
+            files.forEach((file) => {
+                targetList.appendChild(buildModalFileItem(file, repairId));
+            });
+        };
+
+        const renderRepairTimeline = (items) => {
+            if (!detailTimeline) {
+                return;
+            }
+
+            detailTimeline.innerHTML = '';
+
+            const header = document.createElement('p');
+            header.className = 'timeline-header';
+            header.textContent = 'สถานะของงานซ่อมแซม';
+            detailTimeline.appendChild(header);
+
+            const timelineItems = Array.isArray(items) ? items : [];
+
+            if (timelineItems.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'timeline-item';
+
+                const emptyContent = document.createElement('div');
+                emptyContent.className = 'timeline-content';
+
+                const title = document.createElement('div');
+                title.className = 'timeline-title';
+                title.textContent = 'ขั้นตอนดำเนินงาน : -';
+
+                const desc = document.createElement('div');
+                desc.className = 'timeline-desc';
+                desc.textContent = 'ยังไม่มีข้อมูลสถานะการดำเนินงาน';
+
+                const date = document.createElement('div');
+                date.className = 'timeline-date';
+                date.textContent = '-';
+
+                emptyContent.appendChild(title);
+                emptyContent.appendChild(desc);
+                emptyContent.appendChild(date);
+                emptyItem.appendChild(emptyContent);
+                detailTimeline.appendChild(emptyItem);
+                return;
+            }
+
+            timelineItems.forEach((item) => {
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+
+                const content = document.createElement('div');
+                content.className = 'timeline-content';
+
+                const title = document.createElement('div');
+                title.className = 'timeline-title';
+                title.textContent = String(item?.title || 'ขั้นตอนดำเนินงาน : -');
+
+                const desc = document.createElement('div');
+                desc.className = 'timeline-desc';
+                desc.textContent = String(item?.description || '-');
+
+                const date = document.createElement('div');
+                date.className = 'timeline-date';
+                date.textContent = String(item?.date || '-');
+
+                content.appendChild(title);
+                content.appendChild(desc);
+                content.appendChild(date);
+                timelineItem.appendChild(content);
+                detailTimeline.appendChild(timelineItem);
+            });
+        };
+
+        const openRepairDetailModal = (btn) => {
+            let files = [];
+            let systemFiles = [];
+            let timeline = [];
+
+            try {
+                files = JSON.parse(String(btn.getAttribute('data-files') || '[]'));
+            } catch (error) {
+                files = [];
+            }
+
+            try {
+                systemFiles = JSON.parse(String(btn.getAttribute('data-system-files') || '[]'));
+            } catch (error) {
+                systemFiles = [];
+            }
+
+            try {
+                timeline = JSON.parse(String(btn.getAttribute('data-timeline') || '[]'));
+            } catch (error) {
+                timeline = [];
+            }
+
+            if (detailSubject) detailSubject.value = btn.getAttribute('data-subject') || '-';
+            if (detailAssignedTo) detailAssignedTo.value = btn.getAttribute('data-assigned-to-name') || '-';
+            if (detailCreatedAt) detailCreatedAt.value = btn.getAttribute('data-created-at') || '-';
+            if (detailUpdatedAt) detailUpdatedAt.value = btn.getAttribute('data-updated-at') || '-';
+            if (detailLocation) detailLocation.value = btn.getAttribute('data-location') || '-';
+            if (detailEquipment) detailEquipment.value = btn.getAttribute('data-equipment') || '-';
+            if (detailText) detailText.value = btn.getAttribute('data-detail') || '-';
+
+            if (detailStatusPill) {
+                detailStatusPill.className = `status-pill ${btn.getAttribute('data-status-pill') || 'pending'}`;
+                detailStatusPill.textContent = btn.getAttribute('data-status-label') || '-';
+            }
+
+            const repairId = String(btn.getAttribute('data-repair-id') || '').trim();
+            renderModalFiles(files, repairId, detailFileList);
+            renderModalFiles(systemFiles, repairId, detailSystemFileList);
+            renderRepairTimeline(timeline);
+
+            if (detailModal) {
+                detailModal.classList.remove('hidden');
+                detailModal.style.display = 'flex';
+            }
+        };
 
         document.addEventListener('click', function(event) {
-
-            const btnView = event.target.closest('.js-open-repair-detail-modal');
-            if (btnView) {
+            const detailBtn = event.target.closest('.js-open-repair-detail-modal');
+            if (detailBtn) {
                 event.preventDefault();
-
-                document.getElementById('repairDetailSubject').value = btnView.dataset.subject || '-';
-                document.getElementById('repairDetailLocation').value = btnView.dataset.location || '-';
-                document.getElementById('repairDetailEquipment').value = btnView.dataset.equipment || '-';
-                document.getElementById('repairDetailText').value = btnView.dataset.detail || '-';
-                document.getElementById('repairDetailCreatedAt').value = btnView.dataset.createdAt || '-';
-                document.getElementById('repairDetailUpdatedAt').value = btnView.dataset.updatedAt || '-';
-
-                const assignedToInput = document.getElementById('repairDetailAssignedTo');
-                if (assignedToInput) {
-                    assignedToInput.value = btnView.dataset.assignedToName || '-';
-                }
-
-                const statusPill = document.getElementById('repairDetailStatusPill');
-                if (statusPill) {
-                    statusPill.className = `status-pill ${btnView.dataset.statusPill || 'pending'}`;
-                    statusPill.textContent = btnView.dataset.statusLabel || '-';
-                }
-
-                if (viewModal) {
-                    viewModal.classList.remove('hidden');
-                    viewModal.style.display = 'flex';
-                }
-                return;
-            }
-
-            const btnEdit = event.target.closest('.js-open-repair-edit-modal');
-            if (btnEdit) {
-                event.preventDefault();
-
-                document.getElementById('repairEditId').value = btnEdit.dataset.repairId || '';
-                document.getElementById('edit_subject').value = btnEdit.dataset.subject || '';
-                document.getElementById('edit_location').value = btnEdit.dataset.location || '';
-                document.getElementById('edit_equipment').value = btnEdit.dataset.equipment || '';
-                document.getElementById('edit_detail').value = btnEdit.dataset.detail || '';
-
-                if (editModal) {
-                    editModal.classList.remove('hidden');
-                    editModal.style.display = 'flex';
-                }
-                return;
+                openRepairDetailModal(detailBtn);
             }
         });
 
-        closeViewBtn?.addEventListener('click', () => {
-            if (viewModal) viewModal.style.display = 'none';
+        closeDetailModalBtn?.addEventListener('click', () => {
+            if (detailModal) detailModal.style.display = 'none';
         });
 
-        closeEditBtn?.addEventListener('click', () => {
-            if (editModal) editModal.style.display = 'none';
-        });
-
-        window.addEventListener('click', function(event) {
-            if (event.target === viewModal) {
-                viewModal.style.display = 'none';
-            }
-            if (event.target === editModal) {
-                editModal.style.display = 'none';
-            }
+        detailModal?.addEventListener('click', (event) => {
+            if (event.target === detailModal) detailModal.style.display = 'none';
         });
 
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                if (viewModal && viewModal.style.display === 'flex') viewModal.style.display = 'none';
-                if (editModal && editModal.style.display === 'flex') editModal.style.display = 'none';
+            if (event.key === 'Escape' && detailModal && detailModal.style.display === 'flex') {
+                detailModal.style.display = 'none';
             }
         });
-
-        const editBtnAddFiles = document.getElementById('edit_btnAddFiles');
-        const editFileInput = document.getElementById('edit_fileInput');
-
-        editBtnAddFiles?.addEventListener('click', function() {
-            editFileInput?.click();
-        });
-
-
     });
 </script>
 

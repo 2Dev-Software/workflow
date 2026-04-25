@@ -62,6 +62,26 @@ if (!function_exists('repair_build_filters')) {
     }
 }
 
+if (!function_exists('repair_status_order_case_sql')) {
+    function repair_status_order_case_sql(string $column = 'status'): string
+    {
+        $column = trim($column);
+
+        if ($column === '' || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $column)) {
+            $column = 'status';
+        }
+
+        return 'CASE ' . $column . '
+            WHEN \'' . REPAIR_STATUS_COMPLETED . '\' THEN 1
+            WHEN \'' . REPAIR_STATUS_IN_PROGRESS . '\' THEN 2
+            WHEN \'' . REPAIR_STATUS_PENDING . '\' THEN 3
+            WHEN \'' . REPAIR_STATUS_CANCELLED . '\' THEN 4
+            WHEN \'' . REPAIR_STATUS_REJECTED . '\' THEN 4
+            ELSE 5
+        END';
+    }
+}
+
 if (!function_exists('repair_create_record')) {
     function repair_create_record(array $data): int
     {
@@ -139,15 +159,18 @@ if (!function_exists('repair_count_filtered')) {
 }
 
 if (!function_exists('repair_list_filtered_page')) {
-    function repair_list_filtered_page(?string $requester_pid, array $statuses, int $limit, int $offset, string $search_query = '', string $sort = 'newest', bool $include_soft_deleted = false): array
+    function repair_list_filtered_page(?string $requester_pid, array $statuses, int $limit, int $offset, string $search_query = '', string $sort = 'newest', bool $include_soft_deleted = false, bool $order_by_status_priority = false): array
     {
         $limit = max(1, $limit);
         $offset = max(0, $offset);
         $filters = repair_build_filters($requester_pid, $statuses, 'r', $search_query, $include_soft_deleted);
         $sort = strtolower(trim($sort)) === 'oldest' ? 'oldest' : 'newest';
-        $order_by = $sort === 'oldest'
+        $date_order_by = $sort === 'oldest'
             ? 'r.createdAt ASC, r.repairID ASC'
             : 'r.createdAt DESC, r.repairID DESC';
+        $order_by = $order_by_status_priority
+            ? repair_status_order_case_sql('r.status') . ' ASC, ' . $date_order_by
+            : $date_order_by;
         $sql = 'SELECT r.repairID, r.requesterPID, r.subject, r.detail, r.location, r.equipment, r.status, r.assignedToPID, r.resolvedAt, r.createdAt, r.updatedAt, r.deletedAt,
                 requester.fName AS requesterName,
                 assigned.fName AS assignedToName
