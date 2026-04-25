@@ -53,6 +53,9 @@ if (!function_exists('circular_view_index')) {
             circular_mark_read($inbox_id, $current_pid);
         }
 
+        $item_inbox_type_for_review = (string) ($item['inboxType'] ?? INBOX_TYPE_NORMAL);
+        $can_review_external = ($is_director || $is_deputy)
+            && in_array($item_inbox_type_for_review, [INBOX_TYPE_SPECIAL_PRINCIPAL, INBOX_TYPE_ACTING_PRINCIPAL], true);
         $alert = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -78,7 +81,6 @@ if (!function_exists('circular_view_index')) {
                         if (
                             $item_type !== CIRCULAR_TYPE_EXTERNAL
                             || $item_status !== EXTERNAL_STATUS_PENDING_REVIEW
-                            || (string) ($item['createdByPID'] ?? '') !== $current_pid
                         ) {
                             throw new RuntimeException('ไม่สามารถดึงกลับได้ในสถานะปัจจุบัน');
                         }
@@ -125,7 +127,7 @@ if (!function_exists('circular_view_index')) {
                         $alert = ['type' => 'success', 'title' => 'ส่งต่อเรียบร้อย', 'message' => ''];
                     }
 
-                    if ($action === 'director_review' && $is_director) {
+                    if ($action === 'director_review' && $can_review_external) {
                         if (
                             $item_type !== CIRCULAR_TYPE_EXTERNAL
                             || $item_status !== EXTERNAL_STATUS_PENDING_REVIEW
@@ -218,6 +220,7 @@ if (!function_exists('circular_view_index')) {
             'can_manage_external' => $can_manage_external,
             'is_deputy' => $is_deputy,
             'is_director' => $is_director,
+            'can_review_external' => $can_review_external,
             'position_ids' => $position_ids,
             'current_pid' => $current_pid,
         ]);

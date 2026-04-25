@@ -27,6 +27,9 @@ if (!function_exists('outgoing_notice_index')) {
         $connection = db_connection();
         $is_registry = rbac_user_has_role($connection, $current_pid, ROLE_REGISTRY);
         $is_admin = rbac_user_has_role($connection, $current_pid, ROLE_ADMIN);
+        $position_ids = current_user_position_ids();
+        $deputy_position_ids = system_position_deputy_ids($connection);
+        $is_deputy_reviewer = !empty(array_intersect($position_ids, $deputy_position_ids));
 
         if (!$is_registry && (int) ($current_user['roleID'] ?? 0) === 2) {
             $is_registry = true;
@@ -38,10 +41,11 @@ if (!function_exists('outgoing_notice_index')) {
 
         $director_pid = system_get_current_director_pid();
         $is_director_box = $director_pid !== null && $director_pid === $current_pid;
+        $is_reviewer_box = $is_director_box || $is_deputy_reviewer;
 
         $default_box = 'normal';
 
-        if (!$can_manage_external && !$is_director_box) {
+        if (!$can_manage_external && !$is_reviewer_box) {
             http_response_code(403);
             require __DIR__ . '/../views/errors/403.php';
 
@@ -50,7 +54,7 @@ if (!function_exists('outgoing_notice_index')) {
 
         if ($can_manage_external) {
             $default_box = 'clerk';
-        } elseif ($is_director_box) {
+        } elseif ($is_reviewer_box) {
             $default_box = 'director';
         }
 
@@ -70,7 +74,7 @@ if (!function_exists('outgoing_notice_index')) {
                 $allowed_boxes[] = 'clerk_return';
             }
 
-            if ($is_director_box) {
+            if ($is_reviewer_box) {
                 $allowed_boxes[] = 'director';
             }
         }

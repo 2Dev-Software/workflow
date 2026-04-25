@@ -47,6 +47,7 @@ if (!function_exists('outgoing_receive_index')) {
                 ];
             } else {
                 $attachments = outgoing_receive_merge_upload_sets(
+                    $_FILES['cover_file'] ?? [],
                     $_FILES['cover_attachments'] ?? [],
                     $_FILES['attachments'] ?? []
                 );

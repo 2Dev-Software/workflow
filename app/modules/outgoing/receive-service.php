@@ -66,8 +66,9 @@ if (!function_exists('outgoing_receive_list_registered')) {
         $search = trim($search);
         $status_filter = outgoing_receive_normalize_track_filter_status($status_filter);
         $sort = outgoing_receive_normalize_track_filter_sort($sort);
-        $params = [$current_pid, CIRCULAR_TYPE_EXTERNAL];
-        $types = 'ss';
+        $can_manage_external = in_array(trim($current_pid), circular_external_manager_pids(), true);
+        $params = [CIRCULAR_TYPE_EXTERNAL];
+        $types = 's';
         $sql = 'SELECT
                 c.circularID,
                 c.subject,
@@ -88,8 +89,13 @@ if (!function_exists('outgoing_receive_list_registered')) {
             LEFT JOIN teacher AS t ON c.createdByPID = t.pID
             LEFT JOIN faction AS f ON c.extGroupFID = f.fID
             WHERE c.deletedAt IS NULL
-              AND c.createdByPID = ?
               AND c.circularType = ?';
+
+        if (!$can_manage_external) {
+            $sql .= ' AND c.createdByPID = ?';
+            $types .= 's';
+            $params[] = $current_pid;
+        }
 
         if ($search !== '') {
             $like = '%' . $search . '%';
@@ -409,14 +415,14 @@ if (!function_exists('outgoing_receive_build_state')) {
 
         if (
             !$candidate
-            || (string) ($candidate['createdByPID'] ?? '') !== $current_pid
+            || !circular_can_manage_external_workflow($candidate, $current_pid)
             || (string) ($candidate['circularType'] ?? '') !== CIRCULAR_TYPE_EXTERNAL
             || (string) ($candidate['status'] ?? '') !== EXTERNAL_STATUS_SUBMITTED
         ) {
             $state['alert'] = [
                 'type' => 'warning',
                 'title' => 'ไม่สามารถแก้ไขรายการนี้ได้',
-                'message' => 'ต้องเป็นหนังสือเวียนภายนอกสถานะรับเข้าแล้ว และเป็นรายการของคุณเท่านั้น',
+                'message' => 'ต้องเป็นหนังสือเวียนภายนอกสถานะรับเข้าแล้ว และผู้ใช้ต้องมีสิทธิ์สารบรรณ',
             ];
 
             return $state;
@@ -615,6 +621,7 @@ if (!function_exists('outgoing_receive_submit')) {
                         'extFromText' => $values['extFromText'],
                         'extGroupFID' => $values['extGroupFID'] !== '' ? (int) $values['extGroupFID'] : null,
                         'reviewerPID' => $values['reviewerPID'],
+                        'registryNote' => $values['detail'] !== '' ? $values['detail'] : null,
                     ],
                     $attachments,
                     $remove_file_ids
@@ -652,7 +659,7 @@ if (!function_exists('outgoing_receive_submit')) {
                 'extGroupFID' => $values['extGroupFID'] !== '' ? (int) $values['extGroupFID'] : null,
                 'status' => EXTERNAL_STATUS_SUBMITTED,
                 'createdByPID' => $current_pid,
-                'registryNote' => null,
+                'registryNote' => $values['detail'] !== '' ? $values['detail'] : null,
             ], $current_pid, true, $attachments, $values['reviewerPID']);
 
             $state['alert'] = [
