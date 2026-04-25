@@ -22,6 +22,7 @@ $transition_actions = (array) ($transition_actions ?? []);
 $filter_query = (string) ($filter_query ?? '');
 $filter_status = (string) ($filter_status ?? 'all');
 $filter_sort = (string) ($filter_sort ?? 'newest');
+$is_track_active = (bool) ($is_track_active ?? false);
 $status_filter_options = (array) ($status_filter_options ?? [
     'all' => 'ทั้งหมด',
     'pending' => 'ส่งคำร้องสำเร็จ',
@@ -272,6 +273,25 @@ ob_start();
     label strong {
         color: var(--color-danger);
     }
+
+    .circular-my-table td:nth-child(3),
+    .circular-my-table td:nth-child(4),
+    .circular-my-table td:nth-child(5) {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .circular-my-actions {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .enterprise-card-title.last {
+        margin: 40px 0 0 0;
+    }
 </style>
 
 <div class="content-header">
@@ -279,7 +299,17 @@ ob_start();
     <p><?= h($page_subtitle) ?></p>
 </div>
 
-<div class="content-area booking-page">
+
+<div class="tabs-container setting-page">
+    <div class="button-container vehicle">
+        <button class="tab-btn <?= $is_track_active ? '' : 'active' ?>"
+            onclick="openTab('repairs', event)">อนุมัติการซ่อมแซม</button>
+        <button class="tab-btn <?= $is_track_active ? 'active' : '' ?>"
+            onclick="openTab('AllRepair', event)">รายการอนุมัติทั้งหมด</button>
+    </div>
+</div>
+
+<div class="content-area booking-page tab-content <?= $is_track_active ? '' : 'active' ?>" id="repairs">
     <section class="booking-card booking-list-card approval-filter-card">
         <div class="booking-card-header">
             <div class="booking-card-title-group">
@@ -467,6 +497,224 @@ ob_start();
     </section>
 </div>
 
+<section class="tab-content enterprise-card <?= $is_track_active ? 'active' : '' ?>" id="AllRepair">
+    <div class="enterprise-card-header">
+        <div class="enterprise-card-title-group">
+            <h2 class="enterprise-card-title">ค้นหาและกรองรายการ</h2>
+        </div>
+    </div>
+
+    <form method="GET" action="<?= h($base_url) ?>" class="circular-my-filter-grid" id="repairTrackFilterForm">
+        <input type="hidden" name="tab" value="track">
+        <div class="approval-filter-group">
+            <div class="room-admin-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input class="form-input" type="search" name="q" value="<?= h($filter_query) ?>"
+                    placeholder="ค้นหาหัวข้อ รายละเอียด" autocomplete="off">
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value"><?= h((string) ($status_filter_options[$filter_status] ?? $status_filter_options['all'] ?? 'ทั้งหมด')) ?></p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                            <div class="custom-option" data-value="<?= h((string) $status_value) ?>"><?= h((string) $status_label) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <select class="form-input" name="status">
+                        <?php foreach ($status_filter_options as $status_value => $status_label) : ?>
+                            <option value="<?= h((string) $status_value) ?>" <?= $filter_status === (string) $status_value ? 'selected' : '' ?>><?= h((string) $status_label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="room-admin-filter">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger">
+                        <p class="select-value"><?= h($filter_sort === 'oldest' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า') ?></p>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+
+                    <div class="custom-options">
+                        <div class="custom-option" data-value="newest">ใหม่ไปเก่า</div>
+                        <div class="custom-option" data-value="oldest">เก่าไปใหม่</div>
+                    </div>
+
+                    <select class="form-input" name="sort">
+                        <option value="newest" <?= $filter_sort === 'newest' ? 'selected' : '' ?>>ใหม่ไปเก่า</option>
+                        <option value="oldest" <?= $filter_sort === 'oldest' ? 'selected' : '' ?>>เก่าไปใหม่</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="enterprise-card-header">
+        <div class="enterprise-card-title-group">
+            <h2 class="enterprise-card-title last">รายการแจ้งซ่อมทั้งหมด</h2>
+        </div>
+    </div>
+
+    <div class="table-responsive circular-my-table-wrap">
+        <table class="custom-table circular-my-table">
+            <thead>
+                <tr>
+                    <th>หัวข้อ</th>
+                    <th>รายละเอียด</th>
+                    <th>วันที่แจ้ง</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="circular-my-subject">กฟหกฟหก</div>
+                    </td>
+
+                    <td>
+                        <div class="repair-detail-preview">ฟหกฟหก</div>
+                    </td>
+
+                    <td>
+                        <div class="repair-date-stack">
+                            <div>29 มกราคม 2569</div>
+                            <div class="time">เวลา 12:53 น.</div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span class="status-pill rejected">
+                            ลบคำร้องสำเร็จ </span>
+                    </td>
+
+                    <td>
+                        <div class="circular-my-actions">
+
+                            <button class="booking-action-btn secondary js-open-repair-detail-modal" type="button" data-repair-id="1" data-subject="กฟหกฟหก" data-detail="ฟหกฟหก" data-location="ฟกฟหกฟห" data-equipment="-" data-created-at="29 มกราคม 2569 เวลา 12:53 น." data-updated-at="29 มกราคม 2569 เวลา 13:17 น." data-requester-name="นางสาวทิพยรัตน์ บุญมณี" data-assigned-to-name="-" data-status-label="ลบคำร้องสำเร็จ" data-status-pill="rejected" data-files="[]" data-system-files="[]" data-timeline="[{&quot;title&quot;:&quot;ขั้นตอนดำเนินงาน : ส่งคำร้องสำเร็จ&quot;,&quot;description&quot;:&quot;ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว&quot;,&quot;date&quot;:&quot;วันที่ 29 มกราคม พ.ศ.2569 12:53 น.&quot;},{&quot;title&quot;:&quot;ขั้นตอนดำเนินงาน : ลบคำร้องสำเร็จ&quot;,&quot;description&quot;:&quot;ผู้แจ้งลบคำร้องเรียบร้อยแล้ว&quot;,&quot;date&quot;:&quot;วันที่ 29 มกราคม พ.ศ.2569 13:17 น. [นางสาวทิพยรัตน์ บุญมณี]&quot;}]">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                <span class="tooltip">ดูรายละเอียด</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="content-circular-notice-index circular-track-modal-host">
+    <div class="modal-overlay-circular-notice-index outside-person" id="modalNoticeKeepOverlay" style="display: none;">
+        <div class="modal-content">
+
+            <div class="header-modal">
+                <div class="first-header">
+                    <p>รายละเอียดการแจ้งซ่อมของฉัน</p>
+                </div>
+                <div class="sec-header">
+                    <span class="status-pill pending" id="repairDetailStatusPill">ส่งคำร้องสำเร็จ</span>
+                    <i class="fa-solid fa-xmark" id="closeModalNoticeKeep" style="cursor: pointer;"></i>
+                </div>
+            </div>
+
+            <div class="content-modal">
+                <form method="" class="container-circular-notice-sending" id="repairDetailForm">
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="repairDetailSubject">หัวข้อ</label>
+                            <input type="text" id="repairDetailSubject" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="repairDetailLocation">สถานที่</label>
+                            <input type="text" id="repairDetailLocation" disabled>
+                        </div>
+                    </div>
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="repairDetailCreatedAt">วันที่แจ้ง</label>
+                            <input type="text" id="repairDetailCreatedAt" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="repairDetailUpdatedAt">อัปเดตล่าสุด</label>
+                            <input type="text" id="repairDetailUpdatedAt" disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="repairDetailEquipment">อุปกรณ์</label>
+                        <input type="text" id="repairDetailEquipment" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="repairDetailText">รายละเอียดเพิ่มเติม</label>
+                        <textarea id="repairDetailText" rows="4" disabled></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ไฟล์แนบ</label>
+                        <section class="upload-layout">
+                            <div class="file-list" id="repairDetailFileList"></div>
+                        </section>
+                    </div>
+
+                    <hr>
+
+                    <div class="sender-row">
+                        <div class="form-group">
+                            <label for="repairDetailAssignedTo">ผู้รับผิดชอบ</label>
+                            <input type="text" id="repairDetailAssignedTo" disabled>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="timeline" id="repairDetailTimeline">
+                        <p class="timeline-header">สถานะของงานซ่อมแซม</p>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">ขั้นตอนดำเนินงาน : ส่งคำร้องสำเร็จ</div>
+                                <div class="timeline-desc">ระบบรับเรื่องคำร้องแจ้งซ่อมเรียบร้อยแล้ว</div>
+                                <div class="timeline-date">วันที่ 29 มกราคม พ.ศ.2569 12:53 น.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-title">ขั้นตอนดำเนินงาน : ลบคำร้องสำเร็จ</div>
+                                <div class="timeline-desc">ผู้แจ้งลบคำร้องเรียบร้อยแล้ว</div>
+                                <div class="timeline-date">วันที่ 29 มกราคม พ.ศ.2569 13:17 น. [นางสาวทิพยรัตน์ บุญมณี]</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><b>ไฟล์เอกสารแนบจากระบบ</b></label>
+                        <section class="upload-layout">
+                            <div class="file-list" id="repairSystemDetailFileList">
+                                <div class="file-list" id="attachmentListView" aria-live="polite">
+                                    <div class="file-banner">
+                                        <div class="file-info">
+                                            <div class="file-icon"><i class="fa-solid fa-file-image" aria-hidden="true"></i></div>
+                                            <div class="file-text"><span class="file-name">Screenshot 2569-03-14 at 21.38.40.png</span><span class="file-type">image/png</span></div>
+                                        </div>
+                                        <div class="file-actions"><a href="public/api/file-download.php?module=memos&amp;entity_id=64&amp;file_id=173" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i></a></div>
+                                        <div class="file-actions"><a href="public/api/file-download.php?module=memos&amp;entity_id=64&amp;file_id=173&amp;download=1"><i class="fa-solid fa-download" aria-hidden="true"></i></a></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         let approvalTableCard = document.querySelector('.approval-table-card');
@@ -609,6 +857,95 @@ ob_start();
         });
 
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewModal = document.getElementById('modalNoticeKeepOverlay');
+        const closeViewBtn = document.getElementById('closeModalNoticeKeep');
+        const editModal = document.getElementById('modalEditOverlay');
+        const closeEditBtn = document.getElementById('closeModalEdit');
+
+        document.addEventListener('click', function(event) {
+
+            const btnView = event.target.closest('.js-open-repair-detail-modal');
+            if (btnView) {
+                event.preventDefault();
+
+                document.getElementById('repairDetailSubject').value = btnView.dataset.subject || '-';
+                document.getElementById('repairDetailLocation').value = btnView.dataset.location || '-';
+                document.getElementById('repairDetailEquipment').value = btnView.dataset.equipment || '-';
+                document.getElementById('repairDetailText').value = btnView.dataset.detail || '-';
+                document.getElementById('repairDetailCreatedAt').value = btnView.dataset.createdAt || '-';
+                document.getElementById('repairDetailUpdatedAt').value = btnView.dataset.updatedAt || '-';
+
+                const assignedToInput = document.getElementById('repairDetailAssignedTo');
+                if (assignedToInput) {
+                    assignedToInput.value = btnView.dataset.assignedToName || '-';
+                }
+
+                const statusPill = document.getElementById('repairDetailStatusPill');
+                if (statusPill) {
+                    statusPill.className = `status-pill ${btnView.dataset.statusPill || 'pending'}`;
+                    statusPill.textContent = btnView.dataset.statusLabel || '-';
+                }
+
+                if (viewModal) {
+                    viewModal.classList.remove('hidden');
+                    viewModal.style.display = 'flex';
+                }
+                return;
+            }
+
+            const btnEdit = event.target.closest('.js-open-repair-edit-modal');
+            if (btnEdit) {
+                event.preventDefault();
+
+                document.getElementById('repairEditId').value = btnEdit.dataset.repairId || '';
+                document.getElementById('edit_subject').value = btnEdit.dataset.subject || '';
+                document.getElementById('edit_location').value = btnEdit.dataset.location || '';
+                document.getElementById('edit_equipment').value = btnEdit.dataset.equipment || '';
+                document.getElementById('edit_detail').value = btnEdit.dataset.detail || '';
+
+                if (editModal) {
+                    editModal.classList.remove('hidden');
+                    editModal.style.display = 'flex';
+                }
+                return;
+            }
+        });
+
+        closeViewBtn?.addEventListener('click', () => {
+            if (viewModal) viewModal.style.display = 'none';
+        });
+
+        closeEditBtn?.addEventListener('click', () => {
+            if (editModal) editModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target === viewModal) {
+                viewModal.style.display = 'none';
+            }
+            if (event.target === editModal) {
+                editModal.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (viewModal && viewModal.style.display === 'flex') viewModal.style.display = 'none';
+                if (editModal && editModal.style.display === 'flex') editModal.style.display = 'none';
+            }
+        });
+
+        const editBtnAddFiles = document.getElementById('edit_btnAddFiles');
+        const editFileInput = document.getElementById('edit_fileInput');
+
+        editBtnAddFiles?.addEventListener('click', function() {
+            editFileInput?.click();
+        });
+
+
+    });
 </script>
 
 <? //php if ($view_item) : 
@@ -738,8 +1075,8 @@ ob_start();
                 </form>
             </div>
 
-</div>
-</div>
+        </div>
+    </div>
 </div>
 
 <?php if (is_array($view_item) && !empty($view_item)) : ?>
@@ -887,11 +1224,11 @@ ob_start();
                 const iconWrap = document.createElement('div');
                 iconWrap.className = 'file-icon';
                 const mime = String(file.type || '').toLowerCase();
-                iconWrap.innerHTML = mime.includes('pdf')
-                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
-                    : mime.includes('image')
-                        ? '<i class="fa-solid fa-file-image" aria-hidden="true"></i>'
-                        : '<i class="fa-solid fa-file" aria-hidden="true"></i>';
+                iconWrap.innerHTML = mime.includes('pdf') ?
+                    '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>' :
+                    mime.includes('image') ?
+                    '<i class="fa-solid fa-file-image" aria-hidden="true"></i>' :
+                    '<i class="fa-solid fa-file" aria-hidden="true"></i>';
 
                 const text = document.createElement('div');
                 text.className = 'file-text';

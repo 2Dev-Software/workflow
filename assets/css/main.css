@@ -8475,7 +8475,7 @@ label {
   background: none;
   border: none;
   color: var(--color-danger);
-  font-size: var(--font-size-title);
+  font-size: var(--font-size-body-1);
   cursor: pointer;
   transition: transform 0.2s;
 }
