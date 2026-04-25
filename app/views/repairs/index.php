@@ -971,7 +971,7 @@ ob_start();
                     actions.style.display = 'flex';
                     actions.style.gap = '10px';
 
-                    const baseUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+                    const baseUrl = `public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(existingEntityId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
 
                     const viewAction = document.createElement('div');
                     viewAction.className = 'file-actions';
@@ -1351,7 +1351,7 @@ ob_start();
             info.appendChild(iconWrap);
             info.appendChild(text);
 
-            const fileUrl = `/public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
+            const fileUrl = `public/api/file-download.php?module=repairs&entity_id=${encodeURIComponent(repairId)}&file_id=${encodeURIComponent(file?.fileID || '')}`;
             const actions = document.createElement('div');
             actions.className = 'file-actions-group';
             actions.style.display = 'flex';
