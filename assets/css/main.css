@@ -7684,10 +7684,6 @@ select {
   background-color: rgba(var(--rgb-danger), 0.12);
 }
 
-/* .vehicle-row:nth-child(8) {
-    margin: 0;
-  } */
-
 .vehicle-row.column {
   display: flex;
   flex-direction: column;
@@ -19988,7 +19984,7 @@ label {
     display: grid;
     grid-auto-flow: row;
     gap: 10px;
-    margin: 0 0 10px 0;
+    margin: 0 0 20px 0;
   }
 
   .vehicle-input-content {
@@ -20462,10 +20458,6 @@ label {
     justify-content: center;
     min-height: 30px;
     text-align: center;
-  }
-
-  .vehicle-row:nth-child(8) {
-    margin: 0;
   }
 
   .vehicle-row.column {
@@ -23906,14 +23898,9 @@ label {
   }
 
   .modal-overlay-vehicle-edit .header-modal {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
-    border-bottom: 1px solid var(--color-secondary);
-    margin: 0 0 10px;
+    margin: 0;
+    min-height: 60px;
   }
 
   .modal-overlay-vehicle-edit label strong {
@@ -25233,6 +25220,9 @@ label {
     font-size: var(--font-size-desc-2);
   }
 
+  .tp-input {
+    height: 30px;
+  }
 
 }
 
@@ -29754,10 +29744,6 @@ label {
     width: 100%;
   }
 
-  .vehicle-row:nth-child(8) {
-    margin: 0;
-  }
-
   .vehicle-row.column {
     display: flex;
     flex-direction: column;
@@ -29848,15 +29834,20 @@ label {
   }
 
   .modal-overlay-vehicle-edit .header-modal {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
+    font-size: var(--font-size-desc-3);
     border-bottom: 1px solid var(--color-secondary);
+    margin: 0;
+    height: 40px;
+    min-height: 40px;
+  }
+  
+  .modal-overlay-vehicle-edit .vehicle-detail-form {
+    padding: 10px;
+  }
+
+  .vehicle-detail-form hr {
+    height: 1px;
     margin: 0 0 10px;
-    height: 30px;
   }
 
   .modal-overlay-vehicle-edit label strong {
@@ -29957,7 +29948,7 @@ label {
 
   .modal-overlay-vehicle-edit .show-member {
     width: 100%;
-    height: 30px;
+    height: 25px;
     background-color: var(--color-secondary);
     border-radius: 6px;
     border: none;
@@ -30207,11 +30198,11 @@ label {
 
   .modal-overlay-vehicle-edit .calculated-field {
     width: 100%;
-    min-height: 30px;
+    min-height: 20px;
     padding: 0 10px;
     background-color: rgba(var(--rgb-secondary), 0.2);
     border-radius: 6px;
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
     border: none;
     display: flex;
@@ -35019,6 +35010,10 @@ label {
 
   .timeline-date {
     font-size: var(--font-size-desc-4);
+  }
+
+  .tp-input {
+    height: 25px;
   }
 
 }
