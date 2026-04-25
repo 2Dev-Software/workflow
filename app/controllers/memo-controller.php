@@ -127,6 +127,73 @@ if (!function_exists('memo_owner_latest_review_action_by_actor')) {
     }
 }
 
+if (!function_exists('memo_owner_latest_review_actor_pid')) {
+    function memo_owner_latest_review_actor_pid(array $routes): string
+    {
+        $latestActorPID = '';
+        $reviewActions = [
+            'FORWARD',
+            'RETURN',
+            'APPROVE_UNSIGNED',
+            'REJECT',
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+
+        foreach ($routes as $route) {
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if (!in_array($action, $reviewActions, true)) {
+                continue;
+            }
+
+            $actorPID = trim((string) ($route['actorPID'] ?? ''));
+
+            if ($actorPID !== '') {
+                $latestActorPID = $actorPID;
+            }
+        }
+
+        return $latestActorPID;
+    }
+}
+
+if (!function_exists('memo_owner_resolve_stage_note')) {
+    function memo_owner_resolve_stage_note(array $memo, array $routes, string $actorPID): string
+    {
+        $actorPID = trim($actorPID);
+
+        if ($actorPID === '') {
+            return '';
+        }
+
+        $routeNote = memo_owner_latest_note_by_actor($routes, $actorPID);
+
+        if ($routeNote !== '') {
+            return $routeNote;
+        }
+
+        $reviewNote = trim((string) ($memo['reviewNote'] ?? ''));
+
+        if ($reviewNote === '') {
+            return '';
+        }
+
+        return memo_owner_latest_review_actor_pid($routes) === $actorPID ? $reviewNote : '';
+    }
+}
+
 if (!function_exists('memo_owner_fetch_teacher_profiles')) {
     function memo_owner_fetch_teacher_profiles(mysqli $connection, array $pids): array
     {
@@ -212,7 +279,7 @@ if (!function_exists('memo_owner_enrich_creator_memos')) {
                 $memos[$index][$prefix . 'Name'] = trim((string) ($profile['name'] ?? ($memo[$prefix . 'Name'] ?? '')));
                 $memos[$index][$prefix . 'Signature'] = trim((string) ($profile['signature'] ?? ''));
                 $memos[$index][$prefix . 'PositionName'] = trim((string) ($profile['positionName'] ?? ''));
-                $memos[$index][$prefix . 'Note'] = memo_owner_latest_note_by_actor($routes, $stagePID);
+                $memos[$index][$prefix . 'Note'] = memo_owner_resolve_stage_note($memo, $routes, $stagePID);
                 $memos[$index][$prefix . 'Action'] = memo_owner_latest_review_action_by_actor($routes, $stagePID);
             }
 

@@ -169,9 +169,6 @@ if (!function_exists('memo_pdf_render_html')) {
         .signature-role {
             margin: 0;
         }
-        .page-break {
-            page-break-before: always;
-        }
         .review-block {
             margin: 0 0 18pt 0;
             page-break-inside: avoid;
@@ -268,8 +265,6 @@ if (!function_exists('memo_pdf_render_html')) {
     </div>
 
     <?php if ($review_blocks !== []) : ?>
-        <div class="page-break"></div>
-
         <?php foreach ($review_blocks as $block) : ?>
             <?php
             $review_title = trim((string) ($block['title'] ?? 'ความคิดเห็นและข้อเสนอแนะ'));

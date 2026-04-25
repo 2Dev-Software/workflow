@@ -265,7 +265,7 @@ ob_start();
 
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
-    <p>หนังสือเวียนภายนอก / ลงทะเบียนรับหนังสือเวียน</p>
+    <p>หนังสือเวียนภายนอก / ลงทะเบียนรับหนังสือ</p>
 </div>
 
 <div class="tabs-container setting-page">
@@ -2320,10 +2320,10 @@ ob_start();
                 <p><strong>แนบลิ้งก์</strong></p>
                 <input
                     type="url"
+                    name="linkURL"
                     class="order-no-display"
-                    value=""
-                    placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง"
-                    required>
+                    value="<?= h((string) ($values['linkURL'] ?? '')) ?>"
+                    placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง">
             </div>
         </div>
 
@@ -2417,7 +2417,7 @@ ob_start();
             <div class="room-admin-search">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input class="form-input" type="search" name="q" value="<?= h($filter_query) ?>"
-                    placeholder="ค้นหาลงทะเบียนรับหนังสือเวียนของฉัน" autocomplete="off">
+                    placeholder="ค้นหาลงทะเบียนรับหนังสือของฉัน" autocomplete="off">
             </div>
             <div class="room-admin-filter">
                 <div class="custom-select-wrapper">
@@ -2481,7 +2481,7 @@ ob_start();
 
     <div class="enterprise-card-header order-mine-list-header">
         <div class="enterprise-card-title-group">
-            <h2 class="enterprise-card-title">รายการลงทะเบียนรับหนังสือเวียนของฉัน</h2>
+            <h2 class="enterprise-card-title">รายการลงทะเบียนรับหนังสือของฉัน</h2>
         </div>
     </div>
 
@@ -2502,7 +2502,7 @@ ob_start();
             <tbody>
                 <?php if (empty($items)) : ?>
                     <tr>
-                        <td colspan="5" class="booking-empty">ไม่พบรายการลงทะเบียนรับหนังสือเวียนของฉัน</td>
+                        <td colspan="5" class="booking-empty">ไม่พบรายการลงทะเบียนรับหนังสือของฉัน</td>
                     </tr>
                 <?php else : ?>
                     <?php foreach ($items as $item) : ?>
@@ -2564,7 +2564,7 @@ ob_start();
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p id="modalOutgoingEditTitle">แก้ไขเอกสารลงทะเบียนรับหนังสือเวียน</p>
+                    <p id="modalOutgoingEditTitle">แก้ไขเอกสารลงทะเบียนรับหนังสือ</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="closeModalOrderSend"></i>
@@ -4579,8 +4579,7 @@ ob_start();
                         <input
                             type="text"
                             class="order-no-display"
-                            value="" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง"
-                            required>
+                            value="" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง">
                     </div>
                 </div>
 
@@ -4672,7 +4671,7 @@ ob_start();
         <div class="modal-content">
             <div class="header-modal">
                 <div class="first-header">
-                    <p id="modalOutgoingViewTitle">ดูรายละเอียดลงทะเบียนรับหนังสือเวียน</p>
+                    <p id="modalOutgoingViewTitle">ดูรายละเอียดลงทะเบียนรับหนังสือ</p>
                 </div>
                 <div class="sec-header">
                     <i class="fa-solid fa-xmark" id="modalOrderViewCloseBtn"></i>

@@ -401,6 +401,108 @@ if (!function_exists('memo_pdf_latest_note_by_actor')) {
     }
 }
 
+if (!function_exists('memo_pdf_review_actions')) {
+    function memo_pdf_review_actions(): array
+    {
+        return [
+            'FORWARD',
+            'RETURN',
+            'APPROVE_UNSIGNED',
+            'REJECT',
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+    }
+}
+
+if (!function_exists('memo_pdf_latest_review_action_by_actor')) {
+    function memo_pdf_latest_review_action_by_actor(array $routes, string $actor_pid): string
+    {
+        $actor_pid = trim($actor_pid);
+
+        if ($actor_pid === '') {
+            return '';
+        }
+
+        $latest_action = '';
+        $review_actions = memo_pdf_review_actions();
+
+        foreach ($routes as $route) {
+            if (trim((string) ($route['actorPID'] ?? '')) !== $actor_pid) {
+                continue;
+            }
+
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if (in_array($action, $review_actions, true)) {
+                $latest_action = $action;
+            }
+        }
+
+        return $latest_action;
+    }
+}
+
+if (!function_exists('memo_pdf_latest_review_actor_pid')) {
+    function memo_pdf_latest_review_actor_pid(array $routes): string
+    {
+        $latest_actor_pid = '';
+        $review_actions = memo_pdf_review_actions();
+
+        foreach ($routes as $route) {
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if (!in_array($action, $review_actions, true)) {
+                continue;
+            }
+
+            $actor_pid = trim((string) ($route['actorPID'] ?? ''));
+
+            if ($actor_pid !== '') {
+                $latest_actor_pid = $actor_pid;
+            }
+        }
+
+        return $latest_actor_pid;
+    }
+}
+
+if (!function_exists('memo_pdf_resolve_stage_note')) {
+    function memo_pdf_resolve_stage_note(array $memo, array $routes, string $actor_pid): string
+    {
+        $actor_pid = trim($actor_pid);
+
+        if ($actor_pid === '') {
+            return '';
+        }
+
+        $route_note = memo_pdf_latest_note_by_actor($routes, $actor_pid);
+
+        if ($route_note !== '') {
+            return $route_note;
+        }
+
+        $review_note = trim((string) ($memo['reviewNote'] ?? ''));
+
+        if ($review_note === '') {
+            return '';
+        }
+
+        return memo_pdf_latest_review_actor_pid($routes) === $actor_pid ? $review_note : '';
+    }
+}
+
 if (!function_exists('memo_pdf_find_teacher_pid_by_position_like')) {
     function memo_pdf_find_teacher_pid_by_position_like(mysqli $connection, string $like_pattern): string
     {
@@ -598,9 +700,10 @@ if (!function_exists('memo_pdf_build_live_data')) {
             }
 
             $stage_profile = $profiles[$stage_pid] ?? [];
-            $stage_note = memo_pdf_latest_note_by_actor($routes, $stage_pid);
+            $stage_note = memo_pdf_resolve_stage_note($memo, $routes, $stage_pid);
+            $stage_action = memo_pdf_latest_review_action_by_actor($routes, $stage_pid);
 
-            if ($stage_pid === '' && $stage_note === '') {
+            if ($stage_pid === '' || ($stage_note === '' && $stage_action === '')) {
                 continue;
             }
 
