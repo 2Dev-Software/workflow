@@ -398,7 +398,12 @@ if (!function_exists('repairs_handle_mode')) {
         $view_id = (int) ($_GET['view_id'] ?? 0);
         $edit_id = $mode === 'report' ? (int) ($_GET['edit_id'] ?? 0) : 0;
         $requested_tab = trim((string) ($_REQUEST['tab'] ?? ''));
-        $is_track_active = $mode === 'report' && ($requested_tab === 'track' || $view_id > 0 || $edit_id > 0);
+        $is_track_active = $requested_tab === 'track' && in_array($mode, ['report', 'approval'], true);
+
+        if ($mode === 'report' && ($view_id > 0 || $edit_id > 0)) {
+            $is_track_active = true;
+        }
+
         $filter_query = trim((string) ($_REQUEST['q'] ?? ''));
         $filter_status = strtolower(trim((string) ($_REQUEST['status'] ?? 'all')));
         $filter_sort = strtolower(trim((string) ($_REQUEST['sort'] ?? 'newest')));
@@ -952,6 +957,9 @@ if (!function_exists('repairs_handle_mode')) {
         $request_attachments_map = [];
         $request_timeline_map = [];
         $request_timeline_note_map = [];
+        $all_repair_requests = [];
+        $all_request_attachments_map = [];
+        $all_request_timeline_map = [];
         $repair_staff_members = [];
         $repair_candidate_members = [];
         $repair_staff_count = 0;
@@ -962,6 +970,18 @@ if (!function_exists('repairs_handle_mode')) {
             $request_attachments_map = repair_get_attachments_map($request_ids);
             $request_timeline_map = repair_get_timeline_map($request_ids);
             $request_timeline_note_map = repair_get_latest_timeline_notes_map($request_ids);
+        }
+
+        if ($mode === 'approval' && $has_table && $has_equipment_column) {
+            $filter_statuses = repairs_resolve_filter_statuses($filter_status);
+            $all_repair_limit = max(1, $total_count);
+            $all_repair_requests = repair_list_filtered_page(null, $filter_statuses, $all_repair_limit, 0, $filter_query, $filter_sort, false, true);
+
+            if (!empty($all_repair_requests)) {
+                $all_request_ids = array_column($all_repair_requests, 'repairID');
+                $all_request_attachments_map = repair_get_attachments_map($all_request_ids);
+                $all_request_timeline_map = repair_get_timeline_map($all_request_ids);
+            }
         }
 
         if ($mode === 'manage') {
@@ -1020,6 +1040,9 @@ if (!function_exists('repairs_handle_mode')) {
             'request_attachments_map' => $request_attachments_map,
             'request_timeline_map' => $request_timeline_map,
             'request_timeline_note_map' => $request_timeline_note_map,
+            'all_repair_requests' => $all_repair_requests,
+            'all_request_attachments_map' => $all_request_attachments_map,
+            'all_request_timeline_map' => $all_request_timeline_map,
             'repair_staff_members' => $repair_staff_members,
             'repair_candidate_members' => $repair_candidate_members,
             'repair_staff_count' => $repair_staff_count,
