@@ -5830,7 +5830,7 @@ select {
 .room-admin-member-subtext {
   margin-top: 2px;
   font-size: var(--font-size-desc-2);
-  color: var(--color-neutral-medium);
+  color: var(--color-neutral-dark);
 }
 
 .room-admin-member-table .room-admin-member-tag {
@@ -18185,6 +18185,7 @@ label {
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 16px;
+    font-size: var(--font-size-desc-1);
   }
 
   .booking-card-title-group {
@@ -19327,6 +19328,7 @@ label {
   .room-admin-member-count {
     margin: 0;
     font-weight: 700;
+    font-size: var(--font-size-desc-1);
     color: var(--color-secondary);
   }
 
@@ -19377,8 +19379,8 @@ label {
 
   .room-admin-member-subtext {
     margin-top: 2px;
-    font-size: var(--font-size-desc-2);
-    color: var(--color-neutral-medium);
+    font-size: var(--font-size-desc-3);
+    color: var(--color-neutral-dark);
   }
 
   .room-admin-member-table .room-admin-member-tag {
@@ -19475,7 +19477,7 @@ label {
   .room-admin-modal .room-admin-search-form .form-input {
     height: 30px;
     border-radius: 8px;
-    padding: 0 20px;
+    padding: 0 30px;
     font-size: var(--font-size-desc-1);
   }
 
@@ -27516,10 +27518,11 @@ label {
 
   .booking-card-header {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    /* flex-direction: column;
+    align-items: flex-start; */
     gap: 4px;
     margin-bottom: 10px;
+    font-size: var(--font-size-desc-3);
   }
 
   .booking-card-title-group {
@@ -28428,6 +28431,7 @@ label {
   .room-admin-member-count {
     margin: 0;
     font-weight: 700;
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
   }
 
@@ -28478,8 +28482,8 @@ label {
 
   .room-admin-member-subtext {
     margin-top: 2px;
-    font-size: var(--font-size-desc-2);
-    color: var(--color-neutral-medium);
+    font-size: var(--font-size-desc-4);
+    color: var(--color-neutral-dark);
   }
 
   .room-admin-member-table .room-admin-member-tag {
