@@ -1501,7 +1501,7 @@ select {
   border-collapse: collapse;
   background-color: var(--color-neutral-lightest);
   font-size: var(--font-size-body-2);
-  min-width: 600px;
+  min-width: 950px;
 }
 
 .custom-table thead {
@@ -3462,7 +3462,7 @@ select {
   width: 100%;
   min-width: 140px;
   height: 40px;
-  border-radius: 6px;
+  border-radius: 12px;
   background-color: var(--color-neutral-lightest);
   font-size: var(--font-size-body-1);
   color: var(--color-secondary);
@@ -5590,6 +5590,25 @@ select {
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-secondary);
+}
+
+.room-admin-search .room-admin-filter {
+  width: 20%;
+}
+
+.room-admin-filter {
+  width: 23%
+}
+
+.repair-date-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+
+.repair-date-stack .time {
+  color: var(--color-neutral-dark);
+  line-height: 1.2;
 }
 
 .room-admin-filter .form-input {
@@ -14488,7 +14507,7 @@ label {
 }
 
 .enterprise-card .room-admin-filter {
-  width: 20%;
+  width: 23%;
 }
 
 .enterprise-card .approval-toolbar .custom-select-wrapper {
@@ -16733,7 +16752,7 @@ label {
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   }
 
@@ -16757,7 +16776,7 @@ label {
 
   .custom-table th,
   .custom-table td {
-    padding: 2px 6px;
+    padding: 0px 5px;
     text-align: left;
   }
 
@@ -19037,6 +19056,10 @@ label {
     font-size: 12px;
   }
 
+  .repair-date-stack .time {
+    font-size: var(--font-size-desc-2)
+  }
+
   .room-admin-filter {
     margin: 0;
   }
@@ -20510,6 +20533,10 @@ label {
     margin: 0 0 6px;
   }
 
+  .container-circular-notice-sending .form-group label b {
+    font-size: var(--font-size-desc-1);
+  }
+
   .container-circular-notice-sending .form-group input[type="text"],
   .container-circular-notice-sending .form-group textarea {
     width: 100%;
@@ -20536,6 +20563,26 @@ label {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
+
+  .container-circular-notice-sending .custom-select-trigger {
+    height: 30px;
+    padding: 0 10px;
+    font-size: var(--font-size-desc-1);
+  }
+
+  .container-circular-notice-sending .custom-select-wrapper i {
+    font-size: var(--font-size-desc-1);
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index .custom-select-wrapper.open .custom-options {
+    transform: translateY(-70px);
+  }
+
+  .content-circular-notice-index .modal-overlay-circular-notice-index .custom-option {
+    font-size: var(--font-size-desc-1);
+    padding: 5px 10px;
+  }
+
 
   .container-circular-notice-sending hr {
     margin: 0 0 10px;
@@ -21032,6 +21079,8 @@ label {
   .file-banner {
     flex: 1;
     width: 100%;
+    min-width: 400px;
+    max-width: 400px;
     background-color: var(--color-secondary);
     border-radius: 8px;
     padding: 10px;
@@ -25087,6 +25136,10 @@ label {
     font-size: var(--color-body-1);
   }
 
+  .enterprise-card-title.last {
+    margin: 20px 0 0;
+  }
+
   .enterprise-card .approval-filter-group {
     gap: 10px;
   }
@@ -25107,6 +25160,7 @@ label {
     height: 30px;
     padding: 0 10px;
     font-size: var(--font-size-desc-1);
+    border-radius: 6px;
   }
 
   .custom-select-wrapper i {
@@ -25153,7 +25207,7 @@ label {
     width: 15px;
     height: 15px;
   }
-  
+
   .timeline-item:last-child::after {
     left: 6px;
     top: 15px;
@@ -25207,8 +25261,13 @@ label {
     font-size: var(--font-size-desc-2);
   }
 
+  .enterprise-card-title.last {
+    margin: 10px 0 0;
+  }
+
   .enterprise-card .approval-filter-group {
     gap: 5px;
+    justify-content: flex-start;
   }
 
   .enterprise-card .room-admin-search i {
@@ -25219,7 +25278,7 @@ label {
     width: 100%;
     padding: 0 5px 0 25px;
     height: 25px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: var(--font-size-desc-3);
   }
 
@@ -25228,13 +25287,23 @@ label {
   }
 
   .enterprise-card .room-admin-search {
-    width: 70%;
+    width: 50%;
+  }
+
+  .approval-filter-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .custom-select-trigger {
     height: 25px;
     padding: 0 6px;
     min-width: 0;
+    border-radius: 6px;
     font-size: var(--font-size-desc-3);
   }
 
@@ -25250,7 +25319,7 @@ label {
     font-size: var(--font-size-desc-3) !important;
   }
 
-  .repair-date-stack > div:first-child {
+  .repair-date-stack>div:first-child {
     line-height: 10px;
   }
 
@@ -25304,10 +25373,6 @@ label {
     align-items: stretch;
   }
 
-  .approval-filter-group {
-    grid-template-columns: 1fr;
-  }
-
   .approval-toolbar {
     padding: 0px;
   }
@@ -25351,6 +25416,7 @@ label {
     -webkit-user-select: none;
     user-select: none;
     min-width: 110px;
+    max-width: 160px;
   }
 
   .approval-toolbar .custom-select-trigger {
@@ -25358,7 +25424,7 @@ label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 20px;
+    height: 25px;
     padding: 0 10px;
     border-radius: 6px;
     background-color: var(--color-neutral-lightest);
@@ -26043,8 +26109,12 @@ label {
 
   .custom-table th,
   .custom-table td {
-    padding: 5px;
+    padding: 0 5px;
     text-align: left;
+  }
+
+  .custom-table td {
+    padding: 5px 0;
   }
 
   .custom-table th {
@@ -26056,6 +26126,7 @@ label {
 
   .repair-date-stack .time {
     font-size: var(--font-size-desc-4) !important;
+    line-height: 1.2;
   }
 
   #room-booking-section .custom-table th:first-child {
@@ -27926,7 +27997,7 @@ label {
 
   .detail-subtext {
     font-size: var(--font-size-desc-3);
-    color: var(--color-neutral-medium);
+    color: var(--color-neutral-dark);
   }
 
   .booking-detail-modal .status-pill {
@@ -28067,6 +28138,10 @@ label {
     font-size: var(--font-size-desc-3);
   }
 
+  .repair-date-stack .time {
+    font-size: var(--font-size-desc-4);
+  }
+
   .room-admin-filter .form-input {
     width: 100%;
     min-width: 0;
@@ -28086,16 +28161,10 @@ label {
   .content-area .form-input {
     flex-grow: 1;
     width: 100%;
-    height: 20px;
+    height: 25px;
     border-radius: 6px;
-    border: 1px solid transparent;
-    outline: none;
-    background-color: var(--color-neutral-lightest);
     padding: 0 20px;
-    box-shadow: 0 0 4px 0 rgba(var(--rgb-secondary), 0.5);
     font-size: var(--font-size-desc-3);
-    color: var(--color-secondary);
-    transition: 0.4s;
   }
 
   .content-area .form-input:hover,
@@ -29144,11 +29213,6 @@ label {
   .approval-detail-modal .detail-value {
     font-size: var(--font-size-desc-2);
     color: var(--color-secondary);
-  }
-
-  .detail-subtext {
-    font-size: var(--font-size-desc-2);
-    color: var(--color-neutral-dark);
   }
 
   .approval-detail-modal .booking-detail-meta {
@@ -30387,6 +30451,10 @@ label {
     height: auto;
   }
 
+  .container-circular-notice-sending .form-group label b {
+    font-size: var(--font-size-desc-3);
+  }
+
   .container-circular-notice-sending .form-group input[type="text"],
   .container-circular-notice-sending .form-group textarea {
     width: 100%;
@@ -30415,7 +30483,7 @@ label {
   }
 
   .container-circular-notice-sending hr {
-    margin: 0 0 20px;
+    margin: 20px 0 10px 0 !important;
   }
 
   .container-circular-notice-sending .upload-layout {
@@ -32014,14 +32082,25 @@ label {
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .header-modal {
     width: 100%;
-    height: 60px;
+    height: 30px;
+    min-height: 30px;
     background-color: var(--color-secondary);
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-neutral-lightest);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 10px;
+  }
+
+  .container-circular-notice-sending .custom-select-trigger {
+    padding: 0 10px;
+    font-size: var(--font-size-desc-3);
+    height: 25px;
+  }
+
+  .container-circular-notice-sending .custom-select-wrapper i {
+    font-size: var(--font-size-desc-3);
   }
 
   .content-circular-notice-index .modal-overlay-circular-notice-index .modal-content .header-modal i {
@@ -34904,17 +34983,17 @@ label {
   }
 
   .timeline-item::after {
-        left: 4px;
-        top: 10px;
-        width: 10px;
-        height: 10px;
+    left: 4px;
+    top: 10px;
+    width: 10px;
+    height: 10px;
   }
-  
+
   .timeline-item:last-child::after {
-        left: 1px;
-        top: 10px;
-        width: 15px;
-        height: 15px;
+    left: 1px;
+    top: 10px;
+    width: 15px;
+    height: 15px;
   }
 
   .timeline-content {
@@ -34923,7 +35002,7 @@ label {
     gap: 5px;
     box-shadow: 4px 4px 0 0 var(--color-primary-deep);
   }
-  
+
   .timeline-item:last-child .timeline-content {
     box-shadow: 4px 4px 0 0 var(--color-primary-deep);
   }

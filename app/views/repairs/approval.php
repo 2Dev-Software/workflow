@@ -292,6 +292,28 @@ ob_start();
     .enterprise-card-title.last {
         margin: 40px 0 0 0;
     }
+
+    @media screen and (max-width: 768px) {
+        .container-circular-notice-sending .form-group {
+            gap: 0;
+        }
+
+        .file-list {
+            margin: 0;
+        }
+
+        .container-circular-notice-sending .form-group {
+            gap: 5px;
+        }
+
+        .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row {
+            margin: 10px 0 0;
+        }
+
+        .content-circular-notice-index .modal-overlay-circular-notice-index .sender-row .form-group {
+            margin-bottom: 10px;
+        }
+    }
 </style>
 
 <div class="content-header">
