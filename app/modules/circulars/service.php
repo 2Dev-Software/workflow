@@ -202,6 +202,99 @@ if (!function_exists('circular_registry_pids')) {
     }
 }
 
+if (!function_exists('circular_external_manager_pids')) {
+    function circular_external_manager_pids(): array
+    {
+        $connection = db_connection();
+        $role_ids = array_values(array_unique(array_merge(
+            rbac_resolve_role_ids($connection, ROLE_REGISTRY),
+            rbac_resolve_role_ids($connection, ROLE_ADMIN)
+        )));
+
+        if (empty($role_ids)) {
+            return [];
+        }
+
+        $role_condition = rbac_csv_role_condition('roleID', count($role_ids));
+        $placeholders = implode(', ', array_fill(0, count($role_ids), '?'));
+        $types = str_repeat('i', count($role_ids));
+        $pids = [];
+
+        $stmt = db_query('SELECT pID FROM teacher WHERE status = 1 AND ' . $role_condition, $types, ...$role_ids);
+        $result = mysqli_stmt_get_result($stmt);
+
+        while ($result && ($row = mysqli_fetch_assoc($result))) {
+            $pid = trim((string) ($row['pID'] ?? ''));
+
+            if ($pid !== '') {
+                $pids[] = $pid;
+            }
+        }
+        mysqli_stmt_close($stmt);
+
+        if (db_table_exists($connection, 'dh_user_roles')) {
+            $stmt = db_query(
+                'SELECT DISTINCT t.pID
+                 FROM teacher AS t
+                 INNER JOIN dh_user_roles AS ur ON ur.pID = t.pID
+                 WHERE t.status = 1 AND ur.roleID IN (' . $placeholders . ')',
+                $types,
+                ...$role_ids
+            );
+            $result = mysqli_stmt_get_result($stmt);
+
+            while ($result && ($row = mysqli_fetch_assoc($result))) {
+                $pid = trim((string) ($row['pID'] ?? ''));
+
+                if ($pid !== '') {
+                    $pids[] = $pid;
+                }
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        if (db_table_exists($connection, 'user_roles')) {
+            $stmt = db_query(
+                'SELECT DISTINCT t.pID
+                 FROM teacher AS t
+                 INNER JOIN user_roles AS ur ON ur.teacher_id = t.pID
+                 WHERE t.status = 1 AND ur.role_id IN (' . $placeholders . ')',
+                $types,
+                ...$role_ids
+            );
+            $result = mysqli_stmt_get_result($stmt);
+
+            while ($result && ($row = mysqli_fetch_assoc($result))) {
+                $pid = trim((string) ($row['pID'] ?? ''));
+
+                if ($pid !== '') {
+                    $pids[] = $pid;
+                }
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        return array_values(array_unique($pids));
+    }
+}
+
+if (!function_exists('circular_can_manage_external_workflow')) {
+    function circular_can_manage_external_workflow(array $circular, string $actorPID): bool
+    {
+        $actorPID = trim($actorPID);
+
+        if ($actorPID === '') {
+            return false;
+        }
+
+        if (trim((string) ($circular['createdByPID'] ?? '')) === $actorPID) {
+            return true;
+        }
+
+        return in_array($actorPID, circular_external_manager_pids(), true);
+    }
+}
+
 if (!function_exists('circular_add_registry_tracking_inboxes')) {
     /**
      * Ensure external circular has tracking inbox rows for all registry users.
@@ -579,7 +672,7 @@ if (!function_exists('circular_recall_external_before_review')) {
 
         if (
             !$circular
-            || (string) ($circular['createdByPID'] ?? '') !== $registryPID
+            || !circular_can_manage_external_workflow($circular, $registryPID)
             || (string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_EXTERNAL
             || (string) ($circular['status'] ?? '') !== EXTERNAL_STATUS_PENDING_REVIEW
         ) {
@@ -652,7 +745,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
 
         if (
             !$circular
-            || (string) ($circular['createdByPID'] ?? '') !== $registryPID
+            || !circular_can_manage_external_workflow($circular, $registryPID)
             || (string) ($circular['circularType'] ?? '') !== CIRCULAR_TYPE_EXTERNAL
             || (string) ($circular['status'] ?? '') !== EXTERNAL_STATUS_SUBMITTED
         ) {
@@ -673,6 +766,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
             throw new RuntimeException('ไม่พบผู้พิจารณา กรุณาเลือกผู้พิจารณาอีกครั้ง');
         }
 
+        $registryNote = trim((string) ($data['registryNote'] ?? ''));
         $acting_pid = system_get_acting_director_pid();
         $director_inbox_type = ($acting_pid !== null && $acting_pid !== '' && $acting_pid === $reviewerPID)
             ? INBOX_TYPE_ACTING_PRINCIPAL
@@ -705,7 +799,7 @@ if (!function_exists('circular_edit_and_resend_external')) {
             mysqli_stmt_close($stmt);
             circular_add_inboxes($circularID, [$reviewerPID], $director_inbox_type, $registryPID);
             $registryTrackingPIDs = circular_add_registry_tracking_inboxes($circularID, $registryPID);
-            circular_add_route($circularID, 'SEND', $registryPID, $reviewerPID, !empty($data['extGroupFID']) ? (int) $data['extGroupFID'] : null, 'EDIT_RESEND');
+            circular_add_route($circularID, 'SEND', $registryPID, $reviewerPID, !empty($data['extGroupFID']) ? (int) $data['extGroupFID'] : null, $registryNote !== '' ? $registryNote : 'EDIT_RESEND');
 
             if (!empty($removeFileIDs)) {
                 circular_soft_delete_attachments($circularID, $removeFileIDs);

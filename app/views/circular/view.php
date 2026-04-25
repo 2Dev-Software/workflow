@@ -11,6 +11,7 @@ $is_registry = (bool) ($is_registry ?? false);
 $can_manage_external = (bool) ($can_manage_external ?? $is_registry);
 $is_deputy = (bool) ($is_deputy ?? false);
 $is_director = (bool) ($is_director ?? false);
+$can_review_external = (bool) ($can_review_external ?? $is_director);
 $position_ids = (array) ($position_ids ?? []);
 $current_pid = trim((string) ($current_pid ?? ''));
 $sender_name = trim((string) ($item['senderName'] ?? ''));
@@ -150,7 +151,7 @@ ob_start();
             <button type="submit" class="btn">จัดเก็บ</button>
         </form>
 
-        <?php if ($can_manage_external && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && (string) ($item['createdByPID'] ?? '') === $current_pid) : ?>
+        <?php if ($can_manage_external && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="recall_external">
@@ -160,7 +161,7 @@ ob_start();
             </form>
         <?php endif; ?>
 
-        <?php if ($is_director && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && in_array($item_inbox_type, [INBOX_TYPE_SPECIAL_PRINCIPAL, INBOX_TYPE_ACTING_PRINCIPAL], true)) : ?>
+        <?php if ($can_review_external && $item_type === CIRCULAR_TYPE_EXTERNAL && $item_status === EXTERNAL_STATUS_PENDING_REVIEW && in_array($item_inbox_type, [INBOX_TYPE_SPECIAL_PRINCIPAL, INBOX_TYPE_ACTING_PRINCIPAL], true)) : ?>
             <form method="POST" class="enterprise-panel">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="director_review">
