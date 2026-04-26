@@ -121,7 +121,7 @@ if (!function_exists('memo_list_deputy_candidates')) {
              FROM teacher AS t
              ' . $position['join'] . '
              WHERE ' . $where . '
-             ORDER BY ' . $position['name'] . ' ASC, t.fName ASC, t.pID ASC',
+             ORDER BY FIELD(' . $teacher_position_column . ', 9, 2, 3, 4), ' . $position['name'] . ' ASC, t.fName ASC, t.pID ASC',
             $types,
             ...$params
         );
@@ -196,12 +196,14 @@ if (!function_exists('memo_resolve_chain_approvers')) {
         }
 
         $fID = (int) ($creator['fID'] ?? 0);
+        $creatorPositionID = (int) ($creator['positionID'] ?? 0);
+        $creatorIsSubjectHead = in_array($creatorPositionID, [5, 6], true);
         $headPID = '';
         $deputyPID = '';
         $directorPID = trim((string) (system_get_current_director_pid() ?? ''));
 
         // ผู้ช่วย/หัวหน้ากลุ่ม/หัวหน้ากลุ่มสาระ ในกลุ่มเดียวกันก่อน
-        if ($fID > 0) {
+        if ($fID > 0 && !$creatorIsSubjectHead) {
             $head = db_fetch_one(
                 'SELECT pID
                  FROM teacher
@@ -237,7 +239,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
                           AND pID <> ?
                           AND fID = ?
                           AND positionID IN (' . $placeholders . ')
-                        ORDER BY positionID ASC, pID ASC
+                        ORDER BY FIELD(positionID, 9, 2, 3, 4), positionID ASC, pID ASC
                         LIMIT 1';
                 $typesWith = 'si' . $types;
                 $paramsWith = array_merge([$creatorPID, $fID], $params);
@@ -254,7 +256,7 @@ if (!function_exists('memo_resolve_chain_approvers')) {
                         WHERE status = 1
                           AND pID <> ?
                           AND positionID IN (' . $placeholders . ')
-                        ORDER BY positionID ASC, pID ASC
+                        ORDER BY FIELD(positionID, 9, 2, 3, 4), positionID ASC, pID ASC
                         LIMIT 1';
                 $typesWith = 's' . $types;
                 $paramsWith = array_merge([$creatorPID], $params);

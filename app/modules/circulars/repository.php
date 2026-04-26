@@ -345,7 +345,7 @@ if (!function_exists('circular_get_recipient_targets')) {
 if (!function_exists('circular_get_attachments')) {
     function circular_get_attachments(int $circularID): array
     {
-        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize
+        $sql = 'SELECT f.fileID, f.fileName, f.filePath, f.mimeType, f.fileSize, r.note AS fileNote
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID = ? AND f.deletedAt IS NULL

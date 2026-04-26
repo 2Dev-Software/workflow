@@ -158,7 +158,8 @@ if (!function_exists('outgoing_receive_list_attachments_map')) {
                 f.fileName,
                 f.filePath,
                 f.mimeType,
-                f.fileSize
+                f.fileSize,
+                r.note AS fileNote
             FROM dh_file_refs AS r
             INNER JOIN dh_files AS f ON r.fileID = f.fileID
             WHERE r.moduleName = (\'' . CIRCULAR_MODULE_NAME . '\' COLLATE utf8mb4_general_ci)
@@ -186,10 +187,42 @@ if (!function_exists('outgoing_receive_list_attachments_map')) {
                 'filePath' => trim((string) ($row['filePath'] ?? '')),
                 'mimeType' => trim((string) ($row['mimeType'] ?? '')),
                 'fileSize' => (int) ($row['fileSize'] ?? 0),
+                'fileNote' => trim((string) ($row['fileNote'] ?? '')),
             ];
         }
 
         return $map;
+    }
+}
+
+if (!function_exists('outgoing_receive_get_reviewer_read_stats')) {
+    function outgoing_receive_get_reviewer_read_stats(int $circular_id): array
+    {
+        $reviewer_pid = (string) (circular_external_last_reviewer_pid($circular_id) ?? '');
+
+        if ($reviewer_pid === '') {
+            return [];
+        }
+
+        $row = db_fetch_one(
+            'SELECT
+                t.pID,
+                COALESCE(MAX(i.isRead), 0) AS isRead,
+                MAX(i.readAt) AS readAt,
+                t.fName
+             FROM teacher AS t
+             LEFT JOIN dh_circular_inboxes AS i
+                ON i.pID = t.pID
+                AND i.circularID = ?
+             WHERE t.pID = ?
+             GROUP BY t.pID, t.fName
+             LIMIT 1',
+            'is',
+            $circular_id,
+            $reviewer_pid
+        );
+
+        return $row ? [$row] : [];
     }
 }
 
@@ -228,7 +261,7 @@ if (!function_exists('outgoing_receive_build_track_payload_map')) {
                 'statusLabel' => trim((string) ($status_meta['label'] ?? '-')),
                 'statusPill' => trim((string) ($status_meta['pill'] ?? 'pending')),
                 'attachments' => array_values((array) ($attachments_map[(string) $circular_id] ?? [])),
-                'readStats' => circular_get_read_stats($circular_id),
+                'readStats' => outgoing_receive_get_reviewer_read_stats($circular_id),
             ];
         }
 
@@ -242,41 +275,16 @@ if (!function_exists('outgoing_receive_merge_upload_sets')) {
      */
     function outgoing_receive_merge_upload_sets(array ...$file_sets): array
     {
-        $merged = [
-            'name' => [],
-            'type' => [],
-            'tmp_name' => [],
-            'error' => [],
-            'size' => [],
-        ];
+        $field_names = ['cover_file', 'cover_attachments', 'attachments'];
+        $merged = [];
 
-        foreach ($file_sets as $set) {
+        foreach ($file_sets as $index => $set) {
             if (!is_array($set) || !isset($set['name'])) {
                 continue;
             }
 
-            $names = $set['name'] ?? [];
-            $types = $set['type'] ?? [];
-            $tmp_names = $set['tmp_name'] ?? [];
-            $errors = $set['error'] ?? [];
-            $sizes = $set['size'] ?? [];
-
-            if (!is_array($names)) {
-                $merged['name'][] = (string) $names;
-                $merged['type'][] = (string) $types;
-                $merged['tmp_name'][] = (string) $tmp_names;
-                $merged['error'][] = (int) $errors;
-                $merged['size'][] = (int) $sizes;
-                continue;
-            }
-
-            foreach ($names as $index => $name) {
-                $merged['name'][] = (string) ($names[$index] ?? '');
-                $merged['type'][] = (string) ($types[$index] ?? '');
-                $merged['tmp_name'][] = (string) ($tmp_names[$index] ?? '');
-                $merged['error'][] = (int) ($errors[$index] ?? UPLOAD_ERR_NO_FILE);
-                $merged['size'][] = (int) ($sizes[$index] ?? 0);
-            }
+            $field_name = $field_names[$index] ?? ('attachments_' . (string) $index);
+            $merged[$field_name] = $set;
         }
 
         return $merged;
@@ -321,9 +329,9 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
                 $label = trim((string) ($director_row['fName'] ?? ''));
 
                 if ($current_director_pid === $acting_pid) {
-                    $label .= ' (รองรักษาราชการแทน)';
+                    $label .= ' (รักษาการแทนผู้อำนวยการโรงเรียน)';
                 } elseif ($current_director_pid === $director_pid) {
-                    $label .= ' (ผู้อำนวยการ)';
+                    $label .= ' (ผู้อำนวยการโรงเรียนดีบุกพังงาวิทยายน)';
                 }
 
                 $reviewers[] = [
@@ -339,7 +347,7 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
         if (!empty($deputy_position_ids)) {
             $placeholders = implode(', ', array_fill(0, count($deputy_position_ids), '?'));
             $types = str_repeat('i', count($deputy_position_ids));
-            $sql = 'SELECT pID, fName FROM teacher WHERE status = 1 AND positionID IN (' . $placeholders . ') ORDER BY fName ASC';
+            $sql = 'SELECT pID, fName FROM teacher WHERE status = 1 AND positionID IN (' . $placeholders . ') ORDER BY FIELD(positionID, 9, 2, 3, 4), fName ASC';
             $deputies = db_fetch_all($sql, $types, ...$deputy_position_ids);
 
             foreach ($deputies as $deputy) {
@@ -352,7 +360,7 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
                 $label = trim((string) ($deputy['fName'] ?? ''));
 
                 if ($pid === $acting_pid) {
-                    $label .= ' (รองรักษาราชการแทน)';
+                    $label .= ' (รักษาการแทนผู้อำนวยการโรงเรียน)';
                 } else {
                     $label .= ' (รองผู้อำนวยการ)';
                 }
@@ -366,6 +374,31 @@ if (!function_exists('outgoing_receive_get_reviewers')) {
         }
 
         return $reviewers;
+    }
+}
+
+if (!function_exists('outgoing_receive_default_reviewer_pid')) {
+    function outgoing_receive_default_reviewer_pid(array $reviewers): string
+    {
+        $current_director_pid = trim((string) (system_get_current_director_pid() ?? ''));
+
+        foreach ($reviewers as $reviewer) {
+            $pid = trim((string) ($reviewer['pID'] ?? ''));
+
+            if ($pid !== '' && $pid === $current_director_pid) {
+                return $pid;
+            }
+        }
+
+        foreach ($reviewers as $reviewer) {
+            $pid = trim((string) ($reviewer['pID'] ?? ''));
+
+            if ($pid !== '') {
+                return $pid;
+            }
+        }
+
+        return '';
     }
 }
 
@@ -406,6 +439,7 @@ if (!function_exists('outgoing_receive_build_state')) {
             'editable_circular' => null,
             'existing_attachments' => [],
         ];
+        $state['values']['reviewerPID'] = outgoing_receive_default_reviewer_pid($reviewers);
 
         if ($edit_circular_id <= 0) {
             return $state;
@@ -446,18 +480,7 @@ if (!function_exists('outgoing_receive_build_state')) {
         $values['extGroupFID'] = ($candidate_fid > 0 && isset($allowed_faction_ids[$candidate_fid])) ? (string) $candidate_fid : '';
         $values['linkURL'] = (string) ($candidate['linkURL'] ?? '');
         $values['detail'] = (string) ($candidate['detail'] ?? '');
-
-        $last_reviewer_pid = circular_external_last_reviewer_pid($edit_circular_id);
-
-        if ($last_reviewer_pid !== null && isset($reviewer_ids[$last_reviewer_pid])) {
-            $values['reviewerPID'] = $last_reviewer_pid;
-        } else {
-            $current_director_pid = (string) (system_get_current_director_pid() ?? '');
-
-            if ($current_director_pid !== '' && isset($reviewer_ids[$current_director_pid])) {
-                $values['reviewerPID'] = $current_director_pid;
-            }
-        }
+        $values['reviewerPID'] = outgoing_receive_default_reviewer_pid($reviewers);
 
         $state['values'] = $values;
 
@@ -535,6 +558,7 @@ if (!function_exists('outgoing_receive_submit')) {
     function outgoing_receive_submit(array $state, array $input, array $attachments, string $current_pid, array $current_user): array
     {
         $state['values'] = outgoing_receive_normalize_values($input, (array) ($state['allowed_faction_ids'] ?? []));
+        $state['values']['reviewerPID'] = outgoing_receive_default_reviewer_pid((array) ($state['reviewers'] ?? []));
 
         if ((int) ($state['edit_circular_id'] ?? 0) > 0 && empty($state['is_edit_mode'])) {
             $state['alert'] = [
@@ -637,6 +661,7 @@ if (!function_exists('outgoing_receive_submit')) {
                     'message' => 'เลขที่รายการ #' . $edit_circular_id,
                 ];
                 $state['values'] = outgoing_receive_default_values();
+                $state['values']['reviewerPID'] = outgoing_receive_default_reviewer_pid((array) ($state['reviewers'] ?? []));
                 $state['is_edit_mode'] = false;
                 $state['edit_circular_id'] = 0;
                 $state['editable_circular'] = null;
@@ -668,6 +693,7 @@ if (!function_exists('outgoing_receive_submit')) {
                 'message' => 'เลขที่รายการ #' . $circular_id,
             ];
             $state['values'] = outgoing_receive_default_values();
+            $state['values']['reviewerPID'] = outgoing_receive_default_reviewer_pid((array) ($state['reviewers'] ?? []));
 
             return $state;
         } catch (Throwable $e) {

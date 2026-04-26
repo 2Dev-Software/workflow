@@ -668,7 +668,7 @@ ob_start();
                         $head_note_b64 = base64_encode((string) ($memo['headNote'] ?? ''));
                         $deputy_note_b64 = base64_encode((string) ($memo['deputyNote'] ?? ''));
                         $director_note_b64 = base64_encode((string) ($memo['directorNote'] ?? ''));
-                        $can_preview_pdf = in_array($status, [MEMO_STATUS_APPROVED_UNSIGNED, MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
+                        $can_preview_pdf = in_array($status, [MEMO_STATUS_SIGNED, MEMO_STATUS_REJECTED], true);
                         $can_edit_and_submit = $status === 'DRAFT' || !empty($memo['ownerCanEditBeforeHeadForward']);
                         $memo_pdf_preview_href = $memo_id > 0
                             ? ('memo-pdf.php?memo_id=' . rawurlencode((string) $memo_id))
@@ -2593,12 +2593,12 @@ ob_start();
         setMemoViewVisible(row, shouldShow);
     };
 
-    const setMemoViewTextarea = (row, textarea, value) => {
+    const setMemoViewTextarea = (row, textarea, value, forceVisible = false) => {
         const normalized = normalizeMemoDetailText(value);
-        const shouldShow = normalized !== '';
+        const shouldShow = normalized !== '' || forceVisible;
 
         if (textarea) {
-            textarea.value = normalized;
+            textarea.value = normalized !== '' ? normalized : '-';
         }
 
         setMemoViewVisible(row, shouldShow);
@@ -2629,6 +2629,16 @@ ob_start();
             note: noteFromBase64 !== '' ? noteFromBase64 : String(button.getAttribute('data-' + key + '-note') || ''),
             action: String(button.getAttribute('data-' + key + '-action') || '').trim(),
         };
+    };
+
+    const hasMemoViewStagePayload = (payload) => {
+        return Boolean(
+            String(payload?.name || '').trim() ||
+            String(payload?.position || '').trim() ||
+            String(payload?.signature || '').trim() ||
+            String(payload?.action || '').trim() ||
+            normalizeMemoDetailText(payload?.note || '')
+        );
     };
 
     const setMemoViewVisible = (element, visible) => {
@@ -2785,8 +2795,11 @@ ob_start();
             const headPayload = readMemoViewStagePayload(btn, 'head');
             const deputyPayload = readMemoViewStagePayload(btn, 'deputy');
             const directorPayload = readMemoViewStagePayload(btn, 'director');
+            const hasHeadStage = hasMemoViewStagePayload(headPayload);
+            const hasDeputyStage = hasMemoViewStagePayload(deputyPayload);
+            const hasDirectorStage = hasMemoViewStagePayload(directorPayload);
 
-            setMemoViewTextarea(memoViewHeadNoteRow, memoViewHeadNote, headPayload.note);
+            setMemoViewTextarea(memoViewHeadNoteRow, memoViewHeadNote, headPayload.note, hasHeadStage);
             setMemoViewSignatureBlock(
                 memoViewHeadSignatureRow,
                 memoViewHeadSignatureImage,
@@ -2796,7 +2809,7 @@ ob_start();
             );
 
             setMemoViewActionField(memoViewDeputyActionRow, memoViewDeputyAction, deputyPayload.action);
-            setMemoViewTextarea(memoViewDeputyNoteRow, memoViewDeputyNote, deputyPayload.note);
+            setMemoViewTextarea(memoViewDeputyNoteRow, memoViewDeputyNote, deputyPayload.note, hasDeputyStage);
             setMemoViewSignatureBlock(
                 memoViewDeputySignatureRow,
                 memoViewDeputySignatureImage,
@@ -2806,7 +2819,7 @@ ob_start();
             );
 
             setMemoViewActionField(memoViewDirectorActionRow, memoViewDirectorAction, directorPayload.action);
-            setMemoViewTextarea(memoViewDirectorNoteRow, memoViewDirectorNote, directorPayload.note);
+            setMemoViewTextarea(memoViewDirectorNoteRow, memoViewDirectorNote, directorPayload.note, hasDirectorStage);
             setMemoViewSignatureBlock(
                 memoViewDirectorSignatureRow,
                 memoViewDirectorSignatureImage,

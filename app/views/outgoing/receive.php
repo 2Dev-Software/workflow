@@ -65,7 +65,20 @@ $selected_group_fid = $values['extGroupFID'] !== '' && array_key_exists($values[
     ? $values['extGroupFID']
     : $default_group_fid;
 $selected_group_label = $faction_options[$selected_group_fid] ?? 'เลือกกลุ่ม/ฝ่าย';
-$selected_reviewer_label = $reviewer_options[$values['reviewerPID']] ?? '';
+$selected_reviewer_pid = trim((string) ($values['reviewerPID'] ?? ''));
+
+if ($selected_reviewer_pid === '' || !isset($reviewer_options[$selected_reviewer_pid])) {
+    foreach ($reviewers as $reviewer) {
+        $fallback_pid = trim((string) ($reviewer['pID'] ?? ''));
+
+        if ($fallback_pid !== '') {
+            $selected_reviewer_pid = $fallback_pid;
+            break;
+        }
+    }
+}
+
+$selected_reviewer_label = $reviewer_options[$selected_reviewer_pid] ?? '-';
 $reviewer_options_json = json_encode($reviewers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 if (!is_string($reviewer_options_json)) {
@@ -141,6 +154,16 @@ ob_start();
 
     .form-group.receive button p {
         color: var(--color-neutral-lightest);
+    }
+
+    #outgointForm .form-group.receive .dropdown-container,
+    #outgointForm .form-group.receive .search-input-wrapper,
+    #outgointForm .form-group.receive .search-input {
+        width: 100%;
+    }
+
+    #outgointForm .form-group.receive .dropdown-container {
+        flex: 1;
     }
 
     .form-group .input-group {
@@ -373,15 +396,17 @@ ob_start();
             </div>
         </div>
 
-        <div class="form-group receive" data-recipients-section="" data-owner-flat-list="true" data-reviewer-options="<?= h($reviewer_options_json) ?>">
+        <div class="form-group receive">
             <label><strong>เสนอ :</strong></label>
             <div class="dropdown-container">
-                <div class="search-input-wrapper" id="recipientToggle">
-                    <input type="text" id="mainInput" class="search-input" value="<?= h($selected_reviewer_label) ?>" placeholder="ค้นหา หรือ เลือกข้อมูล..." autocomplete="off">
-                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                <div class="search-input-wrapper">
+                    <input type="text" class="search-input" value="<?= h($selected_reviewer_label) ?>" readonly aria-readonly="true">
                 </div>
-                <input type="hidden" name="reviewerPID" value="<?= h($values['reviewerPID']) ?>" data-reviewer-hidden>
+                <input type="hidden" name="reviewerPID" value="<?= h($selected_reviewer_pid) ?>">
+            </div>
+        </div>
 
+        <?php if (false) : ?>
                 <div class="dropdown-content" id="dropdownContent">
                     <div class="dropdown-header">
                         <label class="select-all-box">
@@ -2314,6 +2339,7 @@ ob_start();
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <div class="form-group row">
             <div class="input-group">
@@ -2323,7 +2349,7 @@ ob_start();
                     name="linkURL"
                     class="order-no-display"
                     value="<?= h((string) ($values['linkURL'] ?? '')) ?>"
-                    placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง">
+                    placeholder="แนบลิ้งก์ที่เกี่ยวข้อง (ถ้ามี)">
             </div>
         </div>
 
@@ -2371,7 +2397,7 @@ ob_start();
                 <p>เพิ่มไฟล์</p>
             </button>
             <div class="file-hint">
-                <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) *</p>
+                <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) ถ้ามี *</p>
             </div>
         </div>
 
@@ -4578,8 +4604,10 @@ ob_start();
                         <p><strong>แนบลิ้งก์</strong></p>
                         <input
                             type="text"
+                            id="modalOutgoingEditLink"
+                            name="linkURL"
                             class="order-no-display"
-                            value="" placeholder="กรุณาแนบลิ้งก์ที่เกี่ยวข้อง">
+                            value="" placeholder="แนบลิ้งก์ที่เกี่ยวข้อง (ถ้ามี)">
                     </div>
                 </div>
 
@@ -4634,7 +4662,7 @@ ob_start();
                         <p>เพิ่มไฟล์</p>
                     </button>
                     <div class="file-hint">
-                        <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) *</p>
+                        <p>* แนบไฟล์ได้สูงสุด 5 ไฟล์ (รวม PNG และ PDF) ถ้ามี *</p>
                     </div>
                 </div>
 
@@ -5596,6 +5624,18 @@ ob_start();
             return `${Math.max(1, Math.round(size / 1024))} KB`;
         };
 
+        const outgoingPayloadLink = (payload) => String(payload?.linkURL || payload?.linkUrl || payload?.link || '').trim();
+
+        const setTextInputValue = (input, value) => {
+            if (!input) {
+                return;
+            }
+
+            const displayValue = String(value || '').trim() || '-';
+            input.value = displayValue;
+            input.setAttribute('title', displayValue);
+        };
+
         const viewModal = document.getElementById('modalOrderViewOverlay');
         const modalOutgoingViewBookNo = document.getElementById('modalOutgoingViewBookNo');
         const modalOutgoingViewIssuedDate = document.getElementById('modalOutgoingViewIssuedDate');
@@ -5603,6 +5643,7 @@ ob_start();
         const modalOutgoingViewFrom = document.getElementById('modalOutgoingViewFrom');
         const modalOutgoingViewGroup = document.getElementById('modalOutgoingViewGroup');
         const modalOutgoingViewLink = document.getElementById('modalOutgoingViewLink');
+        const modalOutgoingEditLink = document.getElementById('modalOutgoingEditLink');
         const modalOutgoingViewProposer = document.getElementById('modalOutgoingViewProposer');
         const modalOutgoingViewUrgentRadios = viewModal ? Array.from(viewModal.querySelectorAll('[data-outgoing-view-urgent]')) : [];
         const modalOutgoingViewCoverSection = document.getElementById('modalOutgoingViewCoverSection');
@@ -5724,6 +5765,7 @@ ob_start();
             if (modalOutgoingViewFrom) modalOutgoingViewFrom.value = '-';
             if (modalOutgoingViewGroup) modalOutgoingViewGroup.value = '-';
             if (modalOutgoingViewLink) modalOutgoingViewLink.value = '-';
+            if (modalOutgoingEditLink) modalOutgoingEditLink.value = '';
             if (modalOutgoingViewProposer) modalOutgoingViewProposer.value = '-';
 
             setOutgoingPriorityRadio(modalOutgoingViewUrgentRadios, 'normal');
@@ -5738,9 +5780,14 @@ ob_start();
 
         if (editModal) {
             const openEditModal = (outgoingId) => {
+                const payload = outgoingViewPayloadMap[String(outgoingId || '').trim()] || {};
+
                 if (outgoingId) {
                     const idInput = document.getElementById('modalOutgoingEditOutgoingId');
                     if (idInput) idInput.value = outgoingId;
+                }
+                if (modalOutgoingEditLink) {
+                    modalOutgoingEditLink.value = outgoingPayloadLink(payload);
                 }
                 editModal.style.display = 'flex';
             };
@@ -5793,9 +5840,7 @@ ob_start();
                 if (modalOutgoingViewGroup) {
                     modalOutgoingViewGroup.value = String(payload.groupName || '').trim() || '-';
                 }
-                if (modalOutgoingViewLink) {
-                    modalOutgoingViewLink.value = String(payload.linkURL || '').trim() || '-';
-                }
+                setTextInputValue(modalOutgoingViewLink, outgoingPayloadLink(payload));
                 if (modalOutgoingViewProposer) {
                     modalOutgoingViewProposer.value = String(payload.proposerName || payload.issuerName || '').trim() || '-';
                 }
