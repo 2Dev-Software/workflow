@@ -35,6 +35,18 @@ $body_attrs = [
 ob_start();
 ?>
 
+<style>
+    .booking-detail-modal .modal-header div {
+        color: var(--color-neutral-lightest);
+    }
+
+    @media screen and (max-width: 1400px) {
+        .approval-detail-layout {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+    }
+</style>
+
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
     <p>อนุมัติการจองยานพาหนะ</p>

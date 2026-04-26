@@ -3280,6 +3280,7 @@ select {
   display: flex;
   flex-direction: row;
   gap: 20px;
+  color: var(--color-secondary);
 }
 
 .approval-detail-modal .modal-title i {
@@ -5196,7 +5197,7 @@ select {
   min-height: 80px;
   background-color: var(--color-secondary);
   font-size: var(--font-size-body-1);
-  color: var(--color-neutral-lightest);
+  color: var(--color-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -18514,10 +18515,11 @@ label {
   .status-pill {
     display: inline-flex;
     align-items: center;
-    padding: 3px 10px;
+    padding: 0px 10px;
     border-radius: 999px;
     font-size: var(--font-size-desc-2);
     font-weight: bold;
+    height: 25px;
   }
 
 
@@ -18663,9 +18665,10 @@ label {
 
   .booking-detail-modal .modal-header {
     border-bottom: 1px solid rgba(var(--rgb-secondary), 0.15);
-    padding-bottom: 14px;
+    padding: 0 20px;
     background-color: transparent;
-    margin: 0 0 10px;
+    min-height: 40px;
+    margin: 0 !important;
   }
 
   .booking-detail-modal .modal-header div {
@@ -18823,7 +18826,7 @@ label {
   .booking-detail-modal.approval-detail-modal {
     width: 90%;
     height: 90%;
-    padding: 20px;
+    padding: 0;
   }
 
 
@@ -18965,7 +18968,7 @@ label {
     background: var(--color-neutral-lightest);
     padding: 10px 15px;
     box-shadow: 0 0px 12px rgba(var(--rgb-secondary), 0.1);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-desc-2);
   }
 
   .approval-detail-modal .booking-actions {
@@ -25224,6 +25227,15 @@ label {
     height: 30px;
   }
 
+  .booking-detail-modal .modal-header {
+    background-color: var(--color-secondary);
+  }
+
+  .booking-detail-modal .modal-header .modal-title {
+    font-size: var(--font-size-desc-3);
+  }
+
+
 }
 
 /* =========================================
@@ -25381,7 +25393,7 @@ label {
   }
 
   .approval-detail-modal .booking-detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(0, 1fr);
   }
 
   .approval-detail-modal .detail-item {
@@ -27931,8 +27943,8 @@ label {
   .booking-detail-modal .modal-header {
     border-bottom: 1px solid rgba(var(--rgb-secondary), 0.15);
     padding-bottom: 10px;
-    background-color: transparent;
-    margin: 0 0 10px;
+    background-color: var(--color-secondary);
+    margin: 0;
   }
 
   .booking-detail-modal .modal-header div {
@@ -27945,6 +27957,7 @@ label {
 
   .booking-detail-modal .booking-detail-body {
     background-color: transparent;
+    padding: 10px;
   }
 
   .booking-detail-body {
@@ -29087,11 +29100,13 @@ label {
   .booking-detail-modal.approval-detail-modal {
     width: 90%;
     height: 90%;
-    padding: 10px;
+    padding: 0;
   }
 
   .booking-detail-modal .modal-header {
-    padding: 10px;
+    padding: 0 10px;
+    min-height: 40px;
+    margin: 0 !important;
   }
 
   .approval-detail-modal .modal-header div {
@@ -29135,13 +29150,13 @@ label {
 
   .approval-panel-title {
     margin: 0;
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     font-weight: bold;
     color: var(--color-secondary);
   }
 
   .approval-panel-subtitle {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-neutral-dark);
   }
 
@@ -29162,11 +29177,11 @@ label {
   }
 
   .approval-detail-modal .booking-detail-section h4 {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
   }
 
   .approval-detail-modal .booking-detail-section p {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
   }
 
   .approval-panel-header {
@@ -29176,18 +29191,6 @@ label {
     gap: 10px;
     padding-bottom: 6px;
     border-bottom: 1px dashed rgba(var(--rgb-secondary), 0.5);
-  }
-
-  .approval-panel-title {
-    margin: 0;
-    font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
-  }
-
-  .approval-panel-subtitle {
-    font-size: var(--font-size-desc-2);
-    color: var(--color-neutral-dark);
   }
 
   .approval-detail-modal .detail-item {
@@ -29200,12 +29203,12 @@ label {
   }
 
   .approval-detail-modal .detail-label {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
   }
 
   .approval-detail-modal .detail-value {
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-4);
     color: var(--color-secondary);
   }
 
@@ -29226,7 +29229,7 @@ label {
     background: var(--color-neutral-lightest);
     padding: 10px 15px;
     box-shadow: 0 0px 12px rgba(var(--rgb-secondary), 0.1);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-desc-4);
   }
 
   .approval-detail-modal .booking-actions {
@@ -29240,7 +29243,7 @@ label {
   }
 
   .approval-detail-modal .booking-actions .btn-confirm {
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-3);
     height: 30px;
     padding: 0 10px;
     border-radius: 8px;
@@ -29840,7 +29843,7 @@ label {
     height: 40px;
     min-height: 40px;
   }
-  
+
   .modal-overlay-vehicle-edit .vehicle-detail-form {
     padding: 10px;
   }
