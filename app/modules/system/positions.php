@@ -63,7 +63,14 @@ if (!function_exists('system_position_deputy_ids')) {
             return [];
         }
 
-        $rows = db_fetch_all('SELECT positionID FROM dh_positions WHERE positionName LIKE ? ORDER BY positionID ASC', 's', 'รองผู้อำนวยการ%');
+        $rows = db_fetch_all(
+            'SELECT positionID
+             FROM dh_positions
+             WHERE positionName LIKE ?
+             ORDER BY FIELD(positionID, 9, 2, 3, 4), positionID ASC',
+            's',
+            '%รองผู้อำนวยการ%'
+        );
         $ids = [];
 
         foreach ($rows as $row) {
@@ -76,7 +83,7 @@ if (!function_exists('system_position_deputy_ids')) {
             return $ids;
         }
 
-        $fallback = db_fetch_all('SELECT positionID FROM dh_positions WHERE positionID IN (2,3,4)');
+        $fallback = db_fetch_all('SELECT positionID FROM dh_positions WHERE positionID IN (9,2,3,4) ORDER BY FIELD(positionID, 9, 2, 3, 4), positionID ASC');
 
         foreach ($fallback as $row) {
             $ids[] = (int) ($row['positionID'] ?? 0);

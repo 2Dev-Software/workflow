@@ -23,6 +23,26 @@ $page_section_label = (string) ($page_section_label ?? 'หนังสือเ
 $page_box_label = (string) ($page_box_label ?? ($archived ? 'หนังสือเวียนที่จัดเก็บ' : 'กล่องข้อความ'));
 $forward_open_inbox_id = (int) ($forward_open_inbox_id ?? 0);
 $detail_workflow_page = $is_outside_view ? 'outgoing-view.php' : 'circular-view.php';
+$table_filter_title = 'สถานะรายการ';
+$table_filter_label_map = [
+    'director' => [
+        'table1' => 'รอพิจารณา',
+        'table2' => 'พิจารณาแล้ว',
+    ],
+    'clerk' => [
+        'table1' => 'กำลังเสนอ',
+        'table2' => 'ดำเนินการแล้ว',
+    ],
+    'clerk_return' => [
+        'table1' => 'รอส่งต่อ',
+        'table2' => 'ส่งต่อแล้ว',
+    ],
+    'normal' => [
+        'table1' => 'กล่องข้อความ',
+        'table2' => 'รายการอื่น',
+    ],
+];
+$table_filter_labels = $table_filter_label_map[$box_key] ?? $table_filter_label_map['normal'];
 
 require_once __DIR__ . '/../../rbac/current_user.php';
 
@@ -103,7 +123,7 @@ foreach ($teachers as $teacher) {
         ];
     }
 
-    if (in_array($position_id, [1, 2, 3, 4], true)) {
+    if (in_array($position_id, [1, 9, 2, 3, 4], true)) {
         $executive_members[$pid] = [
             'pID' => $pid,
             'name' => $name,
@@ -332,10 +352,10 @@ ob_start();
 
     <?php if ($is_outside_view) : ?>
         <div class="table-change">
-            <p>ตาราง</p>
+            <p><?= h($table_filter_title) ?></p>
             <div class="button-table">
-                <button class="<?= h($filter_view === 'table1' ? 'active' : '') ?>" type="button" data-view="table1">ตาราง 1</button>
-                <button class="<?= h($filter_view === 'table2' ? 'active' : '') ?>" type="button" data-view="table2">ตาราง 2</button>
+                <button class="<?= h($filter_view === 'table1' ? 'active' : '') ?>" type="button" data-view="table1"><?= h((string) ($table_filter_labels['table1'] ?? 'รายการหลัก')) ?></button>
+                <button class="<?= h($filter_view === 'table2' ? 'active' : '') ?>" type="button" data-view="table2"><?= h((string) ($table_filter_labels['table2'] ?? 'รายการอื่น')) ?></button>
             </div>
         </div>
     <?php endif; ?>
@@ -384,6 +404,8 @@ ob_start();
                                 $file_json = (string) ($item['files_json'] ?? '[]');
                                 $read_stats_json = (string) ($item['read_stats_json'] ?? '[]');
                                 $sender_modal_text = trim((string) ($item['sender_name'] ?? '-'));
+                                $ext_group_id = (int) ($item['ext_group_fid'] ?? 0);
+                                $ext_group_name = $ext_group_id > 0 ? (string) ($faction_name_map[$ext_group_id] ?? '') : '';
 
                                 if (!empty($item['sender_faction_name'])) {
                                     $sender_modal_text .= ' (' . trim((string) $item['sender_faction_name']) . ')';
@@ -419,9 +441,19 @@ ob_start();
                                                 data-sender-name="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
                                                 data-sender-faction="<?= h((string) ($item['sender_faction_name'] ?? '')) ?>"
                                                 data-date="<?= h((string) ($item['delivered_date_long'] ?? $item['delivered_date'] ?? '-')) ?>"
+                                                data-urgency="<?= h((string) ($item['ext_priority_label'] ?? 'ปกติ')) ?>"
+                                                data-urgency-class="<?= h((string) ($item['urgency_class'] ?? 'normal')) ?>"
+                                                data-bookno="<?= h((string) ($item['ext_book_no'] ?? '')) ?>"
+                                                data-issued="<?= h((string) ($item['ext_issued_date'] ?? '-')) ?>"
+                                                data-issued-raw="<?= h((string) ($item['ext_issued_date_raw'] ?? '')) ?>"
+                                                data-from="<?= h((string) ($item['ext_from_text'] ?? '')) ?>"
+                                                data-to="<?= h($director_label) ?>"
+                                                data-group="<?= h($ext_group_name !== '' ? $ext_group_name : '-') ?>"
                                                 data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
                                                 data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
                                                 data-type="<?= h((string) ($item['type_label'] ?? '')) ?>"
+                                                data-status="<?= h((string) ($item['status_label'] ?? '-')) ?>"
+                                                data-consider="<?= h((string) ($item['consider_class'] ?? 'considering')) ?>"
                                                 data-files="<?= h($file_json) ?>">
                                                 <i class="fa-solid fa-eye"></i>
                                                 <span class="tooltip">ดูรายละเอียด</span>
@@ -473,6 +505,7 @@ ob_start();
                         <?php foreach ($items as $item) : ?>
                             <?php
                             $file_json = (string) ($item['files_json'] ?? '[]');
+                            $read_stats_json = (string) ($item['read_stats_json'] ?? '[]');
                             $priority_label = (string) ($item['ext_priority_label'] ?? 'ปกติ');
                             ?>
                             <tr>
@@ -499,9 +532,11 @@ ob_start();
                                             data-urgency-class="<?= h((string) ($item['urgency_class'] ?? 'normal')) ?>"
                                             data-bookno="<?= h((string) ($item['ext_book_no'] ?? '')) ?>"
                                             data-issued="<?= h((string) ($item['ext_issued_date'] ?? '-')) ?>"
+                                            data-issued-raw="<?= h((string) ($item['ext_issued_date_raw'] ?? '')) ?>"
                                             data-from="<?= h((string) ($item['ext_from_text'] ?? '')) ?>"
                                             data-to="<?= h($director_label) ?>"
                                             data-subject="<?= h((string) ($item['subject'] ?? '')) ?>"
+                                            data-group="<?= h((int) ($item['ext_group_fid'] ?? 0) > 0 ? (string) ($faction_name_map[(int) ($item['ext_group_fid'] ?? 0)] ?? '-') : '-') ?>"
                                             data-detail="<?= h((string) ($item['detail'] ?? '')) ?>"
                                             data-link="<?= h((string) ($item['link_url'] ?? '')) ?>"
                                             data-sender-name="<?= h((string) ($item['sender_name'] ?? '-')) ?>"
@@ -594,6 +629,100 @@ ob_start();
         </div>
     <?php else : ?>
 
+        <div class="modal-overlay-circular-notice-index outside-person" id="modalNoticeKeepOverlay">
+            <div class="modal-content">
+                <div class="header-modal">
+                    <div class="first-header">
+                        <p id="modalOutgoingNoticeViewTitle">แสดงข้อความรายละเอียดหนังสือเวียน</p>
+                    </div>
+                    <div class="sec-header">
+                        <div class="consider-status considering" id="modalConsiderStatus">กำลังเสนอ</div>
+                        <i class="fa-solid fa-xmark" id="closeModalNoticeKeep"></i>
+                    </div>
+                </div>
+
+                <div class="content-modal">
+                    <div class="type-urgent">
+                        <p>ประเภท</p>
+                        <div class="radio-group-urgent">
+                            <input type="radio" name="noticeOutgoingViewUrgent" data-notice-view-urgent="normal" checked disabled id="noticeOutgoingViewUrgentNormal"><label for="noticeOutgoingViewUrgentNormal">ปกติ</label>
+                            <input type="radio" name="noticeOutgoingViewUrgent" data-notice-view-urgent="urgent" disabled id="noticeOutgoingViewUrgentUrgent"><label for="noticeOutgoingViewUrgentUrgent">ด่วน</label>
+                            <input type="radio" name="noticeOutgoingViewUrgent" data-notice-view-urgent="high" disabled id="noticeOutgoingViewUrgentHigh"><label for="noticeOutgoingViewUrgentHigh">ด่วนมาก</label>
+                            <input type="radio" name="noticeOutgoingViewUrgent" data-notice-view-urgent="highest" disabled id="noticeOutgoingViewUrgentHighest"><label for="noticeOutgoingViewUrgentHighest">ด่วนที่สุด</label>
+                        </div>
+                    </div>
+
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>เลขที่หนังสือ</strong></p>
+                            <input type="text" id="noticeOutgoingViewBookNo" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                            <p><strong>ลงวันที่</strong></p>
+                            <input type="date" id="noticeOutgoingViewIssuedDate" class="order-no-display" value="" disabled>
+                        </div>
+                    </div>
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>เรื่อง</strong></p>
+                            <input type="text" id="noticeOutgoingViewSubjectText" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                            <p><strong>จาก</strong></p>
+                            <input type="text" id="noticeOutgoingViewFrom" class="order-no-display" value="-" disabled>
+                        </div>
+                    </div>
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>กลุ่ม</strong></p>
+                            <input type="text" id="noticeOutgoingViewGroup" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                        </div>
+                    </div>
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>เกษียณหนังสือ</strong></p>
+                            <textarea id="notice_memo_editor_view" class="js-memo-editor" data-editor-readonly></textarea>
+                        </div>
+                    </div>
+
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>แนบลิ้งก์</strong></p>
+                            <input type="text" id="noticeOutgoingViewLink" class="order-no-display" value="-" disabled>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-row file-sec" id="noticeOutgoingViewCoverSection" style="display: none;">
+                        <div class="vehicle-input-content">
+                            <p><strong>ไฟล์หนังสือนำ</strong></p>
+                        </div>
+
+                        <div class="file-list" id="noticeOutgoingViewCoverList" aria-live="polite"></div>
+                    </div>
+
+                    <div class="vehicle-row file-sec" id="noticeOutgoingViewAttachmentSection" style="display: none;">
+                        <div class="vehicle-input-content">
+                            <p><strong>ไฟล์เอกสารแนบเพิ่มเติม</strong></p>
+                        </div>
+
+                        <div class="file-list" id="noticeOutgoingViewAttachmentList" aria-live="polite"></div>
+                    </div>
+
+                    <div class="content-topic-sec">
+                        <div class="more-details">
+                            <p><strong>ผู้เสนอ</strong></p>
+                            <input type="text" id="noticeOutgoingViewProposer" class="order-no-display" value="-" disabled>
+                        </div>
+                        <div class="more-details">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if (false) : ?>
         <div class="modal-overlay-circular-notice-index outside-person" id="modalNoticeKeepOverlay">
             <div class="modal-content">
                 <div class="header-modal">
@@ -972,6 +1101,7 @@ ob_start();
 
             </div>
         </div>
+        <?php endif; ?>
 
     <?php endif; ?>
 
@@ -2071,11 +2201,213 @@ ob_start();
         const detailModalExt = document.getElementById('modalNoticeExtOverlay');
         const closeDetailKeepBtn = document.getElementById('closeModalNoticeKeep');
         const closeDetailExtBtn = document.getElementById('closeModalNoticeExt');
+        const noticeDetailUsesOutgoingLayout = Boolean(document.getElementById('noticeOutgoingViewBookNo'));
+        const noticeDetailStatus = document.getElementById('modalConsiderStatus');
+        const noticeDetailBookNo = document.getElementById('noticeOutgoingViewBookNo');
+        const noticeDetailIssuedDate = document.getElementById('noticeOutgoingViewIssuedDate');
+        const noticeDetailSubject = document.getElementById('noticeOutgoingViewSubjectText');
+        const noticeDetailFrom = document.getElementById('noticeOutgoingViewFrom');
+        const noticeDetailGroup = document.getElementById('noticeOutgoingViewGroup');
+        const noticeDetailLink = document.getElementById('noticeOutgoingViewLink');
+        const noticeDetailProposer = document.getElementById('noticeOutgoingViewProposer');
+        const noticeDetailCoverSection = document.getElementById('noticeOutgoingViewCoverSection');
+        const noticeDetailCoverList = document.getElementById('noticeOutgoingViewCoverList');
+        const noticeDetailAttachmentSection = document.getElementById('noticeOutgoingViewAttachmentSection');
+        const noticeDetailAttachmentList = document.getElementById('noticeOutgoingViewAttachmentList');
+        const noticeDetailUrgentRadios = detailModalKeep ? Array.from(detailModalKeep.querySelectorAll('[data-notice-view-urgent]')) : [];
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const parseJsonList = (raw) => {
+            try {
+                const parsed = JSON.parse(String(raw || '[]'));
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                return [];
+            }
+        };
+
+        const formatFileSize = (bytes) => {
+            const size = Number(bytes || 0);
+            if (!Number.isFinite(size) || size <= 0) {
+                return '0 KB';
+            }
+            if (size >= 1024 * 1024) {
+                return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+            }
+            return `${Math.max(1, Math.round(size / 1024))} KB`;
+        };
+
+        const isCoverFile = (file) => {
+            const note = String(file?.fileNote || file?.note || file?.field || '').trim().toLowerCase();
+            return ['cover_file', 'cover_attachments', 'cover', 'lead_file', 'หนังสือนำ'].includes(note);
+        };
+
+        const splitNoticeFiles = (files) => {
+            const normalizedFiles = Array.isArray(files) ? files : [];
+            const coverFiles = normalizedFiles.filter((file) => isCoverFile(file));
+            const attachmentFiles = normalizedFiles.filter((file) => !isCoverFile(file));
+
+            if (coverFiles.length === 0 && normalizedFiles.length > 0) {
+                return {
+                    coverFiles: [normalizedFiles[0]],
+                    attachmentFiles: normalizedFiles.slice(1),
+                };
+            }
+
+            return {
+                coverFiles,
+                attachmentFiles,
+            };
+        };
+
+        const normalizeNoticeUrgency = (value) => {
+            const raw = String(value || '').trim().toLowerCase();
+            if (['urgent', 'high', 'highest'].includes(raw)) {
+                return raw;
+            }
+            return 'normal';
+        };
+
+        const setNoticeInput = (input, value) => {
+            if (!input) {
+                return;
+            }
+
+            const displayValue = String(value || '').trim() || '-';
+            input.value = displayValue;
+            input.setAttribute('title', displayValue);
+        };
+
+        const setNoticePriorityRadio = (key) => {
+            const normalizedKey = normalizeNoticeUrgency(key);
+            let matched = false;
+
+            noticeDetailUrgentRadios.forEach((radio) => {
+                const isMatched = String(radio.dataset.noticeViewUrgent || '').trim().toLowerCase() === normalizedKey;
+                radio.checked = isMatched;
+                matched = matched || isMatched;
+            });
+
+            if (!matched && noticeDetailUrgentRadios[0]) {
+                noticeDetailUrgentRadios[0].checked = true;
+            }
+        };
+
+        const setNoticeDetailEditorContent = (html) => {
+            const normalizedHtml = String(html || '').trim() || '<p>-</p>';
+            const editor = window.tinymce ? window.tinymce.get('notice_memo_editor_view') : null;
+
+            if (editor) {
+                editor.setContent(normalizedHtml);
+                return;
+            }
+
+            const textarea = document.getElementById('notice_memo_editor_view');
+            if (textarea) {
+                textarea.value = normalizedHtml;
+            }
+
+            window.setTimeout(() => {
+                const delayedEditor = window.tinymce ? window.tinymce.get('notice_memo_editor_view') : null;
+                if (delayedEditor) {
+                    delayedEditor.setContent(normalizedHtml);
+                }
+            }, 50);
+        };
+
+        const renderNoticeDetailFileList = (section, list, circularId, files) => {
+            if (!section || !list) {
+                return;
+            }
+
+            if (files.length === 0) {
+                section.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+
+            const safeCircularId = encodeURIComponent(String(circularId || '').trim());
+            section.style.display = '';
+            list.innerHTML = files.map((file) => {
+                const fileId = encodeURIComponent(String(file?.fileID || ''));
+                const fileName = escapeHtml(String(file?.fileName || '-'));
+                const mimeType = String(file?.mimeType || '').trim();
+                const typeLabel = escapeHtml(`${mimeType !== '' ? mimeType : 'ไฟล์แนบ'} • ${formatFileSize(file?.fileSize || 0)}`);
+                const iconHtml = mimeType.toLowerCase() === 'application/pdf'
+                    ? '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>'
+                    : '<i class="fa-solid fa-file-image" aria-hidden="true"></i>';
+                const viewHref = `public/api/file-download.php?module=circulars&entity_id=${safeCircularId}&file_id=${fileId}`;
+
+                return `<div class="file-item-wrapper">
+                    <div class="file-banner">
+                        <div class="file-info">
+                            <div class="file-icon">${iconHtml}</div>
+                            <div class="file-text">
+                                <span class="file-name">${fileName}</span>
+                                <span class="file-type">${typeLabel}</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="${viewHref}" class="action-btn" target="_blank" rel="noopener" title="ดูตัวอย่าง">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        const renderNoticeDetailFiles = (circularId, rawFiles) => {
+            const files = parseJsonList(rawFiles);
+            const groupedFiles = splitNoticeFiles(files);
+
+            renderNoticeDetailFileList(noticeDetailCoverSection, noticeDetailCoverList, circularId, groupedFiles.coverFiles);
+            renderNoticeDetailFileList(noticeDetailAttachmentSection, noticeDetailAttachmentList, circularId, groupedFiles.attachmentFiles);
+        };
+
+        const populateNoticeDetailModal = (button) => {
+            if (!button || !noticeDetailUsesOutgoingLayout) {
+                return;
+            }
+
+            const circularId = String(button.getAttribute('data-circular-id') || '').trim();
+            const statusText = String(button.getAttribute('data-status') || '').trim() || '-';
+            const statusClass = String(button.getAttribute('data-consider') || 'considering').trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'considering';
+
+            if (noticeDetailStatus) {
+                noticeDetailStatus.className = `consider-status ${statusClass}`;
+                noticeDetailStatus.textContent = statusText;
+            }
+
+            setNoticePriorityRadio(button.getAttribute('data-urgency-class'));
+            setNoticeInput(noticeDetailBookNo, button.getAttribute('data-bookno'));
+            if (noticeDetailIssuedDate) {
+                const rawDate = String(button.getAttribute('data-issued-raw') || '').trim();
+                noticeDetailIssuedDate.value = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : '';
+                noticeDetailIssuedDate.setAttribute('title', String(button.getAttribute('data-issued') || '').trim() || '-');
+            }
+            setNoticeInput(noticeDetailSubject, button.getAttribute('data-subject'));
+            setNoticeInput(noticeDetailFrom, button.getAttribute('data-from'));
+            setNoticeInput(noticeDetailGroup, button.getAttribute('data-group'));
+            setNoticeInput(noticeDetailLink, button.getAttribute('data-link'));
+            setNoticeInput(noticeDetailProposer, button.getAttribute('data-sender-name'));
+            setNoticeDetailEditorContent(button.getAttribute('data-detail'));
+            renderNoticeDetailFiles(circularId, button.getAttribute('data-files'));
+        };
 
         document.querySelectorAll('.js-open-circular-modal').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (this.hasAttribute('data-urgency') && detailModalExt) {
+                if (noticeDetailUsesOutgoingLayout && detailModalKeep) {
+                    populateNoticeDetailModal(this);
+                    detailModalKeep.style.display = 'flex';
+                } else if (this.hasAttribute('data-urgency') && detailModalExt) {
                     detailModalExt.style.display = 'flex';
                 } else if (detailModalKeep) {
                     detailModalKeep.style.display = 'flex';

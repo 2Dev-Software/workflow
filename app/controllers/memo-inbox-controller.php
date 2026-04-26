@@ -101,17 +101,17 @@ if (!function_exists('memo_inbox_resolve_current_reviewer_role')) {
             return '';
         }
 
-        foreach (['HEAD', 'DEPUTY', 'DIRECTOR'] as $stage) {
-            if ($current_pid === trim((string) ($chain[$stage] ?? ''))) {
-                return $stage;
-            }
-        }
-
         $flow_stage = strtoupper(trim((string) ($item['flowStage'] ?? '')));
         $to_pid = trim((string) ($item['toPID'] ?? ''));
 
         if ($current_pid === $to_pid && in_array($flow_stage, ['HEAD', 'DEPUTY', 'DIRECTOR'], true)) {
             return $flow_stage;
+        }
+
+        foreach (['HEAD', 'DEPUTY', 'DIRECTOR'] as $stage) {
+            if ($current_pid === trim((string) ($chain[$stage] ?? ''))) {
+                return $stage;
+            }
         }
 
         return '';
@@ -514,6 +514,7 @@ if (!function_exists('memo_inbox_enrich_items')) {
             $routes = $routes_map[$memo_id] ?? [];
             $creator_pid = trim((string) ($item['createdByPID'] ?? ''));
             $creator_profile = $teacher_profiles[$creator_pid] ?? [];
+            $memo_status = strtoupper(trim((string) ($item['status'] ?? '')));
 
             $items[$index]['creatorSignature'] = trim((string) ($creator_profile['signature'] ?? ($item['creatorSignature'] ?? '')));
             $items[$index]['creatorName'] = trim((string) ($creator_profile['name'] ?? ($item['creatorName'] ?? '')));
@@ -533,6 +534,13 @@ if (!function_exists('memo_inbox_enrich_items')) {
                 $items[$index][$prefix . 'Name'] = trim((string) ($profile['name'] ?? ''));
                 $items[$index][$prefix . 'Signature'] = trim((string) ($profile['signature'] ?? ''));
                 $items[$index][$prefix . 'PositionName'] = trim((string) ($profile['positionName'] ?? ''));
+
+                if ($stage === 'DIRECTOR' && $memo_status === MEMO_STATUS_APPROVED_UNSIGNED) {
+                    $items[$index][$prefix . 'Note'] = '';
+                    $items[$index][$prefix . 'Action'] = '';
+                    continue;
+                }
+
                 $items[$index][$prefix . 'Note'] = memo_inbox_resolve_stage_note($item, $routes, $stage_pid);
                 $items[$index][$prefix . 'Action'] = memo_inbox_latest_review_action_by_actor($routes, $stage_pid);
             }

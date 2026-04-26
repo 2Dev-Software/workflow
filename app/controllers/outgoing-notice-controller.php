@@ -440,7 +440,7 @@ if (!function_exists('outgoing_notice_index')) {
                 $placeholders = implode(', ', array_fill(0, count($entity_ids), '?'));
                 $types = 'ss' . str_repeat('s', count($entity_ids));
                 $params = array_merge([CIRCULAR_MODULE_NAME, CIRCULAR_ENTITY_NAME], $entity_ids);
-                $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.mimeType, f.fileSize
+                $sql = 'SELECT r.entityID, f.fileID, f.fileName, f.mimeType, f.fileSize, r.note AS fileNote
                     FROM dh_file_refs AS r
                     INNER JOIN dh_files AS f ON r.fileID = f.fileID
                     WHERE r.moduleName = ? AND r.entityName = ? AND r.entityID IN (' . $placeholders . ') AND f.deletedAt IS NULL
@@ -718,7 +718,9 @@ if (!function_exists('outgoing_notice_index')) {
                 'urgency_class' => $urgency_class,
                 'ext_book_no' => (string) ($item['extBookNo'] ?? ''),
                 'ext_issued_date' => $format_thai_date((string) ($item['extIssuedDate'] ?? '')),
+                'ext_issued_date_raw' => (string) ($item['extIssuedDate'] ?? ''),
                 'ext_from_text' => (string) ($item['extFromText'] ?? ''),
+                'ext_group_fid' => (int) ($item['extGroupFID'] ?? 0),
                 'status_key' => $status_key,
                 'status_label' => $status_label,
                 'consider_class' => $consider_class,

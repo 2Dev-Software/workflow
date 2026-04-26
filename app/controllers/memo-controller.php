@@ -194,6 +194,72 @@ if (!function_exists('memo_owner_resolve_stage_note')) {
     }
 }
 
+if (!function_exists('memo_owner_resolve_chain_from_routes')) {
+    function memo_owner_resolve_chain_from_routes(array $memo, array $chain, array $routes): array
+    {
+        $flowStage = strtoupper(trim((string) ($memo['flowStage'] ?? '')));
+        $forwardActors = [];
+        $hasDirectorReview = false;
+        $directorActions = [
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+            'SIGN',
+        ];
+
+        foreach ($routes as $route) {
+            $actorPID = trim((string) ($route['actorPID'] ?? ''));
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if ($actorPID === '') {
+                continue;
+            }
+
+            if ($action === 'FORWARD') {
+                $forwardActors[] = $actorPID;
+                continue;
+            }
+
+            if ($action === 'APPROVE_UNSIGNED') {
+                $chain['DEPUTY'] = $actorPID;
+                continue;
+            }
+
+            if (in_array($action, $directorActions, true)) {
+                $chain['DIRECTOR'] = $actorPID;
+                $hasDirectorReview = true;
+            }
+        }
+
+        if (($flowStage === 'DIRECTOR' || $hasDirectorReview) && $forwardActors !== []) {
+            $headPID = trim((string) ($chain['HEAD'] ?? ''));
+            $directorPID = trim((string) ($chain['DIRECTOR'] ?? ''));
+
+            for ($index = count($forwardActors) - 1; $index >= 0; $index--) {
+                $actorPID = trim((string) ($forwardActors[$index] ?? ''));
+
+                if ($actorPID === '' || $actorPID === $headPID || $actorPID === $directorPID) {
+                    continue;
+                }
+
+                $chain['DEPUTY'] = $actorPID;
+                break;
+            }
+        }
+
+        return $chain;
+    }
+}
+
 if (!function_exists('memo_owner_fetch_teacher_profiles')) {
     function memo_owner_fetch_teacher_profiles(mysqli $connection, array $pids): array
     {
@@ -256,24 +322,66 @@ if (!function_exists('memo_owner_enrich_creator_memos')) {
         }
 
         $profilePids = [];
+        $routeMap = [];
+        $chainMap = [];
 
-        foreach ($memos as $memo) {
-            $profilePids[] = (string) ($memo['headPID'] ?? '');
-            $profilePids[] = (string) ($memo['deputyPID'] ?? '');
-            $profilePids[] = (string) ($memo['directorPID'] ?? '');
+        foreach ($memos as $index => $memo) {
+            $memoID = (int) ($memo['memoID'] ?? 0);
+            $routes = $memoID > 0 ? memo_list_routes($memoID) : [];
+            $chain = memo_owner_resolve_chain_from_routes($memo, [
+                'HEAD' => trim((string) ($memo['headPID'] ?? '')),
+                'DEPUTY' => trim((string) ($memo['deputyPID'] ?? '')),
+                'DIRECTOR' => trim((string) ($memo['directorPID'] ?? '')),
+            ], $routes);
+
+            $routeMap[$index] = $routes;
+            $chainMap[$index] = $chain;
+
+            foreach (['HEAD', 'DEPUTY', 'DIRECTOR'] as $stage) {
+                $profilePids[] = (string) ($chain[$stage] ?? '');
+            }
+
+            foreach ($routes as $route) {
+                $profilePids[] = (string) ($route['actorPID'] ?? '');
+                $profilePids[] = (string) ($route['toPID'] ?? '');
+            }
         }
 
         $profiles = memo_owner_fetch_teacher_profiles($connection, $profilePids);
 
         foreach ($memos as $index => $memo) {
-            $memoID = (int) ($memo['memoID'] ?? 0);
-            $routes = $memoID > 0 ? memo_list_routes($memoID) : [];
+            $routes = $routeMap[$index] ?? [];
+            $chain = $chainMap[$index] ?? [
+                'HEAD' => trim((string) ($memo['headPID'] ?? '')),
+                'DEPUTY' => trim((string) ($memo['deputyPID'] ?? '')),
+                'DIRECTOR' => trim((string) ($memo['directorPID'] ?? '')),
+            ];
+            $memoStatus = strtoupper(trim((string) ($memo['status'] ?? '')));
+            $deputyPID = trim((string) ($chain['DEPUTY'] ?? ''));
+            $directorPID = trim((string) ($chain['DIRECTOR'] ?? ''));
+            $deputyAction = memo_owner_latest_review_action_by_actor($routes, $deputyPID);
+            $suppressDirectorStage = $memoStatus === MEMO_STATUS_APPROVED_UNSIGNED
+                || (
+                    $deputyPID !== ''
+                    && $directorPID !== ''
+                    && $directorPID === $deputyPID
+                    && strtoupper($deputyAction) === 'APPROVE_UNSIGNED'
+                );
 
             foreach ([
-                'head' => trim((string) ($memo['headPID'] ?? '')),
-                'deputy' => trim((string) ($memo['deputyPID'] ?? '')),
-                'director' => trim((string) ($memo['directorPID'] ?? '')),
+                'head' => trim((string) ($chain['HEAD'] ?? '')),
+                'deputy' => $deputyPID,
+                'director' => $suppressDirectorStage ? '' : $directorPID,
             ] as $prefix => $stagePID) {
+                if ($stagePID === '') {
+                    $memos[$index][$prefix . 'Name'] = '';
+                    $memos[$index][$prefix . 'Signature'] = '';
+                    $memos[$index][$prefix . 'PositionName'] = '';
+                    $memos[$index][$prefix . 'Note'] = '';
+                    $memos[$index][$prefix . 'Action'] = '';
+                    continue;
+                }
+
                 $profile = $profiles[$stagePID] ?? [];
 
                 $memos[$index][$prefix . 'Name'] = trim((string) ($profile['name'] ?? ($memo[$prefix . 'Name'] ?? '')));

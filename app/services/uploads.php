@@ -446,14 +446,20 @@ if (!function_exists('upload_store_files')) {
             $file_id = db_last_insert_id();
             mysqli_stmt_close($stmt);
 
+            $file_note = substr(trim((string) ($file['field'] ?? '')), 0, 255);
+            if ($file_note === 'file') {
+                $file_note = '';
+            }
+
             $ref_stmt = db_query(
-                'INSERT INTO dh_file_refs (fileID, moduleName, entityName, entityID, attachedByPID)
-                 VALUES (?, ?, ?, ?, ?)',
-                'issss',
+                'INSERT INTO dh_file_refs (fileID, moduleName, entityName, entityID, note, attachedByPID)
+                 VALUES (?, ?, ?, ?, ?, ?)',
+                'isssss',
                 $file_id,
                 $module,
                 $entityName,
                 $entityId,
+                $file_note !== '' ? $file_note : null,
                 $uploaderPID
             );
             mysqli_stmt_close($ref_stmt);

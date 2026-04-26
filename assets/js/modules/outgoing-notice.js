@@ -122,6 +122,7 @@
     }
 
     window.history.replaceState({}, "", requestUrl);
+    syncActiveTableViewFromUrl(requestUrl);
     bindCheckAllToggle();
   };
 
@@ -201,6 +202,28 @@
 
     if (filterForm) {
       filterForm.submit();
+    }
+  };
+
+  var setActiveTableView = function (view) {
+    var selectedView = view || "table1";
+    document
+      .querySelectorAll(".table-change button[data-view]")
+      .forEach(function (button) {
+        button.classList.toggle(
+          "active",
+          (button.getAttribute("data-view") || "table1") === selectedView,
+        );
+      });
+  };
+
+  var syncActiveTableViewFromUrl = function (requestUrl) {
+    try {
+      var url = new URL(requestUrl, window.location.href);
+      setActiveTableView(url.searchParams.get("view") || "table1");
+    } catch (error) {
+      var viewInput = document.getElementById("filterViewInput");
+      setActiveTableView(viewInput ? viewInput.value : "table1");
     }
   };
 
@@ -339,9 +362,11 @@
     document.querySelectorAll(".table-change button[data-view]").forEach(function (button) {
       button.addEventListener("click", function () {
         var viewInput = document.getElementById("filterViewInput");
+        var nextView = button.getAttribute("data-view") || "table1";
         if (viewInput) {
-          viewInput.value = button.getAttribute("data-view") || "table1";
+          viewInput.value = nextView;
         }
+        setActiveTableView(nextView);
         requestFilterUpdate();
       });
     });
@@ -377,6 +402,22 @@
   var modalStatus = document.getElementById("modalStatus");
   var modalReceivedTime = document.getElementById("modalReceivedTime");
   var modalConsiderStatus = document.getElementById("modalConsiderStatus");
+  var noticeViewBookNo = document.getElementById("noticeOutgoingViewBookNo");
+  var noticeViewIssuedDate = document.getElementById("noticeOutgoingViewIssuedDate");
+  var noticeViewSubject = document.getElementById("noticeOutgoingViewSubjectText");
+  var noticeViewFrom = document.getElementById("noticeOutgoingViewFrom");
+  var noticeViewGroup = document.getElementById("noticeOutgoingViewGroup");
+  var noticeViewLink = document.getElementById("noticeOutgoingViewLink");
+  var noticeViewProposer = document.getElementById("noticeOutgoingViewProposer");
+  var noticeViewCoverSection = document.getElementById("noticeOutgoingViewCoverSection");
+  var noticeViewCoverList = document.getElementById("noticeOutgoingViewCoverList");
+  var noticeViewAttachmentSection = document.getElementById("noticeOutgoingViewAttachmentSection");
+  var noticeViewAttachmentList = document.getElementById("noticeOutgoingViewAttachmentList");
+  var noticeViewUrgencyRadios = modalOverlay
+    ? Array.prototype.slice.call(
+        modalOverlay.querySelectorAll("[data-notice-view-urgent]"),
+      )
+    : [];
   var csrfTokenEl = document.getElementById("csrfToken");
   var csrfToken = csrfTokenEl ? csrfTokenEl.value : "";
 
@@ -504,6 +545,239 @@
     }
 
     field.textContent = displayValue;
+  }
+
+  function setNoticeViewFieldValue(field, value) {
+    if (!field) {
+      return;
+    }
+
+    var displayValue = String(value || "").trim() || "-";
+    field.value = displayValue;
+    field.setAttribute("title", displayValue);
+  }
+
+  function setNoticeViewUrgency(value) {
+    var selectedValue = String(value || "normal").trim().toLowerCase();
+    if (["urgent", "high", "highest"].indexOf(selectedValue) === -1) {
+      selectedValue = "normal";
+    }
+
+    var matched = false;
+    noticeViewUrgencyRadios.forEach(function (radio) {
+      var isMatched =
+        String(radio.getAttribute("data-notice-view-urgent") || "")
+          .trim()
+          .toLowerCase() === selectedValue;
+      radio.checked = isMatched;
+      matched = matched || isMatched;
+    });
+
+    if (!matched && noticeViewUrgencyRadios[0]) {
+      noticeViewUrgencyRadios[0].checked = true;
+    }
+  }
+
+  function setNoticeViewEditorContent(value) {
+    var normalizedValue = String(value || "").trim() || "<p>-</p>";
+    var editor =
+      window.tinymce && typeof window.tinymce.get === "function"
+        ? window.tinymce.get("notice_memo_editor_view")
+        : null;
+
+    if (editor) {
+      editor.setContent(normalizedValue);
+      return;
+    }
+
+    var textarea = document.getElementById("notice_memo_editor_view");
+    if (textarea) {
+      textarea.value = normalizedValue;
+    }
+
+    window.setTimeout(function () {
+      var delayedEditor =
+        window.tinymce && typeof window.tinymce.get === "function"
+          ? window.tinymce.get("notice_memo_editor_view")
+          : null;
+      if (delayedEditor) {
+        delayedEditor.setContent(normalizedValue);
+      }
+    }, 50);
+  }
+
+  function formatFileSize(bytes) {
+    var size = Number(bytes || 0);
+    if (!Number.isFinite(size) || size <= 0) {
+      return "0 KB";
+    }
+    if (size >= 1024 * 1024) {
+      return (size / (1024 * 1024)).toFixed(1) + " MB";
+    }
+    return Math.max(1, Math.round(size / 1024)) + " KB";
+  }
+
+  function isNoticeCoverFile(file) {
+    var note = String(
+      (file && (file.fileNote || file.note || file.field)) || "",
+    )
+      .trim()
+      .toLowerCase();
+
+    return (
+      [
+        "cover_file",
+        "cover_attachments",
+        "cover",
+        "lead_file",
+        "หนังสือนำ",
+      ].indexOf(note) !== -1
+    );
+  }
+
+  function splitNoticeViewFiles(files) {
+    var normalizedFiles = Array.isArray(files) ? files : [];
+    var coverFiles = normalizedFiles.filter(function (file) {
+      return isNoticeCoverFile(file);
+    });
+    var attachmentFiles = normalizedFiles.filter(function (file) {
+      return !isNoticeCoverFile(file);
+    });
+
+    if (coverFiles.length === 0 && normalizedFiles.length > 0) {
+      return {
+        coverFiles: [normalizedFiles[0]],
+        attachmentFiles: normalizedFiles.slice(1),
+      };
+    }
+
+    return {
+      coverFiles: coverFiles,
+      attachmentFiles: attachmentFiles,
+    };
+  }
+
+  function renderNoticeViewFileList(section, list, files, entityId) {
+    if (!section || !list) {
+      return;
+    }
+
+    if (!Array.isArray(files) || files.length === 0) {
+      section.style.display = "none";
+      list.innerHTML = "";
+      return;
+    }
+
+    section.style.display = "";
+    list.innerHTML = "";
+    files.forEach(function (file) {
+      var wrapper = document.createElement("div");
+      wrapper.className = "file-item-wrapper";
+
+      var banner = document.createElement("div");
+      banner.className = "file-banner";
+
+      var info = document.createElement("div");
+      info.className = "file-info";
+
+      var iconWrap = document.createElement("div");
+      iconWrap.className = "file-icon";
+      var icon = document.createElement("i");
+      var mime = String((file && file.mimeType) || "").toLowerCase();
+      icon.className =
+        mime.indexOf("pdf") >= 0
+          ? "fa-solid fa-file-pdf"
+          : "fa-solid fa-file-image";
+      iconWrap.appendChild(icon);
+
+      var text = document.createElement("div");
+      text.className = "file-text";
+      var nameEl = document.createElement("span");
+      nameEl.className = "file-name";
+      nameEl.textContent = String((file && file.fileName) || "-").trim() || "-";
+      var typeEl = document.createElement("span");
+      typeEl.className = "file-type";
+      typeEl.textContent =
+        (String((file && file.mimeType) || "").trim() || "ไฟล์แนบ") +
+        " • " +
+        formatFileSize(file && file.fileSize);
+      text.appendChild(nameEl);
+      text.appendChild(typeEl);
+
+      info.appendChild(iconWrap);
+      info.appendChild(text);
+      banner.appendChild(info);
+
+      var fileId = String((file && file.fileID) || "").trim();
+      if (fileId !== "" && String(entityId || "").trim() !== "") {
+        var actions = document.createElement("div");
+        actions.className = "file-actions";
+        var viewLink = document.createElement("a");
+        viewLink.className = "action-btn";
+        viewLink.href =
+          "public/api/file-download.php?module=circulars&entity_id=" +
+          encodeURIComponent(entityId) +
+          "&file_id=" +
+          encodeURIComponent(fileId);
+        viewLink.target = "_blank";
+        viewLink.rel = "noopener";
+        viewLink.title = "ดูตัวอย่าง";
+        viewLink.innerHTML = '<i class="fa-solid fa-eye"></i>';
+        actions.appendChild(viewLink);
+        banner.appendChild(actions);
+      }
+
+      wrapper.appendChild(banner);
+      list.appendChild(wrapper);
+    });
+  }
+
+  function renderNoticeViewFiles(files, entityId) {
+    var groupedFiles = splitNoticeViewFiles(files);
+
+    renderNoticeViewFileList(
+      noticeViewCoverSection,
+      noticeViewCoverList,
+      groupedFiles.coverFiles,
+      entityId,
+    );
+    renderNoticeViewFileList(
+      noticeViewAttachmentSection,
+      noticeViewAttachmentList,
+      groupedFiles.attachmentFiles,
+      entityId,
+    );
+  }
+
+  function populateNoticeViewModal(button, entityId, files) {
+    if (!noticeViewBookNo) {
+      return;
+    }
+
+    setNoticeViewUrgency(button.getAttribute("data-urgency-class"));
+    setNoticeViewFieldValue(noticeViewBookNo, button.getAttribute("data-bookno"));
+    if (noticeViewIssuedDate) {
+      var rawDate = String(button.getAttribute("data-issued-raw") || "").trim();
+      noticeViewIssuedDate.value = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+        ? rawDate
+        : "";
+      noticeViewIssuedDate.setAttribute(
+        "title",
+        String(button.getAttribute("data-issued") || "").trim() || "-",
+      );
+    }
+    setNoticeViewFieldValue(noticeViewSubject, button.getAttribute("data-subject"));
+    setNoticeViewFieldValue(noticeViewFrom, button.getAttribute("data-from"));
+    setNoticeViewFieldValue(noticeViewGroup, button.getAttribute("data-group"));
+    setNoticeViewFieldValue(noticeViewLink, button.getAttribute("data-link"));
+    setNoticeViewFieldValue(
+      noticeViewProposer,
+      button.getAttribute("data-sender-name") ||
+        button.getAttribute("data-sender") ||
+        "-",
+    );
+    setNoticeViewEditorContent(button.getAttribute("data-detail"));
+    renderNoticeViewFiles(files, entityId);
   }
 
   function renderReceiptStatuses(rawStats) {
@@ -762,6 +1036,7 @@
     }
 
     renderFiles(parsedFiles, entityId);
+    populateNoticeViewModal(button, entityId, parsedFiles);
     renderReceiptStatuses(button.getAttribute("data-read-stats") || "[]");
     openModal();
     if (shouldMarkRead) {

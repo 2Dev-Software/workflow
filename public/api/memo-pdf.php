@@ -503,6 +503,92 @@ if (!function_exists('memo_pdf_resolve_stage_note')) {
     }
 }
 
+if (!function_exists('memo_pdf_resolve_chain_from_routes')) {
+    function memo_pdf_resolve_chain_from_routes(array $memo, array $chain, array $routes): array
+    {
+        $flow_stage = strtoupper(trim((string) ($memo['flowStage'] ?? '')));
+        $forward_actors = [];
+        $has_director_review = false;
+        $director_actions = [
+            'DIRECTOR_APPROVE',
+            'DIRECTOR_REJECT',
+            'DIRECTOR_SIGNED',
+            'DIRECTOR_ACKNOWLEDGED',
+            'DIRECTOR_AGREED',
+            'DIRECTOR_NOTIFIED',
+            'DIRECTOR_ASSIGNED',
+            'DIRECTOR_SCHEDULED',
+            'DIRECTOR_PERMITTED',
+            'DIRECTOR_APPROVED',
+            'DIRECTOR_REJECTED',
+            'DIRECTOR_REQUEST_MEETING',
+        ];
+
+        foreach ($routes as $route) {
+            $actor_pid = trim((string) ($route['actorPID'] ?? ''));
+            $action = strtoupper(trim((string) ($route['action'] ?? '')));
+
+            if ($actor_pid === '') {
+                continue;
+            }
+
+            if ($action === 'FORWARD') {
+                $forward_actors[] = $actor_pid;
+                continue;
+            }
+
+            if ($action === 'APPROVE_UNSIGNED') {
+                $chain['DEPUTY'] = $actor_pid;
+                continue;
+            }
+
+            if (in_array($action, $director_actions, true)) {
+                $chain['DIRECTOR'] = $actor_pid;
+                $has_director_review = true;
+            }
+        }
+
+        if (($flow_stage === 'DIRECTOR' || $has_director_review) && $forward_actors !== []) {
+            $head_pid = trim((string) ($chain['HEAD'] ?? ''));
+            $director_pid = trim((string) ($chain['DIRECTOR'] ?? ''));
+
+            for ($index = count($forward_actors) - 1; $index >= 0; $index--) {
+                $actor_pid = trim((string) ($forward_actors[$index] ?? ''));
+
+                if ($actor_pid === '' || $actor_pid === $head_pid || $actor_pid === $director_pid) {
+                    continue;
+                }
+
+                $chain['DEPUTY'] = $actor_pid;
+                break;
+            }
+        }
+
+        return $chain;
+    }
+}
+
+if (!function_exists('memo_pdf_should_suppress_director_stage')) {
+    function memo_pdf_should_suppress_director_stage(string $memo_status_key, array $chain, array $routes): bool
+    {
+        if ($memo_status_key === MEMO_STATUS_APPROVED_UNSIGNED) {
+            return true;
+        }
+
+        $deputy_pid = trim((string) ($chain['DEPUTY'] ?? ''));
+        $director_pid = trim((string) ($chain['DIRECTOR'] ?? ''));
+
+        if ($deputy_pid === '' || $director_pid === '' || $deputy_pid !== $director_pid) {
+            return false;
+        }
+
+        $director_action = strtoupper(memo_pdf_latest_review_action_by_actor($routes, $director_pid));
+        $deputy_action = strtoupper(memo_pdf_latest_review_action_by_actor($routes, $deputy_pid));
+
+        return in_array($director_action !== '' ? $director_action : $deputy_action, ['APPROVE_UNSIGNED', 'SIGN'], true);
+    }
+}
+
 if (!function_exists('memo_pdf_find_teacher_pid_by_position_like')) {
     function memo_pdf_find_teacher_pid_by_position_like(mysqli $connection, string $like_pattern): string
     {
@@ -655,12 +741,37 @@ if (!function_exists('memo_pdf_build_live_data')) {
         $routes = $memo_id > 0 ? memo_list_routes($memo_id) : [];
         $attachments = $memo_id > 0 ? memo_get_attachments($memo_id) : [];
         $resolved_chain = $creator_pid !== '' ? memo_resolve_chain_approvers($creator_pid) : [];
+        $memo_status_key = strtoupper(trim((string) ($memo['status'] ?? '')));
 
         $chain = [
             'HEAD' => trim((string) ($memo['headPID'] ?? ($resolved_chain['headPID'] ?? ''))),
             'DEPUTY' => trim((string) ($memo['deputyPID'] ?? ($resolved_chain['deputyPID'] ?? ''))),
             'DIRECTOR' => trim((string) ($memo['directorPID'] ?? ($resolved_chain['directorPID'] ?? (system_get_current_director_pid() ?? '')))),
         ];
+        $chain = memo_pdf_resolve_chain_from_routes($memo, $chain, $routes);
+        $approved_pid = trim((string) ($memo['approvedByPID'] ?? ''));
+        $head_pid = trim((string) ($chain['HEAD'] ?? ''));
+        $deputy_pid = trim((string) ($chain['DEPUTY'] ?? ''));
+
+        if ($memo_status_key !== MEMO_STATUS_APPROVED_UNSIGNED && $approved_pid !== '') {
+            $director_action = memo_pdf_latest_review_action_by_actor($routes, trim((string) ($chain['DIRECTOR'] ?? '')));
+
+            if (
+                $director_action === ''
+                && $approved_pid !== $head_pid
+                && $approved_pid !== $deputy_pid
+            ) {
+                $chain['DIRECTOR'] = $approved_pid;
+            }
+        }
+
+        $suppress_director_stage = memo_pdf_should_suppress_director_stage($memo_status_key, $chain, $routes);
+
+        $route_actor_pids = array_values(array_filter(array_map(static function (array $route): string {
+            return trim((string) ($route['actorPID'] ?? ''));
+        }, $routes), static function (string $value): bool {
+            return $value !== '';
+        }));
 
         $profile_pids = array_filter([
             $creator_pid,
@@ -669,6 +780,7 @@ if (!function_exists('memo_pdf_build_live_data')) {
             $chain['DEPUTY'],
             $chain['DIRECTOR'],
             trim((string) ($memo['approvedByPID'] ?? '')),
+            ...$route_actor_pids,
         ], static fn(string $value): bool => $value !== '');
         $profiles = memo_pdf_fetch_teacher_profiles($connection, $profile_pids);
         $creator = $profiles[$creator_pid] ?? [];
@@ -692,11 +804,21 @@ if (!function_exists('memo_pdf_build_live_data')) {
             ],
         ];
 
+        $rendered_review_keys = [];
+
         foreach ($review_config as $stage => $meta) {
+            if ($stage === 'DIRECTOR' && $suppress_director_stage) {
+                continue;
+            }
+
             $stage_pid = trim((string) ($chain[$stage] ?? ''));
 
             if ($stage === 'DIRECTOR' && $stage_pid === '') {
-                $stage_pid = trim((string) ($memo['approvedByPID'] ?? ''));
+                $fallback_pid = trim((string) ($memo['approvedByPID'] ?? ''));
+
+                if ($fallback_pid !== '' && $fallback_pid !== $head_pid && $fallback_pid !== $deputy_pid) {
+                    $stage_pid = $fallback_pid;
+                }
             }
 
             $stage_profile = $profiles[$stage_pid] ?? [];
@@ -707,9 +829,17 @@ if (!function_exists('memo_pdf_build_live_data')) {
                 continue;
             }
 
+            $review_key = $stage_pid . '|' . strtoupper($stage_action) . '|' . $stage_note;
+
+            if (isset($rendered_review_keys[$review_key])) {
+                continue;
+            }
+
+            $rendered_review_keys[$review_key] = true;
+
             $review_blocks[] = [
                 'title' => $meta['title'],
-                'note' => $stage_note,
+                'note' => $stage_note !== '' ? $stage_note : '-',
                 'signature' => memo_pdf_safe_file_to_data_uri((string) ($stage_profile['signature'] ?? '')) ?? '',
                 'name' => trim((string) ($stage_profile['name'] ?? '-')),
                 'position' => trim((string) ($stage_profile['positionName'] ?? '-')),
