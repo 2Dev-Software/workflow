@@ -3102,10 +3102,21 @@ select {
 }
 
 .approval-filter-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 5fr 1fr 1fr;
+  width: 100%;
+  gap: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+  .approval-filter-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+  }
+
 }
 
 .approval-filter-group .page-selector {
@@ -3280,6 +3291,7 @@ select {
   display: flex;
   flex-direction: row;
   gap: 20px;
+  color: var(--color-secondary);
 }
 
 .approval-detail-modal .modal-title i {
@@ -4074,7 +4086,7 @@ select {
 
 .content-area .btn-confirm {
   width: 100%;
-  max-width: 150px;
+  min-width: 150px;
   height: 40px;
   background-color: var(--color-secondary);
   border-radius: 8px;
@@ -5196,7 +5208,7 @@ select {
   min-height: 80px;
   background-color: var(--color-secondary);
   font-size: var(--font-size-body-1);
-  color: var(--color-neutral-lightest);
+  color: var(--color-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -5543,11 +5555,21 @@ select {
 }
 
 .booking-card-header .room-admin-actions {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 5fr 1fr 1fr;
   width: 100%;
+  gap: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+  .booking-card-header .room-admin-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+  }
+
 }
 
 .room-admin-member-actions {
@@ -5597,7 +5619,7 @@ select {
 }
 
 .room-admin-filter {
-  width: 23%
+  width: 100%
 }
 
 .repair-date-stack {
@@ -5639,7 +5661,8 @@ select {
   align-items: center;
   justify-content: space-between;
   padding: 8px 15px;
-  width: 180px;
+  width: 100%;
+  min-width: 180px;
   height: 40px;
   border-radius: 6px;
   background-color: var(--color-neutral-lightest);
@@ -5859,7 +5882,7 @@ select {
   display: inline;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
+  padding: 0 14px;
   border-radius: 999px;
   font-size: var(--font-size-body-2);
   font-weight: bold;
@@ -7683,10 +7706,6 @@ select {
 .modal-overlay-vehicle-edit .attachment-action.remove:hover {
   background-color: rgba(var(--rgb-danger), 0.12);
 }
-
-/* .vehicle-row:nth-child(8) {
-    margin: 0;
-  } */
 
 .vehicle-row.column {
   display: flex;
@@ -18518,10 +18537,11 @@ label {
   .status-pill {
     display: inline-flex;
     align-items: center;
-    padding: 3px 10px;
+    padding: 0px 10px;
     border-radius: 999px;
     font-size: var(--font-size-desc-2);
     font-weight: bold;
+    height: 25px;
   }
 
 
@@ -18667,9 +18687,10 @@ label {
 
   .booking-detail-modal .modal-header {
     border-bottom: 1px solid rgba(var(--rgb-secondary), 0.15);
-    padding-bottom: 14px;
+    padding: 0 20px;
     background-color: transparent;
-    margin: 0 0 10px;
+    min-height: 40px;
+    margin: 0 !important;
   }
 
   .booking-detail-modal .modal-header div {
@@ -18827,7 +18848,7 @@ label {
   .booking-detail-modal.approval-detail-modal {
     width: 90%;
     height: 90%;
-    padding: 20px;
+    padding: 0;
   }
 
 
@@ -18969,7 +18990,7 @@ label {
     background: var(--color-neutral-lightest);
     padding: 10px 15px;
     box-shadow: 0 0px 12px rgba(var(--rgb-secondary), 0.1);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-desc-2);
   }
 
   .approval-detail-modal .booking-actions {
@@ -19081,7 +19102,7 @@ label {
   }
 
   .room-admin-actions .btn-confirm {
-    Width: 160PX;
+    width: 100%;
     margin: 0;
     font-size: var(--font-size-desc-2);
   }
@@ -19099,7 +19120,8 @@ label {
     align-items: center;
     justify-content: space-between;
     padding: 8px 10px;
-    width: 130px;
+    width: 100%;
+    min-width: 0;
     height: 30px;
     border-radius: 6px;
     background-color: var(--color-neutral-lightest);
@@ -19988,7 +20010,7 @@ label {
     display: grid;
     grid-auto-flow: row;
     gap: 10px;
-    margin: 0 0 10px 0;
+    margin: 0 0 20px 0;
   }
 
   .vehicle-input-content {
@@ -20462,10 +20484,6 @@ label {
     justify-content: center;
     min-height: 30px;
     text-align: center;
-  }
-
-  .vehicle-row:nth-child(8) {
-    margin: 0;
   }
 
   .vehicle-row.column {
@@ -23906,14 +23924,9 @@ label {
   }
 
   .modal-overlay-vehicle-edit .header-modal {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
-    border-bottom: 1px solid var(--color-secondary);
-    margin: 0 0 10px;
+    margin: 0;
+    min-height: 60px;
   }
 
   .modal-overlay-vehicle-edit label strong {
@@ -25233,6 +25246,18 @@ label {
     font-size: var(--font-size-desc-2);
   }
 
+  .tp-input {
+    height: 30px;
+  }
+
+  .booking-detail-modal .modal-header {
+    background-color: var(--color-secondary);
+  }
+
+  .booking-detail-modal .modal-header .modal-title {
+    font-size: var(--font-size-desc-3);
+  }
+
 
 }
 
@@ -25268,7 +25293,7 @@ label {
   }
 
   .enterprise-card .approval-filter-group {
-    gap: 5px;
+    gap: 10px;
     justify-content: flex-start;
   }
 
@@ -25285,11 +25310,11 @@ label {
   }
 
   .enterprise-card .room-admin-filter {
-    min-width: 100px;
+    width: 100%;
   }
 
   .enterprise-card .room-admin-search {
-    width: 50%;
+    width: 100%;
   }
 
   .approval-filter-group {
@@ -25391,7 +25416,7 @@ label {
   }
 
   .approval-detail-modal .booking-detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(0, 1fr);
   }
 
   .approval-detail-modal .detail-item {
@@ -27745,6 +27770,10 @@ label {
     border-spacing: 0;
     background-color: #f8faff;
     min-width: 780px;
+    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -ms-scrollbar-style: none;
   }
 
   .booking-table th,
@@ -27941,8 +27970,8 @@ label {
   .booking-detail-modal .modal-header {
     border-bottom: 1px solid rgba(var(--rgb-secondary), 0.15);
     padding-bottom: 10px;
-    background-color: transparent;
-    margin: 0 0 10px;
+    background-color: var(--color-secondary);
+    margin: 0;
   }
 
   .booking-detail-modal .modal-header div {
@@ -27955,6 +27984,7 @@ label {
 
   .booking-detail-modal .booking-detail-body {
     background-color: transparent;
+    padding: 10px;
   }
 
   .booking-detail-body {
@@ -28178,8 +28208,8 @@ label {
   }
 
   .room-admin-actions .btn-confirm {
-    Width: 90px;
-    height: 20px;
+    width: 90px;
+    height: 25px;
     border-radius: 6px;
     margin: 0;
     font-size: var(--font-size-desc-3);
@@ -28198,8 +28228,9 @@ label {
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px;
-    width: 100px;
-    height: 20px;
+    min-width: 0;
+    width: 100%;
+    height: 25px;
     border-radius: 6px;
     background-color: var(--color-neutral-lightest);
     font-size: var(--font-size-desc-3);
@@ -29097,11 +29128,13 @@ label {
   .booking-detail-modal.approval-detail-modal {
     width: 90%;
     height: 90%;
-    padding: 10px;
+    padding: 0;
   }
 
   .booking-detail-modal .modal-header {
-    padding: 10px;
+    padding: 0 10px;
+    min-height: 40px;
+    margin: 0 !important;
   }
 
   .approval-detail-modal .modal-header div {
@@ -29145,13 +29178,13 @@ label {
 
   .approval-panel-title {
     margin: 0;
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     font-weight: bold;
     color: var(--color-secondary);
   }
 
   .approval-panel-subtitle {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-neutral-dark);
   }
 
@@ -29172,11 +29205,11 @@ label {
   }
 
   .approval-detail-modal .booking-detail-section h4 {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
   }
 
   .approval-detail-modal .booking-detail-section p {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
   }
 
   .approval-panel-header {
@@ -29186,18 +29219,6 @@ label {
     gap: 10px;
     padding-bottom: 6px;
     border-bottom: 1px dashed rgba(var(--rgb-secondary), 0.5);
-  }
-
-  .approval-panel-title {
-    margin: 0;
-    font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
-  }
-
-  .approval-panel-subtitle {
-    font-size: var(--font-size-desc-2);
-    color: var(--color-neutral-dark);
   }
 
   .approval-detail-modal .detail-item {
@@ -29210,12 +29231,12 @@ label {
   }
 
   .approval-detail-modal .detail-label {
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
   }
 
   .approval-detail-modal .detail-value {
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-4);
     color: var(--color-secondary);
   }
 
@@ -29236,7 +29257,7 @@ label {
     background: var(--color-neutral-lightest);
     padding: 10px 15px;
     box-shadow: 0 0px 12px rgba(var(--rgb-secondary), 0.1);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-desc-4);
   }
 
   .approval-detail-modal .booking-actions {
@@ -29250,7 +29271,7 @@ label {
   }
 
   .approval-detail-modal .booking-actions .btn-confirm {
-    font-size: var(--font-size-desc-2);
+    font-size: var(--font-size-desc-3);
     height: 30px;
     padding: 0 10px;
     border-radius: 8px;
@@ -29754,10 +29775,6 @@ label {
     width: 100%;
   }
 
-  .vehicle-row:nth-child(8) {
-    margin: 0;
-  }
-
   .vehicle-row.column {
     display: flex;
     flex-direction: column;
@@ -29848,15 +29865,20 @@ label {
   }
 
   .modal-overlay-vehicle-edit .header-modal {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: var(--font-size-desc-1);
-    font-weight: bold;
-    color: var(--color-secondary);
+    font-size: var(--font-size-desc-3);
     border-bottom: 1px solid var(--color-secondary);
+    margin: 0;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .modal-overlay-vehicle-edit .vehicle-detail-form {
+    padding: 10px;
+  }
+
+  .vehicle-detail-form hr {
+    height: 1px;
     margin: 0 0 10px;
-    height: 30px;
   }
 
   .modal-overlay-vehicle-edit label strong {
@@ -29957,7 +29979,7 @@ label {
 
   .modal-overlay-vehicle-edit .show-member {
     width: 100%;
-    height: 30px;
+    height: 25px;
     background-color: var(--color-secondary);
     border-radius: 6px;
     border: none;
@@ -30207,11 +30229,11 @@ label {
 
   .modal-overlay-vehicle-edit .calculated-field {
     width: 100%;
-    min-height: 30px;
+    min-height: 20px;
     padding: 0 10px;
     background-color: rgba(var(--rgb-secondary), 0.2);
     border-radius: 6px;
-    font-size: var(--font-size-desc-1);
+    font-size: var(--font-size-desc-3);
     color: var(--color-secondary);
     border: none;
     display: flex;
@@ -35019,6 +35041,57 @@ label {
 
   .timeline-date {
     font-size: var(--font-size-desc-4);
+  }
+
+  .tp-input {
+    height: 25px;
+  }
+
+}
+
+@media screen and (max-width: 768px) {
+  .room-admin-actions,
+  .approval-filter-group {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+    width: 100%;
+  }
+
+  .room-admin-filter {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .room-admin-filter .page-selector {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .room-admin-actions .custom-select-trigger,
+  .room-admin-actions .custom-select-wrapper,
+  .page-selector,
+  .room-admin-filter {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+
+  }
+
+  .room-admin-actions .btn-confirm {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .approval-toolbar .custom-select-wrapper {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
   }
 
 }

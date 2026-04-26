@@ -25,6 +25,11 @@ ob_start();
         min-height: 50px;
     }
 
+        .booking-table td:nth-child(2),
+    .booking-table td:nth-child(3) {
+        text-align: start;
+    }
+
 </style>
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>

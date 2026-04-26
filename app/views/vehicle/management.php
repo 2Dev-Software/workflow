@@ -96,6 +96,93 @@ $format_thai_date = static function (string $date) use ($thai_months): string {
 
 ob_start();
 ?>
+
+<style>
+    .room-admin-table th:nth-child(3),
+    .room-admin-table td:nth-child(3) {
+        text-align: center;
+        min-width: 150px;
+    }
+
+    .room-admin-actions .custom-select-trigger,
+    .room-admin-actions .custom-select-wrapper,
+    .page-selector,
+    .room-admin-filter {
+        width: 100%;
+    }
+
+    @media screen and (max-width: 1023px) {
+        .room-admin-actions .btn-confirm {
+            min-width: 120px;
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        .room-admin-actions .btn-confirm {
+            height: 25px;
+        }
+
+        .room-admin-actions .custom-select-trigger,
+        .room-admin-actions .custom-select-wrapper,
+        .page-selector,
+        .room-admin-filter {
+            width: 100%;
+        }
+
+        .room-admin-filter {
+            width: 100%;
+        }
+
+        .room-admin-actions {
+            display: grid !important;
+            grid-template-columns: 3fr 1fr 1fr;
+        }
+
+        .room-admin-search {
+            width: 100%;
+        }
+    }
+
+    @media screen and (max-width: 570px) {
+        .room-admin-actions {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .room-admin-search {
+            grid-column: span 2;
+        }
+
+        .room-admin-filter {
+            width: 100%;
+            min-width: none;
+            max-width: none;
+        }
+
+        .room-admin-filter .page-selector {
+            width: 100%;
+            min-width: none;
+            max-width: none;
+        }
+
+        .room-admin-actions .custom-select-trigger,
+        .room-admin-actions .custom-select-wrapper,
+        .page-selector,
+        .room-admin-filter {
+            width: 100%;
+            min-width: none;
+            max-width: none;
+
+        }
+
+        .room-admin-actions .btn-confirm {
+            min-width: 0;
+            width: 100%;
+        }
+
+    }
+</style>
+
 <div class="content-header">
     <h1>ยินดีต้อนรับ</h1>
     <p>จัดการยานพาหนะ</p>
@@ -114,16 +201,7 @@ ob_start();
                         autocomplete="off" data-vehicle-search-input>
                 </div>
                 <div class="room-admin-filter">
-                    <!-- <select class="form-input" data-vehicle-status-filter>
-                        <option value="all">ทุกสถานะ</option>
-                        <?php foreach ($status_options as $status_option) : ?>
-                            <option value="<?= h((string) ($status_classes[$status_option] ?? '')) ?>">
-                                <?= h((string) $status_option) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select> -->
                     <div class="page-selector">
-                        <!-- <p>แสดงตามสถานะหนังสือ</p> -->
 
                         <div class="custom-select-wrapper" data-target="filterReadInput">
                             <div class="custom-select-trigger">
