@@ -3102,10 +3102,21 @@ select {
 }
 
 .approval-filter-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 5fr 1fr 1fr;
+  width: 100%;
+  gap: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+  .approval-filter-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+  }
+
 }
 
 .approval-filter-group .page-selector {
@@ -4075,7 +4086,7 @@ select {
 
 .content-area .btn-confirm {
   width: 100%;
-  max-width: 150px;
+  min-width: 150px;
   height: 40px;
   background-color: var(--color-secondary);
   border-radius: 8px;
@@ -5544,11 +5555,21 @@ select {
 }
 
 .booking-card-header .room-admin-actions {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 5fr 1fr 1fr;
   width: 100%;
+  gap: 10px;
+}
+
+@media screen and (max-width: 1200px) {
+  .booking-card-header .room-admin-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+  }
+
 }
 
 .room-admin-member-actions {
@@ -5598,7 +5619,7 @@ select {
 }
 
 .room-admin-filter {
-  width: 23%
+  width: 100%
 }
 
 .repair-date-stack {
@@ -5640,7 +5661,8 @@ select {
   align-items: center;
   justify-content: space-between;
   padding: 8px 15px;
-  width: 180px;
+  width: 100%;
+  min-width: 180px;
   height: 40px;
   border-radius: 6px;
   background-color: var(--color-neutral-lightest);
@@ -5860,7 +5882,7 @@ select {
   display: inline;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
+  padding: 0 14px;
   border-radius: 999px;
   font-size: var(--font-size-body-2);
   font-weight: bold;
@@ -19080,7 +19102,7 @@ label {
   }
 
   .room-admin-actions .btn-confirm {
-    Width: 160PX;
+    width: 100%;
     margin: 0;
     font-size: var(--font-size-desc-2);
   }
@@ -19098,7 +19120,8 @@ label {
     align-items: center;
     justify-content: space-between;
     padding: 8px 10px;
-    width: 130px;
+    width: 100%;
+    min-width: 0;
     height: 30px;
     border-radius: 6px;
     background-color: var(--color-neutral-lightest);
@@ -25270,7 +25293,7 @@ label {
   }
 
   .enterprise-card .approval-filter-group {
-    gap: 5px;
+    gap: 10px;
     justify-content: flex-start;
   }
 
@@ -25287,11 +25310,11 @@ label {
   }
 
   .enterprise-card .room-admin-filter {
-    min-width: 100px;
+    width: 100%;
   }
 
   .enterprise-card .room-admin-search {
-    width: 50%;
+    width: 100%;
   }
 
   .approval-filter-group {
@@ -27747,6 +27770,10 @@ label {
     border-spacing: 0;
     background-color: #f8faff;
     min-width: 780px;
+    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -ms-scrollbar-style: none;
   }
 
   .booking-table th,
@@ -28181,8 +28208,8 @@ label {
   }
 
   .room-admin-actions .btn-confirm {
-    Width: 90px;
-    height: 20px;
+    width: 90px;
+    height: 25px;
     border-radius: 6px;
     margin: 0;
     font-size: var(--font-size-desc-3);
@@ -28201,8 +28228,9 @@ label {
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px;
-    width: 100px;
-    height: 20px;
+    min-width: 0;
+    width: 100%;
+    height: 25px;
     border-radius: 6px;
     background-color: var(--color-neutral-lightest);
     font-size: var(--font-size-desc-3);
@@ -35017,6 +35045,53 @@ label {
 
   .tp-input {
     height: 25px;
+  }
+
+}
+
+@media screen and (max-width: 768px) {
+  .room-admin-actions,
+  .approval-filter-group {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-admin-search {
+    grid-column: span 2;
+    width: 100%;
+  }
+
+  .room-admin-filter {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .room-admin-filter .page-selector {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .room-admin-actions .custom-select-trigger,
+  .room-admin-actions .custom-select-wrapper,
+  .page-selector,
+  .room-admin-filter {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+
+  }
+
+  .room-admin-actions .btn-confirm {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .approval-toolbar .custom-select-wrapper {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
   }
 
 }
